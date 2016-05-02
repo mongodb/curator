@@ -1,0 +1,157 @@
+tasks:
+  - name: lint
+    commands:
+      - command: git.get_project
+        params:
+          directory: curator
+      - command: git.apply_patch
+        params:
+          directory: curator
+      - command: shell.exec
+        params:
+          working_dir: curator
+          script: |
+            set -o errexit
+            set -o verbose
+
+            export GOPATH=`pwd`/build/gopath
+
+            make lint-deps
+            make lint
+  - name: build
+    commands:
+      - command: git.get_project
+        params:
+          directory: curator
+      - command: git.apply_patch
+        params:
+          directory: curator
+      - command: shell.exec
+        params:
+          working_dir: curator
+          script: |
+            set -o errexit
+            set -o verbose
+
+            export GOPATH=`pwd`/build/gopath
+
+            make build
+  - name: test
+    depends_on:
+      - name: build
+    commands:
+      - command: git.get_project
+        params:
+          directory: curator
+      - command: git.apply_patch
+        params:
+          directory: curator
+      - command: shell.exec
+        params:
+          working_dir: curator
+          script: |
+            set -o errexit
+            set -o verbose
+
+            export GOPATH=`pwd`/build/gopath
+
+            make test
+      - command: gotest.parse_files
+        params:
+          files: ["build/test.*.out"]
+  - name: coverage
+    depends_on:
+      - name: test
+    commands:
+      - command: git.get_project
+        params:
+          directory: curator
+      - command: git.apply_patch
+        params:
+          directory: curator
+      - command: shell.exec
+        params:
+          working_dir: curator
+          script: |
+            set -o errexit
+            set -o verbose
+
+            export GOPATH=`pwd`/build/gopath
+
+            make coverage-html
+      - command: s3.put
+        params:
+          aws_key: ${aws_key}
+          aws_secret: ${aws_secret}
+          local_file: curator/build/coverage.main.html
+          remote_file: curator/${task_id}/coverage.main.html
+          bucket: mciuploads
+          content_type: text/html
+          permissions: public-read
+          display_name: main-coverage-html
+      - command: s3.put
+        params:
+          aws_key: ${aws_key}
+          aws_secret: ${aws_secret}
+          local_file: curator/build/coverage.curator.html
+          remote_file: curator/${task_id}/coverage.curator.html
+          bucket: mciuploads
+          content_type: text/html
+          permissions: public-read
+          display_name: curator-coverage-html
+      - command: s3.put
+        params:
+          aws_key: ${aws_key}
+          aws_secret: ${aws_secret}
+          local_file: curator/build/coverage.operations.html
+          remote_file: curator/${task_id}/coverage.operations.html
+          bucket: mciuploads
+          content_type: text/html
+          permissions: public-read
+          display_name: operations-coverage-html
+
+
+post:
+  - command: shell.exec
+    params:
+      script: |
+        rm -rf curator
+
+buildvariants:
+  - name: rhel7
+    display_name: RHEL 7.0
+    run_on:
+      - rhel70
+    tasks:
+      - name: lint
+      - name: build
+      - name: test
+      - name: coverage
+  - name: archlinux
+    display_name: Arch Linux
+    run_on:
+      - archlinux-test
+    tasks:
+      - name: build
+      - name: test
+  - name: rhel6
+    display_name: rhel6
+    run_on:
+      - rhel62-test
+    tasks:
+      - name: build
+      - name: test
+  - name: debian8
+    display_name: Debian 8
+    run_on:
+      - debian81-test
+    tasks:
+      - name: build
+      - name: test
+  - name: osx
+    display_name: OS X 10.10
+    run_on:
+      - osx-1010
+    tasks:
+      - name: build
+      - name: test
