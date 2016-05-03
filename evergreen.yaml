@@ -29,6 +29,7 @@ variables:
       - command: git.apply_patch
         params:
           directory: curator
+      - func: setup-credentials
       - func: run-make
         vars: { target: "${task_name}" }
       - func: parse-test-output
@@ -43,6 +44,7 @@ variables:
       - name: test-curator
       - name: test-main
       - name: test-operations
+      - name: test-sthree
   - &dev-tasks
       # dev tasks contains all the test suites plus coverage and
       # linting, and the race detector this is a special builder.
@@ -51,11 +53,13 @@ variables:
       - name: test-curator
       - name: test-main
       - name: test-operations
+      - name: test-sthree
       - name: coverage
   - &race-detector-tasks
       - name: build-race
       - name: race-curator
       - name: race-main
+      - name: race-sthree
       - name: race-operations
 
 
@@ -63,6 +67,23 @@ variables:
 #              Functions              #
 #######################################
 functions:
+  setup-credentials:
+    command: shell.exec
+    params:
+       silent: true
+       script: |
+         mkdir ~/.aws
+
+         cat <<EOF > ~/.aws/config
+         [default]
+         region = us-east-1
+         EOF
+
+         cat <<EOF > ~/.aws/credentials
+         [default]
+         aws_access_key_id = ${aws_key}
+         aws_secret_access_key = ${aws_secret}
+         EOF
   run-make:
     command: shell.exec
     params:
@@ -120,6 +141,7 @@ tasks:
       - command: git.apply_patch
         params:
           directory: curator
+      - func: setup-credentials
       - func: run-make
         vars: { target: "coverage-html"}
       - func: upload-coverage
@@ -128,6 +150,8 @@ tasks:
         vars: { name: "operations"}
       - func: upload-coverage
         vars: { name: "curator"}
+      - func: upload-coverage
+        vars: { name: "sthree"}
 
   # define tasks for all test suites (modules)
   - <<: *run-go-test-suite
@@ -136,6 +160,8 @@ tasks:
     name: test-main
   - <<: *run-go-test-suite
     name: test-curator
+  - <<: *run-go-test-suite
+    name: test-sthree
 
   # run the suites with the race detector (one variant only)
   - <<: *run-go-test-suite
@@ -150,6 +176,10 @@ tasks:
     name: race-curator
     depends_on:
       - name: build-race
+  - <<: *run-go-test-suite
+    name: race-sthree
+    depends_on:
+      - name: build-race
 
 
 post:
@@ -157,7 +187,7 @@ post:
     params:
       script: |
         rm -rf curator
-
+        rm -rf ~/.aws
 
 #######################################
 #           Buildvariants             #

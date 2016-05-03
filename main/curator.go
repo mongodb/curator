@@ -29,6 +29,7 @@ func buildApp() *cli.App {
 	// Register sub-commands here.
 	app.Commands = []cli.Command{
 		operations.HelloWorld(),
+		operations.S3(),
 	}
 
 	// These are global options. Use this to configure logging or

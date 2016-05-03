@@ -1,7 +1,7 @@
 # start project configuration
 name := curator
 buildDir := build
-packages := $(name) operations main
+packages := $(name) operations main sthree
 orgPath := github.com/mongodb
 projectPath := $(orgPath)/$(name)
 # end project configuration
@@ -29,32 +29,42 @@ lintDeps += github.com/opennota/check/cmd/varcheck
 lintDeps += github.com/tsenart/deadcode
 lintDeps += github.com/client9/misspell/cmd/misspell
 lintDeps += github.com/walle/lll/cmd/lll
-lintDeps += golang.org/x/tools/cmd/gotype
 lintDeps += honnef.co/go/simple/cmd/gosimple
 lintDeps += honnef.co/go/staticcheck/cmd/staticcheck
 #   test dependencies.
 testDeps := github.com/stretchr/testify
+testDeps += github.com/satori/go.uuid
 #   package dependencies.
 deps := github.com/tychoish/grip
 deps += github.com/codegangsta/cli
 deps += github.com/blang/semver
+deps += github.com/goamz/goamz/aws
+deps += github.com/goamz/goamz/s3
+#   use the amboy fork so we can continue to iterate on amboy and
+#   curator seperatly. get dependencies because amboy is a pure
+#   library.
+deps += github.com/tychoish/amboy
+deps += github.com/gonum/graph
+deps += github.com/gonum/matrix
+deps += github.com/gonum/floats
 # end dependency declarations
 
 
 # start linting configuration
-#   include test files and give linters 20s to run to avoid timeouts
-lintArgs := --tests --deadline=20s
+#   include test files and give linters 40s to run to avoid timeouts
+lintArgs := --tests --deadline=40s
+#   skip the build directory and the gopath,
+lintArgs += --skip="$(gopath)" --skip="$(buildDir)"
+#   gotype produces false psoitives because it reads .a files which
+#   are rarely up to date
+lintArgs += --disable="gotype"
 #   enable and configure additional linters
 lintArgs += --enable="go fmt -s" --enable="goimports"
 lintArgs += --linter='misspell:misspell ./*.go:PATH:LINE:COL:MESSAGE' --enable=misspell
-lintArgs += --line-length=100
+lintArgs += --line-length=100 --dupl-threshold=100
 #   the gotype linter has an imperfect compilation simulator and
 #   produces the following false postive errors:
 lintArgs += --exclude="error: could not import github.com/mongodb/curator"
-lintArgs += --exclude="error: undeclared name: .+ \(gotype\)"
-#   gotype doesn't understand testify suite methods
-lintArgs += --exclude="error: invalid operation: s.+Suite.+ \(gotype\)"
-lintArgs += --exclude="error: could not import .*testify.* \(gotype\)"
 #   go lint warns on an error in docstring format, erroneously because
 #   it doesn't consider the entire package.
 lintArgs += --exclude="warning: package comment should be of the form \"Package curator ...\""
@@ -77,7 +87,7 @@ $(gopath)/src/%:
 
 # userfacing targets for basic build and development operations
 lint:$(gopath)/src/$(projectPath) $(lintDeps) $(deps)
-	$(gopath)/bin/gometalinter $(lintArgs) $< | sed 's%$</%%'
+	$(gopath)/bin/gometalinter $(lintArgs) ./... | sed 's%$</%%'
 deps:$(deps)
 test-deps:$(testDeps)
 lint-deps:$(lintDeps)
