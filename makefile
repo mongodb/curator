@@ -11,6 +11,7 @@ lintDeps := github.com/alecthomas/gometalinter
 testDeps := github.com/stretchr/testify
 deps := github.com/tychoish/grip
 deps += github.com/codegangsta/cli
+deps += github.com/blang/semver
 # end dependency declarations
 
 
