@@ -2,12 +2,24 @@
 name := curator
 buildDir := build
 packages := $(name) operations main
-projectPath := github.com/mongodb/$(name)
+orgPath := github.com/mongodb
+projectPath := $(orgPath)/$(name)
 # end project configuration
 
 
 # start dependency declarations
 lintDeps := github.com/alecthomas/gometalinter
+lintDeps += golang.org/x/tools/cmd/gotype
+lintDeps += github.com/golang/lint/golint
+lintDeps += github.com/kisielk/errcheck
+lintDeps += github.com/mdempsky/unconvert
+lintDeps += github.com/mvdan/interfacer/cmd/interfacer
+lintDeps += github.com/opennota/check/cmd/aligncheck
+lintDeps += github.com/opennota/check/cmd/structcheck
+lintDeps += github.com/opennota/check/cmd/varcheck
+lintDeps += github.com/walle/lll/cmd/lll
+lintDeps += honnef.co/go/simple/cmd/gosimple
+lintDeps += honnef.co/go/staticcheck/cmd/staticcheck
 testDeps := github.com/stretchr/testify
 deps := github.com/tychoish/grip
 deps += github.com/codegangsta/cli
@@ -20,6 +32,9 @@ deps += github.com/blang/semver
 #   produces the following false postive errors:
 lintExclusion := --exclude="error: could not import github.com/mongodb/curator"
 lintExclusion += --exclude="error: undeclared name: .+ \(gotype\)"
+#   go lint warns on an error in docstring format, erroneously because
+#   it doesn't consider the entire package.
+lintExclusion += --exclude="warning: package comment should be of the form \"Package curator ...\""
 # end linting configuration
 
 
@@ -36,9 +51,9 @@ $(gopath)/src/%:
 
 
 # userfacing targets for basic build/test/lint operations
-lint:
-	$(gopath)/bin/gometalinter --deadline=20s $(lintExclusion) ./...
-build:$(buildDir)/$(name)
+lint:$(gopath)/src/$(projectPath) $(lintDeps) $(deps)
+	$(gopath)/bin/gometalinter --deadline=20s $(lintExclusion) $< | sed 's%$</%%'
+build:deps $(buildDir)/$(name)
 test:$(foreach target,$(packages),$(buildDir)/test.$(target).out)
 coverage:$(foreach target,$(packages),$(buildDir)/coverage.$(target).out)
 coverage-html:$(foreach target,$(packages),$(buildDir)/coverage.$(target).html)
@@ -48,11 +63,12 @@ phony := lint build test coverage coverage-html
 
 # implementation details for building the binary and creating a
 # convienent link in the working directory
-$(gopath)/src/$(projectPath):deps
-	rm -f $@
-	ln -s $(shell pwd) $@
+$(gopath)/src/$(orgPath):
+	@mkdir -p $@
+$(gopath)/src/$(projectPath):$(gopath)/src/$(orgPath)
+	@[ -L $@ ] || ln -s $(shell pwd) $@
 $(name):$(buildDir)/$(name)
-	[ -L $@ ] || ln -s $< $@
+	@[ -L $@ ] || ln -s $< $@
 $(buildDir)/$(name):$(gopath)/src/$(projectPath)
 	go build -o $@ main/$(name).go
 phony += $(buildDir)/$(name)
@@ -73,7 +89,7 @@ phony += $(foreach target,$(packages),coverage-html-$(target))
 # end convienence targets
 
 
-# start test and coverage artifacts 
+# start test and coverage artifacts
 #    implementation for package coverage and test running, to produce
 #    and save test output.
 $(buildDir)/coverage.%.html:$(buildDir)/coverage.%.out
@@ -93,12 +109,11 @@ $(buildDir)/test.$(name).out:test-deps
 
 # start dependency installation (phony) targets.
 deps:$(deps)
-test-deps:$(testDeps) $(deps)
+test-deps:$(testDeps) $(deps) $(name) build
 lint-deps:$(lintDeps)
-	$(gopath)/bin/gometalinter --install
 clean:
-	rm -rf $(deps) $(lintDeps) $(testDeps) $(buildDir)/test.* $(buildDir)/coverage.*
-phony += deps test-deps lint-deps
+	rm -rf $(name) $(deps) $(lintDeps) $(testDeps) $(buildDir)/test.* $(buildDir)/coverage.*
+phony += deps test-deps lint-deps clean
 # end dependency targets
 
 # configure phony targets

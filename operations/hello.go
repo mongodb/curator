@@ -15,8 +15,9 @@ func HelloWorld() cli.Command {
 		Aliases: []string{"hello-world", "hi"},
 		Usage:   "A simple hello world example.",
 		Flags:   []cli.Flag{},
-		Action: func(c *cli.Context) {
+		Action: func(c *cli.Context) error {
 			fmt.Println(helloWorld())
+			return nil
 		},
 	}
 }

@@ -1,3 +1,35 @@
+functions:
+  setup-environment:
+    command: shell.exec
+    params:
+      working_dir: curator
+      script: |
+        set -o errexit
+
+        mkdir build
+
+        cat <<EOF > build/evergreen-setup-environment.sh
+           export GOPATH=`pwd`/build/gopath
+           export PATH=$GOPATH/bin:$PATH
+
+           if [ -d /opt/ldwrapper/bin ]; then
+              export PATH=/opt/ldwrapper/bin:$PATH
+           fi
+
+           if [ -d /opt/openssl/lib64 ]; then
+              export LD_LIBRARY_PATH=/opt/openssl/lib64
+           fi
+
+           if [ '${search_path}' != '' ]; then
+              export PATH=${search_path}:$PATH
+           fi
+
+           if [ '${go_root}' != '' ]; then
+              export GOROOT=${go_root}
+           fi
+        EOF
+
+
 tasks:
   - name: lint
     commands:
@@ -7,16 +39,15 @@ tasks:
       - command: git.apply_patch
         params:
           directory: curator
+      - func: setup-environment
       - command: shell.exec
         params:
           working_dir: curator
           script: |
+            . ./build/evergreen-setup-environment.sh
             set -o errexit
             set -o verbose
 
-            export GOPATH=`pwd`/build/gopath
-
-            make lint-deps
             make lint
   - name: build
     commands:
@@ -26,14 +57,14 @@ tasks:
       - command: git.apply_patch
         params:
           directory: curator
+      - func: setup-environment
       - command: shell.exec
         params:
           working_dir: curator
           script: |
+            . ./build/evergreen-setup-environment.sh
             set -o errexit
             set -o verbose
-
-            export GOPATH=`pwd`/build/gopath
 
             make build
   - name: test
@@ -46,19 +77,19 @@ tasks:
       - command: git.apply_patch
         params:
           directory: curator
+      - func: setup-environment
       - command: shell.exec
         params:
           working_dir: curator
           script: |
+            . ./build/evergreen-setup-environment.sh
             set -o errexit
             set -o verbose
-
-            export GOPATH=`pwd`/build/gopath
 
             make test
       - command: gotest.parse_files
         params:
-          files: ["build/test.*.out"]
+          files: ["curator/build/test.*.out"]
   - name: coverage
     depends_on:
       - name: test
@@ -69,14 +100,14 @@ tasks:
       - command: git.apply_patch
         params:
           directory: curator
+      - func: setup-environment
       - command: shell.exec
         params:
           working_dir: curator
           script: |
+            . ./build/evergreen-setup-environment.sh
             set -o errexit
             set -o verbose
-
-            export GOPATH=`pwd`/build/gopath
 
             make coverage-html
       - command: s3.put
@@ -117,32 +148,47 @@ post:
       script: |
         rm -rf curator
 
+
 buildvariants:
-  - name: rhel7
+  - name: rhel70
     display_name: RHEL 7.0
+    expansions:
+      go_root: "/opt/go/"
     run_on:
       - rhel70
     tasks:
-      - name: lint
       - name: build
       - name: test
       - name: coverage
   - name: archlinux
-    display_name: Arch Linux
+    display_name: Arch Linux (go1.6)
     run_on:
       - archlinux-test
     tasks:
       - name: build
+      - name: lint
       - name: test
-  - name: rhel6
-    display_name: rhel6
+  - name: rhel62
+    display_name: RHEL 6.2
     run_on:
       - rhel62-test
     tasks:
       - name: build
       - name: test
-  - name: debian8
-    display_name: Debian 8
+  - name: rhel55
+    display_name: RHEL 5.5 (gccgo)
+    expansions:
+      search_path: "/opt/mongodbtoolchain/v2/bin/"
+    run_on:
+      - rhel55
+    tasks:
+      - name: build
+      - name: test
+  - name: debian81
+    display_name: Debian 8.1
+    expansions:
+      search_path: "/opt/go/bin/"
+      go_root: "/opt/go/"
     run_on:
       - debian81-test
     tasks:
@@ -150,6 +196,9 @@ buildvariants:
       - name: test
   - name: osx
     display_name: OS X 10.10
+    expansions:
+      go_root: "/usr/local/go/"
+      search_path: "/usr/local/go/bin/"
     run_on:
       - osx-1010
     tasks:

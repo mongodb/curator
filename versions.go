@@ -160,19 +160,19 @@ func (v *MongoDBVersion) IsLessThan(version *MongoDBVersion) bool {
 	return v.parsed.LT(version.parsed)
 }
 
-//  IsLessThanOrEqualTo returns true when "version" is less than or
+// IsLessThanOrEqualTo returns true when "version" is less than or
 // equal to (e.g. earlier or the same as) the object itself.
 func (v *MongoDBVersion) IsLessThanOrEqualTo(version *MongoDBVersion) bool {
 	// semver considers release candidates equal to GA, so we have to special case this
 
 	if v.IsEqualTo(version) {
 		return true
-	} else {
-		return v.parsed.LT(version.parsed)
 	}
+
+	return v.parsed.LT(version.parsed)
 }
 
-// IsLessThan returns true when "version" is greater than (e.g. later)
+// IsGreaterThan returns true when "version" is greater than (e.g. later)
 // than the object itself.
 func (v *MongoDBVersion) IsGreaterThan(version *MongoDBVersion) bool {
 	return v.parsed.GT(version.parsed)
@@ -183,9 +183,8 @@ func (v *MongoDBVersion) IsGreaterThan(version *MongoDBVersion) bool {
 func (v *MongoDBVersion) IsGreaterThanOrEqualTo(version *MongoDBVersion) bool {
 	if v.IsEqualTo(version) {
 		return true
-	} else {
-		return v.parsed.GT(version.parsed)
 	}
+	return v.parsed.GT(version.parsed)
 }
 
 // IsEqualTo returns true when "version" is the same as the object
@@ -194,7 +193,7 @@ func (v *MongoDBVersion) IsEqualTo(version *MongoDBVersion) bool {
 	return v.source == version.source
 }
 
-// IsEqualTo returns true when "version" is the different from the
+// IsNotEqualTo returns true when "version" is the different from the
 // object itself.
 func (v *MongoDBVersion) IsNotEqualTo(version *MongoDBVersion) bool {
 	return v.source != version.source
