@@ -1,33 +1,29 @@
 functions:
-  setup-environment:
+  run-make:
     command: shell.exec
     params:
-      working_dir: curator
-      script: |
-        set -o errexit
+       working_dir: curator
+       script: |
+         set -o errexit
+         set -o verbose
 
-        mkdir build
+         # Configure a local go path for this build.
+         export GOPATH=`pwd`/build/gopath
 
-        cat <<EOF > build/evergreen-setup-environment.sh
-           export GOPATH=`pwd`/build/gopath
-           export PATH=$GOPATH/bin:$PATH
-
-           if [ -d /opt/ldwrapper/bin ]; then
-              export PATH=/opt/ldwrapper/bin:$PATH
-           fi
-
-           if [ -d /opt/openssl/lib64 ]; then
-              export LD_LIBRARY_PATH=/opt/openssl/lib64
-           fi
-
-           if [ '${search_path}' != '' ]; then
-              export PATH=${search_path}:$PATH
-           fi
-
-           if [ '${go_root}' != '' ]; then
-              export GOROOT=${go_root}
-           fi
-        EOF
+         # Run make, called with proper environment variables set,
+         # running the target.
+         ${build_env} make ${target}
+  upload-coverage:
+    command: s3.put
+    params:
+      aws_key: ${aws_key}
+      aws_secret: ${aws_secret}
+      local_file: curator/build/coverage.${name}.html
+      remote_file: curator/${task_id}/${name}-coverage.html
+      bucket: mciuploads
+      content_type: text/html
+      permissions: public-read
+      display_name: ${name}-coverage.html
 
 
 tasks:
@@ -39,16 +35,8 @@ tasks:
       - command: git.apply_patch
         params:
           directory: curator
-      - func: setup-environment
-      - command: shell.exec
-        params:
-          working_dir: curator
-          script: |
-            . ./build/evergreen-setup-environment.sh
-            set -o errexit
-            set -o verbose
-
-            make lint
+      - func: run-make
+        vars: { target: "${task_name}" }
   - name: build
     commands:
       - command: git.get_project
@@ -57,17 +45,9 @@ tasks:
       - command: git.apply_patch
         params:
           directory: curator
-      - func: setup-environment
-      - command: shell.exec
-        params:
-          working_dir: curator
-          script: |
-            . ./build/evergreen-setup-environment.sh
-            set -o errexit
-            set -o verbose
-
-            make build
-  - name: test
+      - func: run-make
+        vars: { target: "${task_name}" }
+  - name: test-main
     depends_on:
       - name: build
     commands:
@@ -77,22 +57,14 @@ tasks:
       - command: git.apply_patch
         params:
           directory: curator
-      - func: setup-environment
-      - command: shell.exec
-        params:
-          working_dir: curator
-          script: |
-            . ./build/evergreen-setup-environment.sh
-            set -o errexit
-            set -o verbose
-
-            make test
+      - func: run-make
+        vars: { target: "${task_name}" }
       - command: gotest.parse_files
         params:
           files: ["curator/build/test.*.out"]
-  - name: coverage
+  - name: test-operations
     depends_on:
-      - name: test
+      - name: build
     commands:
       - command: git.get_project
         params:
@@ -100,46 +72,44 @@ tasks:
       - command: git.apply_patch
         params:
           directory: curator
-      - func: setup-environment
-      - command: shell.exec
+      - func: run-make
+        vars: { target: "${task_name}" }
+      - command: gotest.parse_files
         params:
-          working_dir: curator
-          script: |
-            . ./build/evergreen-setup-environment.sh
-            set -o errexit
-            set -o verbose
-
-            make coverage-html
-      - command: s3.put
+          files: ["curator/build/test.*.out"]
+  - name: test-curator
+    depends_on:
+      - name: build
+    commands:
+      - command: git.get_project
         params:
-          aws_key: ${aws_key}
-          aws_secret: ${aws_secret}
-          local_file: curator/build/coverage.main.html
-          remote_file: curator/${task_id}/coverage.main.html
-          bucket: mciuploads
-          content_type: text/html
-          permissions: public-read
-          display_name: main-coverage-html
-      - command: s3.put
+          directory: curator
+      - command: git.apply_patch
         params:
-          aws_key: ${aws_key}
-          aws_secret: ${aws_secret}
-          local_file: curator/build/coverage.curator.html
-          remote_file: curator/${task_id}/coverage.curator.html
-          bucket: mciuploads
-          content_type: text/html
-          permissions: public-read
-          display_name: curator-coverage-html
-      - command: s3.put
+          directory: curator
+      - func: run-make
+        vars: { target: "${task_name}" }
+      - command: gotest.parse_files
         params:
-          aws_key: ${aws_key}
-          aws_secret: ${aws_secret}
-          local_file: curator/build/coverage.operations.html
-          remote_file: curator/${task_id}/coverage.operations.html
-          bucket: mciuploads
-          content_type: text/html
-          permissions: public-read
-          display_name: operations-coverage-html
+          files: ["curator/build/test.*.out"]
+  - name: coverage
+    depends_on:
+      - name: build
+    commands:
+      - command: git.get_project
+        params:
+          directory: curator
+      - command: git.apply_patch
+        params:
+          directory: curator
+      - func: run-make
+        vars: { target: "coverage-html"}
+      - func: upload-coverage
+        vars: { name: "main"}
+      - func: upload-coverage
+        vars: { name: "operations"}
+      - func: upload-coverage
+        vars: { name: "curator"}
 
 
 post:
@@ -149,58 +119,65 @@ post:
         rm -rf curator
 
 
+variables:
+  - &test-tasks
+    - name: build
+    - name: test-curator
+    - name: test-main
+    - name: test-operations
+  - &dev-tasks
+    # dev tasks contains all the test suites plus coverage and
+    # linting.
+    - name: build
+    - name: lint
+    - name: test-curator
+    - name: test-main
+    - name: test-operations
+    - name: coverage
+
+
 buildvariants:
-  - name: rhel70
-    display_name: RHEL 7.0
-    expansions:
-      go_root: "/opt/go/"
-    run_on:
-      - rhel70
-    tasks:
-      - name: build
-      - name: test
-      - name: coverage
   - name: archlinux
     display_name: Arch Linux (go1.6)
     run_on:
       - archlinux-test
     tasks:
-      - name: build
-      - name: lint
-      - name: test
+      *dev-tasks
+  - name: rhel70
+    display_name: RHEL 7.0
+    expansions:
+      build_env: "PATH=/opt/go:$PATH"
+    run_on:
+      - rhel70
+    tasks:
+      *test-tasks
   - name: rhel62
     display_name: RHEL 6.2
     run_on:
       - rhel62-test
     tasks:
-      - name: build
-      - name: test
+      *test-tasks
   - name: rhel55
     display_name: RHEL 5.5 (gccgo)
     expansions:
-      search_path: "/opt/mongodbtoolchain/v2/bin/"
+      build_env: "LD_LIBRARY_PATH=/opt/openssl/lib64 PATH=/opt/mongodbtoolchain/v2/bin:/opt/ldwrapper/bin:$PATH"
     run_on:
       - rhel55
     tasks:
-      - name: build
-      - name: test
+      *test-tasks
   - name: debian81
     display_name: Debian 8.1
     expansions:
-      search_path: "/opt/go/bin/"
-      go_root: "/opt/go/"
+      build_env: "PATH=/opt/go/bin:$PATH GOROOT=/opt/go"
     run_on:
       - debian81-test
     tasks:
-      - name: build
-      - name: test
+      *test-tasks
   - name: osx
     display_name: OS X 10.10
     expansions:
-      go_root: "/usr/local/go/"
-      search_path: "/usr/local/go/bin/"
+      build_env: "PATH=/usr/local/go/bin:$PATH"
     run_on:
       - osx-1010
     tasks:
-      - name: build
-      - name: test
+      *test-tasks

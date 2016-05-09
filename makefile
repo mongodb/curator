@@ -8,19 +8,32 @@ projectPath := $(orgPath)/$(name)
 
 
 # start dependency declarations
+#   package, testing, and linter dependencies specified
+#   separately. This is a temporary solution: eventually we should
+#   vendorize all of these dependencies.
 lintDeps := github.com/alecthomas/gometalinter
-lintDeps += golang.org/x/tools/cmd/gotype
+#   explicitly download linters used by the metalinter so that we can
+#   avoid using the installation/update options, which often hit
+#   timeouts and do not propagate dependency installation errors.
+lintDeps += github.com/alecthomas/gocyclo
 lintDeps += github.com/golang/lint/golint
+lintDeps += github.com/gordonklaus/ineffassign
+lintDeps += github.com/jgautheron/goconst/cmd/goconst
 lintDeps += github.com/kisielk/errcheck
 lintDeps += github.com/mdempsky/unconvert
+lintDeps += github.com/mibk/dupl
 lintDeps += github.com/mvdan/interfacer/cmd/interfacer
 lintDeps += github.com/opennota/check/cmd/aligncheck
 lintDeps += github.com/opennota/check/cmd/structcheck
 lintDeps += github.com/opennota/check/cmd/varcheck
+lintDeps += github.com/tsenart/deadcode
 lintDeps += github.com/walle/lll/cmd/lll
+lintDeps += golang.org/x/tools/cmd/gotype
 lintDeps += honnef.co/go/simple/cmd/gosimple
 lintDeps += honnef.co/go/staticcheck/cmd/staticcheck
+#   test dependencies.
 testDeps := github.com/stretchr/testify
+#   package dependencies.
 deps := github.com/tychoish/grip
 deps += github.com/codegangsta/cli
 deps += github.com/blang/semver
@@ -28,13 +41,18 @@ deps += github.com/blang/semver
 
 
 # start linting configuration
+#   include test files and give linters 20s to run to avoid timeouts
+lintArgs := --tests --deadline=20s
 #   the gotype linter has an imperfect compilation simulator and
 #   produces the following false postive errors:
-lintExclusion := --exclude="error: could not import github.com/mongodb/curator"
-lintExclusion += --exclude="error: undeclared name: .+ \(gotype\)"
+lintArgs += --exclude="error: could not import github.com/mongodb/curator"
+lintArgs += --exclude="error: undeclared name: .+ \(gotype\)"
+#   gotype doesn't understand testify suite methods
+lintArgs += --exclude="error: invalid operation: s.+Suite.+ \(gotype\)"
+lintArgs += --exclude="error: could not import .*testify.* \(gotype\)"
 #   go lint warns on an error in docstring format, erroneously because
 #   it doesn't consider the entire package.
-lintExclusion += --exclude="warning: package comment should be of the form \"Package curator ...\""
+lintArgs += --exclude="warning: package comment should be of the form \"Package curator ...\""
 # end linting configuration
 
 
@@ -52,7 +70,7 @@ $(gopath)/src/%:
 
 # userfacing targets for basic build/test/lint operations
 lint:$(gopath)/src/$(projectPath) $(lintDeps) $(deps)
-	$(gopath)/bin/gometalinter --deadline=20s $(lintExclusion) $< | sed 's%$</%%'
+	$(gopath)/bin/gometalinter $(lintArgs) $< | sed 's%$</%%'
 build:deps $(buildDir)/$(name)
 test:$(foreach target,$(packages),$(buildDir)/test.$(target).out)
 coverage:$(foreach target,$(packages),$(buildDir)/coverage.$(target).out)
@@ -83,9 +101,6 @@ coverage-%:
 	$(MAKE) $(buildDir)/coverage.$*.out
 coverage-html-%:
 	$(MAKE) $(buildDir)/coverage.$*.html
-phony += $(foreach target,$(packages),test-$(target))
-phony += $(foreach target,$(packages),coverage-$(target))
-phony += $(foreach target,$(packages),coverage-html-$(target))
 # end convienence targets
 
 
