@@ -27,6 +27,7 @@ lintDeps += github.com/opennota/check/cmd/aligncheck
 lintDeps += github.com/opennota/check/cmd/structcheck
 lintDeps += github.com/opennota/check/cmd/varcheck
 lintDeps += github.com/tsenart/deadcode
+lintDeps += github.com/client9/misspell/cmd/misspell
 lintDeps += github.com/walle/lll/cmd/lll
 lintDeps += golang.org/x/tools/cmd/gotype
 lintDeps += honnef.co/go/simple/cmd/gosimple
@@ -43,6 +44,10 @@ deps += github.com/blang/semver
 # start linting configuration
 #   include test files and give linters 20s to run to avoid timeouts
 lintArgs := --tests --deadline=20s
+#   enable and configure additional linters
+lintArgs += --enable="go fmt -s" --enable="goimports"
+lintArgs += --linter='misspell:misspell ./*.go:PATH:LINE:COL:MESSAGE' --enable=misspell
+lintArgs += --line-length=100
 #   the gotype linter has an imperfect compilation simulator and
 #   produces the following false postive errors:
 lintArgs += --exclude="error: could not import github.com/mongodb/curator"
@@ -62,20 +67,28 @@ gopath := $(shell go env GOPATH)
 deps := $(addprefix $(gopath)/src/,$(deps))
 lintDeps := $(addprefix $(gopath)/src/,$(lintDeps))
 testDeps := $(addprefix $(gopath)/src/,$(testDeps))
+srcFiles := makefile $(shell find . -name "*.go" -not -path "./$(buildDir)/*" -not -name "*_test.go")
+testSrcFiles := makefile $(shell find . -name "*.go" -not -path "./$(buildDir)/*")
 $(gopath)/src/%:
 	@-[ ! -d $(gopath) ] && mkdir -p $(gopath) || true
 	go get $(subst $(gopath)/src/,,$@)
 # end dependency installation tools
 
 
-# userfacing targets for basic build/test/lint operations
+# userfacing targets for basic build and development operations
 lint:$(gopath)/src/$(projectPath) $(lintDeps) $(deps)
 	$(gopath)/bin/gometalinter $(lintArgs) $< | sed 's%$</%%'
-build:deps $(buildDir)/$(name)
+deps:$(deps)
+test-deps:$(testDeps)
+lint-deps:$(lintDeps)
+build:$(buildDir)/$(name)
+build-race:$(buildDir)/$(name).race
 test:$(foreach target,$(packages),$(buildDir)/test.$(target).out)
+race:$(foreach target,$(packages),$(buildDir)/race.$(target).out)
 coverage:$(foreach target,$(packages),$(buildDir)/coverage.$(target).out)
 coverage-html:$(foreach target,$(packages),$(buildDir)/coverage.$(target).html)
-phony := lint build test coverage coverage-html
+phony := lint build build-race race test coverage coverage-html
+phony += deps test-deps lint-deps
 # end front-ends
 
 
@@ -87,48 +100,56 @@ $(gopath)/src/$(projectPath):$(gopath)/src/$(orgPath)
 	@[ -L $@ ] || ln -s $(shell pwd) $@
 $(name):$(buildDir)/$(name)
 	@[ -L $@ ] || ln -s $< $@
-$(buildDir)/$(name):$(gopath)/src/$(projectPath)
+$(buildDir)/$(name):$(gopath)/src/$(projectPath) $(srcFiles) $(deps)
 	go build -o $@ main/$(name).go
-phony += $(buildDir)/$(name)
+$(buildDir)/$(name).race:$(gopath)/src/$(projectPath) $(srcFiles) $(deps)
+	go build -race -o $@ main/$(name).go
 # end main build
 
 
 # convenience targets for runing tests and coverage tasks on a
 # specific package.
+makeArgs := --no-print-directory
+race-%:
+	@$(MAKE) $(makeArgs) $(buildDir)/race.$*.out
 test-%:
-	$(MAKE) $(buildDir)/test.$*.out
+	@$(MAKE) $(makeArgs) $(buildDir)/test.$*.out
 coverage-%:
-	$(MAKE) $(buildDir)/coverage.$*.out
-coverage-html-%:
-	$(MAKE) $(buildDir)/coverage.$*.html
+	@$(MAKE) $(makeArgs) $(buildDir)/coverage.$*.out
+html-coverage-%:
+	@$(MAKE) $(makeArgs) $(buildDir)/coverage.$*.html
 # end convienence targets
 
-
 # start test and coverage artifacts
+#    tests have compile and runtime deps. This varable has everything
+#    that the tests actually need to run. (The "build" target is
+#    intentional and makes these targets rerun as expected.)
+testRunDeps := $(testDeps) $(testSrcFiles) $(deps) $(name) build
 #    implementation for package coverage and test running, to produce
 #    and save test output.
 $(buildDir)/coverage.%.html:$(buildDir)/coverage.%.out
 	go tool cover -html=$< -o $@
-$(buildDir)/coverage.%.out:test-deps
+$(buildDir)/coverage.%.out:$(testRunDeps)
 	go test -covermode=count -coverprofile=$@ $(projectPath)/$*
 	@-[ -f $@ ] && go tool cover -func=$@ | sed 's%$(projectPath)/%%' | column -t
-$(buildDir)/coverage.$(name).out:test-deps
+$(buildDir)/coverage.$(name).out:$(testRunDeps)
 	go test -covermode=count -coverprofile=$@ $(projectPath)
 	@-[ -f $@ ] && go tool cover -func=$@ | sed 's%$(projectPath)/%%' | column -t
-$(buildDir)/test.%.out:test-deps
+$(buildDir)/test.%.out:$(testRunDeps)
 	go test -v ./$* >| $@; exitCode=$$?; cat $@; [ $$exitCode -eq 0 ]
-$(buildDir)/test.$(name).out:test-deps
+$(buildDir)/test.$(name).out:$(testRunDeps)
 	go test -v ./ >| $@; exitCode=$$?; cat $@; [ $$exitCode -eq 0 ]
+$(buildDir)/race.%.out:$(testRunDeps)
+	go test -race -v ./$* >| $@; exitCode=$$?; cat $@; [ $$exitCode -eq 0 ]
+$(buildDir)/race.$(name).out:$(testRunDeps)
+	go test -race -v ./ >| $@; exitCode=$$?; cat $@; [ $$exitCode -eq 0 ]
 # end test and coverage artifacts
 
 
-# start dependency installation (phony) targets.
-deps:$(deps)
-test-deps:$(testDeps) $(deps) $(name) build
-lint-deps:$(lintDeps)
+# clean and other utility targets
 clean:
-	rm -rf $(name) $(deps) $(lintDeps) $(testDeps) $(buildDir)/test.* $(buildDir)/coverage.*
-phony += deps test-deps lint-deps clean
+	rm -rf $(name) $(deps) $(lintDeps) $(testDeps) $(buildDir)/test.* $(buildDir)/coverage.* $(buildDir)/race.*
+phony += clean
 # end dependency targets
 
 # configure phony targets
