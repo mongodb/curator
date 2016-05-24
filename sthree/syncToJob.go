@@ -9,6 +9,7 @@ import (
 	"github.com/tychoish/amboy"
 	"github.com/tychoish/amboy/dependency"
 	"github.com/tychoish/amboy/job"
+	"github.com/tychoish/grip"
 )
 
 // Not making this job public or registering it with amboy because it
@@ -31,7 +32,7 @@ type syncToJob struct {
 
 func newSyncToJob(localPath string, remoteFile *s3Item, b *Bucket) *syncToJob {
 	return &syncToJob{
-		name:       fmt.Sprintf("%s.%d.sync-to", remoteFile.Name, job.GetJobNumber()),
+		name:       fmt.Sprintf("%s.%d.sync-to", remoteFile.Name, job.GetNumber()),
 		remoteFile: remoteFile,
 		localPath:  localPath,
 		b:          b,
@@ -66,47 +67,51 @@ func (j *syncToJob) markComplete() {
 func (j *syncToJob) Run() error {
 	defer j.markComplete()
 
+	catcher := grip.NewCatcher()
+
 	// if the local file doesn't exist or has disappeared since
 	// the job was created, there's nothing to do, we can return early
 	if _, err := os.Stat(j.localPath); os.IsNotExist(err) {
 		return nil
 	}
 
-	if j.remoteFile == nil {
-		j.b.catcher.Add(j.b.Put(j.localPath, j.remoteFile.Name))
+	// first double check that it doesn't exist (s3 is eventually
+	// consistent.) if the file has appeared since we created the
+	// task can safely fall through this case and compare hashes,
+	// otherwise we should put it here.
+	exists, err := j.b.bucket.Exists(j.localPath)
+	catcher.Add(err)
+
+	if err == nil && !exists {
+		catcher.Add(j.b.Put(j.localPath, j.remoteFile.Name))
 		return nil
 	}
 
-	if j.remoteFile.Name == "" {
-		// first double check that it doesn't exist (s3 is
-		// eventually consistent.) if the file has appeared we
-		// can safely fall through this case and compare hashes.
-
-		exists, err := j.b.bucket.Exists(j.remoteFile.Name)
-		j.b.catcher.Add(err)
-
-		if err == nil && !exists {
-			j.b.catcher.Add(j.b.Put(j.localPath, j.remoteFile.Name))
-			return nil
-		}
+	// if s3 doesn't know what the hash of the remote file is or
+	// returns it to us, then we don't need to hash it locally,
+	// because we'll always upload it in that situation.
+	if j.remoteFile.MD5 == "" {
+		catcher.Add(j.b.Put(j.localPath, j.remoteFile.Name))
+		return nil
 	}
 
 	// if the remote object exists, then we should compare md5
 	// checksums between the local and remote objects and upload
 	// the local file if they differ.
 	data, err := ioutil.ReadFile(j.localPath)
-	j.b.catcher.Add(err)
+	catcher.Add(err)
+
 	if err == nil {
 		if fmt.Sprintf("%x", md5.Sum(data)) != j.remoteFile.MD5 {
-			j.b.catcher.Add(j.b.Put(j.localPath, j.remoteFile.Name))
+			catcher.Add(j.b.Put(j.localPath, j.remoteFile.Name))
 		}
 	}
 
-	return nil
+	return catcher.Resolve()
 }
 
 func (j *syncToJob) Dependency() dependency.Manager {
-	return dependency.NewAlwaysDependency()
+	return dependency.NewAlways()
 }
 
 func (j *syncToJob) SetDependency(_ dependency.Manager) {

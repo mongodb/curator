@@ -40,8 +40,8 @@ deps += github.com/codegangsta/cli
 deps += github.com/blang/semver
 deps += github.com/goamz/goamz/aws
 deps += github.com/goamz/goamz/s3
-#   use the amboy fork so we can continue to iterate on amboy and
-#   curator seperatly. get dependencies because amboy is a pure
+#   Use the amboy fork so we can continue to iterate on amboy and
+#   curator seperatly. Get dependencies because amboy is a pure
 #   library.
 deps += github.com/tychoish/amboy
 deps += github.com/gonum/graph
@@ -55,7 +55,7 @@ deps += github.com/gonum/floats
 lintArgs := --tests --deadline=40s
 #   skip the build directory and the gopath,
 lintArgs += --skip="$(gopath)" --skip="$(buildDir)"
-#   gotype produces false psoitives because it reads .a files which
+#   gotype produces false positives because it reads .a files which
 #   are rarely up to date
 lintArgs += --disable="gotype"
 #   enable and configure additional linters

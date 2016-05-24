@@ -277,7 +277,9 @@ func (b *Bucket) DeleteMany(paths ...string) error {
 			continue
 		}
 
-		if count == 950 {
+		// DeleteMulti maxes out at 1000 items per request. We
+		// should batch accordingly too.
+		if count == 1000 {
 			grip.Debugf("sending a batch of delete operations to %s", b.name)
 			b.catcher.Add(b.bucket.DelMulti(toDelete))
 
@@ -287,6 +289,8 @@ func (b *Bucket) DeleteMany(paths ...string) error {
 		}
 
 		grip.Noticef("removing group, with %s.%s", b.name, key)
+
+		count++
 		toDelete.Objects = append(toDelete.Objects, s3.Object{Key: key.Name})
 	}
 
@@ -306,9 +310,9 @@ func (b *Bucket) DeletePrefix(prefix string) error {
 	items := b.list(prefix)
 	count := 0
 	for {
-		// MultiDelete maxes out at 1000 items per request. We
+		// DeleteMulti maxes out at 1000 items per request. We
 		// should batch accordingly too.
-		if count == 950 {
+		if count == 1000 {
 			grip.Debugf("sending a batch of delete operations to %s", b.name)
 			b.catcher.Add(b.bucket.DelMulti(toDelete))
 
@@ -358,7 +362,7 @@ func (b *Bucket) SyncTo(local, prefix string) error {
 
 		remoteFile, ok := remote[path]
 		if !ok {
-			remoteFile = &s3Item{Name: filepath.Join(prefix, path[len(local):])}
+			remoteFile = &s3Item{Name: strings.Join([]string{prefix, path[len(local):]}, "/")}
 		}
 
 		job := newSyncToJob(path, remoteFile, b)
@@ -367,6 +371,8 @@ func (b *Bucket) SyncTo(local, prefix string) error {
 	}))
 
 	b.queue.Wait()
+	b.catcher.Add(b.queue.Runner().Error())
+
 	return b.catcher.Resolve()
 }
 
@@ -379,7 +385,7 @@ func (b *Bucket) SyncTo(local, prefix string) error {
 func (b *Bucket) SyncFrom(local, prefix string) error {
 	grip.Infof("sync pull %s.%s -> %s", b.name, prefix, local)
 	for remote := range b.list(prefix) {
-		localPath := filepath.Join(local, remote.Name[len(prefix):])
+		localPath := strings.Join([]string{local, remote.Name[len(prefix):]}, "/")
 		job := newSyncFromJob(localPath, remote, b)
 
 		// add the job to the queue
@@ -387,5 +393,7 @@ func (b *Bucket) SyncFrom(local, prefix string) error {
 	}
 
 	b.queue.Wait()
+	b.catcher.Add(b.queue.Runner().Error())
+
 	return b.catcher.Resolve()
 }

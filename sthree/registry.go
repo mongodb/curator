@@ -13,9 +13,9 @@ import (
 // buckets is the internal and global cache.
 var buckets *bucketRegistry
 
-// bucketRegistry provides a cache of bucket references, and its
-// methods provide methods. bucketRegistry and its methods are all
-// internal/private and public functions accessing the global
+// bucketRegistry provides a cache of bucket
+// references. bucketRegistry and its methods are all
+// internal/private. There are public functions that access the global
 // "buckets" instance, but the methods "SetCredentials" and
 // "GetBucket" provide public wrappers around/for the global registry.
 type bucketRegistry struct {
@@ -89,6 +89,8 @@ func (r *bucketRegistry) getBucket(name string) *Bucket {
 	return r.getBucketWithCredentials(name, r.c)
 }
 
+// GetBucketWithProfile makes it possible to get a Bucket instance
+// that uses credentials from a non-default AWS profile.
 func GetBucketWithProfile(name, profile string) *Bucket {
 	return buckets.getBucketFromProfile(name, profile)
 }
@@ -113,6 +115,24 @@ func (r *bucketRegistry) getBucketFromProfile(name, account string) *Bucket {
 	return r.getBucketWithCredentials(name, creds)
 }
 
+////////////////////////////////////////////////
+//
+// Internal interface used by the Bucket constructor/destructor
+// methods to add and remove buckets from the registry/pool.
+//
+////////////////////////////////////////////////
+
+func (r *bucketRegistry) registerBucket(b *Bucket) {
+	r.l.Lock()
+	defer r.l.Unlock()
+
+	if _, ok := r.m[b.name]; ok {
+		grip.Warningf("registering bucket named '%s', which already exists", b.name)
+	}
+
+	r.m[b.name] = b
+}
+
 func (r *bucketRegistry) getBucketWithCredentials(name string, creds AWSConnectionConfiguration) *Bucket {
 	b, ok := r.m[name]
 	if !ok {
@@ -133,23 +153,6 @@ func (r *bucketRegistry) getBucketWithCredentials(name string, creds AWSConnecti
 	}
 
 	return b
-}
-
-////////////////////////////////////////////////
-//
-// Internal interface used by constructors to add and remove buckets from the registry/pool.
-//
-////////////////////////////////////////////////
-
-func (r *bucketRegistry) registerBucket(b *Bucket) {
-	r.l.Lock()
-	defer r.l.Unlock()
-
-	if _, ok := r.m[b.name]; ok {
-		grip.Warningf("registering bucket named '%s', which already exists", b.name)
-	}
-
-	r.m[b.name] = b
 }
 
 func (r *bucketRegistry) removeBucket(b *Bucket) {

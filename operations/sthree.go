@@ -21,8 +21,11 @@ For the sync jobs, you can use the aliases "push" and "pull", as in:
 For sync commands, the "jobs" argument is optional and defaults to 2
 times the number of available processors. The "prefix" argument allows
 you to sync only a portion of the bucket (e.g. all items with
-key-names that start with that prefix.) For the "psuh" operation, the
-curator prepends prefix to the local file name within the bucket.
+key-names that start with that prefix.) For the "push" operation, the
+curator prepends prefix (e.g. "folder" or leading ortion of the key
+name) to the local file name within the bucket. The prefix need not
+end with a "/", though the prefix and filename will be combined with a
+"/" character.
 
 Sync operations first compare file names and then compare MD5
 checksums, and upload only differing content. Unlike rsync, file sizes
@@ -44,6 +47,7 @@ variable.
 package operations
 
 import (
+	"fmt"
 	"os"
 	"runtime"
 
@@ -82,7 +86,7 @@ func s3PutCmd() cli.Command {
 		Usage: "put a local file object into s3",
 		Flags: s3opFlags(),
 		Action: func(c *cli.Context) error {
-			return s3Put(c.String("bucket"), c.String("file"), c.String("name"))
+			return s3Put(c.String("bucket"), c.String("profile"), c.String("file"), c.String("name"))
 		},
 	}
 }
@@ -93,7 +97,7 @@ func s3GetCmd() cli.Command {
 		Usage: "download a local file object from s3",
 		Flags: s3opFlags(),
 		Action: func(c *cli.Context) error {
-			return s3Get(c.String("bucket"), c.String("name"), c.String("file"))
+			return s3Get(c.String("bucket"), c.String("profile"), c.String("name"), c.String("file"))
 		},
 	}
 }
@@ -102,18 +106,13 @@ func s3DeleteCmd() cli.Command {
 	return cli.Command{
 		Name:    "delete",
 		Aliases: []string{"del", "rm"},
-		Flags: []cli.Flag{
-			cli.StringFlag{
-				Name:  "bucket",
-				Usage: "the name of an s3 bucket",
-			},
+		Flags: baseS3Flags(
 			cli.StringSliceFlag{
 				Name:  "name",
 				Usage: "the name of an object in s3",
-			},
-		},
+			}),
 		Action: func(c *cli.Context) error {
-			return s3Delete(c.String("bucket"), c.StringSlice("name")...)
+			return s3Delete(c.String("bucket"), c.String("profile"), c.StringSlice("name")...)
 		},
 	}
 }
@@ -122,18 +121,9 @@ func s3DeletePrefixCmd() cli.Command {
 	return cli.Command{
 		Name:    "delete-prefix",
 		Aliases: []string{"del-prefix", "rm-prefix"},
-		Flags: []cli.Flag{
-			cli.StringFlag{
-				Name:  "bucket",
-				Usage: "the name of an s3 bucket",
-			},
-			cli.StringFlag{
-				Name:  "prefix",
-				Usage: "a prefix of s3 key names",
-			},
-		},
+		Flags:   s3syncFlags(),
 		Action: func(c *cli.Context) error {
-			return s3DeletePrefix(c.String("bucket"), c.String("prefix"))
+			return s3DeletePrefix(c.String("bucket"), c.String("profile"), c.String("prefix"))
 		},
 	}
 }
@@ -145,7 +135,7 @@ func s3SyncToCmd() cli.Command {
 		Usage:   "sync changes from the local system to s3",
 		Flags:   s3syncFlags(),
 		Action: func(c *cli.Context) error {
-			return s3SyncTo(c.String("bucket"), c.String("local"), c.String("prefix"), c.Int("jobs"))
+			return s3SyncTo(c.String("bucket"), c.String("profile"), c.String("local"), c.String("prefix"), c.Int("jobs"))
 		},
 	}
 }
@@ -157,7 +147,7 @@ func s3SyncFromCmd() cli.Command {
 		Usage:   "sync changes from s3 to the local system",
 		Flags:   s3syncFlags(),
 		Action: func(c *cli.Context) error {
-			return s3SyncFrom(c.String("bucket"), c.String("local"), c.String("prefix"), c.Int("jobs"))
+			return s3SyncFrom(c.String("bucket"), c.String("profile"), c.String("local"), c.String("prefix"), c.Int("jobs"))
 		},
 	}
 }
@@ -168,10 +158,18 @@ func s3SyncFromCmd() cli.Command {
 //
 /////////////////////////////////////////////
 
+func resolveBucket(name, profile string) *sthree.Bucket {
+	if profile == "" {
+		return sthree.GetBucket(name)
+	}
+
+	return sthree.GetBucketWithProfile(name, profile)
+}
+
 // these helpers exist to facilitate easier unittesting
 
-func s3Put(bucket, file, remoteFile string) error {
-	b := sthree.GetBucket(bucket)
+func s3Put(bucket, profile, file, remoteFile string) error {
+	b := resolveBucket(bucket, profile)
 
 	err := b.Open()
 	defer b.Close()
@@ -183,8 +181,8 @@ func s3Put(bucket, file, remoteFile string) error {
 	return b.Put(file, remoteFile)
 }
 
-func s3Get(bucket, remoteFile, file string) error {
-	b := sthree.GetBucket(bucket)
+func s3Get(bucket, profile, remoteFile, file string) error {
+	b := resolveBucket(bucket, profile)
 
 	err := b.Open()
 	defer b.Close()
@@ -196,8 +194,8 @@ func s3Get(bucket, remoteFile, file string) error {
 	return b.Get(remoteFile, file)
 }
 
-func s3Delete(bucket string, file ...string) error {
-	b := sthree.GetBucket(bucket)
+func s3Delete(bucket, profile string, file ...string) error {
+	b := resolveBucket(bucket, profile)
 
 	err := b.Open()
 	defer b.Close()
@@ -210,8 +208,8 @@ func s3Delete(bucket string, file ...string) error {
 	return b.DeleteMany(file...)
 }
 
-func s3DeletePrefix(bucket, prefix string) error {
-	b := sthree.GetBucket(bucket)
+func s3DeletePrefix(bucket, profile, prefix string) error {
+	b := resolveBucket(bucket, profile)
 
 	err := b.Open()
 	defer b.Close()
@@ -222,8 +220,9 @@ func s3DeletePrefix(bucket, prefix string) error {
 	return b.DeletePrefix(prefix)
 }
 
-func s3SyncTo(bucket, local, prefix string, jobs int) error {
-	b := sthree.GetBucket(bucket)
+func s3SyncTo(bucket, profile, local, prefix string, jobs int) error {
+	b := resolveBucket(bucket, profile)
+
 	err := b.SetNumJobs(jobs)
 	if err != nil {
 		return err
@@ -239,8 +238,9 @@ func s3SyncTo(bucket, local, prefix string, jobs int) error {
 	return b.SyncTo(local, prefix)
 }
 
-func s3SyncFrom(bucket, local, prefix string, jobs int) error {
-	b := sthree.GetBucket(bucket)
+func s3SyncFrom(bucket, profile, local, prefix string, jobs int) error {
+	b := resolveBucket(bucket, profile)
+
 	err := b.SetNumJobs(jobs)
 	if err != nil {
 		return err
@@ -261,14 +261,27 @@ func s3SyncFrom(bucket, local, prefix string, jobs int) error {
 //
 /////////////////////////
 
-func s3syncFlags() []cli.Flag {
-	pwd, _ := os.Getwd()
-
-	return []cli.Flag{
+func baseS3Flags(args ...cli.Flag) []cli.Flag {
+	flags := []cli.Flag{
 		cli.StringFlag{
 			Name:  "bucket",
 			Usage: "the name of an s3 bucket",
 		},
+		cli.StringFlag{
+			Name: "profile",
+			Usage: fmt.Sprintln("set the AWS profile. By default reads from ENV vars and the default or",
+				"AWS_PROFILE specified profile in ~/.aws/credentials."),
+		},
+	}
+
+	flags = append(flags, args...)
+	return flags
+}
+
+func s3syncFlags() []cli.Flag {
+	pwd, _ := os.Getwd()
+
+	return baseS3Flags(
 		cli.StringFlag{
 			Name:  "local",
 			Value: pwd,
@@ -282,16 +295,11 @@ func s3syncFlags() []cli.Flag {
 			Name:  "jobs",
 			Value: runtime.NumCPU() * 2,
 			Usage: "number of parallel workers processing",
-		},
-	}
+		})
 }
 
 func s3opFlags() []cli.Flag {
-	return []cli.Flag{
-		cli.StringFlag{
-			Name:  "bucket",
-			Usage: "the name of an s3 bucket",
-		},
+	return baseS3Flags(
 		cli.StringFlag{
 			Name:  "file",
 			Usage: "a local path (directory)",
@@ -299,6 +307,5 @@ func s3opFlags() []cli.Flag {
 		cli.StringFlag{
 			Name:  "name",
 			Usage: "the remote s3 resource name. may include the prefix.",
-		},
-	}
+		})
 }

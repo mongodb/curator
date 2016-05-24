@@ -33,7 +33,7 @@ type syncFromJob struct {
 
 func newSyncFromJob(localPath string, remoteFile *s3Item, b *Bucket) *syncFromJob {
 	return &syncFromJob{
-		name:       fmt.Sprintf("%s.%d.sync-from", localPath, job.GetJobNumber()),
+		name:       fmt.Sprintf("%s.%d.sync-from", localPath, job.GetNumber()),
 		remoteFile: remoteFile,
 		localPath:  localPath,
 		catcher:    b.catcher,
@@ -68,6 +68,8 @@ func (j *syncFromJob) markComplete() {
 func (j *syncFromJob) Run() error {
 	defer j.markComplete()
 
+	catcher := grip.NewCatcher()
+
 	// if the remote file doesn't exist, we should return early here.
 	if j.remoteFile == nil || j.remoteFile.Name == "" {
 		return nil
@@ -75,14 +77,14 @@ func (j *syncFromJob) Run() error {
 
 	// if the remote file has disappeared, we should return early here.
 	exists, err := j.b.bucket.Exists(j.remoteFile.Name)
-	j.b.catcher.Add(err)
+	catcher.Add(err)
 	if err == nil && !exists {
 		return nil
 	}
 
 	// if the local file doesn't exist, download the remote file and return.
 	if _, err = os.Stat(j.localPath); os.IsNotExist(err) {
-		j.b.catcher.Add(j.b.Get(j.remoteFile.Name, j.localPath))
+		catcher.Add(j.b.Get(j.remoteFile.Name, j.localPath))
 		return nil
 	}
 
@@ -93,15 +95,15 @@ func (j *syncFromJob) Run() error {
 	j.b.catcher.Add(err)
 	if err == nil {
 		if fmt.Sprintf("%x", md5.Sum(data)) != j.remoteFile.MD5 {
-			j.b.catcher.Add(j.b.Get(j.remoteFile.Name, j.localPath))
+			catcher.Add(j.b.Get(j.remoteFile.Name, j.localPath))
 		}
 	}
 
-	return nil
+	return catcher.Resolve()
 }
 
 func (j *syncFromJob) Dependency() dependency.Manager {
-	return dependency.NewAlwaysDependency()
+	return dependency.NewAlways()
 }
 
 func (j *syncFromJob) SetDependency(_ dependency.Manager) {
