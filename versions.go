@@ -95,6 +95,12 @@ func ConvertVersion(v interface{}) (*MongoDBVersion, error) {
 	}
 }
 
+// String returns a string representation of the MongoDB version
+// number.
+func (v *MongoDBVersion) String() string {
+	return v.source
+}
+
 // Series return the release series, generally the first two
 // components of a version. For example for 3.2.6, the series is 3.2.
 func (v *MongoDBVersion) Series() string {

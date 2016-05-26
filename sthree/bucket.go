@@ -74,6 +74,10 @@ func (b *Bucket) NewBucket(name string) *Bucket {
 	return new
 }
 
+func (b *Bucket) String() string {
+	return b.name
+}
+
 // SetCredentials allows you to override the configured credentials in
 // the Bucket instance. Bucket instances have default credentials
 // picked from either the AWS_ACCESS_KEY_ID and AWS_ACCESS_KEY
