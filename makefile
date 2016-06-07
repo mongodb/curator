@@ -79,6 +79,10 @@ lintDeps := $(addprefix $(gopath)/src/,$(lintDeps))
 testDeps := $(addprefix $(gopath)/src/,$(testDeps))
 srcFiles := makefile $(shell find . -name "*.go" -not -path "./$(buildDir)/*" -not -name "*_test.go")
 testSrcFiles := makefile $(shell find . -name "*.go" -not -path "./$(buildDir)/*")
+testOutput := $(foreach target,$(packages),$(buildDir)/test.$(target).out)
+raceOutput := $(foreach target,$(packages),$(buildDir)/race.$(target).out)
+coverageOutput := $(foreach target,$(packages),$(buildDir)/coverage.$(target).out)
+coverageHtmlOutput := $(foreach target,$(packages),$(buildDir)/coverage.$(target).html)
 $(gopath)/src/%:
 	@-[ ! -d $(gopath) ] && mkdir -p $(gopath) || true
 	go get $(subst $(gopath)/src/,,$@)
@@ -93,12 +97,13 @@ test-deps:$(testDeps)
 lint-deps:$(lintDeps)
 build:$(buildDir)/$(name)
 build-race:$(buildDir)/$(name).race
-test:$(foreach target,$(packages),$(buildDir)/test.$(target).out)
-race:$(foreach target,$(packages),$(buildDir)/race.$(target).out)
-coverage:$(foreach target,$(packages),$(buildDir)/coverage.$(target).out)
-coverage-html:$(foreach target,$(packages),$(buildDir)/coverage.$(target).html)
+test:$(testOutput)
+race:$(raceOutput)
+coverage:$(coverageOutput)
+coverage-html:$(coverageHtmlOutput)
 phony := lint build build-race race test coverage coverage-html
 phony += deps test-deps lint-deps
+.PRECIOUS: $(testOutput) $(raceOutput) $(coverageOutput) $(coverageHtmlOutput)
 # end front-ends
 
 

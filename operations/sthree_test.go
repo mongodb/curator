@@ -17,8 +17,8 @@ func (s *CommandsSuite) TestPutGetFlagFactory() {
 		names[flag.GetName()] = true
 	}
 
-	s.Len(names, 3)
-	s.Len(flags, 3)
+	s.Len(names, 4)
+	s.Len(flags, 4)
 	s.True(names["file"])
 	s.True(names["bucket"])
 	s.True(names["name"])

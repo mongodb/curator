@@ -313,7 +313,6 @@ func numFilesInPath(path string, includeDirs bool) (int, error) {
 			numFiles++
 		}
 
-		fmt.Println(p)
 		return nil
 	})
 
@@ -382,12 +381,34 @@ func (s *BucketSuite) TestSyncFromTestWhenFilesHaveChanged() {
 	s.NoError(err)
 
 	err = filepath.Walk(local, func(p string, info os.FileInfo, err error) error {
-		s.NoError(os.Truncate(info.Name(), 4))
+		if info.IsDir() {
+			return nil
+		}
+
+		s.NoError(os.Truncate(p, 4))
 
 		return nil
 	})
 	s.NoError(err)
 
 	err = s.b.SyncFrom(local, remotePrefix)
+	s.NoError(err)
+
+	err = filepath.Walk(local, func(p string, info os.FileInfo, err error) error {
+		if info.IsDir() {
+			return nil
+		}
+
+		// above we truncate all the files to 4 bytes,to force
+		// files to sync. We then check the size of all the
+		// files, and if they're still 4 bytes, then the sync
+		// failed.
+		if info.Size() == 4 {
+			s.Fail(fmt.Sprintf("file=%s was not synced", p))
+		}
+
+		return nil
+	})
+
 	s.NoError(err)
 }
