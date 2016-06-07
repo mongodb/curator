@@ -2,6 +2,7 @@ package sthree
 
 import (
 	"crypto/md5"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -312,6 +313,7 @@ func numFilesInPath(path string, includeDirs bool) (int, error) {
 			numFiles++
 		}
 
+		fmt.Println(p)
 		return nil
 	})
 
@@ -364,4 +366,28 @@ func (s *BucketSuite) TestSyncFromDownloadsFiles() {
 	num, err := numFilesInPath(local, false)
 	s.NoError(err)
 	s.Equal(numFiles, num)
+}
+
+func (s *BucketSuite) TestSyncFromTestWhenFilesHaveChanged() {
+	pwd, err := os.Getwd()
+	s.NoError(err)
+	s.NoError(s.b.Open())
+
+	remotePrefix := filepath.Join(s.uuid, "sync-round-trip")
+	err = s.b.SyncTo(pwd, remotePrefix)
+	s.NoError(err)
+
+	local := filepath.Join(s.tempDir, "sync-round-trip")
+	err = s.b.SyncFrom(local, remotePrefix)
+	s.NoError(err)
+
+	err = filepath.Walk(local, func(p string, info os.FileInfo, err error) error {
+		s.NoError(os.Truncate(info.Name(), 4))
+
+		return nil
+	})
+	s.NoError(err)
+
+	err = s.b.SyncFrom(local, remotePrefix)
+	s.NoError(err)
 }
