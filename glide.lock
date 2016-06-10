@@ -1,0 +1,42 @@
+hash: 75c7ee1fdb954853d3ab8f1b62b85ad7c1a8719da2d2396238f0eba863fb86e0
+updated: 2016-06-16T14:14:58.047959949-04:00
+imports:
+- name: github.com/blang/semver
+  version: aea32c919a18e5ef4537bbd283ff29594b1b0165
+- name: github.com/codegangsta/cli
+  version: 01857ac33766ce0c93856370626f9799281c14f4
+- name: github.com/davecgh/go-spew
+  version: 5215b55f46b2b919f50a1df0eaa5886afe4e3b3d
+- name: github.com/goamz/goamz
+  version: 02d5144a587b982e33b95f484a34164ce6923c99
+  subpackages:
+  - aws
+  - s3
+- name: github.com/mongodb/amboy
+  version: 067a90a62db5b93037f270f77889c5498f47d6ad
+  subpackages:
+  - dependency
+  - job
+  - queue
+  - registry
+  - pool
+- name: github.com/pmezard/go-difflib
+  version: 792786c7400a136282c1664665ae0a8db921c6c2
+- name: github.com/satori/go.uuid
+  version: 879c5887cd475cd7864858769793b2ceb0d44feb
+- name: github.com/stretchr/objx
+  version: 1a9d0bb9f541897e62256577b352fdbc1fb4fd94
+- name: github.com/stretchr/testify
+  version: d77da356e56a7428ad25149ca77381849a6a5232
+- name: github.com/tychoish/grip
+  version: bd5275e041d65f9a372212a98d84169249057590
+  subpackages:
+  - level
+  - logging
+  - send
+  - message
+- name: github.com/vaughan0/go-ini
+  version: a98ad7ee00ec53921f08832bc06ecf7fd600e6a1
+- name: gopkg.in/yaml.v2
+  version: a83829b6f1293c91addabc89d0571c246397bbf4
+devImports: []

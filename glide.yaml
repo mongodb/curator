@@ -1,0 +1,23 @@
+package: github.com/mongodb/curator
+import:
+- package: github.com/blang/semver
+  version: ^3.1.0
+- package: github.com/codegangsta/cli
+  version: ^1.17.0
+- package: github.com/goamz/goamz
+  subpackages:
+  - aws
+  - s3
+- package: github.com/mongodb/amboy
+  subpackages:
+  - dependency
+  - job
+  - queue
+- package: github.com/tychoish/grip
+- package: github.com/vaughan0/go-ini
+- package: github.com/stretchr/testify
+- package: github.com/stretchr/objx
+- package: github.com/pmezard/go-difflib
+- package: github.com/davecgh/go-spew
+- package: github.com/satori/go.uuid
+- package: gopkg.in/yaml.v2
