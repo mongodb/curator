@@ -307,6 +307,10 @@ func (s *BucketSuite) TestDeleteManyOperationRemovesManyPathsFromBucket() {
 func numFilesInPath(path string, includeDirs bool) (int, error) {
 	numFiles := 0
 	err := filepath.Walk(path, func(p string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil
+		}
+
 		if includeDirs {
 			numFiles++
 		} else if !info.IsDir() {
@@ -381,7 +385,7 @@ func (s *BucketSuite) TestSyncFromTestWhenFilesHaveChanged() {
 	s.NoError(err)
 
 	err = filepath.Walk(local, func(p string, info os.FileInfo, err error) error {
-		if info.IsDir() {
+		if err != nil || info.IsDir() {
 			return nil
 		}
 
@@ -395,7 +399,7 @@ func (s *BucketSuite) TestSyncFromTestWhenFilesHaveChanged() {
 	s.NoError(err)
 
 	err = filepath.Walk(local, func(p string, info os.FileInfo, err error) error {
-		if info.IsDir() {
+		if err != nil || info.IsDir() {
 			return nil
 		}
 
