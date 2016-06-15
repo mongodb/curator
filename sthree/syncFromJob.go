@@ -6,9 +6,9 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/tychoish/amboy"
-	"github.com/tychoish/amboy/dependency"
-	"github.com/tychoish/amboy/job"
+	"github.com/mongodb/amboy"
+	"github.com/mongodb/amboy/dependency"
+	"github.com/mongodb/amboy/job"
 	"github.com/tychoish/grip"
 )
 

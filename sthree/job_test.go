@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/mongodb/amboy"
 	"github.com/stretchr/testify/suite"
-	"github.com/tychoish/amboy"
 )
 
 // BucketJobSuite collects tests of the amboy.Job implementations that

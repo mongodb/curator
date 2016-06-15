@@ -10,8 +10,8 @@ import (
 
 	"github.com/goamz/goamz/aws"
 	"github.com/goamz/goamz/s3"
-	"github.com/tychoish/amboy"
-	"github.com/tychoish/amboy/queue"
+	"github.com/mongodb/amboy"
+	"github.com/mongodb/amboy/queue"
 	"github.com/tychoish/grip"
 )
 
