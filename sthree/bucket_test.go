@@ -164,9 +164,14 @@ func (s *BucketSuite) TestContentsAndListProduceIdenticalData() {
 
 	for bucketItem := range s.b.list(prefix) {
 		item, ok := content[bucketItem.Name]
-		s.True(ok)
-		s.Equal(bucketItem.Name, item.Name)
-		s.Equal(bucketItem.MD5, item.MD5)
+
+		if s.True(ok, fmt.Sprintf("item %s should exist in bucket %s",
+			bucketItem.Name, s.b.name)) {
+
+			s.Equal(bucketItem.Name, item.Name)
+			s.Equal(bucketItem.MD5, item.MD5)
+		}
+
 		count++
 	}
 
