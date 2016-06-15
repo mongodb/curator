@@ -1,7 +1,7 @@
 # start project configuration
 name := curator
 buildDir := build
-packages := $(name) operations main sthree
+packages := $(name) operations main sthree repobuilder
 orgPath := github.com/mongodb
 projectPath := $(orgPath)/$(name)
 # end project configuration
@@ -35,15 +35,15 @@ lintDeps += honnef.co/go/staticcheck/cmd/staticcheck
 testDeps := github.com/stretchr/testify
 testDeps += github.com/satori/go.uuid
 #   package dependencies.
-deps := github.com/blang/semver
+deps := github.com/tychoish/grip
 deps += github.com/codegangsta/cli
+deps += github.com/blang/semver
 deps += github.com/goamz/goamz/aws
 deps += github.com/goamz/goamz/s3
-deps += github.com/gonum/floats
+deps += github.com/mongodb/amboy
 deps += github.com/gonum/graph
 deps += github.com/gonum/matrix
-deps += github.com/mongodb/amboy
-deps += github.com/tychoish/grip
+deps += github.com/gonum/floats
 # end dependency declarations
 
 

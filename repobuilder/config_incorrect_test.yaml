@@ -1,0 +1,93 @@
+mirrors: { }
+templates: { }
+
+repos:
+
+####################
+#
+# Community Repos:
+#
+####################
+
+  - name: rhel5
+    type: rpm
+    edition: community
+    bucket: repo.mongodb.org
+    prefix: yum/redhat/5
+    repos:
+      - yum/redhat/5Server
+
+  - name: amazon-2013.03
+    type: rpm
+    edition: community
+    bucket: repo.mongodb.org
+    repos:
+      - yum/amazon/2013.03/mongodb-org
+
+  - name: suse12
+    type: deb
+    edition: community
+    bucket: repo.mongodb.org
+    repos:
+      - zypper/suse/12/mongodb-org
+
+  - name: debian8
+    type: deb
+    bucket: repo.mongodb.org
+    edition: community
+    repos:
+      - apt/debian/dists/jessie/mongodb-org/main
+
+  - name: ubuntu1604
+    type: deb
+    edition: community
+    bucket: repo.mongodb.org
+    repos:
+      - apt/ubuntu/dists/xenial/mongodb-org/multiverse
+
+  - name: ubuntu1604
+    type: deb
+    edition: community
+    bucket: repo.mongodb.org
+    repos:
+      - apt/ubuntu/dists/xenial/mongodb-org/universe 
+
+####################
+#
+# Enterprise Repos:
+#
+####################
+
+  - name: rhel7
+    type: rpm
+    edition: enterprise
+    bucket: repo.mongodb.org
+    repos: []
+
+  - name: amazon-2013.03
+    type: arch
+    edition: enterprize
+    bucket: repo.mongodb.com
+    repos:
+      - yum/amazon/2013.03/mongodb-enterprise
+
+  - name: suse12
+    type: rpm
+    edition: enterprise
+    bucket: repo.mongodb.com
+    repos:
+      - zypper/suse/12/mongodb-enterprise
+
+  - name: debian7
+    type: deb
+    edition: enterprise
+    bucket: repo.mongodb.com
+    repos:
+      - apt/debian/dists/wheezy/mongodb-enterprise/main
+
+  - name: ubuntu1604
+    type: deb
+    edition: enterprise
+    bucket: repo.mongodb.com
+    repos: 
+      - apt/ubuntu/dists/xenial/mongodb-enterprise/multiverse

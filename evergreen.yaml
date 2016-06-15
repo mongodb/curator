@@ -45,6 +45,7 @@ variables:
       - name: test-main
       - name: test-operations
       - name: test-sthree
+      - name: test-repobuilder
   - &dev-tasks
       # dev tasks contains all the test suites plus coverage and
       # linting, and the race detector this is a special builder.
@@ -54,6 +55,7 @@ variables:
       - name: test-main
       - name: test-operations
       - name: test-sthree
+      - name: test-repobuilder
       - name: coverage
   - &race-detector-tasks
       - name: build-race
@@ -61,6 +63,7 @@ variables:
       - name: race-main
       - name: race-sthree
       - name: race-operations
+      - name: race-repobuilder
 
 
 #######################################
@@ -152,6 +155,8 @@ tasks:
         vars: { name: "curator"}
       - func: upload-coverage
         vars: { name: "sthree"}
+      - func: upload-coverage
+        vars: { name: "repobuilder"}
 
   # define tasks for all test suites (modules)
   - <<: *run-go-test-suite
@@ -162,6 +167,8 @@ tasks:
     name: test-curator
   - <<: *run-go-test-suite
     name: test-sthree
+  - <<: *run-go-test-suite
+    name: test-repobuilder
 
   # run the suites with the race detector (one variant only)
   - <<: *run-go-test-suite
@@ -178,6 +185,10 @@ tasks:
       - name: build-race
   - <<: *run-go-test-suite
     name: race-sthree
+    depends_on:
+      - name: build-race
+  - <<: *run-go-test-suite
+    name: race-repobuilder
     depends_on:
       - name: build-race
 
