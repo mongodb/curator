@@ -3,7 +3,7 @@ package operations
 import (
 	"fmt"
 
-	"github.com/codegangsta/cli"
+	"github.com/urfave/cli"
 )
 
 // HelloWorld is a commandline entry point for the hello world enry

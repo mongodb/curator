@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/codegangsta/cli"
+	"github.com/urfave/cli"
 	"github.com/mongodb/curator/operations"
 	"github.com/tychoish/grip"
 )

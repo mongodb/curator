@@ -2,7 +2,7 @@ package: github.com/mongodb/curator
 import:
 - package: github.com/blang/semver
   version: ^3.1.0
-- package: github.com/codegangsta/cli
+- package: github.com/urfave/cli
   version: ^1.17.0
 - package: github.com/goamz/goamz
   subpackages:

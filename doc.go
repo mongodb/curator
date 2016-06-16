@@ -10,7 +10,7 @@ command that resembles the following:
    go build -o curator main/curator.go
 
 See the "makefile" in the curator repository for additional build and
-test automation. The command line interface uses the codegangsta/cli
+test automation. The command line interface uses the urfave/cli
 package, with the implementation of entry points in the "operations"
 package.
 */
