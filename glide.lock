@@ -13,7 +13,7 @@ imports:
   - aws
   - s3
 - name: github.com/mongodb/amboy
-  version: 390d192f608a02d2387537f7eefab701d68d584f
+  version: c893558835f997024f6c905876f54e6cac2ecca6
   subpackages:
   - dependency
   - job
