@@ -44,6 +44,7 @@ deps += github.com/mongodb/amboy
 deps += github.com/gonum/graph
 deps += github.com/gonum/matrix
 deps += github.com/gonum/floats
+deps += gopkg.in/yaml.v2
 # end dependency declarations
 
 
