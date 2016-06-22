@@ -199,7 +199,7 @@ func (j *BuildRPMRepoJob) Run() error {
 			j.workingDirs = append(j.workingDirs, local)
 
 			if j.DryRun {
-				j.grip.Noticef("dry-run: would create '%s' directory", filepath.Abs(local))
+				j.grip.Noticef("dry-run: would create '%s' directory", local)
 				j.grip.Noticef("dry-run: would download from %s to %s", remote, local)
 			} else {
 				err = os.MkdirAll(local, 0755)
