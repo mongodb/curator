@@ -34,8 +34,8 @@ func repoFlags() []cli.Flag {
 	confPath, err := filepath.Abs("repo_config.yaml")
 	grip.CatchErrorFatal(err)
 
-	profile, ok := os.LookupEnv("AWS_PROFILE")
-	if !ok {
+	profile := os.Getenv("AWS_PROFILE")
+	if profile == "" {
 		profile = "default"
 	}
 

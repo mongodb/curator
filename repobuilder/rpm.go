@@ -99,6 +99,16 @@ func (j *BuildRPMRepoJob) markComplete() {
 func (j *BuildRPMRepoJob) linkPackages(dest string) error {
 	catcher := grip.NewCatcher()
 	for _, pkg := range j.PackagePaths {
+		if j.DryRun {
+			j.grip.Noticef("dry-run: would link %s in %s", pkg, dest)
+			continue
+		}
+
+		err := os.MkdirAll(dest, 0744)
+		if err != nil {
+			catcher.Add(err)
+			continue
+		}
 		j.grip.Infof("copying package %s to local staging error", pkg)
 		catcher.Add(os.Link(pkg, filepath.Join(dest, filepath.Base(pkg))))
 	}
@@ -188,15 +198,16 @@ func (j *BuildRPMRepoJob) Run() error {
 			local = filepath.Join(local, uuid.NewV4().String())
 			j.workingDirs = append(j.workingDirs, local)
 
-			err = os.MkdirAll(local, 0755)
-			if err != nil {
-				catcher.Add(err)
-				return
-			}
-
 			if j.DryRun {
-				j.grip.Noticef("in dry run mode. would download from %s to %s", remote, local)
+				j.grip.Noticef("dry-run: would create '%s' directory", filepath.Abs(local))
+				j.grip.Noticef("dry-run: would download from %s to %s", remote, local)
 			} else {
+				err = os.MkdirAll(local, 0755)
+				if err != nil {
+					catcher.Add(err)
+					return
+				}
+
 				err = bucket.SyncFrom(local, remote)
 				if err != nil {
 					catcher.Add(err)

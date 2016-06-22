@@ -30,14 +30,14 @@ func (s *CommandsSuite) TestRepoFlags() {
 
 func (s *CommandsSuite) TestDryRunOperationOnProcess() {
 	err := buildRepo(
-		"./*",              // packages
-		"config_test.yaml", // repo config path
-		"rhel7",            // distro
-		"enterprise",       // edition
-		"2.8.0",            // mongodbe version
-		"x86_64",           // arch
-		"default",          // aws profile
-		true)               // dryrun
+		"./*", // packages
+		"../repobuilder/config_test.yaml", // repo config path
+		"rhel7",      // distro
+		"enterprise", // edition
+		"2.8.0",      // mongodbe version
+		"x86_64",     // arch
+		"default",    // aws profile
+		true)         // dryrun
 
 	s.NoError(err)
 }
