@@ -40,6 +40,7 @@ variables:
       - name: test-operations
       - name: test-sthree
       - name: test-repobuilder
+      - name: push
   - &dev-tasks
       # dev tasks contains all the test suites plus coverage and
       # linting, and the race detector this is a special builder.
@@ -51,6 +52,7 @@ variables:
       - name: test-sthree
       - name: test-repobuilder
       - name: coverage
+      - name: push
   - &race-detector-tasks
       - name: build-race
       - name: race-curator
@@ -107,6 +109,17 @@ functions:
       content_type: text/html
       permissions: public-read
       display_name: coverage-${name}
+  upload-dist:
+    command: s3.put
+    params:
+      aws_key: ${aws_key}
+      aws_secret: ${aws_secret}
+      local_file: gopath/src/github.com/mongodb/curator/build/dist.tar.gz
+      remote_file: curator/${task_id}-${build_variant}/curator-dist-${revision}.tar.gz
+      bucket: mciuploads
+      content_type: application/x-gzip
+      permissions: public-read
+      display_name: curator-dist.tar.gz
   parse-test-output:
     command: gotest.parse_files
     params:
@@ -121,8 +134,14 @@ functions:
 tasks:
   # the build (with and without the race detector) and lint tasks use
   # a template that does not include test result parsing.
-  - <<: *run-build
-    name: build
+  - name: build
+    commands:
+      - command: git.get_project
+        params:
+          directory: gopath/src/github.com/mongodb/curator
+      - func: run-make
+        vars: { target: "build dist" }
+      - func: upload-dist
   - <<: *run-build
     name: build-race
   - <<: *run-build
@@ -183,6 +202,36 @@ tasks:
     name: race-repobuilder
     depends_on:
       - name: build-race
+
+  - name: push
+    depends_on:
+    - name: "*"
+    stepback: false
+    commands:
+      - command: s3.get
+        params:
+          aws_key: ${aws_key}
+          aws_secret: ${aws_secret}
+          remote_file: curator/${task_id}-${build_variant}/curator-dist-${revision}.tar.gz
+          bucket: mciuploads
+          local_file: curator-dist.tar.gz
+      - command: s3.put
+        params:
+          aws_secret: ${aws_secret}
+          aws_key: ${aws_key}
+          local_file: curator-dist.tar.gz
+          bucket: build-push-testing
+          permissions: public-read
+          content_type: application/x-gzip
+          remote_file: curator-STAGE/${build_variant}/curator-dist-${task_id}.tar.gz
+      - command: s3Copy.copy
+        params:
+          aws_key: ${aws_key}
+          aws_secret: ${aws_secret}
+          s3_copy_files:
+          - {'source': { 'path': 'curator-STAGE/${build_variant}/curator-dist-${task_id}.tar.gz', 'bucket': 'build-push-testing' },
+             'destination': { 'path': 'build/curator/curator-dist-${build_variant}-${revision}.tar.gz', 'bucket': 'boxes.10gen.com' }
+            }
 
 
 post:

@@ -98,6 +98,13 @@ phony += $(buildDir)/$(name)
 # end main build
 
 
+# distribution targets and implementation
+dist:$(buildDir)/dist.tar.gz
+$(buildDir)/dist.tar.gz:$(buildDir)/$(name)
+	tar -C $(buildDir) -czvf $@ $(name)
+# end main build
+
+
 # convenience targets for runing tests and coverage tasks on a
 # specific package.
 makeArgs := --no-print-directory
