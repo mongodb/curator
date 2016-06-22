@@ -23,6 +23,7 @@ type RepositoryConfig struct {
 	Mirrors          map[string]string       `bson:"mirrors" json:"mirrors" yaml:"mirrors"`
 	Templates        *RepositoryTemplates    `bson:"templates" json:"templates" yaml:"templates"`
 	Repos            []*RepositoryDefinition `bson:"repos" json:"repos" yaml:"repos"`
+	Services         RepoBuilderServices     `bson:"services" json:"services" yaml:"services"`
 	fileName         string
 	definitionLookup map[string]map[string]*RepositoryDefinition
 	grip             grip.Journaler
@@ -48,6 +49,10 @@ type RepositoryDefinition struct {
 	Repos         []string `bson:"repos" json:"repos" yaml:"repos"`
 	Edition       string   `bson:"edition" json:"edition" yaml:"edition"`
 	Architectures []string `bson:"architectures,omitempty" json:"architectures,omitempty" yaml:"architectures,omitempty"`
+}
+
+type RepoBuilderServices struct {
+	NotaryUrl string `bson:"notary_url" json:"notary_url" yaml:"notary_url"`
 }
 
 type RepositoryTemplates struct {
@@ -84,6 +89,10 @@ func GetConfig(fileName string) (*RepositoryConfig, error) {
 	err = c.processRepos()
 	if err != nil {
 		return nil, err
+	}
+
+	if c.Services.NotaryUrl == "" {
+		grip.Warning("no notary service url specified")
 	}
 
 	return c, nil

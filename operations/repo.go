@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/mongodb/curator/repobuilder"
+	"github.com/satori/go.uuid"
 	"github.com/tychoish/grip"
 	"github.com/urfave/cli"
 )
@@ -20,6 +21,7 @@ func Repo() cli.Command {
 			return buildRepo(
 				c.String("packages"),
 				c.String("config"),
+				c.String("dir"),
 				c.String("distro"),
 				c.String("edition"),
 				c.String("version"),
@@ -39,11 +41,20 @@ func repoFlags() []cli.Flag {
 		profile = "default"
 	}
 
+	pwd, err := os.Getwd()
+	grip.CatchErrorFatal(err)
+	workingDir := filepath.Join(pwd, uuid.NewV4().String())
+
 	return []cli.Flag{
 		cli.StringFlag{
 			Name:  "config",
 			Value: confPath,
 			Usage: "path of a curator repository configuration file",
+		},
+		cli.StringFlag{
+			Name:  "dir",
+			Value: workingDir,
+			Usage: "path to a workspace for curator to do its work",
 		},
 		cli.StringFlag{
 			Name:  "distro",
@@ -77,25 +88,28 @@ func repoFlags() []cli.Flag {
 	}
 }
 
-func buildRepo(packages, configPath, distro, edition, version, arch, profile string, dryRun bool) error {
+func buildRepo(packages, configPath, workingDir, distro, edition, version, arch, profile string, dryRun bool) error {
+	// validate inputs
 	pkgs, err := filepath.Glob(packages)
 	if err != nil {
 		grip.CatchError(err)
 		return err
 	}
-
+	if edition == "community" {
+		edition = "org"
+	}
 	if len(pkgs) == 0 {
 		e := fmt.Sprintf("there are no packages in '%s'", packages)
 		grip.Error(e)
 		return errors.New(e)
 	}
 
+	// get configuration objects.
 	conf, err := repobuilder.GetConfig(configPath)
 	if err != nil {
 		grip.CatchError(err)
 		return err
 	}
-
 	repo, ok := conf.GetRepositoryDefinition(distro, edition)
 	if !ok {
 		e := fmt.Sprintf("repo not defined for distro=%s, edition=%s ", distro, edition)
@@ -103,16 +117,23 @@ func buildRepo(packages, configPath, distro, edition, version, arch, profile str
 		return errors.New(e)
 	}
 
+	// build the packages:
 	if repo.Type == repobuilder.RPM {
-		job, err := repobuilder.NewBuildRPMRepo(repo, version, arch, profile, pkgs...)
-		job.DryRun = dryRun
+		job, err := repobuilder.NewBuildRPMRepo(conf, repo, version, arch, profile, pkgs...)
 		if err != nil {
 			return err
 		}
+		job.WorkSpace = workingDir
+		job.DryRun = dryRun
 		return job.Run()
 	} else if repo.Type == repobuilder.DEB {
-		// job, err := repobuilder.NewBuildDEBRepo(repo, version, arch, pkgs...)
-		return errors.New("deb repositories are not yet supported")
+		job, err := repobuilder.NewBuildDEBRepo(conf, repo, version, arch, profile, pkgs...)
+		if err != nil {
+			return err
+		}
+		job.WorkSpace = workingDir
+		job.DryRun = dryRun
+		return job.Run()
 	} else {
 		return fmt.Errorf("%s repositories are not supported", repo.Type)
 	}

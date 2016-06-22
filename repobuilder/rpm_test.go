@@ -4,7 +4,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/mongodb/amboy/dependency"
 	"github.com/mongodb/amboy/registry"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -25,7 +24,7 @@ func (s *RpmRepoSuite) SetupSuite() {
 }
 
 func (s *RpmRepoSuite) SetupTest() {
-	s.j = buildRPMRepoJob()
+	s.j = &BuildRPMRepoJob{buildRepoJob()}
 	s.require.NotNil(s.j)
 }
 
@@ -35,10 +34,15 @@ func (s *RpmRepoSuite) TearDownTest() {
 	}
 }
 
+func (s *RpmRepoSuite) TestRpmBuilderImplementsRequiredInternalMethods() {
+	s.Implements((*jobImpl)(nil), s.j)
+}
+
 func (s *RpmRepoSuite) TestRegisteredFactoryProducesEqualValues() {
-	factory, err := registry.GetJobFactory(s.j.Type().Name)
-	s.NoError(err)
-	s.Equal(s.j, factory())
+	factory, err := registry.GetJobFactory("build-rpm-repo")
+	if s.NoError(err) {
+		s.Equal(s.j, factory())
+	}
 }
 
 func (s *RpmRepoSuite) TestConstructedObjectHasExpectedValues() {
@@ -46,7 +50,7 @@ func (s *RpmRepoSuite) TestConstructedObjectHasExpectedValues() {
 	s.NoError(err)
 	repo, ok := conf.GetRepositoryDefinition("rhel5", "enterprise")
 	s.True(ok)
-	s.j, err = NewBuildRPMRepo(repo, "2.8.8", "x86_64", "default", "foo", "bar", "baz")
+	s.j, err = NewBuildRPMRepo(conf, repo, "2.8.8", "x86_64", "default", "foo", "bar", "baz")
 	s.NoError(err)
 
 	// basic checks to make sure we create the instance
@@ -60,24 +64,17 @@ func (s *RpmRepoSuite) TestConstructorReturnsErrorForInvalidVersion() {
 	s.NoError(err)
 	repo, ok := conf.GetRepositoryDefinition("rhel5", "enterprise")
 	s.True(ok)
-	s.j, err = NewBuildRPMRepo(repo, "2.8.8.8", "x86_64", "default", "foo", "bar", "baz")
+	s.j, err = NewBuildRPMRepo(conf, repo, "2.8.8.8", "x86_64", "default", "foo", "bar", "baz")
 
 	s.Error(err)
 }
 
-func (s *RpmRepoSuite) TestIdIsAccessorForNameAttribute() {
-	s.Equal(s.j.Name, s.j.ID())
-	s.j.Name = "foo"
-	s.Equal("foo", s.j.ID())
-	s.Equal(s.j.Name, s.j.ID())
-}
-
-func (s *RpmRepoSuite) TestCompleetSetter() {
+func (s *RpmRepoSuite) TestCompletedSetter() {
 	conf, err := GetConfig("config_test.yaml")
 	s.NoError(err)
 	repo, ok := conf.GetRepositoryDefinition("rhel5", "enterprise")
 	s.True(ok)
-	s.j, err = NewBuildRPMRepo(repo, "2.8.8", "x86_64", "default")
+	s.j, err = NewBuildRPMRepo(conf, repo, "2.8.8", "x86_64", "default")
 	s.NoError(err)
 
 	s.False(s.j.DryRun)
@@ -92,28 +89,4 @@ func (s *RpmRepoSuite) TestCompleetSetter() {
 	_ = s.j.Run()
 	s.True(s.j.Completed())
 	s.Equal(s.j.IsComplete, s.j.Completed())
-}
-
-func (s *RpmRepoSuite) TestDependencyAccessorIsCorrect() {
-	s.Equal(s.j.D, s.j.Dependency())
-
-	s.Equal(dependency.AlwaysRun, s.j.D.Type().Name)
-}
-
-func (s *RpmRepoSuite) TestSetDependencyRejectsNonAlwaysRunDependencies() {
-	s.Equal(dependency.AlwaysRun, s.j.D.Type().Name)
-	localDep := dependency.NewLocalFileInstance()
-	s.NotEqual(localDep.Type().Name, dependency.AlwaysRun)
-	s.j.SetDependency(localDep)
-	s.Equal(dependency.AlwaysRun, s.j.D.Type().Name)
-}
-
-func (s *RpmRepoSuite) TestSetDependencyAcceptsDifferentAlwaysRunInstances() {
-	originalDep := s.j.Dependency()
-	newDep := dependency.NewAlways()
-	s.True(originalDep != newDep)
-
-	s.j.SetDependency(newDep)
-	s.True(originalDep != s.j.Dependency())
-	s.Exactly(newDep, s.j.Dependency())
 }

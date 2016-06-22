@@ -95,6 +95,7 @@ func (j *syncFromJob) Run() error {
 	j.b.catcher.Add(err)
 	if err == nil {
 		if fmt.Sprintf("%x", md5.Sum(data)) != j.remoteFile.MD5 {
+			grip.Debugf("hashes aren't the same: [file=%s, local=%x, remote=%s]", j.remoteFile.Name, md5.Sum(data), j.remoteFile.MD5)
 			catcher.Add(j.b.Get(j.remoteFile.Name, j.localPath))
 		}
 	}

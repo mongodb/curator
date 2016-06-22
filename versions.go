@@ -44,6 +44,13 @@ func NewMongoDBVersion(version string) (*MongoDBVersion, error) {
 			version += "pre-"
 		}
 	}
+	if strings.Contains(version, "~") {
+		versionParts := strings.Split(version, "~")
+		version = versionParts[0]
+		version += "-pre-"
+		v.tag = strings.Join(versionParts[1:], "")
+		v.isDev = true
+	}
 
 	parsed, err := semver.Parse(version)
 	if err != nil {
@@ -126,6 +133,22 @@ func (v *MongoDBVersion) IsStableSeries() bool {
 // otherwise.
 func (v *MongoDBVersion) IsDevelopmentSeries() bool {
 	return !v.IsStableSeries()
+}
+
+// StableReleaseSeries returns a series string (e.g. X.Y) for this
+// version. For stable releases, the output is the same as
+// .Series(). For development releases, this method returns the *next*
+// stable series.
+func (v *MongoDBVersion) StableReleaseSeries() string {
+	if v.IsStableSeries() {
+		return v.Series()
+	} else {
+		if v.parsed.Minor < 9 {
+			return fmt.Sprintf("%d.%d", v.parsed.Major, v.parsed.Minor+1)
+		} else {
+			return fmt.Sprintf("%d.0", v.parsed.Major+1)
+		}
+	}
 }
 
 // IsRelease returns true for all version strings that refer to a

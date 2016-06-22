@@ -145,13 +145,14 @@ func (r *bucketRegistry) getBucketWithCredentials(name string, creds AWSConnecti
 			credentials:       creds,
 			name:              name,
 			registry:          r,
-			numJobs:           runtime.NumCPU() * 2,
+			numJobs:           runtime.NumCPU() * 4,
 		}
 		grip.Noticef("creating new connection to bucket '%s'", name)
 
 		r.m[name] = b
 	}
 
+	b.Open()
 	return b
 }
 

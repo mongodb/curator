@@ -49,10 +49,9 @@ package operations
 import (
 	"fmt"
 	"os"
-	"runtime"
 
-	"github.com/urfave/cli"
 	"github.com/mongodb/curator/sthree"
+	"github.com/urfave/cli"
 )
 
 // S3 returns a cli.Command object for the S3 command group which has a
@@ -135,7 +134,7 @@ func s3SyncToCmd() cli.Command {
 		Usage:   "sync changes from the local system to s3",
 		Flags:   s3syncFlags(),
 		Action: func(c *cli.Context) error {
-			return s3SyncTo(c.String("bucket"), c.String("profile"), c.String("local"), c.String("prefix"), c.Int("jobs"))
+			return s3SyncTo(c.String("bucket"), c.String("profile"), c.String("local"), c.String("prefix"))
 		},
 	}
 }
@@ -147,7 +146,7 @@ func s3SyncFromCmd() cli.Command {
 		Usage:   "sync changes from s3 to the local system",
 		Flags:   s3syncFlags(),
 		Action: func(c *cli.Context) error {
-			return s3SyncFrom(c.String("bucket"), c.String("profile"), c.String("local"), c.String("prefix"), c.Int("jobs"))
+			return s3SyncFrom(c.String("bucket"), c.String("profile"), c.String("local"), c.String("prefix"))
 		},
 	}
 }
@@ -220,15 +219,10 @@ func s3DeletePrefix(bucket, profile, prefix string) error {
 	return b.DeletePrefix(prefix)
 }
 
-func s3SyncTo(bucket, profile, local, prefix string, jobs int) error {
+func s3SyncTo(bucket, profile, local, prefix string) error {
 	b := resolveBucket(bucket, profile)
 
-	err := b.SetNumJobs(jobs)
-	if err != nil {
-		return err
-	}
-
-	err = b.Open()
+	err := b.Open()
 	defer b.Close()
 
 	if err != nil {
@@ -238,15 +232,10 @@ func s3SyncTo(bucket, profile, local, prefix string, jobs int) error {
 	return b.SyncTo(local, prefix)
 }
 
-func s3SyncFrom(bucket, profile, local, prefix string, jobs int) error {
+func s3SyncFrom(bucket, profile, local, prefix string) error {
 	b := resolveBucket(bucket, profile)
 
-	err := b.SetNumJobs(jobs)
-	if err != nil {
-		return err
-	}
-
-	err = b.Open()
+	err := b.Open()
 	defer b.Close()
 	if err != nil {
 		return err
@@ -290,11 +279,6 @@ func s3syncFlags() []cli.Flag {
 		cli.StringFlag{
 			Name:  "prefix",
 			Usage: "a prefix of s3 key names",
-		},
-		cli.IntFlag{
-			Name:  "jobs",
-			Value: runtime.NumCPU() * 2,
-			Usage: "number of parallel workers processing",
 		})
 }
 

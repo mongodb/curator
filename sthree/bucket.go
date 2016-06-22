@@ -155,6 +155,11 @@ type s3Item struct {
 func (b *Bucket) list(prefix string) <-chan *s3Item {
 	output := make(chan *s3Item, 100)
 
+	// if the prefix doesn't have a trailing slash, then we can
+	// have weird effects with files that have the same prefix.
+	if !strings.HasSuffix(prefix, "/") {
+		prefix += "/"
+	}
 	go func() {
 		var lastKey string
 		for {
@@ -366,7 +371,7 @@ func (b *Bucket) SyncTo(local, prefix string) error {
 
 		remoteFile, ok := remote[path]
 		if !ok {
-			remoteFile = &s3Item{Name: strings.Join([]string{prefix, path[len(local):]}, "/")}
+			remoteFile = &s3Item{Name: filepath.Join(prefix, path[len(local):])}
 		}
 
 		job := newSyncToJob(path, remoteFile, b)
@@ -387,15 +392,15 @@ func (b *Bucket) SyncTo(local, prefix string) error {
 // All operations execute in the worker pool, and SyncTo waits for all
 // jobs to complete before returning an aggregated erro
 func (b *Bucket) SyncFrom(local, prefix string) error {
-	grip.Infof("sync pull %s.%s -> %s", b.name, prefix, local)
+	grip.Infof("sync pull %s/%s -> %s", b.name, prefix, local)
+	defer grip.Infof("completed pull operation from %s/%s -> %s", b.name, prefix, local)
+
 	for remote := range b.list(prefix) {
-		localPath := strings.Join([]string{local, remote.Name[len(prefix):]}, "/")
-		job := newSyncFromJob(localPath, remote, b)
+		job := newSyncFromJob(filepath.Join(local, remote.Name[len(prefix):]), remote, b)
 
 		// add the job to the queue
 		b.catcher.Add(b.queue.Put(job))
 	}
-
 	b.queue.Wait()
 	b.catcher.Add(b.queue.Runner().Error())
 

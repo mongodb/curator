@@ -121,7 +121,7 @@ func (s *RepoConfigSuite) TestGetRepoMethodReturnsExpectedRepoObject() {
 	s.require.True(ok)
 	s.Equal("rhel7", rhelCommunity.Name)
 	s.Equal("org", rhelCommunity.Edition)
-	s.Equal("repo.mongodb.org", rhelCommunity.Bucket)
+	s.Equal("repo-test.mongodb.org", rhelCommunity.Bucket)
 	s.Equal(RPM, rhelCommunity.Type)
 	s.Len(rhelCommunity.Repos, 2)
 
@@ -131,7 +131,7 @@ func (s *RepoConfigSuite) TestGetRepoMethodReturnsExpectedRepoObject() {
 
 	s.Equal("rhel7", rhelEnterprise.Name)
 	s.Equal("enterprise", rhelEnterprise.Edition)
-	s.Equal("repo.mongodb.com", rhelEnterprise.Bucket)
+	s.Equal("repo-test.mongodb.com", rhelEnterprise.Bucket)
 	s.Equal(RPM, rhelEnterprise.Type)
 	s.Len(rhelEnterprise.Repos, 2)
 }

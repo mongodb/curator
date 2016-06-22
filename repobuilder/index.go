@@ -29,11 +29,11 @@ func (c *RepositoryConfig) BuildIndexPageForDirectory(path, repoName string) err
 		if info.IsDir() {
 			// do the thing.
 			index, err := os.Create(filepath.Join(p, "index.html"))
+			defer index.Close()
 			catcher.Add(err)
 			if err != nil {
 				return nil
 			}
-			defer index.Close()
 
 			var contents []string
 
@@ -41,7 +41,8 @@ func (c *RepositoryConfig) BuildIndexPageForDirectory(path, repoName string) err
 				if err != nil {
 					return nil
 				}
-				contents = append(contents, p)
+
+				contents = append(contents, filepath.Base(p))
 				return nil
 			})
 			catcher.Add(err)
