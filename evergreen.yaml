@@ -115,7 +115,7 @@ functions:
       aws_key: ${aws_key}
       aws_secret: ${aws_secret}
       local_file: gopath/src/github.com/mongodb/curator/build/dist.tar.gz
-      remote_file: curator/${task_id}-${build_variant}/curator-dist-${revision}.tar.gz
+      remote_file: curator/${build_id}-${build_variant}/curator-dist-${revision}.tar.gz
       bucket: mciuploads
       content_type: application/x-gzip
       permissions: public-read
@@ -212,7 +212,7 @@ tasks:
         params:
           aws_key: ${aws_key}
           aws_secret: ${aws_secret}
-          remote_file: curator/${task_id}-${build_variant}/curator-dist-${revision}.tar.gz
+          remote_file: curator/${build_id}-${build_variant}/curator-dist-${revision}.tar.gz
           bucket: mciuploads
           local_file: curator-dist.tar.gz
       - command: s3.put
