@@ -7,7 +7,6 @@ import (
 	"github.com/goamz/goamz/s3"
 	"github.com/stretchr/testify/suite"
 	"github.com/tychoish/grip"
-	"github.com/tychoish/grip/level"
 )
 
 // RegistrySuite collects tests of the bucketRegistry, which provides
@@ -22,7 +21,7 @@ func TestVersionSuite(t *testing.T) {
 }
 
 func (s *RegistrySuite) SetupSuite() {
-	grip.SetThreshold(level.Emergency)
+	grip.UseNativeLogger()
 	s.registry = newBucketRegistry()
 }
 
