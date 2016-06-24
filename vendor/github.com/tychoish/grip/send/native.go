@@ -28,7 +28,7 @@ type nativeLogger struct {
 func NewNativeLogger(name string, thresholdLevel, defaultLevel level.Priority) (Sender, error) {
 	l := &nativeLogger{
 		name:     name,
-		template: "[p=%d]: %s\n",
+		template: "[p=%s]: %s\n",
 		RWMutex:  &sync.RWMutex{},
 	}
 	l.createLogger()
@@ -51,7 +51,7 @@ func (n *nativeLogger) Send(p level.Priority, m message.Composer) {
 		return
 	}
 
-	n.logger.Printf(n.template, int(p), m.Resolve())
+	n.logger.Printf(n.template, p, m.Resolve())
 }
 
 func (n *nativeLogger) Name() string {

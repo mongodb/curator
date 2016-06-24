@@ -16,11 +16,11 @@ import (
 // don't translate errors into string internally.
 //
 // type Catcher interface {
-// 	Add(error)
-// 	Len() int
-// 	HasErrors() bool
-// 	String() string
-// 	Resolve() error
+//	Add(error)
+//	Len() int
+//	HasErrors() bool
+//	String() string
+//	Resolve() error
 // }
 
 // MultiCatcher provides an interface to collect and coalesse error
@@ -55,11 +55,11 @@ func (c *MultiCatcher) HasErrors() bool {
 	return c.Len() > 0
 }
 
-// String implements the Stringer interface, and returns a comma
+// String implements the Stringer interface, and returns a "\n;"
 // separated string of the string representation of each error object
 // in the collector.
 func (c *MultiCatcher) String() string {
-	return strings.Join(c.errs, ", ")
+	return strings.Join(c.errs, ";\n")
 }
 
 // Resolve returns a final error object for the Catcher. If there are
