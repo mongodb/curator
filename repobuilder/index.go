@@ -5,6 +5,8 @@ import (
 	"html/template"
 	"os"
 	"path/filepath"
+
+	"github.com/tychoish/grip"
 )
 
 // TODO: in the future we may want to add an entry point or method for
@@ -26,16 +28,21 @@ func (c *RepositoryConfig) BuildIndexPageForDirectory(path, repoName string) err
 
 		if info.IsDir() {
 			// do the thing.
-			index := os.Create(filepath.Join(p, "index.html"))
+			index, err := os.Create(filepath.Join(p, "index.html"))
+			catcher.Add(err)
+			if err != nil {
+				return nil
+			}
 			defer index.Close()
 
 			var contents []string
 
-			err := filepath.Walk(p, func(p string, info os.FileInfo, err error) error {
+			err = filepath.Walk(p, func(p string, info os.FileInfo, err error) error {
 				if err != nil {
 					return nil
 				}
 				contents = append(contents, p)
+				return nil
 			})
 			catcher.Add(err)
 

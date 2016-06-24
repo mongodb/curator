@@ -20,10 +20,9 @@ import (
 // global configuration, and a list of repositories, controled by the
 // RepositoryDefinition type.
 type RepositoryConfig struct {
-	Mirrors   map[string]string       `bson:"mirrors" json:"mirrors" yaml:"mirrors"`
-	Templates map[string]string       `bson:"templates" json:"templates" yaml:"templates"`
-	Repos     []*RepositoryDefinition `bson:"repos" json:"repos" yaml:"repos"`
-
+	Mirrors          map[string]string       `bson:"mirrors" json:"mirrors" yaml:"mirrors"`
+	Templates        *RepositoryTemplates    `bson:"templates" json:"templates" yaml:"templates"`
+	Repos            []*RepositoryDefinition `bson:"repos" json:"repos" yaml:"repos"`
 	fileName         string
 	definitionLookup map[string]map[string]*RepositoryDefinition
 	grip             grip.Journaler
@@ -40,13 +39,20 @@ const (
 	DEB = "deb"
 )
 
-// RepositoryDefinition objects
+// RepositoryDefinition objects exist for each repository that we want to publish
 type RepositoryDefinition struct {
-	Name    string   `bson:"name" json:"name" yaml:"name"`
-	Type    RepoType `bson:"type" json:tu"type" yaml:"type"`
-	Bucket  string   `bson:"bucket" json:"bucket" yaml:"bucket"`
-	Repos   []string `bson:"repos" json:"repos" yaml:"repos"`
-	Edition string   `bson:"edition" json:"edition" yaml:"edition"`
+	Name          string   `bson:"name" json:"name" yaml:"name"`
+	Type          RepoType `bson:"type" json:tu"type" yaml:"type"`
+	CodeName      string   `bson:"code_name" json:"code_name" yaml:"code_name"`
+	Bucket        string   `bson:"bucket" json:"bucket" yaml:"bucket"`
+	Repos         []string `bson:"repos" json:"repos" yaml:"repos"`
+	Edition       string   `bson:"edition" json:"edition" yaml:"edition"`
+	Architectures []string `bson:"architectures,omitempty" json:"architectures,omitempty" yaml:"architectures,omitempty"`
+}
+
+type RepositoryTemplates struct {
+	Deb   map[string]string `bson:"deb" json:"deb" yaml:"deb"`
+	Index string            `bson:"index_page" json:"index_page" yaml:"index_page"`
 }
 
 // NewRepositoryConfig produces a pointer to an initialized
@@ -55,8 +61,10 @@ func NewRepositoryConfig() *RepositoryConfig {
 	logger := grip.NewJournaler("curator.repo.config")
 	logger.CloneSender(grip.Sender())
 	return &RepositoryConfig{
-		Mirrors:          make(map[string]string),
-		Templates:        make(map[string]string),
+		Mirrors: make(map[string]string),
+		Templates: &RepositoryTemplates{
+			Deb: make(map[string]string),
+		},
 		definitionLookup: make(map[string]map[string]*RepositoryDefinition),
 		grip:             logger,
 	}
@@ -112,6 +120,12 @@ func (c *RepositoryConfig) processRepos() error {
 		if _, ok := c.definitionLookup[dfn.Edition][dfn.Name]; ok {
 			catcher.Add(fmt.Errorf("the %s.%s already exists as repo #%d",
 				dfn.Edition, dfn.Name, idx))
+			continue
+		}
+
+		if dfn.Type == DEB && len(dfn.Architectures) == 0 {
+			catcher.Add(fmt.Errorf("debian distro %s does not specify architecture list",
+				dfn.Name))
 			continue
 		}
 

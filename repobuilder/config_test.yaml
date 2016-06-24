@@ -5,33 +5,36 @@ mirrors:
   rc: testing
 
 templates:
-  deb-community: |
-    Origin: mongodb
-    Label: mongodb
-    Suite: {{ . OSname }}
-    Codename: {{ . CodeName }}/mongodb-org
-    Architectures: amd64
-    Components: {{ . Component }}
-    Description: MongoDB packages
-  deb-enterprise: |
-    Origin: mongodb
-    Label: mongodb
-    Suite: {{ .OSname }}
-    Codename: {{ . CodeName }}/mongodb-enterprise
-    Architectures: amd64 ppc64el s390x
-    Components: {{ . Component }}
-    Description: MongoDB packages
-  index-page: |
+  deb:
+    community: |
+      Origin: mongodb
+      Label: mongodb
+      Suite: {{ .Name }}
+      Codename: {{ .CodeName }}/mongodb-org
+      Architectures: {{ .Architectures }}
+      Components: main
+      Description: MongoDB packages
+      Date: {{ .Date }}
+    enterprise: |
+      Origin: mongodb
+      Label: mongodb
+      Suite: {{ .Name }}
+      Codename: {{ .CodeName }}/mongodb-enterprise
+      Architectures: {{ .Architectures }}
+      Components: main
+      Description: MongoDB packages
+      Date: {{ .Date }}
+  index_page: |
     <!DOCTYPE html>
     <html>
      <head>
-       <title>{{ . TITLE }}</title>
+       <title>{{ .Title }}</title>
      </head>
 
      <body>
        <table>
         <tr><td>
-          <h1>{{ . TITLE }}</h1>
+          <h1>{{ .Title }}</h1>
         </td></tr>
 
         <tr><td>
@@ -42,11 +45,11 @@ templates:
           <a href='..'>Parent Directory</a>
         </td></tr>
 
-        {{ for i in files }}
+        {{ range $fn := .Files }}
         <tr><td>
-          <a href='{{ basename i }}'>{{ basename i }}</a>
+          <a href='{{ $fn }}'>{{ $fn }}</a>
         </td></tr>
-        {{ endfor }}
+        {{ end }}
 
         <tr><td>
           <hr>
@@ -70,8 +73,8 @@ repos:
 
   - name: rhel5
     type: rpm
-    edition: community
-    bucket: repo.mongodb.org
+    edition: org
+    bucket: repo-test.mongodb.org
     prefix: yum/redhat/5
     repos:
       - yum/redhat/5
@@ -79,73 +82,88 @@ repos:
 
   - name: rhel6
     type: rpm
-    edition: community
-    bucket: repo.mongodb.org
+    edition: org
+    bucket: repo-test.mongodb.org
     repos:
       - yum/redhat/6
       - yum/redhat/6Server
 
   - name: rhel7
     type: rpm
-    edition: community
-    bucket: repo.mongodb.org
+    edition: org
+    bucket: repo-test.mongodb.org
     repos:
       - yum/redhat/7
       - yum/redhat/7Server
 
   - name: amazon-2013.03
     type: rpm
-    edition: community
-    bucket: repo.mongodb.org
+    edition: org
+    bucket: repo-test.mongodb.org
     repos:
       - yum/amazon/2013.03/mongodb-org
 
   - name: suse11
     type: rpm
-    edition: community
-    bucket: repo.mongodb.org
+    edition: org
+    bucket: repo-test.mongodb.org
     repos:
       - zypper/suse/11/mongodb-org
 
   - name: suse12
     type: rpm
-    edition: community
-    bucket: repo.mongodb.org
+    edition: org
+    bucket: repo-test.mongodb.org
     repos:
       - zypper/suse/12/mongodb-org
 
   - name: debian8
     type: deb
-    bucket: repo.mongodb.org
-    edition: community
+    code_name: "jessie"
+    bucket: repo-test.mongodb.org
+    edition: org
+    architectures:
+      - amd64
     repos:
-      - apt/debian/dists/jessie/mongodb-org/main
+      - apt/debian/dists/jessie/mongodb-org
 
   - name: debian7
     type: deb
-    bucket: repo.mongodb.org
-    edition: community
+    code_name: "wheezy"
+    bucket: repo-test.mongodb.org
+    edition: org
+    architectures:
+      - amd64
     repos:
-      - apt/debian/dists/wheezy/mongodb-org/main
+      - apt/debian/dists/wheezy/mongodb-org
 
   - name: ubuntu1204
     type: deb
-    edition: community
-    bucket: repo.mongodb.org
+    code_name: "precise"
+    edition: org
+    bucket: repo-test.mongodb.org
+    architectures:
+      - amd64
     repos:
       - apt/ubuntu/dists/precise/mongodb-org/multiverse
 
   - name: ubuntu1404
     type: deb
-    edition: community
-    bucket: repo.mongodb.org
+    code_name: "trusty"
+    edition: org
+    bucket: repo-test.mongodb.org
+    architectures:
+      - amd64
     repos:
       - apt/ubuntu/dists/trusty/mongodb-org/multiverse
 
   - name: ubuntu1604
     type: deb
-    edition: community
-    bucket: repo.mongodb.org
+    code_name: "xenial"
+    edition: org
+    bucket: repo-test.mongodb.org
+    architectures:
+      - amd64
     repos:
       - apt/ubuntu/dists/xenial/mongodb-org/multiverse
 
@@ -158,7 +176,7 @@ repos:
   - name: rhel5
     type: rpm
     edition: enterprise
-    bucket: repo.mongodb.com
+    bucket: repo-test.mongodb.com
     repos:
       - yum/redhat/5
       - yum/redhat/5Server
@@ -166,7 +184,7 @@ repos:
   - name: rhel6
     type: rpm
     edition: enterprise
-    bucket: repo.mongodb.com
+    bucket: repo-test.mongodb.com
     repos:
       - yum/redhat/6
       - yum/redhat/6Server
@@ -174,7 +192,7 @@ repos:
   - name: rhel7
     type: rpm
     edition: enterprise
-    bucket: repo.mongodb.com
+    bucket: repo-test.mongodb.com
     repos:
       - yum/redhat/7
       - yum/redhat/7Server
@@ -182,62 +200,92 @@ repos:
   - name: amazon-2013.03
     type: rpm
     edition: enterprise
-    bucket: repo.mongodb.com
+    bucket: repo-test.mongodb.com
     repos:
       - yum/amazon/2013.03/mongodb-enterprise
 
   - name: suse11
     type: rpm
     edition: enterprise
-    bucket: repo.mongodb.com
+    bucket: repo-test.mongodb.com
     repos:
       - zypper/suse/11/mongodb-enterprise
 
   - name: suse12
     type: rpm
     edition: enterprise
-    bucket: repo.mongodb.com
+    bucket: repo-test.mongodb.com
     repos:
       - zypper/suse/12/mongodb-enterprise
 
   - name: debian8
     type: deb
     edition: enterprise
-    bucket: repo.mongodb.com
+    code_name: "jessie"
+    bucket: repo-test.mongodb.com
+    architectures:
+      - amd64
+      - ppc64el
+      - s390x
     repos:
-      - apt/debian/dists/jessie/mongodb-enterprise/main
+      - apt/debian/dists/jessie/mongodb-enterprise
 
   - name: debian7
     type: deb
+    code_name: "wheezy"
     edition: enterprise
-    bucket: repo.mongodb.com
+    bucket: repo-test.mongodb.com
+    architectures:
+      - amd64
+      - ppc64el
+      - s390x
     repos:
-      - apt/debian/dists/wheezy/mongodb-enterprise/main
+      - apt/debian/dists/wheezy/mongodb-enterprise
 
   - name: ubuntu1204
     type: deb
+    code_name: "precise"
     edition: enterprise
-    bucket: repo.mongodb.com
+    bucket: repo-test.mongodb.com
+    architectures:
+      - amd64
+      - ppc64el
+      - s390x
     repos:
       - apt/ubuntu/dists/precise/mongodb-enterprise/multiverse
 
   - name: ubuntu1404
     type: deb
+    code_name: "trusty"
     edition: enterprise
-    bucket: repo.mongodb.com
+    bucket: repo-test.mongodb.com
+    architectures:
+      - amd64
+      - ppc64el
+      - s390x
     repos:
       - apt/ubuntu/dists/trusty/mongodb-enterprise/multiverse
 
   - name: ubuntu1504
     type: deb
+    code_name: "vivid"
     edition: enterprise
-    bucket: repo.mongodb.com
+    bucket: repo-test.mongodb.com
+    architectures:
+      - amd64
+      - ppc64el
+      - s390x
     repos:
       - apt/ubuntu/dists/vivid/mongodb-enterprise/multiverse
 
   - name: ubuntu1604
     type: deb
+    code_name: "xenial"
     edition: enterprise
-    bucket: repo.mongodb.com
+    bucket: repo-test.mongodb.com
+    architectures:
+      - amd64
+      - ppc64el
+      - s390x
     repos:
       - apt/ubuntu/dists/xenial/mongodb-enterprise/multiverse

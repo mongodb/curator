@@ -106,7 +106,7 @@ func (s *RepoConfigSuite) TestGetRepoMethodReturnsNilObjectsForInvalidName() {
 	s.conf, err = GetConfig(s.file)
 	s.NoError(err)
 
-	repo, ok := s.conf.GetRepositoryDefinition("rhel55", "community")
+	repo, ok := s.conf.GetRepositoryDefinition("rhel55", "org")
 	s.False(ok)
 	s.Nil(repo)
 }
@@ -117,10 +117,10 @@ func (s *RepoConfigSuite) TestGetRepoMethodReturnsExpectedRepoObject() {
 	s.conf, err = GetConfig(s.file)
 	s.NoError(err)
 
-	rhelCommunity, ok := s.conf.GetRepositoryDefinition("rhel7", "community")
+	rhelCommunity, ok := s.conf.GetRepositoryDefinition("rhel7", "org")
 	s.require.True(ok)
 	s.Equal("rhel7", rhelCommunity.Name)
-	s.Equal("community", rhelCommunity.Edition)
+	s.Equal("org", rhelCommunity.Edition)
 	s.Equal("repo.mongodb.org", rhelCommunity.Bucket)
 	s.Equal(RPM, rhelCommunity.Type)
 	s.Len(rhelCommunity.Repos, 2)
