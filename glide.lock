@@ -13,7 +13,7 @@ imports:
   - aws
   - s3
 - name: github.com/mongodb/amboy
-  version: c893558835f997024f6c905876f54e6cac2ecca6
+  version: 53781c35a250f762bb4dd5ef54044af87d582a13
   subpackages:
   - dependency
   - job
@@ -29,7 +29,7 @@ imports:
 - name: github.com/stretchr/testify
   version: d77da356e56a7428ad25149ca77381849a6a5232
 - name: github.com/tychoish/grip
-  version: bd5275e041d65f9a372212a98d84169249057590
+  version: 88546e649b9b22d7468c5869723582054d7bfad5
   subpackages:
   - level
   - logging
