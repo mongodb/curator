@@ -177,11 +177,17 @@ func (j *Job) Run() error {
 				}
 			}
 
-			j.grip.Info("copying new packages into local staging area")
-			changedRepos, err := injectNewPackages(j, local, remote)
-			if err != nil {
-				catcher.Add(err)
-				return
+			var changedRepos []string
+			if j.DryRun {
+				j.grip.Noticef("in dry run mode. would link packages [%s] to %s",
+					strings.Join(j.PackagePaths, "; "), local)
+			} else {
+				j.grip.Info("copying new packages into local staging area")
+				changedRepos, err = injectNewPackages(j, local)
+				if err != nil {
+					catcher.Add(err)
+					return
+				}
 			}
 
 			rWg := &sync.WaitGroup{}
@@ -219,15 +225,15 @@ func (j *Job) Run() error {
 
 // shim methods so that we can reuse the Run() method from
 // repobuilder.Job for all types
-func injectNewPackages(j interface{}, local, remote string) ([]string, error) {
+func injectNewPackages(j interface{}, local string) ([]string, error) {
 	switch j := j.(type) {
 	case *Job:
 		if j.Type().Name == "build-deb-repo" {
 			job := BuildDEBRepoJob{*j}
-			return job.injectNewPackages(local, remote)
+			return job.injectNewPackages(local)
 		} else if j.Type().Name == "build-rpm-repo" {
 			job := BuildRPMRepoJob{*j}
-			return job.injectNewPackages(local, remote)
+			return job.injectNewPackages(local)
 		} else {
 			return []string{}, fmt.Errorf("builder %s is not supported", j.Type().Name)
 		}

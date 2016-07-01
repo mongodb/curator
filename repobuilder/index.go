@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/tychoish/grip"
 )
@@ -26,8 +27,9 @@ func (c *RepositoryConfig) BuildIndexPageForDirectory(path, repoName string) err
 			return nil
 		}
 
+		// we want to write once index.html per directory. If
+		// we don't have directory, we can't do anything here.
 		if info.IsDir() {
-			// do the thing.
 			index, err := os.Create(filepath.Join(p, "index.html"))
 			defer index.Close()
 			catcher.Add(err)
@@ -36,13 +38,32 @@ func (c *RepositoryConfig) BuildIndexPageForDirectory(path, repoName string) err
 			}
 
 			var contents []string
+			numDirs := getNumDirs(p)
 
-			err = filepath.Walk(p, func(p string, info os.FileInfo, err error) error {
+			err = filepath.Walk(p, func(contentPath string, info os.FileInfo, err error) error {
+				// for each directory we walk its contents and add things to the listing for
+				// that directory. This is not an optimal algorithm.
+
 				if err != nil {
+					return err
+				}
+
+				// skip listing "self"
+				if contentPath == p {
 					return nil
 				}
 
-				contents = append(contents, filepath.Base(p))
+				// don't list index.html files
+				if strings.HasSuffix(contentPath, "index.html") {
+					return nil
+				}
+
+				// we want to avoid list things recursively on each page. instead we only things if
+				// it has one more element (i.e. a file name or sub directory) than the enclosing directory.
+				if getNumDirs(contentPath)-1 == numDirs {
+					contents = append(contents, filepath.Base(contentPath))
+				}
+
 				return nil
 			})
 			catcher.Add(err)
@@ -52,12 +73,13 @@ func (c *RepositoryConfig) BuildIndexPageForDirectory(path, repoName string) err
 				RepoName string
 				Files    []string
 			}{
-				Title:    fmt.Sprintf("Index of %s", p),
+				Title:    fmt.Sprintf("Index of %s", filepath.Base(p)),
 				RepoName: repoName,
 				Files:    contents,
 			})
 			catcher.Add(err)
 
+			grip.Noticeln("writing file at:", filepath.Join(p, "index.html"))
 			return nil
 		}
 		return nil
@@ -65,4 +87,8 @@ func (c *RepositoryConfig) BuildIndexPageForDirectory(path, repoName string) err
 	catcher.Add(err)
 
 	return catcher.Resolve()
+}
+
+func getNumDirs(path string) int {
+	return len(strings.Split(path, string(os.PathSeparator)))
 }

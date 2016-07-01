@@ -16,8 +16,8 @@ func (s *CommandsSuite) TestRepoFlags() {
 		}
 	}
 
-	s.Len(names, 8)
-	s.Len(flags, 8)
+	s.Len(names, 9)
+	s.Len(flags, 9)
 	s.True(names["config"])
 	s.True(names["distro"])
 	s.True(names["version"])
@@ -32,6 +32,7 @@ func (s *CommandsSuite) TestDryRunOperationOnProcess() {
 	err := buildRepo(
 		"./*", // packages
 		"../repobuilder/config_test.yaml", // repo config path
+		"./",         // workingdir
 		"rhel7",      // distro
 		"enterprise", // edition
 		"2.8.0",      // mongodbe version

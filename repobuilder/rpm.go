@@ -58,14 +58,12 @@ func NewBuildRPMRepo(conf *RepositoryConfig, distro *RepositoryDefinition, versi
 	return r, nil
 }
 
-func (j *BuildRPMRepoJob) injectNewPackages(local, target string) ([]string, error) {
+func (j *BuildRPMRepoJob) injectNewPackages(local string) ([]string, error) {
 	catcher := grip.NewCatcher()
 	var changedRepos []string
 
-	repoName := filepath.Join(local, target)
-
 	if j.release.IsRelease() {
-		seriesRepoPath := filepath.Join(repoName, j.release.Series())
+		seriesRepoPath := filepath.Join(local, j.release.Series())
 		changedRepos = append(changedRepos, seriesRepoPath)
 		catcher.Add(j.linkPackages(filepath.Join(seriesRepoPath, j.Arch, "RPMS")))
 	}
@@ -73,7 +71,7 @@ func (j *BuildRPMRepoJob) injectNewPackages(local, target string) ([]string, err
 	if j.release.IsStableSeries() {
 		mirror, ok := j.Conf.Mirrors[j.release.Series()]
 		if ok && mirror == "stable" {
-			stableRepoPath := filepath.Join(repoName, "stable")
+			stableRepoPath := filepath.Join(local, "stable")
 			changedRepos = append(changedRepos, stableRepoPath)
 			catcher.Add(j.linkPackages(filepath.Join(stableRepoPath, j.Arch, "RPMS")))
 		}
@@ -82,14 +80,14 @@ func (j *BuildRPMRepoJob) injectNewPackages(local, target string) ([]string, err
 	if j.release.IsDevelopmentSeries() {
 		mirror, ok := j.Conf.Mirrors[j.release.Series()]
 		if ok && mirror == "unstable" {
-			devRepoPath := filepath.Join(repoName, "unstable")
+			devRepoPath := filepath.Join(local, "unstable")
 			changedRepos = append(changedRepos, devRepoPath)
 			catcher.Add(j.linkPackages(filepath.Join(devRepoPath, j.Arch, "RPMS")))
 		}
 	}
 
 	if j.release.IsReleaseCandidate() || j.release.IsDevelopmentBuild() {
-		testingRepoPath := filepath.Join(repoName, "testing")
+		testingRepoPath := filepath.Join(local, "testing")
 		changedRepos = append(changedRepos, testingRepoPath)
 		catcher.Add(j.linkPackages(filepath.Join(testingRepoPath, j.Arch, "RPMS")))
 	}

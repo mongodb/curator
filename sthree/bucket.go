@@ -216,7 +216,7 @@ func (b *Bucket) Put(fileName, path string) error {
 		return err
 	}
 
-	grip.Infof("uploading %s -> (%s) %s", fileName, b.name, path)
+	grip.Debugf("uploading %s -> (%s) %s", fileName, b.name, path)
 	return b.bucket.Put(path, contents, mimeType, b.NewFilePermission, s3.Options{})
 }
 
@@ -239,7 +239,7 @@ func getMimeType(fileName string) string {
 // local file at the "fileName", creating enclosing directories as
 // needed.
 func (b *Bucket) Get(path, fileName string) error {
-	grip.Infof("downloading (%s) %s -> %s", b.name, path, fileName)
+	grip.Debugf("downloading (%s) %s -> %s", b.name, path, fileName)
 
 	data, err := b.bucket.Get(path)
 	if err != nil {

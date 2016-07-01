@@ -44,12 +44,11 @@ func (s *CommandsSuite) TestSyncFlagsFactory() {
 		}
 	}
 
-	s.Len(names, 5)
-	s.Len(flags, 5)
+	s.Len(names, 4)
+	s.Len(flags, 4)
 	s.True(names["bucket"])
 	s.True(names["local"])
 	s.True(names["prefix"])
-	s.True(names["jobs"])
 }
 
 func (s *CommandsSuite) TestS3ParentCommandHasExpectedProperties() {
