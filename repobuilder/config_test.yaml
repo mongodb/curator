@@ -4,6 +4,9 @@ mirrors:
   nightly: testing
   rc: testing
 
+services:
+  notary_url: "http://notary-service.build.10gen.cc:5000"
+
 templates:
   deb:
     community: |
