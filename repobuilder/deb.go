@@ -29,7 +29,7 @@ type BuildDEBRepoJob struct {
 
 func init() {
 	registry.AddJobType("build-deb-repo", func() amboy.Job {
-		return &BuildDEBRepoJob{buildRepoJob()}
+		return &BuildDEBRepoJob{*buildRepoJob()}
 	})
 }
 
@@ -44,7 +44,7 @@ func init() {
 
 func NewBuildDEBRepo(conf *RepositoryConfig, distro *RepositoryDefinition, version, arch, profile string, pkgs ...string) (*BuildDEBRepoJob, error) {
 	var err error
-	r := &BuildDEBRepoJob{buildRepoJob()}
+	r := &BuildDEBRepoJob{*buildRepoJob()}
 
 	r.release, err = curator.NewMongoDBVersion(version)
 	if err != nil {
@@ -74,6 +74,17 @@ func NewBuildDEBRepo(conf *RepositoryConfig, distro *RepositoryDefinition, versi
 	return r, nil
 }
 
+func (j *BuildDEBRepoJob) createArchDirs(basePath string) ([]string, error) {
+	catcher := grip.NewCatcher()
+	var changedPaths []string
+
+	for _, arch := range j.Distro.Architectures {
+		catcher.Add(os.MkdirAll(filepath.Join(basePath, "binary-"+arch), 0755))
+	}
+
+	return changedPaths, catcher.Resolve()
+}
+
 func (j *BuildDEBRepoJob) injectNewPackages(local string) ([]string, error) {
 	catcher := grip.NewCatcher()
 	var changedRepos []string
@@ -84,6 +95,10 @@ func (j *BuildDEBRepoJob) injectNewPackages(local string) ([]string, error) {
 		seriesRepoPath := filepath.Join(local, j.release.Series(), "main")
 		changedRepos = append(changedRepos, seriesRepoPath)
 		catcher.Add(j.linkPackages(filepath.Join(seriesRepoPath, arch)))
+
+		extraPaths, err := j.createArchDirs(seriesRepoPath)
+		catcher.Add(err)
+		changedRepos = append(changedRepos, extraPaths...)
 	}
 
 	if j.release.IsStableSeries() {
@@ -92,6 +107,10 @@ func (j *BuildDEBRepoJob) injectNewPackages(local string) ([]string, error) {
 			stableRepoPath := filepath.Join(local, "stable", "main")
 			changedRepos = append(changedRepos, stableRepoPath)
 			catcher.Add(j.linkPackages(filepath.Join(stableRepoPath, arch)))
+
+			extraPaths, err := j.createArchDirs(stableRepoPath)
+			catcher.Add(err)
+			changedRepos = append(changedRepos, extraPaths...)
 		}
 	}
 
@@ -101,6 +120,10 @@ func (j *BuildDEBRepoJob) injectNewPackages(local string) ([]string, error) {
 			devRepoPath := filepath.Join(local, "unstable", "main")
 			changedRepos = append(changedRepos, devRepoPath)
 			catcher.Add(j.linkPackages(filepath.Join(devRepoPath, arch)))
+
+			extraPaths, err := j.createArchDirs(devRepoPath)
+			catcher.Add(err)
+			changedRepos = append(changedRepos, extraPaths...)
 		}
 	}
 
@@ -108,6 +131,10 @@ func (j *BuildDEBRepoJob) injectNewPackages(local string) ([]string, error) {
 		testingRepoPath := filepath.Join(local, "testing", "main")
 		changedRepos = append(changedRepos, testingRepoPath)
 		catcher.Add(j.linkPackages(filepath.Join(testingRepoPath, arch)))
+
+		extraPaths, err := j.createArchDirs(testingRepoPath)
+		catcher.Add(err)
+		changedRepos = append(changedRepos, extraPaths...)
 	}
 
 	return changedRepos, catcher.Resolve()

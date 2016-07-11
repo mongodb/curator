@@ -24,7 +24,7 @@ func (s *RpmRepoSuite) SetupSuite() {
 }
 
 func (s *RpmRepoSuite) SetupTest() {
-	s.j = &BuildRPMRepoJob{buildRepoJob()}
+	s.j = &BuildRPMRepoJob{*buildRepoJob()}
 	s.require.NotNil(s.j)
 }
 

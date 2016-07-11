@@ -111,6 +111,7 @@ func (r *bucketRegistry) getBucketFromProfile(name, account string) *Bucket {
 		Auth:   auth,
 		Region: r.c.Region,
 	}
+	grip.CatchError(os.Setenv("AWS_PROFILE", existing))
 
 	return r.getBucketWithCredentials(name, creds)
 }
@@ -152,7 +153,6 @@ func (r *bucketRegistry) getBucketWithCredentials(name string, creds AWSConnecti
 		r.m[name] = b
 	}
 
-	b.Open()
 	return b
 }
 

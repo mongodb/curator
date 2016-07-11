@@ -27,7 +27,7 @@ type Job struct {
 	IsComplete   bool                  `bson:"completed" json:"completed" yaml:"completed"`
 	JobType      amboy.JobType         `bson:"job_type" json:"job_type" yaml:"job_type"`
 	D            dependency.Manager    `bson:"dependency" json:"dependency" yaml:"dependency"`
-	Distro       *RepositoryDefinition `bson:"distro" json:"distro", yaml:"distro"`
+	Distro       *RepositoryDefinition `bson:"distro" json:"distro" yaml:"distro"`
 	Conf         *RepositoryConfig     `bson:"conf" json:"conf" yaml:"conf"`
 	Output       map[string]string     `bson:"output" json:"output" yaml:"output"`
 	Version      string                `bson:"version" json:"version" yaml:"version"`
@@ -42,11 +42,11 @@ type Job struct {
 	mutex        sync.Mutex
 }
 
-func buildRepoJob() Job {
+func buildRepoJob() *Job {
 	logger := grip.NewJournaler("repobuilder.job")
 	logger.CloneSender(grip.Sender())
 
-	return Job{
+	return &Job{
 		D:      dependency.NewAlways(),
 		Output: make(map[string]string),
 		grip:   logger,

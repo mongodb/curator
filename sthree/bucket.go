@@ -155,9 +155,10 @@ type s3Item struct {
 func (b *Bucket) list(prefix string) <-chan *s3Item {
 	output := make(chan *s3Item, 100)
 
-	// if the prefix doesn't have a trailing slash, then we can
-	// have weird effects with files that have the same prefix.
-	if !strings.HasSuffix(prefix, "/") {
+	// if the prefix doesn't have a trailing slash and isn't the
+	// empty string, then we can have weird effects with files that
+	// have the same prefix.
+	if prefix != "" && !strings.HasSuffix(prefix, "/") {
 		prefix += "/"
 	}
 	go func() {

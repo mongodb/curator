@@ -21,13 +21,13 @@ type BuildRPMRepoJob struct {
 
 func init() {
 	registry.AddJobType("build-rpm-repo", func() amboy.Job {
-		return &BuildRPMRepoJob{buildRepoJob()}
+		return &BuildRPMRepoJob{*buildRepoJob()}
 	})
 }
 
 func NewBuildRPMRepo(conf *RepositoryConfig, distro *RepositoryDefinition, version, arch, profile string, pkgs ...string) (*BuildRPMRepoJob, error) {
 	var err error
-	r := &BuildRPMRepoJob{buildRepoJob()}
+	r := &BuildRPMRepoJob{*buildRepoJob()}
 
 	r.WorkSpace, err = os.Getwd()
 	if err != nil {

@@ -24,7 +24,7 @@ func (s *RepoJobSuite) SetupSuite() {
 
 func (s *RepoJobSuite) SetupTest() {
 	job := buildRepoJob()
-	s.j = &job
+	s.j = job
 	s.require.NotNil(s.j)
 }
 

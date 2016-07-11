@@ -15,7 +15,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"github.com/tychoish/grip"
-	"github.com/tychoish/grip/level"
 )
 
 // BucketSuite contains tests of the base bucket interface for
@@ -48,7 +47,6 @@ func (s *BucketSuite) SetupSuite() {
 	s.uuid = id.String()
 
 	grip.Noticef("running s3 bucket tests, using %s (%s)", s.bucketName, s.uuid)
-	grip.SetThreshold(level.Emergency)
 
 	tempDir, err := ioutil.TempDir("", s.uuid)
 	s.require.NoError(err)
@@ -57,10 +55,10 @@ func (s *BucketSuite) SetupSuite() {
 
 func (s *BucketSuite) SetupTest() {
 	s.b = GetBucket(s.bucketName)
-	_ = s.b.catcher.Resolve()
 }
 
 func (s *BucketSuite) TearDownTest() {
+	grip.CatchError(s.b.DeletePrefix(s.uuid))
 	buckets.removeBucket(s.b)
 }
 
@@ -68,6 +66,7 @@ func (s *BucketSuite) TearDownSuite() {
 	b := GetBucket(s.bucketName)
 	s.NoError(b.DeletePrefix(s.uuid))
 	s.NoError(os.RemoveAll(s.tempDir))
+	buckets.removeBucket(b)
 }
 
 func (s *BucketSuite) TestAdditionalMimeTypesAndMimeTypeDiscovery() {
@@ -179,7 +178,7 @@ func (s *BucketSuite) TestContentsAndListProduceIdenticalData() {
 }
 
 func (s *BucketSuite) TestJobNumberIsConfigurableBeforeBucketOpens() {
-	s.Equal(s.b.numJobs, runtime.NumCPU()*2)
+	s.Equal(s.b.numJobs, runtime.NumCPU()*4)
 
 	for i := 1; i < 25; i++ {
 		s.False(s.b.open)
@@ -195,7 +194,7 @@ func (s *BucketSuite) TestJobNumberIsNotConfigurableAfterBucketOpens() {
 	s.NoError(s.b.Open())
 	s.True(s.b.open)
 
-	s.Equal(s.b.numJobs, runtime.NumCPU()*2)
+	s.Equal(s.b.numJobs, runtime.NumCPU()*4)
 	s.Equal(s.b.numJobs, s.b.queue.Runner().Size())
 	s.Error(s.b.SetNumJobs(100))
 	s.Equal(s.b.numJobs, s.b.queue.Runner().Size())

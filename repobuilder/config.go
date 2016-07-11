@@ -43,7 +43,7 @@ const (
 // RepositoryDefinition objects exist for each repository that we want to publish
 type RepositoryDefinition struct {
 	Name          string   `bson:"name" json:"name" yaml:"name"`
-	Type          RepoType `bson:"type" json:tu"type" yaml:"type"`
+	Type          RepoType `bson:"type" json:"type" yaml:"type"`
 	CodeName      string   `bson:"code_name" json:"code_name" yaml:"code_name"`
 	Bucket        string   `bson:"bucket" json:"bucket" yaml:"bucket"`
 	Repos         []string `bson:"repos" json:"repos" yaml:"repos"`
