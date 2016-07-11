@@ -28,7 +28,7 @@ type BuildDEBRepoJob struct {
 }
 
 func init() {
-	registry.AddJobType("build-rpm-repo", func() amboy.Job {
+	registry.AddJobType("build-deb-repo", func() amboy.Job {
 		return &BuildDEBRepoJob{buildRepoJob()}
 	})
 }

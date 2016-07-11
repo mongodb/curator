@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"github.com/tychoish/grip"
 )
 
 type DebRepoSuite struct {
@@ -29,7 +30,7 @@ func (s *DebRepoSuite) SetupTest() {
 
 func (s *DebRepoSuite) TearDownTest() {
 	for _, path := range s.j.workingDirs {
-		s.j.grip.CatchError(os.RemoveAll(path))
+		grip.CatchError(os.RemoveAll(path))
 	}
 }
 
@@ -56,7 +57,7 @@ func (s *DebRepoSuite) TestConstructorReturnsErrorForInvalidVersion() {
 	s.NoError(err)
 	repo, ok := conf.GetRepositoryDefinition("debian8", "enterprise")
 	s.True(ok)
-	s.j, err = NewBuildDEBRepo(conf, repo, "2.8.8.8", "x86_64", "default", "foo", "bar", "baz")
+	_, err = NewBuildDEBRepo(conf, repo, "2.8.8.8", "x86_64", "default", "foo", "bar", "baz")
 
 	s.Error(err)
 }

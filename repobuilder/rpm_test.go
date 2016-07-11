@@ -64,7 +64,7 @@ func (s *RpmRepoSuite) TestConstructorReturnsErrorForInvalidVersion() {
 	s.NoError(err)
 	repo, ok := conf.GetRepositoryDefinition("rhel5", "enterprise")
 	s.True(ok)
-	s.j, err = NewBuildRPMRepo(conf, repo, "2.8.8.8", "x86_64", "default", "foo", "bar", "baz")
+	_, err = NewBuildRPMRepo(conf, repo, "2.8.8.8", "x86_64", "default", "foo", "bar", "baz")
 
 	s.Error(err)
 }

@@ -19,7 +19,7 @@ import (
 
 type jobImpl interface {
 	rebuildRepo(string, *grip.MultiCatcher, *sync.WaitGroup)
-	injectNewPackages(string, string) ([]string, error)
+	injectNewPackages(string) ([]string, error)
 }
 
 type Job struct {
