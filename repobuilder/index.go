@@ -31,7 +31,7 @@ func (c *RepositoryConfig) BuildIndexPageForDirectory(path, repoName string) err
 		// we don't have directory, we can't do anything here.
 		if info.IsDir() {
 			index, err := os.Create(filepath.Join(p, "index.html"))
-			defer index.Close()
+			defer catcher.Add(index.Close())
 			catcher.Add(err)
 			if err != nil {
 				return nil

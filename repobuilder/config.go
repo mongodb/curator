@@ -17,13 +17,13 @@ import (
 
 // RepositoryConfig provides an interface and schema for the
 // repository configuration file. These files contain some basic
-// global configuration, and a list of repositories, controled by the
+// global configuration, and a list of repositories, controlled by the
 // RepositoryDefinition type.
 type RepositoryConfig struct {
 	Mirrors          map[string]string       `bson:"mirrors" json:"mirrors" yaml:"mirrors"`
 	Templates        *RepositoryTemplates    `bson:"templates" json:"templates" yaml:"templates"`
 	Repos            []*RepositoryDefinition `bson:"repos" json:"repos" yaml:"repos"`
-	Services         RepoBuilderServices     `bson:"services" json:"services" yaml:"services"`
+	Services         Services                `bson:"services" json:"services" yaml:"services"`
 	fileName         string
 	definitionLookup map[string]map[string]*RepositoryDefinition
 	grip             grip.Journaler
@@ -51,8 +51,8 @@ type RepositoryDefinition struct {
 	Architectures []string `bson:"architectures,omitempty" json:"architectures,omitempty" yaml:"architectures,omitempty"`
 }
 
-type RepoBuilderServices struct {
-	NotaryUrl string `bson:"notary_url" json:"notary_url" yaml:"notary_url"`
+type Services struct {
+	NotaryURL string `bson:"notary_url" json:"notary_url" yaml:"notary_url"`
 }
 
 type RepositoryTemplates struct {
@@ -91,7 +91,7 @@ func GetConfig(fileName string) (*RepositoryConfig, error) {
 		return nil, err
 	}
 
-	if c.Services.NotaryUrl == "" {
+	if c.Services.NotaryURL == "" {
 		grip.Warning("no notary service url specified")
 	}
 
@@ -144,7 +144,7 @@ func (c *RepositoryConfig) processRepos() error {
 	return catcher.Resolve()
 }
 
-// GetRepoistoryDefinition takes the name of as repository and an edition,
+// GetRepositoryDefinition takes the name of as repository and an edition,
 // return a repository configuration. The second value is true when
 // the requested edition+name exists, and false otherwise. When the
 // requested edition+name does not exist, the value is nil.

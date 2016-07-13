@@ -26,7 +26,6 @@ variables:
       - func: setup-credentials
       - func: run-make
         vars: { target: "${task_name}" }
-      - func: parse-test-output
 
   # Task lists for build variants. Some (known) duplication between
   # these lists and the task definitions below.
@@ -120,12 +119,6 @@ functions:
       content_type: application/x-gzip
       permissions: public-read
       display_name: curator-dist.tar.gz
-  parse-test-output:
-    command: gotest.parse_files
-    params:
-      files:
-        - "gopath/src/github.com/mongodb/curator/build/test.*.out"
-        - "gopath/src/github.com/mongodb/curator/build/race.*.out"
 
 
 #######################################
@@ -204,37 +197,27 @@ tasks:
       - name: build-race
 
   - name: push
+    patchable: false
     depends_on:
     - name: "*"
     stepback: false
     commands:
-      - command: s3.get
-        params:
-          aws_key: ${aws_key}
-          aws_secret: ${aws_secret}
-          remote_file: curator/${build_id}-${build_variant}/curator-dist-${revision}.tar.gz
-          bucket: mciuploads
-          local_file: curator-dist.tar.gz
-      - command: s3.put
-        params:
-          aws_secret: ${aws_secret}
-          aws_key: ${aws_key}
-          local_file: curator-dist.tar.gz
-          bucket: build-push-testing
-          permissions: public-read
-          content_type: application/x-gzip
-          remote_file: curator-STAGE/${build_variant}/curator-dist-${task_id}.tar.gz
       - command: s3Copy.copy
         params:
           aws_key: ${aws_key}
           aws_secret: ${aws_secret}
           s3_copy_files:
-          - {'source': { 'path': 'curator-STAGE/${build_variant}/curator-dist-${task_id}.tar.gz', 'bucket': 'build-push-testing' },
+          - {'source': { 'path': 'curator/${build_id}-${build_variant}/curator-dist-${revision}.tar.gz', 'bucket': 'mciuploads' },
              'destination': { 'path': 'build/curator/curator-dist-${build_variant}-${revision}.tar.gz', 'bucket': 'boxes.10gen.com' }
             }
 
 
 post:
+  - command: gotest.parse_files
+    params:
+      files:
+        - "gopath/src/github.com/mongodb/curator/build/test.*.out"
+        - "gopath/src/github.com/mongodb/curator/build/race.*.out"
   - command: shell.exec
     params:
       script: |

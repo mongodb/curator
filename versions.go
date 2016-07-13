@@ -142,13 +142,13 @@ func (v *MongoDBVersion) IsDevelopmentSeries() bool {
 func (v *MongoDBVersion) StableReleaseSeries() string {
 	if v.IsStableSeries() {
 		return v.Series()
-	} else {
-		if v.parsed.Minor < 9 {
-			return fmt.Sprintf("%d.%d", v.parsed.Major, v.parsed.Minor+1)
-		} else {
-			return fmt.Sprintf("%d.0", v.parsed.Major+1)
-		}
 	}
+
+	if v.parsed.Minor < 9 {
+		return fmt.Sprintf("%d.%d", v.parsed.Major, v.parsed.Minor+1)
+	}
+
+	return fmt.Sprintf("%d.0", v.parsed.Major+1)
 }
 
 // IsRelease returns true for all version strings that refer to a

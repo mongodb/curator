@@ -24,21 +24,21 @@ type jobImpl interface {
 
 type Job struct {
 	Name         string                `bson:"name" json:"name" yaml:"name"`
-	IsComplete   bool                  `bson:"completed" json:"completed" yaml:"completed"`
-	JobType      amboy.JobType         `bson:"job_type" json:"job_type" yaml:"job_type"`
-	D            dependency.Manager    `bson:"dependency" json:"dependency" yaml:"dependency"`
 	Distro       *RepositoryDefinition `bson:"distro" json:"distro" yaml:"distro"`
 	Conf         *RepositoryConfig     `bson:"conf" json:"conf" yaml:"conf"`
+	DryRun       bool                  `bson:"dry_run" json:"dry_run" yaml:"dry_run"`
+	IsComplete   bool                  `bson:"completed" json:"completed" yaml:"completed"`
 	Output       map[string]string     `bson:"output" json:"output" yaml:"output"`
+	JobType      amboy.JobType         `bson:"job_type" json:"job_type" yaml:"job_type"`
+	D            dependency.Manager    `bson:"dependency" json:"dependency" yaml:"dependency"`
 	Version      string                `bson:"version" json:"version" yaml:"version"`
 	Arch         string                `bson:"arch" json:"arch" yaml:"arch"`
-	PackagePaths []string              `bson:"package_paths" json:"package_paths" yaml:"package_paths"`
-	DryRun       bool                  `bson:"dry_run" json:"dry_run" yaml:"dry_run"`
 	Profile      string                `bson:"aws_profile" json:"aws_profile" yaml:"aws_profile"`
 	WorkSpace    string                `bson:"local_workdir" json:"local_workdir" yaml:"local_workdir"`
+	PackagePaths []string              `bson:"package_paths" json:"package_paths" yaml:"package_paths"`
+	workingDirs  []string
 	release      *curator.MongoDBVersion
 	grip         grip.Journaler
-	workingDirs  []string
 	mutex        sync.Mutex
 }
 
@@ -126,7 +126,7 @@ func (j *Job) signFile(fileName, workingDir string) (string, error) {
 		"--key-name", keyName,
 		"--auth-token", token,
 		"--comment", "curator package signing",
-		"--notary-url", j.Conf.Services.NotaryUrl,
+		"--notary-url", j.Conf.Services.NotaryURL,
 		"--archive-file-ext", "gpg",
 		"--outputs", "sig",
 		fileName)

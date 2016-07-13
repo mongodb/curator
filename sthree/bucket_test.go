@@ -46,7 +46,8 @@ func (s *BucketSuite) SetupSuite() {
 	id := uuid.NewV4()
 	s.uuid = id.String()
 
-	grip.UseNativeLogger()
+	grip.SetName("curator.sthree.bucket.suite")
+	grip.CatchError(grip.UseNativeLogger())
 	grip.Noticef("running s3 bucket tests, using %s (%s)", s.bucketName, s.uuid)
 
 	tempDir, err := ioutil.TempDir("", s.uuid)
@@ -166,7 +167,7 @@ func (s *BucketSuite) TestContentsAndListProduceIdenticalData() {
 		item, ok := content[bucketItem.Name]
 
 		if s.True(ok, fmt.Sprintf("item %s should exist in bucket %s",
-			bucketItem.Name, s.b.name)) {
+			bucketItem.Name, s.bucketName)) {
 
 			s.Equal(bucketItem.Name, item.Name)
 			s.Equal(bucketItem.MD5, item.MD5)

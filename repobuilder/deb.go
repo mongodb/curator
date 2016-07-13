@@ -44,7 +44,7 @@ func init() {
 
 func NewBuildDEBRepo(conf *RepositoryConfig, distro *RepositoryDefinition, version, arch, profile string, pkgs ...string) (*BuildDEBRepoJob, error) {
 	var err error
-	r := &BuildDEBRepoJob{*buildRepoJob()}
+	r := &BuildDEBRepoJob{Job: *buildRepoJob()}
 
 	r.release, err = curator.NewMongoDBVersion(version)
 	if err != nil {
@@ -262,5 +262,5 @@ func (j *BuildDEBRepoJob) rebuildRepo(workingDir string, catcher *grip.MultiCatc
 		return
 	}
 
-	j.Conf.BuildIndexPageForDirectory(workingDir, j.Distro.Bucket)
+	catcher.Add(j.Conf.BuildIndexPageForDirectory(workingDir, j.Distro.Bucket))
 }

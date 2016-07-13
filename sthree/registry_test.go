@@ -21,7 +21,8 @@ func TestVersionSuite(t *testing.T) {
 }
 
 func (s *RegistrySuite) SetupSuite() {
-	grip.UseNativeLogger()
+	grip.SetName("curator.sthree.registry.suite")
+	grip.CatchError(grip.UseNativeLogger())
 	s.registry = newBucketRegistry()
 }
 
