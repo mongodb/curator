@@ -12,7 +12,6 @@ import (
 	"strings"
 	"sync"
 	"text/template"
-	"time"
 
 	"github.com/mongodb/amboy"
 	"github.com/mongodb/amboy/job"
@@ -62,6 +61,13 @@ func NewBuildDEBRepo(conf *RepositoryConfig, distro *RepositoryDefinition, versi
 		Name:    "build-deb-repo",
 		Version: 0,
 	}
+
+	if arch == "x86_64" {
+		r.Arch = "amd64"
+	} else {
+		r.Arch = arch
+	}
+
 	r.grip = grip.NewJournaler("curator.repobuilder.deb")
 	r.grip.CloneSender(grip.Sender())
 	r.Name = fmt.Sprintf("build-deb-repo.%d", job.GetNumber())
@@ -69,7 +75,6 @@ func NewBuildDEBRepo(conf *RepositoryConfig, distro *RepositoryDefinition, versi
 	r.Conf = conf
 	r.PackagePaths = pkgs
 	r.Version = version
-	r.Arch = arch
 	r.Profile = profile
 	return r, nil
 }
@@ -157,7 +162,13 @@ func gzipAndWriteToFile(fileName string, content []byte) error {
 		return err
 	}
 
-	return ioutil.WriteFile(fileName, gz.Bytes(), 0644)
+	err = ioutil.WriteFile(fileName, gz.Bytes(), 0644)
+	if err != nil {
+		return err
+	}
+
+	grip.Noticeln("wrote zipped packages file to:", fileName)
+	return nil
 }
 
 func (j *BuildDEBRepoJob) rebuildRepo(workingDir string, catcher *grip.MultiCatcher, wg *sync.WaitGroup) {
@@ -167,8 +178,9 @@ func (j *BuildDEBRepoJob) rebuildRepo(workingDir string, catcher *grip.MultiCatc
 
 	// start by running dpkg-scanpackages to generate a packages file
 	// in the source.
-	cmd := exec.Command("dpkg-scanpackages", "--multiversion", arch)
-	cmd.Dir = workingDir
+	dirParts := strings.Split(workingDir, string(filepath.Separator))
+	cmd := exec.Command("dpkg-scanpackages", "--multiversion", filepath.Join(filepath.Join(dirParts[3:8]...), arch))
+	cmd.Dir = filepath.Join(dirParts[:3]...)
 	out, err := cmd.Output()
 	catcher.Add(err)
 	if err != nil {
@@ -182,6 +194,7 @@ func (j *BuildDEBRepoJob) rebuildRepo(workingDir string, catcher *grip.MultiCatc
 	if err != nil {
 		return
 	}
+	j.grip.Noticeln("wrote packages file to:", pkgsFile)
 
 	// Compress/gzip the packages file
 	catcher.Add(gzipAndWriteToFile(pkgsFile+".gz", out))
@@ -201,22 +214,12 @@ func (j *BuildDEBRepoJob) rebuildRepo(workingDir string, catcher *grip.MultiCatc
 		return
 	}
 
-	// open a file that we're going to write the releases file to.
-	relFileName := filepath.Join(workingDir, "Release")
-	relFile, err := os.Create(relFileName)
-	catcher.Add(err)
-	if err != nil {
-		return
-	}
-	err = tmpl.Execute(relFile, struct {
-		Name          string
+	buffer := bytes.NewBuffer([]byte{})
+	err = tmpl.Execute(buffer, struct {
 		CodeName      string
-		Date          string
 		Architectures string
 	}{
-		Name:          j.Distro.Name,
 		CodeName:      j.Distro.CodeName,
-		Date:          time.Now().Format(releaseMetaDataDateFormat),
 		Architectures: strings.Join(j.Distro.Architectures, " "),
 	})
 	catcher.Add(err)
@@ -224,42 +227,45 @@ func (j *BuildDEBRepoJob) rebuildRepo(workingDir string, catcher *grip.MultiCatc
 		return
 	}
 
-	// This builds a Release file that includes the header
-	// information from all repositories.
-	cmd = exec.Command("apt-ftparchive", "release", ".")
+	// This builds a Release file using the header info generated
+	// from the template above.
+	cmd = exec.Command("apt-ftparchive", "release", "../")
 	cmd.Dir = workingDir
 	out, err = cmd.Output()
 	catcher.Add(err)
-	j.grip.Debug(string(out))
+	outString := string(out)
+	j.grip.Debug(outString)
 	if err != nil {
 		return
 	}
 
-	// add the output of apt-ftparchive to template.
-	_, err = relFile.Write(out)
-	catcher.Add(err)
-	if err != nil {
-		return
-	}
+	// get the content from the template and add the output of
+	// apt-ftparchive there.
+	releaseContent := buffer.Bytes()
+	releaseContent = append(releaseContent, out...)
 
-	// close the file so that the notary client can sign it.
-	err = relFile.Close()
+	// tracking the output is useful. we'll do that here.
+	j.mutex.Lock()
+	j.Output["sign-release-file-"+workingDir] = outString
+	j.mutex.Unlock()
+	catcher.Add(err)
+
+	// write the content of the release file to disk.
+	relFileName := filepath.Join(workingDir, "Release")
+	err = ioutil.WriteFile(relFileName, releaseContent, 0644)
 	catcher.Add(err)
 	if err != nil {
 		return
 	}
+	j.grip.Noticeln("wrote release files to:", relFileName)
 
 	// sign the file using the notary service. To remove the
 	// MongoDB-specificity we could make this configurable, or
 	// offer ways of specifying different signing option.
-	output, err := j.signFile(relFileName, workingDir)
-	j.grip.Debug(output)
-	j.mutex.Lock()
-	j.Output["sign-release-file-"+workingDir] = output
-	j.mutex.Unlock()
+	output, err := j.signFile(relFileName, false)
 	catcher.Add(err)
 	if err != nil {
-		return
+		j.grip.DebugWhen(false, output)
 	}
 
 	catcher.Add(j.Conf.BuildIndexPageForDirectory(workingDir, j.Distro.Bucket))

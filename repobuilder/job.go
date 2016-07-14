@@ -88,10 +88,26 @@ func (j *Job) markComplete() {
 
 func (j *Job) linkPackages(dest string) error {
 	catcher := grip.NewCatcher()
+	wg := &sync.WaitGroup{}
+	defer wg.Wait()
 	for _, pkg := range j.PackagePaths {
 		mirror := filepath.Join(dest, filepath.Base(pkg))
 		if _, err := os.Stat(mirror); os.IsNotExist(err) {
 			catcher.Add(os.MkdirAll(dest, 0744))
+
+			if j.Distro.Type == DEB {
+				out, err := j.signFile(pkg, true)
+				catcher.Add(err)
+
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					j.mutex.Lock()
+					defer j.mutex.Unlock()
+					j.Output["sign-"+pkg] = out
+				}()
+			}
+
 			j.grip.Infof("copying package %s to local staging %s", pkg, dest)
 			catcher.Add(os.Link(pkg, mirror))
 		} else {
@@ -101,9 +117,10 @@ func (j *Job) linkPackages(dest string) error {
 	return catcher.Resolve()
 }
 
-func (j *Job) signFile(fileName, workingDir string) (string, error) {
+func (j *Job) signFile(fileName string, overwrite bool) (string, error) {
 	// In the future it would be nice if we could talk to the
-	// notary service directly rather than shelling out here.
+	// notary service directly rather than shelling out here. The
+	// final option controls if we overwrite this file.
 
 	var keyName string
 
@@ -119,19 +136,39 @@ func (j *Job) signFile(fileName, workingDir string) (string, error) {
 			"(NOTARY_TOKEN) is not defined in the environment"))
 	}
 
-	// remove the file first before re-creating it.
-	_ = os.Remove(filepath.Join(workingDir, "Release.gpg"))
+	extension := "gpg"
 
-	cmd := exec.Command("notary_client.py",
+	if !overwrite {
+		// if we're not overwriting the unsigned source file
+		// with the signed file, then we should remove the
+		// signed artifact before. Unclear if this is needed,
+		// the cronjob did this.
+		_ = os.Remove(fileName + "." + extension)
+	}
+
+	args := []string{
+		"notary-client.py",
 		"--key-name", keyName,
 		"--auth-token", token,
-		"--comment", "curator package signing",
+		"--comment", "\"curator package signing\"",
 		"--notary-url", j.Conf.Services.NotaryURL,
-		"--archive-file-ext", "gpg",
+		"--archive-file-ext", extension,
 		"--outputs", "sig",
-		fileName)
+	}
 
+	if overwrite {
+		j.grip.Noticef("overwriting existing contents of file '%s' while signing it", fileName)
+		args = append(args, "--package-file-suffix", "\"\"")
+	}
+
+	args = append(args, filepath.Base(fileName))
+	cmd := exec.Command(args[0], args[1:]...)
+	cmd.Dir = filepath.Dir(fileName)
 	out, err := cmd.CombinedOutput()
+
+	if err != nil {
+		j.grip.Noticeln("signed file:", fileName)
+	}
 	return string(out), err
 }
 
@@ -192,7 +229,6 @@ func (j *Job) Run() error {
 
 			rWg := &sync.WaitGroup{}
 			rCatcher := grip.NewCatcher()
-			j.grip.Infof("rebuilding %d repos: %s", len(changedRepos), strings.Join(changedRepos, ", "))
 			for _, dir := range changedRepos {
 				rWg.Add(1)
 				go rebuildRepo(j, dir, rCatcher, rWg)
@@ -243,6 +279,8 @@ func injectNewPackages(j interface{}, local string) ([]string, error) {
 }
 
 func rebuildRepo(j interface{}, workingDir string, catcher *grip.MultiCatcher, wg *sync.WaitGroup) {
+	grip.Infoln("rebuilding repo:", workingDir)
+
 	switch j := j.(type) {
 	case *Job:
 		if j.Type().Name == "build-deb-repo" {

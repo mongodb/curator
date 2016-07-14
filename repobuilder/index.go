@@ -1,8 +1,10 @@
 package repobuilder
 
 import (
+	"bytes"
 	"fmt"
 	"html/template"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -30,13 +32,7 @@ func (c *RepositoryConfig) BuildIndexPageForDirectory(path, repoName string) err
 		// we want to write once index.html per directory. If
 		// we don't have directory, we can't do anything here.
 		if info.IsDir() {
-			index, err := os.Create(filepath.Join(p, "index.html"))
-			defer catcher.Add(index.Close())
-			catcher.Add(err)
-			if err != nil {
-				return nil
-			}
-
+			// figure out the contents of the directory
 			var contents []string
 			numDirs := getNumDirs(p)
 
@@ -68,7 +64,17 @@ func (c *RepositoryConfig) BuildIndexPageForDirectory(path, repoName string) err
 			})
 			catcher.Add(err)
 
-			err = tmpl.Execute(index, struct {
+			// build content and write it to file
+			index, err := os.OpenFile(filepath.Join(p, "index.html"), os.O_APPEND|os.O_WRONLY, os.ModeAppend)
+			defer catcher.Add(index.Close())
+			catcher.Add(err)
+			if err != nil {
+				return nil
+			}
+
+			buffer := bytes.NewBuffer([]byte{})
+
+			err = tmpl.Execute(buffer, struct {
 				Title    string
 				RepoName string
 				Files    []string
@@ -78,6 +84,15 @@ func (c *RepositoryConfig) BuildIndexPageForDirectory(path, repoName string) err
 				Files:    contents,
 			})
 			catcher.Add(err)
+			if err != nil {
+				return nil
+			}
+
+			err = ioutil.WriteFile(filepath.Join(p, "index.html"), buffer.Bytes(), 0644)
+			catcher.Add(err)
+			if err != nil {
+				return nil
+			}
 
 			grip.Noticeln("writing file at:", filepath.Join(p, "index.html"))
 			return nil

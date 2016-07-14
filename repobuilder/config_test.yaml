@@ -9,24 +9,22 @@ services:
 
 templates:
   deb:
-    community: |
+    org: |
       Origin: mongodb
       Label: mongodb
-      Suite: {{ .Name }}
+      Suite: {{ .CodeName }}
       Codename: {{ .CodeName }}/mongodb-org
       Architectures: {{ .Architectures }}
       Components: main
       Description: MongoDB packages
-      Date: {{ .Date }}
     enterprise: |
       Origin: mongodb
       Label: mongodb
-      Suite: {{ .Name }}
+      Suite: {{ .CodeName }}
       Codename: {{ .CodeName }}/mongodb-enterprise
       Architectures: {{ .Architectures }}
       Components: main
       Description: MongoDB packages
-      Date: {{ .Date }}
   index_page: |
     <!DOCTYPE html>
     <html>
