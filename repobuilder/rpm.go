@@ -64,33 +64,33 @@ func (j *BuildRPMRepoJob) injectNewPackages(local string) ([]string, error) {
 	var changedRepos []string
 
 	if j.release.IsRelease() {
-		seriesRepoPath := filepath.Join(local, j.release.Series())
+		seriesRepoPath := filepath.Join(local, j.release.Series(), j.Arch)
 		changedRepos = append(changedRepos, seriesRepoPath)
-		catcher.Add(j.linkPackages(filepath.Join(seriesRepoPath, j.Arch, "RPMS")))
+		catcher.Add(j.linkPackages(filepath.Join(seriesRepoPath, "RPMS")))
 	}
 
 	if j.release.IsStableSeries() {
 		mirror, ok := j.Conf.Mirrors[j.release.Series()]
 		if ok && mirror == "stable" {
-			stableRepoPath := filepath.Join(local, "stable")
+			stableRepoPath := filepath.Join(local, "stable", j.Arch)
 			changedRepos = append(changedRepos, stableRepoPath)
-			catcher.Add(j.linkPackages(filepath.Join(stableRepoPath, j.Arch, "RPMS")))
+			catcher.Add(j.linkPackages(filepath.Join(stableRepoPath, "RPMS")))
 		}
 	}
 
 	if j.release.IsDevelopmentSeries() {
 		mirror, ok := j.Conf.Mirrors[j.release.Series()]
 		if ok && mirror == "unstable" {
-			devRepoPath := filepath.Join(local, "unstable")
+			devRepoPath := filepath.Join(local, "unstable", j.Arch)
 			changedRepos = append(changedRepos, devRepoPath)
-			catcher.Add(j.linkPackages(filepath.Join(devRepoPath, j.Arch, "RPMS")))
+			catcher.Add(j.linkPackages(filepath.Join(devRepoPath, "RPMS")))
 		}
 	}
 
 	if j.release.IsReleaseCandidate() || j.release.IsDevelopmentBuild() {
-		testingRepoPath := filepath.Join(local, "testing")
+		testingRepoPath := filepath.Join(local, "testing", j.Arch)
 		changedRepos = append(changedRepos, testingRepoPath)
-		catcher.Add(j.linkPackages(filepath.Join(testingRepoPath, j.Arch, "RPMS")))
+		catcher.Add(j.linkPackages(filepath.Join(testingRepoPath, "RPMS")))
 	}
 
 	return changedRepos, catcher.Resolve()
@@ -102,6 +102,7 @@ func (j *BuildRPMRepoJob) rebuildRepo(workingDir string, catcher *grip.MultiCatc
 	var output string
 
 	cmd := exec.Command("createrepo", "-d", "-s", "sha", workingDir)
+	j.grip.Infoln("building repo with operation:", strings.Join(cmd.Args, " "))
 
 	if j.DryRun {
 		output = "no output: dry run"
