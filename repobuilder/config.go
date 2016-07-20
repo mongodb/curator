@@ -49,6 +49,7 @@ type RepositoryDefinition struct {
 	Repos         []string `bson:"repos" json:"repos" yaml:"repos"`
 	Edition       string   `bson:"edition" json:"edition" yaml:"edition"`
 	Architectures []string `bson:"architectures,omitempty" json:"architectures,omitempty" yaml:"architectures,omitempty"`
+	Component     string   `bson:"component" json:"component" yaml:"component"`
 }
 
 type Services struct {

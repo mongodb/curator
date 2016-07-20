@@ -98,7 +98,7 @@ func (j *BuildDEBRepoJob) injectNewPackages(local string) ([]string, error) {
 	arch := "binary-" + j.Arch
 
 	if j.release.IsRelease() {
-		seriesRepoPath := filepath.Join(local, j.release.Series(), "main")
+		seriesRepoPath := filepath.Join(local, j.release.Series(), j.Distro.Component)
 		changedRepos = append(changedRepos, seriesRepoPath)
 		catcher.Add(j.linkPackages(filepath.Join(seriesRepoPath, arch)))
 
@@ -110,7 +110,7 @@ func (j *BuildDEBRepoJob) injectNewPackages(local string) ([]string, error) {
 	if j.release.IsStableSeries() {
 		mirror, ok := j.Conf.Mirrors[j.release.Series()]
 		if ok && mirror == "stable" {
-			stableRepoPath := filepath.Join(local, "stable", "main")
+			stableRepoPath := filepath.Join(local, "stable", j.Distro.Component)
 			changedRepos = append(changedRepos, stableRepoPath)
 			catcher.Add(j.linkPackages(filepath.Join(stableRepoPath, arch)))
 
@@ -123,7 +123,7 @@ func (j *BuildDEBRepoJob) injectNewPackages(local string) ([]string, error) {
 	if j.release.IsDevelopmentSeries() {
 		mirror, ok := j.Conf.Mirrors[j.release.Series()]
 		if ok && mirror == "unstable" {
-			devRepoPath := filepath.Join(local, "unstable", "main")
+			devRepoPath := filepath.Join(local, "unstable", j.Distro.Component)
 			changedRepos = append(changedRepos, devRepoPath)
 			catcher.Add(j.linkPackages(filepath.Join(devRepoPath, arch)))
 
@@ -134,7 +134,7 @@ func (j *BuildDEBRepoJob) injectNewPackages(local string) ([]string, error) {
 	}
 
 	if j.release.IsReleaseCandidate() || j.release.IsDevelopmentBuild() {
-		testingRepoPath := filepath.Join(local, "testing", "main")
+		testingRepoPath := filepath.Join(local, "testing", j.Distro.Component)
 		changedRepos = append(changedRepos, testingRepoPath)
 		catcher.Add(j.linkPackages(filepath.Join(testingRepoPath, arch)))
 
@@ -181,8 +181,9 @@ func (j *BuildDEBRepoJob) rebuildRepo(workingDir string, catcher *grip.MultiCatc
 	// in the source.
 	dirParts := strings.Split(workingDir, string(filepath.Separator))
 	cmd := exec.Command("dpkg-scanpackages", "--multiversion", filepath.Join(filepath.Join(dirParts[3:8]...), arch))
-	cmd.Dir = filepath.Join(dirParts[:3]...)
-	j.grip.Infoln("running command='%s' path='%s'", cmd.Args, cmd.Dir)
+	cmd.Dir = string(filepath.Separator) + filepath.Join(dirParts[:3]...)
+
+	j.grip.Infof("running command='%s' path='%s'", strings.Join(cmd.Args, " "), cmd.Dir)
 	out, err := cmd.Output()
 	catcher.Add(err)
 	if err != nil {
