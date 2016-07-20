@@ -108,6 +108,7 @@ func (j *BuildRPMRepoJob) rebuildRepo(workingDir string, catcher *grip.MultiCatc
 		output = "no output: dry run"
 		j.grip.Noticeln("[dry-run] would run:", strings.Join(cmd.Args, " "))
 	} else {
+		j.grip.Noticeln("building repo with operation:", strings.Join(cmd.Args, " "))
 		out, err := cmd.CombinedOutput()
 		catcher.Add(err)
 		output = string(out)
