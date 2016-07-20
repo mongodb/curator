@@ -47,6 +47,7 @@ func NewBuildRPMRepo(conf *RepositoryConfig, distro *RepositoryDefinition, versi
 	}
 	r.grip = grip.NewJournaler("curator.repobuilder.rpm")
 	r.grip.CloneSender(grip.Sender())
+	r.grip.SetThreshold(grip.ThresholdLevel())
 	r.Name = fmt.Sprintf("build-rpm-repo.%d", job.GetNumber())
 	r.Distro = distro
 	r.Conf = conf
@@ -109,7 +110,12 @@ func (j *BuildRPMRepoJob) rebuildRepo(workingDir string, catcher *grip.MultiCatc
 		out, err := cmd.CombinedOutput()
 		catcher.Add(err)
 		output = string(out)
-		j.grip.Debug(output)
+		if err != nil {
+			j.grip.Error(err)
+			j.grip.Info(output)
+		} else {
+			j.grip.Debug(output)
+		}
 	}
 
 	j.grip.Infoln("rebuilt repo for:", workingDir)

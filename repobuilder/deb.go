@@ -70,6 +70,7 @@ func NewBuildDEBRepo(conf *RepositoryConfig, distro *RepositoryDefinition, versi
 
 	r.grip = grip.NewJournaler("curator.repobuilder.deb")
 	r.grip.CloneSender(grip.Sender())
+	r.grip.SetThreshold(grip.ThresholdLevel())
 	r.Name = fmt.Sprintf("build-deb-repo.%d", job.GetNumber())
 	r.Distro = distro
 	r.Conf = conf

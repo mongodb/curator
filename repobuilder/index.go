@@ -65,13 +65,6 @@ func (c *RepositoryConfig) BuildIndexPageForDirectory(path, repoName string) err
 			catcher.Add(err)
 
 			// build content and write it to file
-			index, err := os.OpenFile(filepath.Join(p, "index.html"), os.O_APPEND|os.O_WRONLY, os.ModeAppend)
-			defer catcher.Add(index.Close())
-			catcher.Add(err)
-			if err != nil {
-				return nil
-			}
-
 			buffer := bytes.NewBuffer([]byte{})
 
 			err = tmpl.Execute(buffer, struct {

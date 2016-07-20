@@ -45,6 +45,7 @@ type Job struct {
 func buildRepoJob() *Job {
 	logger := grip.NewJournaler("repobuilder.job")
 	logger.CloneSender(grip.Sender())
+	logger.SetThreshold(grip.ThresholdLevel())
 
 	return &Job{
 		D:      dependency.NewAlways(),
@@ -93,6 +94,7 @@ func (j *Job) linkPackages(dest string) error {
 	for _, pkg := range j.PackagePaths {
 		mirror := filepath.Join(dest, filepath.Base(pkg))
 		if _, err := os.Stat(mirror); os.IsNotExist(err) {
+			grip.Noticeln("creating directory:", dest)
 			catcher.Add(os.MkdirAll(dest, 0744))
 
 			if j.Distro.Type == DEB {
