@@ -68,9 +68,6 @@ func NewBuildDEBRepo(conf *RepositoryConfig, distro *RepositoryDefinition, versi
 		r.Arch = arch
 	}
 
-	r.grip = grip.NewJournaler("curator.repobuilder.deb")
-	r.grip.CloneSender(grip.Sender())
-	r.grip.SetThreshold(grip.ThresholdLevel())
 	r.Name = fmt.Sprintf("build-deb-repo.%d", job.GetNumber())
 	r.Distro = distro
 	r.Conf = conf
@@ -183,7 +180,7 @@ func (j *BuildDEBRepoJob) rebuildRepo(workingDir string, catcher *grip.MultiCatc
 	cmd := exec.Command("dpkg-scanpackages", "--multiversion", filepath.Join(filepath.Join(dirParts[3:8]...), arch))
 	cmd.Dir = string(filepath.Separator) + filepath.Join(dirParts[:3]...)
 
-	j.grip.Infof("running command='%s' path='%s'", strings.Join(cmd.Args, " "), cmd.Dir)
+	grip.Infof("running command='%s' path='%s'", strings.Join(cmd.Args, " "), cmd.Dir)
 	out, err := cmd.Output()
 	catcher.Add(err)
 	if err != nil {
@@ -197,7 +194,7 @@ func (j *BuildDEBRepoJob) rebuildRepo(workingDir string, catcher *grip.MultiCatc
 	if err != nil {
 		return
 	}
-	j.grip.Noticeln("wrote packages file to:", pkgsFile)
+	grip.Noticeln("wrote packages file to:", pkgsFile)
 
 	// Compress/gzip the packages file
 	catcher.Add(gzipAndWriteToFile(pkgsFile+".gz", out))
@@ -237,7 +234,7 @@ func (j *BuildDEBRepoJob) rebuildRepo(workingDir string, catcher *grip.MultiCatc
 	out, err = cmd.Output()
 	catcher.Add(err)
 	outString := string(out)
-	j.grip.Debug(outString)
+	grip.Debug(outString)
 	if err != nil {
 		return
 	}
@@ -260,16 +257,17 @@ func (j *BuildDEBRepoJob) rebuildRepo(workingDir string, catcher *grip.MultiCatc
 	if err != nil {
 		return
 	}
-	j.grip.Noticeln("wrote release files to:", relFileName)
+	grip.Noticeln("wrote release files to:", relFileName)
 
 	// sign the file using the notary service. To remove the
 	// MongoDB-specificity we could make this configurable, or
 	// offer ways of specifying different signing option.
-	output, err := j.signFile(relFileName, false)
+	err = j.signFile(relFileName, false)
 	catcher.Add(err)
 	if err != nil {
-		j.grip.DebugWhen(false, output)
+		return
 	}
 
+	// build the index page.
 	catcher.Add(j.Conf.BuildIndexPageForDirectory(workingDir, j.Distro.Bucket))
 }

@@ -45,9 +45,6 @@ func NewBuildRPMRepo(conf *RepositoryConfig, distro *RepositoryDefinition, versi
 		Name:    "build-rpm-repo",
 		Version: 0,
 	}
-	r.grip = grip.NewJournaler("curator.repobuilder.rpm")
-	r.grip.CloneSender(grip.Sender())
-	r.grip.SetThreshold(grip.ThresholdLevel())
 	r.Name = fmt.Sprintf("build-rpm-repo.%d", job.GetNumber())
 	r.Distro = distro
 	r.Conf = conf
@@ -102,25 +99,25 @@ func (j *BuildRPMRepoJob) rebuildRepo(workingDir string, catcher *grip.MultiCatc
 	var output string
 
 	cmd := exec.Command("createrepo", "-d", "-s", "sha", workingDir)
-	j.grip.Infoln("building repo with operation:", strings.Join(cmd.Args, " "))
+	grip.Infoln("building repo with operation:", strings.Join(cmd.Args, " "))
 
 	if j.DryRun {
 		output = "no output: dry run"
-		j.grip.Noticeln("[dry-run] would run:", strings.Join(cmd.Args, " "))
+		grip.Noticeln("[dry-run] would run:", strings.Join(cmd.Args, " "))
 	} else {
-		j.grip.Noticeln("building repo with operation:", strings.Join(cmd.Args, " "))
+		grip.Noticeln("building repo with operation:", strings.Join(cmd.Args, " "))
 		out, err := cmd.CombinedOutput()
 		catcher.Add(err)
 		output = string(out)
 		if err != nil {
-			j.grip.Error(err)
-			j.grip.Info(output)
+			grip.Error(err)
+			grip.Info(output)
 		} else {
-			j.grip.Debug(output)
+			grip.Debug(output)
 		}
 	}
 
-	j.grip.Infoln("rebuilt repo for:", workingDir)
+	grip.Infoln("rebuilt repo for:", workingDir)
 	j.mutex.Lock()
 	j.Output[workingDir] = output
 	j.mutex.Unlock()

@@ -38,25 +38,18 @@ type Job struct {
 	PackagePaths []string              `bson:"package_paths" json:"package_paths" yaml:"package_paths"`
 	workingDirs  []string
 	release      *curator.MongoDBVersion
-	grip         grip.Journaler
 	mutex        sync.Mutex
 }
 
 func buildRepoJob() *Job {
-	logger := grip.NewJournaler("repobuilder.job")
-	logger.CloneSender(grip.Sender())
-	logger.SetThreshold(grip.ThresholdLevel())
-
 	return &Job{
 		D:      dependency.NewAlways(),
 		Output: make(map[string]string),
-		grip:   logger,
 		JobType: amboy.JobType{
 			Name:    "build-repo",
 			Version: 0,
 		},
 	}
-
 }
 
 func (j *Job) ID() string {
@@ -79,7 +72,7 @@ func (j *Job) SetDependency(d dependency.Manager) {
 	if d.Type().Name == dependency.AlwaysRun {
 		j.D = d
 	} else {
-		j.grip.Warning("repo building jobs should take 'always'-run dependencies.")
+		grip.Warning("repo building jobs should take 'always'-run dependencies.")
 	}
 }
 
@@ -97,29 +90,32 @@ func (j *Job) linkPackages(dest string) error {
 			grip.Noticeln("creating directory:", dest)
 			catcher.Add(os.MkdirAll(dest, 0744))
 
-			if j.Distro.Type == DEB {
-				out, err := j.signFile(pkg, true)
-				catcher.Add(err)
+			grip.Infof("copying package %s to local staging %s", pkg, dest)
 
-				wg.Add(1)
-				go func() {
-					defer wg.Done()
-					j.mutex.Lock()
-					defer j.mutex.Unlock()
-					j.Output["sign-"+pkg] = out
-				}()
+			err = os.Link(pkg, mirror)
+			if err != nil {
+				catcher.Add(err)
+				grip.Error(err)
+				continue
 			}
 
-			j.grip.Infof("copying package %s to local staging %s", pkg, dest)
-			catcher.Add(os.Link(pkg, mirror))
+			if j.Distro.Type == RPM {
+				wg.Add(1)
+				go func(toSign string) {
+					catcher.Add(j.signFile(toSign, true))
+					wg.Done()
+				}(mirror)
+			}
+
 		} else {
-			j.grip.Infof("file %s is already mirrored", mirror)
+			grip.Infof("file %s is already mirrored", mirror)
 		}
 	}
+
 	return catcher.Resolve()
 }
 
-func (j *Job) signFile(fileName string, overwrite bool) (string, error) {
+func (j *Job) signFile(fileName string, overwrite bool) error {
 	// In the future it would be nice if we could talk to the
 	// notary service directly rather than shelling out here. The
 	// final option controls if we overwrite this file.
@@ -134,7 +130,7 @@ func (j *Job) signFile(fileName string, overwrite bool) (string, error) {
 
 	token := os.Getenv("NOTARY_TOKEN")
 	if token == "" {
-		return "", errors.New(fmt.Sprintln("the notary service auth token",
+		return errors.New(fmt.Sprintln("the notary service auth token",
 			"(NOTARY_TOKEN) is not defined in the environment"))
 	}
 
@@ -159,19 +155,34 @@ func (j *Job) signFile(fileName string, overwrite bool) (string, error) {
 	}
 
 	if overwrite {
-		j.grip.Noticef("overwriting existing contents of file '%s' while signing it", fileName)
+		grip.Noticef("overwriting existing contents of file '%s' while signing it", fileName)
 		args = append(args, "--package-file-suffix", "\"\"")
 	}
 
 	args = append(args, filepath.Base(fileName))
 	cmd := exec.Command(args[0], args[1:]...)
 	cmd.Dir = filepath.Dir(fileName)
+
+	grip.Infoln("running notary command:", strings.Replace(
+		strings.Join(cmd.Args, " "),
+		token, "XXXXX", -1))
+
 	out, err := cmd.CombinedOutput()
+	output := string(out)
 
 	if err != nil {
-		j.grip.Noticeln("signed file:", fileName)
+		grip.Warningf("error signed file '%s': %s", fileName, err.Error())
+	} else {
+		grip.Noticeln("successfully signed file:", fileName)
 	}
-	return string(out), err
+
+	grip.Debugln("notary-client.py output:", output)
+
+	j.mutex.Lock()
+	defer j.mutex.Unlock()
+	j.Output["sign-"+fileName] = output
+
+	return err
 }
 
 func (j *Job) Run() error {
@@ -191,7 +202,7 @@ func (j *Job) Run() error {
 	for _, remote := range j.Distro.Repos {
 		wg.Add(1)
 		go func(repo *RepositoryDefinition, workSpace, remote string) {
-			j.grip.Infof("rebuilding %s.%s", bucket, remote)
+			grip.Infof("rebuilding %s.%s", bucket, remote)
 			defer wg.Done()
 
 			local := filepath.Join(workSpace, remote)
@@ -206,9 +217,9 @@ func (j *Job) Run() error {
 			}
 
 			if j.DryRun {
-				j.grip.Noticef("in dry run mode. would download from %s to %s", remote, local)
+				grip.Noticef("in dry run mode. would download from %s to %s", remote, local)
 			} else {
-				j.grip.Infof("downloading from %s to %s", remote, local)
+				grip.Infof("downloading from %s to %s", remote, local)
 				err = bucket.SyncFrom(local, remote)
 				if err != nil {
 					catcher.Add(err)
@@ -218,10 +229,10 @@ func (j *Job) Run() error {
 
 			var changedRepos []string
 			if j.DryRun {
-				j.grip.Noticef("in dry run mode. would link packages [%s] to %s",
+				grip.Noticef("in dry run mode. would link packages [%s] to %s",
 					strings.Join(j.PackagePaths, "; "), local)
 			} else {
-				j.grip.Info("copying new packages into local staging area")
+				grip.Info("copying new packages into local staging area")
 				changedRepos, err = injectNewPackages(j, local)
 				if err != nil {
 					catcher.Add(err)
@@ -238,26 +249,26 @@ func (j *Job) Run() error {
 			rWg.Wait()
 
 			if rCatcher.HasErrors() {
-				j.grip.Errorf("encountered error rebuilding %s (%s). Uploading no data",
+				grip.Errorf("encountered error rebuilding %s (%s). Uploading no data",
 					remote, local)
 				catcher.Add(rCatcher.Resolve())
 				return
 			}
 
 			if j.DryRun {
-				j.grip.Noticef("in dry run mode. otherwise would have built %s (%s)",
+				grip.Noticef("in dry run mode. otherwise would have built %s (%s)",
 					remote, local)
 			} else {
 				// don't need to return early here, only
 				// because this is the last operation.
 				catcher.Add(bucket.SyncTo(local, remote))
-				j.grip.Noticef("completed rebuilding repo %s (%s)", remote, local)
+				grip.Noticef("completed rebuilding repo %s (%s)", remote, local)
 			}
 		}(j.Distro, j.WorkSpace, remote)
 	}
 	wg.Wait()
 
-	j.grip.Notice("completed rebuilding all repositories")
+	grip.Notice("completed rebuilding all repositories")
 	return catcher.Resolve()
 }
 
