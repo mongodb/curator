@@ -7,6 +7,7 @@ import (
 	"github.com/mongodb/amboy/registry"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"github.com/tychoish/grip"
 )
 
 type RpmRepoSuite struct {
@@ -30,7 +31,7 @@ func (s *RpmRepoSuite) SetupTest() {
 
 func (s *RpmRepoSuite) TearDownTest() {
 	for _, path := range s.j.workingDirs {
-		s.j.grip.CatchError(os.RemoveAll(path))
+		grip.CatchError(os.RemoveAll(path))
 	}
 }
 

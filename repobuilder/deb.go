@@ -177,8 +177,8 @@ func (j *BuildDEBRepoJob) rebuildRepo(workingDir string, catcher *grip.MultiCatc
 	// start by running dpkg-scanpackages to generate a packages file
 	// in the source.
 	dirParts := strings.Split(workingDir, string(filepath.Separator))
-	cmd := exec.Command("dpkg-scanpackages", "--multiversion", filepath.Join(filepath.Join(dirParts[3:8]...), arch))
-	cmd.Dir = string(filepath.Separator) + filepath.Join(dirParts[:3]...)
+	cmd := exec.Command("dpkg-scanpackages", "--multiversion", filepath.Join(filepath.Join(dirParts[len(dirParts)-5:]...), arch))
+	cmd.Dir = string(filepath.Separator) + filepath.Join(dirParts[:len(dirParts)-7]...)
 
 	grip.Infof("running command='%s' path='%s'", strings.Join(cmd.Args, " "), cmd.Dir)
 	out, err := cmd.Output()
