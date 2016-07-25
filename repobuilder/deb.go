@@ -217,9 +217,11 @@ func (j *BuildDEBRepoJob) rebuildRepo(workingDir string, catcher *grip.MultiCatc
 	buffer := bytes.NewBuffer([]byte{})
 	err = tmpl.Execute(buffer, struct {
 		CodeName      string
+		Component     string
 		Architectures string
 	}{
 		CodeName:      j.Distro.CodeName,
+		Component:     j.Distro.Component,
 		Architectures: strings.Join(j.Distro.Architectures, " "),
 	})
 	catcher.Add(err)
@@ -269,5 +271,5 @@ func (j *BuildDEBRepoJob) rebuildRepo(workingDir string, catcher *grip.MultiCatc
 	}
 
 	// build the index page.
-	catcher.Add(j.Conf.BuildIndexPageForDirectory(workingDir, j.Distro.Bucket, j.Distro.Component))
+	catcher.Add(j.Conf.BuildIndexPageForDirectory(workingDir, j.Distro.Bucket))
 }

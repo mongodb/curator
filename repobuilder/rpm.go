@@ -122,5 +122,5 @@ func (j *BuildRPMRepoJob) rebuildRepo(workingDir string, catcher *grip.MultiCatc
 	j.Output[workingDir] = output
 	j.mutex.Unlock()
 
-	catcher.Add(j.Conf.BuildIndexPageForDirectory(workingDir, j.Distro.Bucket, j.Distro.Component))
+	catcher.Add(j.Conf.BuildIndexPageForDirectory(workingDir, j.Distro.Bucket))
 }

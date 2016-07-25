@@ -17,7 +17,7 @@ import (
 // integration for this function only regenerates pages on a very
 // narrow swath (i.e. only the changed repos.)
 
-func (c *RepositoryConfig) BuildIndexPageForDirectory(path, repoName, component string) error {
+func (c *RepositoryConfig) BuildIndexPageForDirectory(path, repoName string) error {
 	tmpl, err := template.New("index").Parse(c.Templates.Index)
 	if err != nil {
 		return err
@@ -69,13 +69,11 @@ func (c *RepositoryConfig) BuildIndexPageForDirectory(path, repoName, component 
 
 			err = tmpl.Execute(buffer, struct {
 				Title    string
-				Component string
 				RepoName string
 				Files    []string
 			}{
 				Title:    fmt.Sprintf("Index of %s", filepath.Base(p)),
 				RepoName: repoName,
-				Component: component,
 				Files:    contents,
 			})
 			catcher.Add(err)
