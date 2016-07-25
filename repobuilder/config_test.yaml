@@ -15,7 +15,7 @@ templates:
       Suite: {{ .CodeName }}
       Codename: {{ .CodeName }}/mongodb-org
       Architectures: {{ .Architectures }}
-      Components: main
+      Components: {{ .Component }}
       Description: MongoDB packages
     enterprise: |
       Origin: mongodb
@@ -23,7 +23,7 @@ templates:
       Suite: {{ .CodeName }}
       Codename: {{ .CodeName }}/mongodb-enterprise
       Architectures: {{ .Architectures }}
-      Components: main
+      Components: {{ .Component }}
       Description: MongoDB packages
   index_page: |
     <!DOCTYPE html>

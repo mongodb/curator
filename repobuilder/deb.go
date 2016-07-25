@@ -269,5 +269,5 @@ func (j *BuildDEBRepoJob) rebuildRepo(workingDir string, catcher *grip.MultiCatc
 	}
 
 	// build the index page.
-	catcher.Add(j.Conf.BuildIndexPageForDirectory(workingDir, j.Distro.Bucket))
+	catcher.Add(j.Conf.BuildIndexPageForDirectory(workingDir, j.Distro.Bucket, j.Distro.Component))
 }
