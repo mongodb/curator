@@ -234,6 +234,7 @@ func (j *BuildDEBRepoJob) rebuildRepo(workingDir string, catcher *grip.MultiCatc
 	cmd = exec.Command("apt-ftparchive", "release", "../")
 	cmd.Dir = workingDir
 	out, err = cmd.Output()
+	grip.Infof("generating release file: [command='%s', path='%s']", strings.Join(cmd.Args, " "), cmd.Dir)
 	catcher.Add(err)
 	outString := string(out)
 	grip.Debug(outString)
@@ -253,7 +254,7 @@ func (j *BuildDEBRepoJob) rebuildRepo(workingDir string, catcher *grip.MultiCatc
 	catcher.Add(err)
 
 	// write the content of the release file to disk.
-	relFileName := filepath.Join(workingDir, "Release")
+	relFileName := filepath.Join(filepath.Dir(workingDir), "Release")
 	err = ioutil.WriteFile(relFileName, releaseContent, 0644)
 	catcher.Add(err)
 	if err != nil {
