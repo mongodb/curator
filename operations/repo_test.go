@@ -2,6 +2,7 @@ package operations
 
 import (
 	"os"
+	"path/filepath"
 
 	"github.com/urfave/cli"
 )
@@ -54,10 +55,20 @@ func (s *CommandsSuite) TestGetPackagesFunction() {
 	testFiles, err := getPackages(cwd, "_test.go")
 	s.NoError(err)
 	s.Len(testFiles, 3)
+	for _, fn := range testFiles {
+		s.True(filepath.IsAbs(fn))
+		_, err := os.Stat(fn)
+		s.False(os.IsNotExist(err))
+	}
 
 	goFiles, err := getPackages(cwd, ".go")
 	s.NoError(err)
 	s.Len(goFiles, 1+len(testFiles)*2)
+	for _, fn := range goFiles {
+		s.True(filepath.IsAbs(fn))
+		_, err := os.Stat(fn)
+		s.False(os.IsNotExist(err))
+	}
 
 	noFiles, err := getPackages(cwd+".DOES_NOT_EXIST", "foo")
 	s.Error(err)

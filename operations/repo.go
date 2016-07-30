@@ -98,7 +98,7 @@ func getPackages(rootPath, suffix string) ([]string, error) {
 		}
 
 		if strings.HasSuffix(info.Name(), suffix) {
-			output = append(output, info.Name())
+			output = append(output, path)
 		}
 
 		return nil
