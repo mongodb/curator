@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/mongodb/curator/repobuilder"
 	"github.com/satori/go.uuid"
@@ -74,7 +75,7 @@ func repoFlags() []cli.Flag {
 		},
 		cli.StringFlag{
 			Name:  "packages",
-			Usage: "path to packages",
+			Usage: "path to packages, searches for valid packages recursively",
 		},
 		cli.StringFlag{
 			Name:  "profile",
@@ -88,20 +89,36 @@ func repoFlags() []cli.Flag {
 	}
 }
 
+func getPackages(rootPath, suffix string) ([]string, error) {
+	var output []string
+
+	err := filepath.Walk(rootPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil
+		}
+
+		if strings.HasSuffix(info.Name(), suffix) {
+			output = append(output, info.Name())
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return []string{}, err
+	}
+
+	if len(output) == 0 {
+		return []string{}, fmt.Errorf("no packages found in path '%s'", rootPath)
+	}
+
+	return output, err
+}
+
 func buildRepo(packages, configPath, workingDir, distro, edition, version, arch, profile string, dryRun bool) error {
 	// validate inputs
-	pkgs, err := filepath.Glob(packages)
-	if err != nil {
-		grip.CatchError(err)
-		return err
-	}
 	if edition == "community" {
 		edition = "org"
-	}
-	if len(pkgs) == 0 {
-		e := fmt.Sprintf("there are no packages in '%s'", packages)
-		grip.Error(e)
-		return errors.New(e)
 	}
 
 	// get configuration objects.
@@ -119,6 +136,12 @@ func buildRepo(packages, configPath, workingDir, distro, edition, version, arch,
 
 	// build the packages:
 	if repo.Type == repobuilder.RPM {
+		pkgs, err := getPackages(packages, ".rpm")
+		if err != nil {
+			grip.CatchError(err)
+			return err
+		}
+
 		job, err := repobuilder.NewBuildRPMRepo(conf, repo, version, arch, profile, pkgs...)
 		if err != nil {
 			return err
@@ -127,6 +150,12 @@ func buildRepo(packages, configPath, workingDir, distro, edition, version, arch,
 		job.DryRun = dryRun
 		return job.Run()
 	} else if repo.Type == repobuilder.DEB {
+		pkgs, err := getPackages(packages, ".deb")
+		if err != nil {
+			grip.CatchError(err)
+			return err
+		}
+
 		job, err := repobuilder.NewBuildDEBRepo(conf, repo, version, arch, profile, pkgs...)
 		if err != nil {
 			return err

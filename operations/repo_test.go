@@ -1,6 +1,10 @@
 package operations
 
-import "github.com/urfave/cli"
+import (
+	"os"
+
+	"github.com/urfave/cli"
+)
 
 func (s *CommandsSuite) TestRepoFlags() {
 	flags := repoFlags()
@@ -30,7 +34,7 @@ func (s *CommandsSuite) TestRepoFlags() {
 
 func (s *CommandsSuite) TestDryRunOperationOnProcess() {
 	err := buildRepo(
-		"./*", // packages
+		"./", // packages
 		"../repobuilder/config_test.yaml", // repo config path
 		"./",         // workingdir
 		"rhel7",      // distro
@@ -40,5 +44,22 @@ func (s *CommandsSuite) TestDryRunOperationOnProcess() {
 		"default",    // aws profile
 		true)         // dryrun
 
+	s.Equal(err.Error(), "no packages found in path './'")
+}
+
+func (s *CommandsSuite) TestGetPackagesFunction() {
+	cwd, err := os.Getwd()
 	s.NoError(err)
+
+	testFiles, err := getPackages(cwd, "_test.go")
+	s.NoError(err)
+	s.Len(testFiles, 3)
+
+	goFiles, err := getPackages(cwd, ".go")
+	s.NoError(err)
+	s.Len(goFiles, 1+len(testFiles)*2)
+
+	noFiles, err := getPackages(cwd+".DOES_NOT_EXIST", "foo")
+	s.Error(err)
+	s.Len(noFiles, 0)
 }
