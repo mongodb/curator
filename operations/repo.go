@@ -94,7 +94,7 @@ func getPackages(rootPath, suffix string) ([]string, error) {
 
 	err := filepath.Walk(rootPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			return nil
+			return err
 		}
 
 		if strings.HasSuffix(info.Name(), suffix) {

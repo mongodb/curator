@@ -49,12 +49,11 @@ func (s *CommandsSuite) TestDryRunOperationOnProcess() {
 }
 
 func (s *CommandsSuite) TestGetPackagesFunction() {
-	cwd, err := os.Getwd()
+	cwd, err := filepath.Abs("../")
 	s.NoError(err)
 
 	testFiles, err := getPackages(cwd, "_test.go")
 	s.NoError(err)
-	s.Len(testFiles, 3)
 	for _, fn := range testFiles {
 		s.True(filepath.IsAbs(fn))
 		_, err := os.Stat(fn)
@@ -63,7 +62,6 @@ func (s *CommandsSuite) TestGetPackagesFunction() {
 
 	goFiles, err := getPackages(cwd, ".go")
 	s.NoError(err)
-	s.Len(goFiles, 1+len(testFiles)*2)
 	for _, fn := range goFiles {
 		s.True(filepath.IsAbs(fn))
 		_, err := os.Stat(fn)
