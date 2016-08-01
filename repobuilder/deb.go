@@ -265,7 +265,7 @@ func (j *BuildDEBRepoJob) rebuildRepo(workingDir string, catcher *grip.MultiCatc
 	// sign the file using the notary service. To remove the
 	// MongoDB-specificity we could make this configurable, or
 	// offer ways of specifying different signing option.
-	err = j.signFile(relFileName, false)
+	err = j.signFile(relFileName, ".gpg", false)
 	catcher.Add(err)
 	if err != nil {
 		return

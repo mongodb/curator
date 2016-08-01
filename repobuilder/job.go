@@ -113,7 +113,7 @@ func (j *Job) linkPackages(dest string) error {
 			if j.Distro.Type == RPM {
 				wg.Add(1)
 				go func(toSign string) {
-					catcher.Add(j.signFile(toSign, true))
+					catcher.Add(j.signFile(toSign, "", true))
 					wg.Done()
 				}(mirror)
 			}
@@ -126,7 +126,7 @@ func (j *Job) linkPackages(dest string) error {
 	return catcher.Resolve()
 }
 
-func (j *Job) signFile(fileName string, overwrite bool) error {
+func (j *Job) signFile(fileName, extension string, overwrite bool) error {
 	// In the future it would be nice if we could talk to the
 	// notary service directly rather than shelling out here. The
 	// final option controls if we overwrite this file.
@@ -147,29 +147,30 @@ func (j *Job) signFile(fileName string, overwrite bool) error {
 			"(NOTARY_TOKEN) is not defined in the environment"))
 	}
 
-	extension := "gpg"
-
-	if !overwrite {
-		// if we're not overwriting the unsigned source file
-		// with the signed file, then we should remove the
-		// signed artifact before. Unclear if this is needed,
-		// the cronjob did this.
-		_ = os.Remove(fileName + "." + extension)
-	}
-
 	args := []string{
 		"notary-client.py",
 		"--key-name", keyName,
 		"--auth-token", token,
 		"--comment", "\"curator package signing\"",
 		"--notary-url", j.Conf.Services.NotaryURL,
-		"--archive-file-ext", extension,
 		"--outputs", "sig",
 	}
 
 	if overwrite {
+		grip.WarningWhenf(extension != "",
+			"signing extension '%s' is not valid for overwrite situation", extension)
 		grip.Noticef("overwriting existing contents of file '%s' while signing it", fileName)
 		args = append(args, "--package-file-suffix", "\"\"")
+		args = append(args, "--archive-file-ext", "\"\"")
+	} else {
+		args = append(args, "--package-file-suffix", extension)
+		args = append(args, "--archive-file-ext", extension)
+
+		// if we're not overwriting the unsigned source file
+		// with the signed file, then we should remove the
+		// signed artifact before. Unclear if this is needed,
+		// the cronjob did this.
+		grip.CatchWarning(os.Remove(fileName + "." + extension))
 	}
 
 	args = append(args, filepath.Base(fileName))

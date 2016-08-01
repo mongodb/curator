@@ -122,5 +122,8 @@ func (j *BuildRPMRepoJob) rebuildRepo(workingDir string, catcher *grip.MultiCatc
 	j.Output[workingDir] = output
 	j.mutex.Unlock()
 
+	catcher.Add(j.signFile(filepath.Join(workingDir, "repodata", "repomd.xml"),
+		".asc", false))
+
 	catcher.Add(j.Conf.BuildIndexPageForDirectory(workingDir, j.Distro.Bucket))
 }
