@@ -132,14 +132,16 @@ func (j *Job) signFile(fileName string, overwrite bool) error {
 	// final option controls if we overwrite this file.
 
 	var keyName string
+	var token string
 
 	if j.Distro.Type == DEB && j.release.Series() == "3.0" {
 		keyName = "richard"
+		token = os.Getenv("NOTARY_TOKEN_DEB_LEGACY")
 	} else {
 		keyName = "server-" + j.release.StableReleaseSeries()
+		token = os.Getenv("NOTARY_TOKEN")
 	}
 
-	token := os.Getenv("NOTARY_TOKEN")
 	if token == "" {
 		return errors.New(fmt.Sprintln("the notary service auth token",
 			"(NOTARY_TOKEN) is not defined in the environment"))
