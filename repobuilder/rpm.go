@@ -60,34 +60,36 @@ func (j *BuildRPMRepoJob) injectNewPackages(local string) ([]string, error) {
 	catcher := grip.NewCatcher()
 	var changedRepos []string
 
-	if j.release.IsRelease() {
+	if j.release.IsDevelopmentBuild() || j.release.IsReleaseCandidate() {
+		// nightlies and release candidates go into the testing repo.
+		testingRepoPath := filepath.Join(local, "testing", j.Arch)
+		changedRepos = append(changedRepos, testingRepoPath)
+		catcher.Add(j.linkPackages(filepath.Join(testingRepoPath, "RPMS")))
+	} else {
+		// all releases (not RCs, captured above,) either dev
+		// or stable go somewhere else...
+
+		// there are repos for each series:
 		seriesRepoPath := filepath.Join(local, j.release.Series(), j.Arch)
 		changedRepos = append(changedRepos, seriesRepoPath)
 		catcher.Add(j.linkPackages(filepath.Join(seriesRepoPath, "RPMS")))
-	}
 
-	if j.release.IsStableSeries() {
-		mirror, ok := j.Conf.Mirrors[j.release.Series()]
-		if ok && mirror == "stable" {
+		// all stable releases go into a special "stable"
+		// series so people can upgrade from one stable branch
+		// to the next seamlessly (this might be an
+		// anti-pattern, but it's established.)
+		if j.release.IsStableSeries() {
 			stableRepoPath := filepath.Join(local, "stable", j.Arch)
 			changedRepos = append(changedRepos, stableRepoPath)
 			catcher.Add(j.linkPackages(filepath.Join(stableRepoPath, "RPMS")))
 		}
-	}
 
-	if j.release.IsDevelopmentSeries() {
-		mirror, ok := j.Conf.Mirrors[j.release.Series()]
-		if ok && mirror == "unstable" {
+		// all development releases go into a special unsetable repo.
+		if j.release.IsDevelopmentSeries() {
 			devRepoPath := filepath.Join(local, "unstable", j.Arch)
 			changedRepos = append(changedRepos, devRepoPath)
 			catcher.Add(j.linkPackages(filepath.Join(devRepoPath, "RPMS")))
 		}
-	}
-
-	if j.release.IsReleaseCandidate() || j.release.IsDevelopmentBuild() {
-		testingRepoPath := filepath.Join(local, "testing", j.Arch)
-		changedRepos = append(changedRepos, testingRepoPath)
-		catcher.Add(j.linkPackages(filepath.Join(testingRepoPath, "RPMS")))
 	}
 
 	return changedRepos, catcher.Resolve()
@@ -122,8 +124,8 @@ func (j *BuildRPMRepoJob) rebuildRepo(workingDir string, catcher *grip.MultiCatc
 	j.Output[workingDir] = output
 	j.mutex.Unlock()
 
-	catcher.Add(j.signFile(filepath.Join(workingDir, "repodata", "repomd.xml"),
-		".asc", false))
+	metaDataFile := filepath.Join(workingDir, "repodata", "repomd.xml")
+	catcher.Add(j.signFile(metaDataFile, "asc", false)) // (name, extension, overwrite)
 
 	catcher.Add(j.Conf.BuildIndexPageForDirectory(workingDir, j.Distro.Bucket))
 }

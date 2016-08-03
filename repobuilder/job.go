@@ -95,12 +95,14 @@ func (j *Job) linkPackages(dest string) error {
 			continue
 		}
 
+		if _, err := os.Stat(dest); os.IsNotExist(err) {
+			grip.Noticeln("creating directory:", dest)
+			catcher.Add(os.MkdirAll(dest, 0744))
+		}
+
 		mirror := filepath.Join(dest, filepath.Base(pkg))
 
 		if _, err := os.Stat(mirror); os.IsNotExist(err) {
-			grip.Noticeln("creating directory:", dest)
-			catcher.Add(os.MkdirAll(dest, 0744))
-
 			grip.Infof("copying package %s to local staging %s", pkg, dest)
 
 			err = os.Link(pkg, mirror)
@@ -113,7 +115,8 @@ func (j *Job) linkPackages(dest string) error {
 			if j.Distro.Type == RPM {
 				wg.Add(1)
 				go func(toSign string) {
-					catcher.Add(j.signFile(toSign, "", true))
+					// sign each package, overwriting the package with the signed package.
+					catcher.Add(j.signFile(toSign, "", true)) // (name, extension, overwrite)
 					wg.Done()
 				}(mirror)
 			}
@@ -126,7 +129,14 @@ func (j *Job) linkPackages(dest string) error {
 	return catcher.Resolve()
 }
 
-func (j *Job) signFile(fileName, extension string, overwrite bool) error {
+// signFile wraps the python notary-client.py script. Pass it the name
+// of a file to sign, the "archiveExtension" (which only impacts
+// non-package files, as defined by the notary service and client,)
+// and an "overwrite" bool. Overwrite: forces package signing to
+// overwrite the existing file, removing the archive's
+// signature. Using overwrite=true and a non-nil string is not logical
+// and returns a warning, but is passed to the client.
+func (j *Job) signFile(fileName, archiveExtension string, overwrite bool) error {
 	// In the future it would be nice if we could talk to the
 	// notary service directly rather than shelling out here. The
 	// final option controls if we overwrite this file.
@@ -153,24 +163,26 @@ func (j *Job) signFile(fileName, extension string, overwrite bool) error {
 		"--auth-token", token,
 		"--comment", "\"curator package signing\"",
 		"--notary-url", j.Conf.Services.NotaryURL,
+		"--archive-file-ext", archiveExtension,
 		"--outputs", "sig",
 	}
 
-	if overwrite {
-		grip.WarningWhenf(extension != "",
-			"signing extension '%s' is not valid for overwrite situation", extension)
-		grip.Noticef("overwriting existing contents of file '%s' while signing it", fileName)
-		args = append(args, "--package-file-suffix", "\"\"")
-		args = append(args, "--archive-file-ext", "\"\"")
-	} else {
-		args = append(args, "--package-file-suffix", extension)
-		args = append(args, "--archive-file-ext", extension)
+	grip.AlertWhenf(strings.HasPrefix(archiveExtension, "."),
+		"extension '%s', has a leading dot, which is almost certainly undesirable.", archiveExtension)
 
+	grip.AlertWhenln(overwrite && len(archiveExtension) != 0,
+		"specified overwrite with an archive extension:", archiveExtension,
+		"this is probably an error, (not impacting packages,) but is passed to the client.")
+
+	if overwrite {
+		grip.Noticef("overwriting existing contents of file '%s' while signing it", fileName)
+		args = append(args, "--package-file-suffix", "")
+	} else {
 		// if we're not overwriting the unsigned source file
 		// with the signed file, then we should remove the
 		// signed artifact before. Unclear if this is needed,
 		// the cronjob did this.
-		grip.CatchWarning(os.Remove(fileName + "." + extension))
+		grip.CatchWarning(os.Remove(fileName + "." + archiveExtension))
 	}
 
 	args = append(args, filepath.Base(fileName))

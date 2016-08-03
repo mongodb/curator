@@ -20,7 +20,6 @@ import (
 // global configuration, and a list of repositories, controlled by the
 // RepositoryDefinition type.
 type RepositoryConfig struct {
-	Mirrors          map[string]string       `bson:"mirrors" json:"mirrors" yaml:"mirrors"`
 	Templates        *RepositoryTemplates    `bson:"templates" json:"templates" yaml:"templates"`
 	Repos            []*RepositoryDefinition `bson:"repos" json:"repos" yaml:"repos"`
 	Services         Services                `bson:"services" json:"services" yaml:"services"`
@@ -67,7 +66,6 @@ func NewRepositoryConfig() *RepositoryConfig {
 	logger := grip.NewJournaler("curator.repo.config")
 	logger.CloneSender(grip.Sender())
 	return &RepositoryConfig{
-		Mirrors: make(map[string]string),
 		Templates: &RepositoryTemplates{
 			Deb: make(map[string]string),
 		},
