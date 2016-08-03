@@ -359,12 +359,16 @@ func (b *Bucket) DeletePrefix(prefix string) error {
 // remote file. All operations execute in the worker pool, and SyncTo
 // waits for all jobs to complete before returning an aggregated error.
 func (b *Bucket) SyncTo(local, prefix string) error {
-	grip.Infof("sync push %s -> %s.%s", local, b.name, prefix)
+	grip.Infof("sync push %s -> %s/%s", local, b.name, prefix)
 
 	remote := b.contents(prefix)
 
+	var counter int
 	b.catcher.Add(filepath.Walk(local, func(path string, info os.FileInfo, err error) error {
-		b.catcher.Add(err)
+		if err != nil {
+			grip.Critical(err)
+			return err
+		}
 
 		if info.IsDir() {
 			return nil
@@ -377,11 +381,20 @@ func (b *Bucket) SyncTo(local, prefix string) error {
 
 		job := newSyncToJob(path, remoteFile, b)
 
+		counter++
+
 		return b.queue.Put(job)
 	}))
 
 	b.queue.Wait()
 	b.catcher.Add(b.queue.Runner().Error())
+
+	if b.catcher.HasErrors() {
+		grip.Alertf("problem with sync push operation (%s -> %s/%s) [%d items]",
+			local, b.name, prefix, counter)
+	} else {
+		grip.Infof("completed push operation. uploaded %d items to %s/%s", counter, b.name, prefix)
+	}
 
 	return b.catcher.Resolve()
 }
@@ -394,7 +407,6 @@ func (b *Bucket) SyncTo(local, prefix string) error {
 // jobs to complete before returning an aggregated erro
 func (b *Bucket) SyncFrom(local, prefix string) error {
 	grip.Infof("sync pull %s/%s -> %s", b.name, prefix, local)
-	defer grip.Infof("completed pull operation from %s/%s -> %s", b.name, prefix, local)
 
 	for remote := range b.list(prefix) {
 		job := newSyncFromJob(filepath.Join(local, remote.Name[len(prefix):]), remote, b)
@@ -402,8 +414,16 @@ func (b *Bucket) SyncFrom(local, prefix string) error {
 		// add the job to the queue
 		b.catcher.Add(b.queue.Put(job))
 	}
+
 	b.queue.Wait()
 	b.catcher.Add(b.queue.Runner().Error())
+
+	if b.catcher.HasErrors() {
+		grip.Alertf("problem with sync pull operation (%s/%s -> %s)",
+			b.name, prefix, local)
+	} else {
+		grip.Infof("completed pull operation from %s/%s -> %s", b.name, prefix, local)
+	}
 
 	return b.catcher.Resolve()
 }
