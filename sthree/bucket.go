@@ -51,7 +51,6 @@ type Bucket struct {
 	credentials       AWSConnectionConfiguration
 	bucket            *s3.Bucket
 	s3                *s3.S3
-	catcher           *grip.MultiCatcher
 	registry          *bucketRegistry
 	name              string
 	numJobs           int
@@ -65,7 +64,6 @@ func (b *Bucket) NewBucket(name string) *Bucket {
 	new := &Bucket{
 		name:              name,
 		NewFilePermission: b.NewFilePermission,
-		catcher:           grip.NewCatcher(),
 		credentials:       b.credentials,
 		numJobs:           b.numJobs,
 	}
@@ -165,8 +163,8 @@ func (b *Bucket) list(prefix string) <-chan *s3Item {
 		var lastKey string
 		for {
 			results, err := b.bucket.List(prefix, "", lastKey, 1000)
-			b.catcher.Add(err)
 			if err != nil {
+				grip.Error(err)
 				break
 			}
 
@@ -275,10 +273,10 @@ func (b *Bucket) DeleteMany(paths ...string) error {
 		return b.Delete(paths[0])
 	}
 
+	catcher := grip.NewCatcher()
+
 	toDelete := s3.Delete{}
-
 	contents := b.contents("")
-
 	count := 0
 	for _, p := range paths {
 		key, ok := contents[p]
@@ -291,7 +289,7 @@ func (b *Bucket) DeleteMany(paths ...string) error {
 		// should batch accordingly too.
 		if count == 1000 {
 			grip.Debugf("sending a batch of delete operations to %s", b.name)
-			b.catcher.Add(b.bucket.DelMulti(toDelete))
+			catcher.Add(b.bucket.DelMulti(toDelete))
 
 			// reset the counters
 			toDelete = s3.Delete{}
@@ -306,25 +304,27 @@ func (b *Bucket) DeleteMany(paths ...string) error {
 
 	if len(toDelete.Objects) > 0 {
 		grip.Debugf("sending last batch of delete operations to %s", b.name)
-		b.catcher.Add(b.bucket.DelMulti(toDelete))
+		catcher.Add(b.bucket.DelMulti(toDelete))
 	}
 
-	return b.catcher.Resolve()
+	return catcher.Resolve()
 }
 
 // DeletePrefix removes all items in a bucket that have key names that
 // begin with a specific prefix.
 func (b *Bucket) DeletePrefix(prefix string) error {
-	toDelete := s3.Delete{}
+	catcher := grip.NewCatcher()
 
+	toDelete := s3.Delete{}
 	items := b.list(prefix)
 	count := 0
+
 	for {
 		// DeleteMulti maxes out at 1000 items per request. We
 		// should batch accordingly too.
 		if count == 1000 {
 			grip.Debugf("sending a batch of delete operations to %s", b.name)
-			b.catcher.Add(b.bucket.DelMulti(toDelete))
+			catcher.Add(b.bucket.DelMulti(toDelete))
 
 			// reset the counters
 			toDelete = s3.Delete{}
@@ -347,10 +347,10 @@ func (b *Bucket) DeletePrefix(prefix string) error {
 
 	if len(toDelete.Objects) > 0 {
 		grip.Debugf("sending last batch of delete operations to %s", b.name)
-		b.catcher.Add(b.bucket.DelMulti(toDelete))
+		catcher.Add(b.bucket.DelMulti(toDelete))
 	}
 
-	return b.catcher.Resolve()
+	return catcher.Resolve()
 }
 
 // SyncTo takes a local path, typically directory, and an S3 path
@@ -361,10 +361,11 @@ func (b *Bucket) DeletePrefix(prefix string) error {
 func (b *Bucket) SyncTo(local, prefix string) error {
 	grip.Infof("sync push %s -> %s/%s", local, b.name, prefix)
 
+	catcher := grip.NewCatcher()
 	remote := b.contents(prefix)
 
 	var counter int
-	b.catcher.Add(filepath.Walk(local, func(path string, info os.FileInfo, err error) error {
+	catcher.Add(filepath.Walk(local, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			grip.Critical(err)
 			return err
@@ -387,16 +388,16 @@ func (b *Bucket) SyncTo(local, prefix string) error {
 	}))
 
 	b.queue.Wait()
-	b.catcher.Add(b.queue.Runner().Error())
+	catcher.Add(b.queue.Runner().Error())
 
-	if b.catcher.HasErrors() {
+	if catcher.HasErrors() {
 		grip.Alertf("problem with sync push operation (%s -> %s/%s) [%d items]",
 			local, b.name, prefix, counter)
 	} else {
 		grip.Infof("completed push operation. uploaded %d items to %s/%s", counter, b.name, prefix)
 	}
 
-	return b.catcher.Resolve()
+	return catcher.Resolve()
 }
 
 // SyncFrom takes a local path and the prefix of a keyname in S3, and
@@ -406,24 +407,25 @@ func (b *Bucket) SyncTo(local, prefix string) error {
 // All operations execute in the worker pool, and SyncTo waits for all
 // jobs to complete before returning an aggregated erro
 func (b *Bucket) SyncFrom(local, prefix string) error {
+	catcher := grip.NewCatcher()
 	grip.Infof("sync pull %s/%s -> %s", b.name, prefix, local)
 
 	for remote := range b.list(prefix) {
 		job := newSyncFromJob(filepath.Join(local, remote.Name[len(prefix):]), remote, b)
 
 		// add the job to the queue
-		b.catcher.Add(b.queue.Put(job))
+		catcher.Add(b.queue.Put(job))
 	}
 
 	b.queue.Wait()
-	b.catcher.Add(b.queue.Runner().Error())
+	catcher.Add(b.queue.Runner().Error())
 
-	if b.catcher.HasErrors() {
+	if catcher.HasErrors() {
 		grip.Alertf("problem with sync pull operation (%s/%s -> %s)",
 			b.name, prefix, local)
 	} else {
 		grip.Infof("completed pull operation from %s/%s -> %s", b.name, prefix, local)
 	}
 
-	return b.catcher.Resolve()
+	return catcher.Resolve()
 }

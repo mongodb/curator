@@ -24,7 +24,6 @@ import (
 type syncFromJob struct {
 	isComplete bool
 	remoteFile *s3Item
-	catcher    *grip.MultiCatcher
 	b          *Bucket
 	t          amboy.JobType
 	localPath  string
@@ -36,7 +35,6 @@ func newSyncFromJob(localPath string, remoteFile *s3Item, b *Bucket) *syncFromJo
 		name:       fmt.Sprintf("%s.%d.sync-from", localPath, job.GetNumber()),
 		remoteFile: remoteFile,
 		localPath:  localPath,
-		catcher:    b.catcher,
 		b:          b,
 		t: amboy.JobType{
 			Name:    "s3-sync-from",
@@ -92,7 +90,7 @@ func (j *syncFromJob) Run() error {
 	// compare md5 checksums between these file and download the
 	// remote file if they differ.
 	data, err := ioutil.ReadFile(j.localPath)
-	j.b.catcher.Add(err)
+	catcher.Add(err)
 	if err == nil {
 		if fmt.Sprintf("%x", md5.Sum(data)) != j.remoteFile.MD5 {
 			grip.Debugf("hashes aren't the same: [file=%s, local=%x, remote=%s]", j.remoteFile.Name, md5.Sum(data), j.remoteFile.MD5)

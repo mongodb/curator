@@ -140,7 +140,6 @@ func (r *bucketRegistry) getBucketWithCredentials(name string, creds AWSConnecti
 		client := s3.New(r.c.Auth, r.c.Region)
 		b = &Bucket{
 			NewFilePermission: s3.BucketOwnerFull,
-			catcher:           grip.NewCatcher(),
 			s3:                client,
 			bucket:            client.Bucket(name),
 			credentials:       creds,
