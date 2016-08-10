@@ -129,6 +129,46 @@ func (j *Job) linkPackages(dest string) error {
 	return catcher.Resolve()
 }
 
+func (j *Job) injectNewPackages(local string) ([]string, error) {
+	catcher := grip.NewCatcher()
+	var changedRepos []string
+
+	if j.release.IsDevelopmentBuild() || j.release.IsReleaseCandidate() {
+		// nightlies and release candidates go into the testing repo:
+
+		changed, err := injectPackage(j, local, "testing")
+		catcher.Add(err)
+		changedRepos = append(changedRepos, changed...)
+	} else {
+		// all releases (not RCs, captured above,) either dev
+		// or stable go somewhere else...
+
+		// there are repos for each series:
+		changed, err := injectPackage(j, local, j.release.Series())
+		catcher.Add(err)
+		changedRepos = append(changedRepos, changed...)
+
+		// all stable releases go into a special "stable"
+		// series so people can upgrade from one stable branch
+		// to the next seamlessly (this might be an
+		// anti-pattern, but it's established.)
+		if j.release.IsStableSeries() {
+			changed, err = injectPackage(j, local, "stable")
+			catcher.Add(err)
+			changedRepos = append(changedRepos, changed...)
+		}
+
+		// all development releases go into a special unstable repo.
+		if j.release.IsDevelopmentSeries() {
+			changed, err = injectPackage(j, local, "unstable")
+			catcher.Add(err)
+			changedRepos = append(changedRepos, changed...)
+		}
+	}
+
+	return changedRepos, catcher.Resolve()
+}
+
 // signFile wraps the python notary-client.py script. Pass it the name
 // of a file to sign, the "archiveExtension" (which only impacts
 // non-package files, as defined by the notary service and client,)
@@ -259,7 +299,7 @@ func (j *Job) Run() error {
 					strings.Join(j.PackagePaths, "; "), local)
 			} else {
 				grip.Info("copying new packages into local staging area")
-				changedRepos, err = injectNewPackages(j, local)
+				changedRepos, err = j.injectNewPackages(local)
 				if err != nil {
 					catcher.Add(err)
 					return
@@ -300,15 +340,15 @@ func (j *Job) Run() error {
 
 // shim methods so that we can reuse the Run() method from
 // repobuilder.Job for all types
-func injectNewPackages(j interface{}, local string) ([]string, error) {
+func injectPackage(j interface{}, local, repoName string) ([]string, error) {
 	switch j := j.(type) {
 	case *Job:
 		if j.Type().Name == "build-deb-repo" {
 			job := BuildDEBRepoJob{*j}
-			return job.injectNewPackages(local)
+			return job.injectPackage(local, repoName)
 		} else if j.Type().Name == "build-rpm-repo" {
 			job := BuildRPMRepoJob{*j}
-			return job.injectNewPackages(local)
+			return job.injectPackage(local, repoName)
 		} else {
 			return []string{}, fmt.Errorf("builder %s is not supported", j.Type().Name)
 		}

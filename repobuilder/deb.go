@@ -92,61 +92,17 @@ func (j *BuildDEBRepoJob) createArchDirs(basePath string) ([]string, error) {
 	return changedPaths, catcher.Resolve()
 }
 
-func (j *BuildDEBRepoJob) injectNewPackages(local string) ([]string, error) {
+func (j *BuildDEBRepoJob) injectPackage(local, repoName string) ([]string, error) {
 	catcher := grip.NewCatcher()
-	var changedRepos []string
 
-	arch := "binary-" + j.Arch
+	repoPath := filepath.Join(local, repoName, j.Distro.Component)
+	changedPaths, err := j.createArchDirs(repoPath)
+	catcher.Add(j.linkPackages(filepath.Join(repoPath, "binary-"+j.Arch)))
+	catcher.Add(err)
 
-	if j.release.IsDevelopmentBuild() || j.release.IsReleaseCandidate() {
-		// nightlies and release candidates go into the testing repo:
-		testingRepoPath := filepath.Join(local, "testing", j.Distro.Component)
-		changedRepos = append(changedRepos, testingRepoPath)
-		catcher.Add(j.linkPackages(filepath.Join(testingRepoPath, arch)))
+	changedPaths = append(changedPaths, repoPath)
 
-		extraPaths, err := j.createArchDirs(testingRepoPath)
-		catcher.Add(err)
-		changedRepos = append(changedRepos, extraPaths...)
-	} else {
-		// all releases (not RCs, captured above,) either dev
-		// or stable go somewhere else...
-
-		// there are repos for each series:
-		seriesRepoPath := filepath.Join(local, j.release.Series(), j.Distro.Component)
-		changedRepos = append(changedRepos, seriesRepoPath)
-		catcher.Add(j.linkPackages(filepath.Join(seriesRepoPath, arch)))
-
-		extraPaths, err := j.createArchDirs(seriesRepoPath)
-		catcher.Add(err)
-		changedRepos = append(changedRepos, extraPaths...)
-
-		// all stable releases go into a special "stable"
-		// series so people can upgrade from one stable branch
-		// to the next seamlessly (this might be an
-		// anti-pattern, but it's established.)
-		if j.release.IsStableSeries() {
-			stableRepoPath := filepath.Join(local, "stable", j.Distro.Component)
-			changedRepos = append(changedRepos, stableRepoPath)
-			catcher.Add(j.linkPackages(filepath.Join(stableRepoPath, arch)))
-
-			extraPaths, err := j.createArchDirs(stableRepoPath)
-			catcher.Add(err)
-			changedRepos = append(changedRepos, extraPaths...)
-		}
-
-		// all development releases go into a special unstable repo.
-		if j.release.IsDevelopmentSeries() {
-			devRepoPath := filepath.Join(local, "unstable", j.Distro.Component)
-			changedRepos = append(changedRepos, devRepoPath)
-			catcher.Add(j.linkPackages(filepath.Join(devRepoPath, arch)))
-
-			extraPaths, err := j.createArchDirs(devRepoPath)
-			catcher.Add(err)
-			changedRepos = append(changedRepos, extraPaths...)
-		}
-	}
-
-	return changedRepos, catcher.Resolve()
+	return changedPaths, catcher.Resolve()
 }
 
 func gzipAndWriteToFile(fileName string, content []byte) error {
