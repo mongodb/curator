@@ -12,6 +12,7 @@ import (
 	"github.com/goamz/goamz/s3"
 	"github.com/mongodb/amboy"
 	"github.com/mongodb/amboy/queue"
+	"github.com/pkg/errors"
 	"github.com/tychoish/grip"
 )
 
@@ -212,7 +213,7 @@ func (b *Bucket) Put(fileName, path string) error {
 	contents, err := ioutil.ReadFile(fileName)
 
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "error reading file '%s' before s3.Put", fileName)
 	}
 
 	grip.Debugf("uploading %s -> (%s) %s", fileName, b.name, path)
@@ -242,14 +243,14 @@ func (b *Bucket) Get(path, fileName string) error {
 
 	data, err := b.bucket.Get(path)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "aws error from s3.Get")
 	}
 
 	dirName := filepath.Dir(fileName)
 	if _, err := os.Stat(dirName); os.IsNotExist(err) {
 		err = os.MkdirAll(dirName, 0755)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "creating directory for s3.Get operations")
 		}
 		grip.Debugf("created directory '%s' for object %s", dirName, fileName)
 	}

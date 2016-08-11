@@ -9,6 +9,7 @@ import (
 	"github.com/mongodb/amboy"
 	"github.com/mongodb/amboy/dependency"
 	"github.com/mongodb/amboy/job"
+	"github.com/pkg/errors"
 	"github.com/tychoish/grip"
 )
 
@@ -59,14 +60,16 @@ func (j *syncFromJob) markComplete() {
 	j.isComplete = true
 }
 
+func (j *syncFromJob) doGet() error {
+	return j.b.Get(j.remoteFile.Name, j.localPath)
+}
+
 // Run executes the synchronization job. If the local file doesn't
 // exist, pulls down the remote file, otherwise hashes the local file
 // and compares that hash to the remote file's hash. If they differ,
 // pull the remote file.
 func (j *syncFromJob) Run() error {
 	defer j.markComplete()
-
-	catcher := grip.NewCatcher()
 
 	// if the remote file doesn't exist, we should return early here.
 	if j.remoteFile == nil || j.remoteFile.Name == "" {
@@ -75,30 +78,44 @@ func (j *syncFromJob) Run() error {
 
 	// if the remote file has disappeared, we should return early here.
 	exists, err := j.b.bucket.Exists(j.remoteFile.Name)
-	catcher.Add(err)
-	if err == nil && !exists {
+	if err != nil {
+		return errors.Wrapf(err, "problem checking if the file '%s' exists",
+			j.remoteFile.Name)
+	}
+	if !exists {
+		// if we get here the file doesn't exist so we shuold try to copy it.
+		grip.Warningf("file %s disappeared during sync pull operation", j.remoteFile.Name)
 		return nil
 	}
 
 	// if the local file doesn't exist, download the remote file and return.
 	if _, err = os.Stat(j.localPath); os.IsNotExist(err) {
-		catcher.Add(j.b.Get(j.remoteFile.Name, j.localPath))
+		err := j.doGet()
+		if err != nil {
+			return errors.Wrap(err, "problem downloading file during sync")
+		}
 		return nil
 	}
 
 	// if both the remote and local files exist, then we should
 	// compare md5 checksums between these file and download the
 	// remote file if they differ.
+
+	// Start by reading the file.
 	data, err := ioutil.ReadFile(j.localPath)
-	catcher.Add(err)
-	if err == nil {
-		if fmt.Sprintf("%x", md5.Sum(data)) != j.remoteFile.MD5 {
-			grip.Debugf("hashes aren't the same: [file=%s, local=%x, remote=%s]", j.remoteFile.Name, md5.Sum(data), j.remoteFile.MD5)
-			catcher.Add(j.b.Get(j.remoteFile.Name, j.localPath))
+	if err != nil {
+		return errors.Wrap(err, "problem reading file before hashing for sync operation")
+	}
+
+	if fmt.Sprintf("%x", md5.Sum(data)) != j.remoteFile.MD5 {
+		grip.Debugf("hashes aren't the same: [file=%s, local=%x, remote=%s]", j.remoteFile.Name, md5.Sum(data), j.remoteFile.MD5)
+		err := j.doGet()
+		if err != nil {
+			return errors.Wrapf(err, "problem fetching file '%s' during sync", j.remoteFile.Name)
 		}
 	}
 
-	return catcher.Resolve()
+	return nil
 }
 
 func (j *syncFromJob) Dependency() dependency.Manager {

@@ -9,6 +9,7 @@ import (
 	"github.com/mongodb/amboy"
 	"github.com/mongodb/amboy/dependency"
 	"github.com/mongodb/amboy/job"
+	"github.com/pkg/errors"
 	"github.com/tychoish/grip"
 )
 
@@ -59,6 +60,10 @@ func (j *syncToJob) markComplete() {
 	j.isComplete = true
 }
 
+func (j *syncToJob) doPut() error {
+	return j.b.Put(j.localPath, j.remoteFile.Name)
+}
+
 // Run executes the synchronization job. If local file doesn't exist
 // this operation becomes a noop. Otherwise, will always upload the
 // local file if a remote file exists, and if both the local and
@@ -67,11 +72,10 @@ func (j *syncToJob) markComplete() {
 func (j *syncToJob) Run() error {
 	defer j.markComplete()
 
-	catcher := grip.NewCatcher()
-
 	// if the local file doesn't exist or has disappeared since
 	// the job was created, there's nothing to do, we can return early
 	if _, err := os.Stat(j.localPath); os.IsNotExist(err) {
+		grip.Debugf("local file %s does not exist, so we can't upload it", j.localPath)
 		return nil
 	}
 
@@ -80,18 +84,27 @@ func (j *syncToJob) Run() error {
 	// task can safely fall through this case and compare hashes,
 	// otherwise we should put it here.
 	exists, err := j.b.bucket.Exists(j.localPath)
-	catcher.Add(err)
-
-	if err == nil && !exists {
-		catcher.Add(j.b.Put(j.localPath, j.remoteFile.Name))
-		return nil
+	if err != nil {
+		return errors.Wrapf(err, "problem checking if the file '%s' exists in the bucket %s",
+			j.localPath, j.b.name)
+	}
+	if !exists {
+		err = j.doPut()
+		if err != nil {
+			return errors.Wrapf(err, "problem uploading file %s -> %s",
+				j.localPath, j.remoteFile.Name)
+		}
 	}
 
 	// if s3 doesn't know what the hash of the remote file is or
 	// returns it to us, then we don't need to hash it locally,
 	// because we'll always upload it in that situation.
 	if j.remoteFile.MD5 == "" {
-		catcher.Add(j.b.Put(j.localPath, j.remoteFile.Name))
+		grip.Debugf("s3 does not report a hash for %s, uploading file", j.remoteFile.Name)
+		err = j.doPut()
+		if err != nil {
+			return errors.Wrap(err, "problem downloading file during sync")
+		}
 		return nil
 	}
 
@@ -99,15 +112,19 @@ func (j *syncToJob) Run() error {
 	// checksums between the local and remote objects and upload
 	// the local file if they differ.
 	data, err := ioutil.ReadFile(j.localPath)
-	catcher.Add(err)
+	if err != nil {
+		return errors.Wrap(err, "problem reading file before hashing for sync operation")
+	}
 
-	if err == nil {
-		if fmt.Sprintf("%x", md5.Sum(data)) != j.remoteFile.MD5 {
-			catcher.Add(j.b.Put(j.localPath, j.remoteFile.Name))
+	if fmt.Sprintf("%x", md5.Sum(data)) != j.remoteFile.MD5 {
+		grip.Debugf("hashes aren't the same: [file=%s, local=%x, remote=%s]", j.remoteFile.Name, md5.Sum(data), j.remoteFile.MD5)
+		err = j.doPut()
+		if err != nil {
+			return errors.Wrapf(err, "problem uploading file '%s' during sync", j.localPath)
 		}
 	}
 
-	return catcher.Resolve()
+	return nil
 }
 
 func (j *syncToJob) Dependency() dependency.Manager {

@@ -21,3 +21,5 @@ import:
 - package: github.com/davecgh/go-spew
 - package: github.com/satori/go.uuid
 - package: gopkg.in/yaml.v2
+- package: github.com/pkg/errors
+  version: ^0.7.0
