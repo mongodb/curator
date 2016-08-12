@@ -87,7 +87,7 @@ func (s *RpmRepoSuite) TestCompletedSetter() {
 	// ignoring the error here because it depends on local
 	// createrepo and other factors which are not actually what
 	// we're testing here.
-	_ = s.j.Run()
+	s.j.Run()
 	s.True(s.j.Completed())
 	s.Equal(s.j.IsComplete, s.j.Completed())
 }

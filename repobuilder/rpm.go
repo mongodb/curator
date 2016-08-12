@@ -63,11 +63,11 @@ func (j *BuildRPMRepoJob) injectPackage(local, repoName string) ([]string, error
 	return []string{repoPath}, err
 }
 
-func (j *BuildRPMRepoJob) rebuildRepo(workingDir string, catcher *grip.MultiCatcher, wg *sync.WaitGroup) {
+func (j *BuildRPMRepoJob) rebuildRepo(workingDir string, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	var output string
-
+	var err error
 	cmd := exec.Command("createrepo", "-d", "-s", "sha", workingDir)
 	grip.Infoln("building repo with operation:", strings.Join(cmd.Args, " "))
 
@@ -77,9 +77,9 @@ func (j *BuildRPMRepoJob) rebuildRepo(workingDir string, catcher *grip.MultiCatc
 	} else {
 		grip.Noticeln("building repo with operation:", strings.Join(cmd.Args, " "))
 		out, err := cmd.CombinedOutput()
-		catcher.Add(err)
 		output = string(out)
 		if err != nil {
+			j.addError(err)
 			grip.Error(err)
 			grip.Info(output)
 		} else {
@@ -93,7 +93,15 @@ func (j *BuildRPMRepoJob) rebuildRepo(workingDir string, catcher *grip.MultiCatc
 	j.mutex.Unlock()
 
 	metaDataFile := filepath.Join(workingDir, "repodata", "repomd.xml")
-	catcher.Add(j.signFile(metaDataFile, "asc", false)) // (name, extension, overwrite)
+	err = j.signFile(metaDataFile, "asc", false) // (name, extension, overwrite)
+	if err != nil {
+		j.addError(err)
+		return
+	}
 
-	catcher.Add(j.Conf.BuildIndexPageForDirectory(workingDir, j.Distro.Bucket))
+	err = j.Conf.BuildIndexPageForDirectory(workingDir, j.Distro.Bucket)
+	if err != nil {
+		j.addError(err)
+		return
+	}
 }

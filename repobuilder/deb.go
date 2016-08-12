@@ -131,7 +131,7 @@ func gzipAndWriteToFile(fileName string, content []byte) error {
 	return nil
 }
 
-func (j *BuildDEBRepoJob) rebuildRepo(workingDir string, catcher *grip.MultiCatcher, wg *sync.WaitGroup) {
+func (j *BuildDEBRepoJob) rebuildRepo(workingDir string, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	arch := "binary-" + j.Arch
@@ -144,35 +144,39 @@ func (j *BuildDEBRepoJob) rebuildRepo(workingDir string, catcher *grip.MultiCatc
 
 	grip.Infof("running command='%s' path='%s'", strings.Join(cmd.Args, " "), cmd.Dir)
 	out, err := cmd.Output()
-	catcher.Add(err)
 	if err != nil {
+		j.addError(err)
 		return
 	}
 
 	// Write the packages file to disk.
 	pkgsFile := filepath.Join(workingDir, arch, "Packages")
 	err = ioutil.WriteFile(pkgsFile, out, 0644)
-	catcher.Add(err)
 	if err != nil {
+		j.addError(err)
 		return
 	}
 	grip.Noticeln("wrote packages file to:", pkgsFile)
 
 	// Compress/gzip the packages file
-	catcher.Add(gzipAndWriteToFile(pkgsFile+".gz", out))
+	err = (gzipAndWriteToFile(pkgsFile+".gz", out))
+	if err != nil {
+		j.addError(err)
+		return
+	}
 
 	// Continue by building the Releases file, first by using the
 	// template, and then by
 	releaseTmplSrc, ok := j.Conf.Templates.Deb[j.Distro.Edition]
 	if !ok {
-		catcher.Add(fmt.Errorf("no 'Release' template defined for %s", j.Distro.Edition))
+		j.addError(fmt.Errorf("no 'Release' template defined for %s", j.Distro.Edition))
 		return
 	}
 
 	// initialize the template.
 	tmpl, err := template.New("Releases").Parse(releaseTmplSrc)
-	catcher.Add(err)
 	if err != nil {
+		j.addError(err)
 		return
 	}
 
@@ -186,8 +190,8 @@ func (j *BuildDEBRepoJob) rebuildRepo(workingDir string, catcher *grip.MultiCatc
 		Component:     j.Distro.Component,
 		Architectures: strings.Join(j.Distro.Architectures, " "),
 	})
-	catcher.Add(err)
 	if err != nil {
+		j.addError(err)
 		return
 	}
 
@@ -197,10 +201,10 @@ func (j *BuildDEBRepoJob) rebuildRepo(workingDir string, catcher *grip.MultiCatc
 	cmd.Dir = workingDir
 	out, err = cmd.Output()
 	grip.Infof("generating release file: [command='%s', path='%s']", strings.Join(cmd.Args, " "), cmd.Dir)
-	catcher.Add(err)
 	outString := string(out)
 	grip.Debug(outString)
 	if err != nil {
+		j.addError(err)
 		return
 	}
 
@@ -213,26 +217,30 @@ func (j *BuildDEBRepoJob) rebuildRepo(workingDir string, catcher *grip.MultiCatc
 	j.mutex.Lock()
 	j.Output["sign-release-file-"+workingDir] = outString
 	j.mutex.Unlock()
-	catcher.Add(err)
 
 	// write the content of the release file to disk.
 	relFileName := filepath.Join(filepath.Dir(workingDir), "Release")
 	err = ioutil.WriteFile(relFileName, releaseContent, 0644)
-	catcher.Add(err)
 	if err != nil {
+		j.addError(err)
 		return
 	}
+
 	grip.Noticeln("wrote release files to:", relFileName)
 
 	// sign the file using the notary service. To remove the
 	// MongoDB-specificity we could make this configurable, or
 	// offer ways of specifying different signing option.
 	err = j.signFile(relFileName, "gpg", false) // (name, extension, overwrite)
-	catcher.Add(err)
 	if err != nil {
+		j.addError(err)
 		return
 	}
 
 	// build the index page.
-	catcher.Add(j.Conf.BuildIndexPageForDirectory(workingDir, j.Distro.Bucket))
+	err = j.Conf.BuildIndexPageForDirectory(workingDir, j.Distro.Bucket)
+	if err != nil {
+		j.addError(err)
+		return
+	}
 }

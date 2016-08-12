@@ -18,8 +18,8 @@ import (
 )
 
 type jobImpl interface {
-	rebuildRepo(string, *grip.MultiCatcher, *sync.WaitGroup)
-	injectNewPackages(string) ([]string, error)
+	rebuildRepo(string, *sync.WaitGroup)
+	injectPackage(string, string) ([]string, error)
 }
 
 type Job struct {
@@ -36,9 +36,10 @@ type Job struct {
 	Profile      string                `bson:"aws_profile" json:"aws_profile" yaml:"aws_profile"`
 	WorkSpace    string                `bson:"local_workdir" json:"local_workdir" yaml:"local_workdir"`
 	PackagePaths []string              `bson:"package_paths" json:"package_paths" yaml:"package_paths"`
+	Errors       []error               `bson:"errors" json:"errors" yaml:"errors"`
 	workingDirs  []string
 	release      *curator.MongoDBVersion
-	mutex        sync.Mutex
+	mutex        sync.RWMutex
 }
 
 func buildRepoJob() *Job {
@@ -78,6 +79,43 @@ func (j *Job) SetDependency(d dependency.Manager) {
 
 func (j *Job) markComplete() {
 	j.IsComplete = true
+}
+
+func (j *Job) addError(err error) {
+	if err != nil {
+		j.mutex.Lock()
+		defer j.mutex.Unlock()
+
+		j.Errors = append(j.Errors, err)
+	}
+}
+
+func (j *Job) hasErrors() bool {
+	j.mutex.RLock()
+	defer j.mutex.RUnlock()
+
+	if len(j.Errors) == 0 {
+		return false
+	}
+
+	return true
+}
+
+func (j *Job) Error() error {
+	j.mutex.RLock()
+	defer j.mutex.RUnlock()
+
+	if len(j.Errors) == 0 {
+		return nil
+	}
+
+	var outputs []string
+
+	for _, err := range j.Errors {
+		outputs = append(outputs, fmt.Sprintf("%+v", err))
+	}
+
+	return errors.New(strings.Join(outputs, "\n"))
 }
 
 func (j *Job) linkPackages(dest string) error {
@@ -251,19 +289,19 @@ func (j *Job) signFile(fileName, archiveExtension string, overwrite bool) error 
 	return err
 }
 
-func (j *Job) Run() error {
+func (j *Job) Run() {
 	bucket := sthree.GetBucketWithProfile(j.Distro.Bucket, j.Profile)
 	bucket.NewFilePermission = s3.PublicRead
 
 	err := bucket.Open()
 	defer bucket.Close()
 	if err != nil {
-		return err
+		j.addError(err)
+		return
 	}
 
 	defer j.markComplete()
 	wg := &sync.WaitGroup{}
-	catcher := grip.NewCatcher()
 
 	for _, remote := range j.Distro.Repos {
 		wg.Add(1)
@@ -278,7 +316,7 @@ func (j *Job) Run() error {
 
 			err = os.MkdirAll(local, 0755)
 			if err != nil {
-				catcher.Add(err)
+				j.addError(err)
 				return
 			}
 
@@ -288,7 +326,7 @@ func (j *Job) Run() error {
 				grip.Infof("downloading from %s to %s", remote, local)
 				err = bucket.SyncFrom(local, remote)
 				if err != nil {
-					catcher.Add(err)
+					j.addError(err)
 					return
 				}
 			}
@@ -301,23 +339,21 @@ func (j *Job) Run() error {
 				grip.Info("copying new packages into local staging area")
 				changedRepos, err = j.injectNewPackages(local)
 				if err != nil {
-					catcher.Add(err)
+					j.addError(err)
 					return
 				}
 			}
 
 			rWg := &sync.WaitGroup{}
-			rCatcher := grip.NewCatcher()
 			for _, dir := range changedRepos {
 				rWg.Add(1)
-				go rebuildRepo(j, dir, rCatcher, rWg)
+				go rebuildRepo(j, dir, rWg)
 			}
 			rWg.Wait()
 
-			if rCatcher.HasErrors() {
+			if j.hasErrors() {
 				grip.Errorf("encountered error rebuilding %s (%s). Uploading no data",
 					remote, local)
-				catcher.Add(rCatcher.Resolve())
 				return
 			}
 
@@ -327,15 +363,18 @@ func (j *Job) Run() error {
 			} else {
 				// don't need to return early here, only
 				// because this is the last operation.
-				catcher.Add(bucket.SyncTo(local, remote))
+				j.addError(bucket.SyncTo(local, remote))
 				grip.Noticef("completed rebuilding repo %s (%s)", remote, local)
 			}
 		}(j.Distro, j.WorkSpace, remote)
 	}
 	wg.Wait()
 
+	if j.hasErrors() {
+		grip.Warning("encountered error rebuilding repositories. operation complete.")
+		return
+	}
 	grip.Notice("completed rebuilding all repositories")
-	return catcher.Resolve()
 }
 
 // shim methods so that we can reuse the Run() method from
@@ -357,25 +396,24 @@ func injectPackage(j interface{}, local, repoName string) ([]string, error) {
 	}
 }
 
-func rebuildRepo(j interface{}, workingDir string, catcher *grip.MultiCatcher, wg *sync.WaitGroup) {
+func rebuildRepo(j interface{}, workingDir string, wg *sync.WaitGroup) {
 	grip.Infoln("rebuilding repo:", workingDir)
 
 	switch j := j.(type) {
 	case *Job:
 		if j.Type().Name == "build-deb-repo" {
 			job := BuildDEBRepoJob{*j}
-			job.rebuildRepo(workingDir, catcher, wg)
+			job.rebuildRepo(workingDir, wg)
 		} else if j.Type().Name == "build-rpm-repo" {
 			job := BuildRPMRepoJob{*j}
-			job.rebuildRepo(workingDir, catcher, wg)
+			job.rebuildRepo(workingDir, wg)
 		} else {
 			e := fmt.Sprintf("builder %s is not supported", j.Type().Name)
 			grip.Error(e)
-			catcher.Add(errors.New(e))
+			j.addError(errors.New(e))
 		}
 	default:
 		e := fmt.Sprintf("cannot build repo for type: %T", j)
-		grip.Error(e)
-		catcher.Add(errors.New(e))
+		grip.ErrorPanic(e)
 	}
 }

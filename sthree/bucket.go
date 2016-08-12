@@ -362,10 +362,11 @@ func (b *Bucket) DeletePrefix(prefix string) error {
 func (b *Bucket) SyncTo(local, prefix string) error {
 	grip.Infof("sync push %s -> %s/%s", local, b.name, prefix)
 
-	catcher := grip.NewCatcher()
 	remote := b.contents(prefix)
 
 	var counter int
+	catcher := grip.NewCatcher()
+
 	catcher.Add(filepath.Walk(local, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			grip.Critical(err)
@@ -389,7 +390,13 @@ func (b *Bucket) SyncTo(local, prefix string) error {
 	}))
 
 	b.queue.Wait()
-	catcher.Add(b.queue.Runner().Error())
+
+	for job := range b.queue.Results() {
+		err := job.Error()
+		if err != nil {
+			catcher.Add(err)
+		}
+	}
 
 	if catcher.HasErrors() {
 		grip.Alertf("problem with sync push operation (%s -> %s/%s) [%d items]",
@@ -419,7 +426,13 @@ func (b *Bucket) SyncFrom(local, prefix string) error {
 	}
 
 	b.queue.Wait()
-	catcher.Add(b.queue.Runner().Error())
+
+	for job := range b.queue.Results() {
+		err := job.Error()
+		if err != nil {
+			catcher.Add(err)
+		}
+	}
 
 	if catcher.HasErrors() {
 		grip.Alertf("problem with sync pull operation (%s/%s -> %s)",

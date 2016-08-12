@@ -148,7 +148,8 @@ func buildRepo(packages, configPath, workingDir, distro, edition, version, arch,
 		}
 		job.WorkSpace = workingDir
 		job.DryRun = dryRun
-		return job.Run()
+		job.Run()
+		return job.Error()
 	} else if repo.Type == repobuilder.DEB {
 		pkgs, err := getPackages(packages, ".deb")
 		if err != nil {
@@ -162,7 +163,8 @@ func buildRepo(packages, configPath, workingDir, distro, edition, version, arch,
 		}
 		job.WorkSpace = workingDir
 		job.DryRun = dryRun
-		return job.Run()
+		job.Run()
+		return job.Error()
 	} else {
 		return fmt.Errorf("%s repositories are not supported", repo.Type)
 	}
