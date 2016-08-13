@@ -17,6 +17,7 @@ import (
 	"github.com/mongodb/amboy/job"
 	"github.com/mongodb/amboy/registry"
 	"github.com/mongodb/curator"
+	"github.com/pkg/errors"
 	"github.com/tychoish/grip"
 )
 
@@ -109,22 +110,22 @@ func gzipAndWriteToFile(fileName string, content []byte) error {
 	var gz bytes.Buffer
 
 	w, err := gzip.NewWriterLevel(&gz, flate.BestCompression)
-
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "compressing file '%s'", fileName)
 	}
+
 	_, err = w.Write(content)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "writing content '%s", fileName)
 	}
 	err = w.Close()
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "closing buffer '%s", fileName)
 	}
 
 	err = ioutil.WriteFile(fileName, gz.Bytes(), 0644)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "writing compressed file '%s'", fileName)
 	}
 
 	grip.Noticeln("wrote zipped packages file to:", fileName)
@@ -145,7 +146,7 @@ func (j *BuildDEBRepoJob) rebuildRepo(workingDir string, wg *sync.WaitGroup) {
 	grip.Infof("running command='%s' path='%s'", strings.Join(cmd.Args, " "), cmd.Dir)
 	out, err := cmd.Output()
 	if err != nil {
-		j.addError(err)
+		j.addError(errors.Wrapf(err, "building 'Packages': [%s]", string(out)))
 		return
 	}
 
@@ -159,9 +160,9 @@ func (j *BuildDEBRepoJob) rebuildRepo(workingDir string, wg *sync.WaitGroup) {
 	grip.Noticeln("wrote packages file to:", pkgsFile)
 
 	// Compress/gzip the packages file
-	err = (gzipAndWriteToFile(pkgsFile+".gz", out))
+	err = gzipAndWriteToFile(pkgsFile+".gz", out)
 	if err != nil {
-		j.addError(err)
+		j.addError(errors.Wrap(err, "compressing the 'Packages' file"))
 		return
 	}
 
@@ -169,14 +170,14 @@ func (j *BuildDEBRepoJob) rebuildRepo(workingDir string, wg *sync.WaitGroup) {
 	// template, and then by
 	releaseTmplSrc, ok := j.Conf.Templates.Deb[j.Distro.Edition]
 	if !ok {
-		j.addError(fmt.Errorf("no 'Release' template defined for %s", j.Distro.Edition))
+		j.addError(errors.Errorf("no 'Release' template defined for %s", j.Distro.Edition))
 		return
 	}
 
 	// initialize the template.
 	tmpl, err := template.New("Releases").Parse(releaseTmplSrc)
 	if err != nil {
-		j.addError(err)
+		j.addError(errors.Wrap(err, "reading Releases template"))
 		return
 	}
 
@@ -191,7 +192,7 @@ func (j *BuildDEBRepoJob) rebuildRepo(workingDir string, wg *sync.WaitGroup) {
 		Architectures: strings.Join(j.Distro.Architectures, " "),
 	})
 	if err != nil {
-		j.addError(err)
+		j.addError(errors.Wrap(err, "rendering Releases template"))
 		return
 	}
 
@@ -204,7 +205,7 @@ func (j *BuildDEBRepoJob) rebuildRepo(workingDir string, wg *sync.WaitGroup) {
 	outString := string(out)
 	grip.Debug(outString)
 	if err != nil {
-		j.addError(err)
+		j.addError(errors.Wrapf(err, "generating Release content for %s", workingDir))
 		return
 	}
 
@@ -222,7 +223,7 @@ func (j *BuildDEBRepoJob) rebuildRepo(workingDir string, wg *sync.WaitGroup) {
 	relFileName := filepath.Join(filepath.Dir(workingDir), "Release")
 	err = ioutil.WriteFile(relFileName, releaseContent, 0644)
 	if err != nil {
-		j.addError(err)
+		j.addError(errors.Wrapf(err, "writing Release file to disk %s", relFileName))
 		return
 	}
 
@@ -233,14 +234,14 @@ func (j *BuildDEBRepoJob) rebuildRepo(workingDir string, wg *sync.WaitGroup) {
 	// offer ways of specifying different signing option.
 	err = j.signFile(relFileName, "gpg", false) // (name, extension, overwrite)
 	if err != nil {
-		j.addError(err)
+		j.addError(errors.Wrapf(err, "signing Release file for %s", workingDir))
 		return
 	}
 
 	// build the index page.
 	err = j.Conf.BuildIndexPageForDirectory(workingDir, j.Distro.Bucket)
 	if err != nil {
-		j.addError(err)
+		j.addError(errors.Wrapf(err, "building index.html pages for %s", workingDir))
 		return
 	}
 }

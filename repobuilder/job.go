@@ -1,7 +1,6 @@
 package repobuilder
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -14,6 +13,7 @@ import (
 	"github.com/mongodb/amboy/dependency"
 	"github.com/mongodb/curator"
 	"github.com/mongodb/curator/sthree"
+	"github.com/pkg/errors"
 	"github.com/tychoish/grip"
 )
 
@@ -296,7 +296,7 @@ func (j *Job) Run() {
 	err := bucket.Open()
 	defer bucket.Close()
 	if err != nil {
-		j.addError(err)
+		j.addError(errors.Wrapf(err, "opening bucket %s", bucket))
 		return
 	}
 
@@ -316,7 +316,7 @@ func (j *Job) Run() {
 
 			err = os.MkdirAll(local, 0755)
 			if err != nil {
-				j.addError(err)
+				j.addError(errors.Wrapf(err, "creating directory %s", local))
 				return
 			}
 
@@ -326,7 +326,7 @@ func (j *Job) Run() {
 				grip.Infof("downloading from %s to %s", remote, local)
 				err = bucket.SyncFrom(local, remote)
 				if err != nil {
-					j.addError(err)
+					j.addError(errors.Wrapf(err, "sync from %s to %s", remote, local))
 					return
 				}
 			}
@@ -339,7 +339,7 @@ func (j *Job) Run() {
 				grip.Info("copying new packages into local staging area")
 				changedRepos, err = j.injectNewPackages(local)
 				if err != nil {
-					j.addError(err)
+					j.addError(errors.Wrap(err, "copying packages into staging repos"))
 					return
 				}
 			}
@@ -352,6 +352,11 @@ func (j *Job) Run() {
 			rWg.Wait()
 
 			if j.hasErrors() {
+				// concern: the underlying structure for hasErrors is shared,
+				// so its possible that this error message will be erroneous,
+				// or duplicated, if one succeeds and one fails. This shouldn't
+				// be a huge issue in practice, particularly since we upload all
+				// repos together.
 				grip.Errorf("encountered error rebuilding %s (%s). Uploading no data",
 					remote, local)
 				return
@@ -361,9 +366,12 @@ func (j *Job) Run() {
 				grip.Noticef("in dry run mode. otherwise would have built %s (%s)",
 					remote, local)
 			} else {
-				// don't need to return early here, only
-				// because this is the last operation.
-				j.addError(bucket.SyncTo(local, remote))
+				err = bucket.SyncTo(local, remote)
+				if err != nil {
+					j.addError(errors.Wrapf(err, "sync %s to %s", local, remote))
+					return
+
+				}
 				grip.Noticef("completed rebuilding repo %s (%s)", remote, local)
 			}
 		}(j.Distro, j.WorkSpace, remote)
