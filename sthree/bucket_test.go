@@ -164,13 +164,13 @@ func (s *BucketSuite) TestContentsAndListProduceIdenticalData() {
 	var count int
 
 	for bucketItem := range s.b.list(prefix) {
-		item, ok := content[bucketItem.Name]
+		item, ok := content[bucketItem.Key]
 
 		if s.True(ok, fmt.Sprintf("item %s should exist in bucket %s",
-			bucketItem.Name, s.bucketName)) {
+			bucketItem.Key, s.bucketName)) {
 
-			s.Equal(bucketItem.Name, item.Name)
-			s.Equal(bucketItem.MD5, item.MD5)
+			s.Equal(bucketItem.Key, item.Key)
+			s.Equal(bucketItem.ETag, item.ETag)
 		}
 
 		count++
@@ -314,7 +314,7 @@ func numFilesInPath(path string, includeDirs bool) (int, error) {
 	numFiles := 0
 	err := filepath.Walk(path, func(p string, info os.FileInfo, err error) error {
 		if err != nil {
-			return nil
+			return err
 		}
 
 		if includeDirs {
@@ -345,6 +345,7 @@ func (s *BucketSuite) TestSyncToUploadsNewFilesWithoutError() {
 	num, err := numFilesInPath(pwd, false)
 	s.NoError(err)
 	s.Len(s.b.contents(remotePrefix), num)
+
 }
 
 func (s *BucketSuite) TestSyncFromDownloadsFiles() {

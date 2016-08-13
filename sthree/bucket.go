@@ -142,17 +142,12 @@ func (b *Bucket) Close() {
 	}
 }
 
-type s3Item struct {
-	Name string
-	MD5  string
-}
-
 // list returns a channel of strings of key names in the bucket. Allows
 // you to specify a prefix key that will limit the results returned in
 // the channel. If you do not want to limit using a prefix, pass an
 // empty string as the sole argument for list().
-func (b *Bucket) list(prefix string) <-chan *s3Item {
-	output := make(chan *s3Item, 100)
+func (b *Bucket) list(prefix string) <-chan s3.Key {
+	output := make(chan s3.Key, 100)
 
 	// if the prefix doesn't have a trailing slash and isn't the
 	// empty string, then we can have weird effects with files that
@@ -172,10 +167,8 @@ func (b *Bucket) list(prefix string) <-chan *s3Item {
 			for _, key := range results.Contents {
 				lastKey = key.Key
 
-				output <- &s3Item{
-					Name: key.Key,
-					MD5:  strings.Trim(key.ETag, "\" "),
-				}
+				output <- key
+
 			}
 			if !results.IsTruncated {
 				break
@@ -189,10 +182,10 @@ func (b *Bucket) list(prefix string) <-chan *s3Item {
 
 // contents wraps and operates as list, but returns a map of names to
 // s3Item objects for random access patterns.
-func (b *Bucket) contents(prefix string) map[string]*s3Item {
-	output := make(map[string]*s3Item)
+func (b *Bucket) contents(prefix string) map[string]s3.Key {
+	output := make(map[string]s3.Key)
 	for file := range b.list(prefix) {
-		output[file.Name] = file
+		output[file.Key] = file
 	}
 
 	return output
@@ -216,7 +209,7 @@ func (b *Bucket) Put(fileName, path string) error {
 		return errors.Wrapf(err, "error reading file '%s' before s3.Put", fileName)
 	}
 
-	grip.Debugf("uploading %s -> (%s) %s", fileName, b.name, path)
+	grip.Debugf("uploading %s -> %s/%s", fileName, b.name, path)
 	return b.bucket.Put(path, contents, mimeType, b.NewFilePermission, s3.Options{})
 }
 
@@ -239,7 +232,7 @@ func getMimeType(fileName string) string {
 // local file at the "fileName", creating enclosing directories as
 // needed.
 func (b *Bucket) Get(path, fileName string) error {
-	grip.Debugf("downloading (%s) %s -> %s", b.name, path, fileName)
+	grip.Debugf("downloading %s/%s -> %s", b.name, path, fileName)
 
 	data, err := b.bucket.Get(path)
 	if err != nil {
@@ -300,7 +293,7 @@ func (b *Bucket) DeleteMany(paths ...string) error {
 		grip.Noticef("removing group, with %s.%s", b.name, key)
 
 		count++
-		toDelete.Objects = append(toDelete.Objects, s3.Object{Key: key.Name})
+		toDelete.Objects = append(toDelete.Objects, s3.Object{Key: key.Key})
 	}
 
 	if len(toDelete.Objects) > 0 {
@@ -337,8 +330,8 @@ func (b *Bucket) DeletePrefix(prefix string) error {
 		if ok {
 			count++
 
-			toDelete.Objects = append(toDelete.Objects, s3.Object{Key: key.Name})
-			grip.Noticef("removing group, with %s.%s", b.name, key.Name)
+			toDelete.Objects = append(toDelete.Objects, s3.Object{Key: key.Key})
+			grip.Noticef("removing group, with %s.%s", b.name, key.Key)
 
 			continue
 		}
@@ -379,7 +372,7 @@ func (b *Bucket) SyncTo(local, prefix string) error {
 
 		remoteFile, ok := remote[path]
 		if !ok {
-			remoteFile = &s3Item{Name: filepath.Join(prefix, path[len(local):])}
+			remoteFile = s3.Key{Key: filepath.Join(prefix, path[len(local):])}
 		}
 
 		job := newSyncToJob(path, remoteFile, b)
@@ -419,7 +412,7 @@ func (b *Bucket) SyncFrom(local, prefix string) error {
 	grip.Infof("sync pull %s/%s -> %s", b.name, prefix, local)
 
 	for remote := range b.list(prefix) {
-		job := newSyncFromJob(filepath.Join(local, remote.Name[len(prefix):]), remote, b)
+		job := newSyncFromJob(filepath.Join(local, remote.Key[len(prefix):]), remote, b)
 
 		// add the job to the queue
 		catcher.Add(b.queue.Put(job))
@@ -433,7 +426,6 @@ func (b *Bucket) SyncFrom(local, prefix string) error {
 			catcher.Add(err)
 		}
 	}
-
 	if catcher.HasErrors() {
 		grip.Alertf("problem with sync pull operation (%s/%s -> %s)",
 			b.name, prefix, local)

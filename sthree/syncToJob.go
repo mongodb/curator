@@ -1,12 +1,12 @@
 package sthree
 
 import (
-	"crypto/md5"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
+	"time"
 
+	"github.com/goamz/goamz/s3"
 	"github.com/mongodb/amboy"
 	"github.com/mongodb/amboy/dependency"
 	"github.com/mongodb/amboy/job"
@@ -25,7 +25,7 @@ import (
 // behavior of the job.
 type syncToJob struct {
 	isComplete bool
-	remoteFile *s3Item
+	remoteFile s3.Key
 	b          *Bucket
 	t          amboy.JobType
 	name       string
@@ -33,9 +33,11 @@ type syncToJob struct {
 	errors     []error
 }
 
-func newSyncToJob(localPath string, remoteFile *s3Item, b *Bucket) *syncToJob {
+const timeFormat = "2006-01-02T15:04:05.000Z07:00"
+
+func newSyncToJob(localPath string, remoteFile s3.Key, b *Bucket) *syncToJob {
 	return &syncToJob{
-		name:       fmt.Sprintf("%s.%d.sync-to", remoteFile.Name, job.GetNumber()),
+		name:       fmt.Sprintf("%s.%d.sync-to", remoteFile.Key, job.GetNumber()),
 		remoteFile: remoteFile,
 		localPath:  localPath,
 		b:          b,
@@ -63,7 +65,7 @@ func (j *syncToJob) markComplete() {
 }
 
 func (j *syncToJob) doPut() error {
-	return j.b.Put(j.localPath, j.remoteFile.Name)
+	return j.b.Put(j.localPath, j.remoteFile.Key)
 }
 
 func (j *syncToJob) addError(err error) {
@@ -89,14 +91,17 @@ func (j *syncToJob) Error() error {
 // Run executes the synchronization job. If local file doesn't exist
 // this operation becomes a noop. Otherwise, will always upload the
 // local file if a remote file exists, and if both the local and
-// remote file exists, compares the hashes between these files and
-// uploads the local file if it differs from the remote file.
+// remote file exists, compares the timestamp and size, and if the
+// local file is newer and of different size, it uploads the current
+// file. A previous implementation attempted to compare hashes, but
+// the s3 API would not reliably return checksums.
 func (j *syncToJob) Run() {
 	defer j.markComplete()
 
 	// if the local file doesn't exist or has disappeared since
 	// the job was created, there's nothing to do, we can return early
-	if _, err := os.Stat(j.localPath); os.IsNotExist(err) {
+	stat, err := os.Stat(j.localPath)
+	if os.IsNotExist(err) {
 		grip.Debugf("local file %s does not exist, so we can't upload it", j.localPath)
 		return
 	}
@@ -116,45 +121,31 @@ func (j *syncToJob) Run() {
 		err = j.doPut()
 		if err != nil {
 			j.addError(errors.Wrapf(err, "problem uploading file %s -> %s",
-				j.localPath, j.remoteFile.Name))
+				j.localPath, j.remoteFile.Key))
 			return
 		}
 	}
 
-	// if s3 doesn't know what the hash of the remote file is or
-	// returns it to us, then we don't need to hash it locally,
-	// because we'll always upload it in that situation.
-	if j.remoteFile.MD5 == "" {
-		grip.Debugf("s3 does not report a hash for %s, uploading file", j.remoteFile.Name)
-		err = j.doPut()
-		if err != nil {
-			j.addError(errors.Wrap(err, "problem downloading file during sync"))
-		}
-		return
-	}
-
-	// if the remote object exists, then we should compare md5
-	// checksums between the local and remote objects and upload
-	// the local file if they differ.
-	data, err := ioutil.ReadFile(j.localPath)
+	objModTime, err := time.Parse(timeFormat, j.remoteFile.LastModified)
 	if err != nil {
-		j.addError(errors.Wrap(err,
-			"problem reading file before hashing for sync operation"))
-		return
-	}
-
-	if fmt.Sprintf("%x", md5.Sum(data)) != j.remoteFile.MD5 {
-		grip.Debugf("hashes aren't the same: [file=%s, local=%x, remote=%s]",
-			j.remoteFile.Name, md5.Sum(data), j.remoteFile.MD5)
+		grip.Warningf("could not identify the modification time for '%s', uploading local copy",
+			j.remoteFile.Key)
 		err = j.doPut()
 		if err != nil {
 			j.addError(errors.Wrapf(err, "problem uploading file '%s' during sync",
-				j.localPath))
-			return
+				j.remoteFile.Key))
 		}
+		return
 	}
 
-	return
+	if stat.ModTime().After(objModTime) && stat.Size() != j.remoteFile.Size {
+		err = j.doPut()
+		if err != nil {
+			j.addError(errors.Wrapf(err, "problem uploading file '%s' during sync",
+				j.remoteFile.Key))
+		}
+		return
+	}
 }
 
 func (j *syncToJob) Dependency() dependency.Manager {

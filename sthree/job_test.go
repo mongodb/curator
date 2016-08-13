@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/goamz/goamz/s3"
 	"github.com/mongodb/amboy"
 	"github.com/stretchr/testify/suite"
 )
@@ -28,8 +29,8 @@ func (s *BucketJobSuite) SetupSuite() {
 }
 
 func (s *BucketJobSuite) SetupTest() {
-	s.toJob = newSyncToJob("local-file-name", &s3Item{Name: "remote-file-name"}, s.bucket)
-	s.fromJob = newSyncFromJob("local-file-name", &s3Item{}, s.bucket)
+	s.toJob = newSyncToJob("local-file-name", s3.Key{Key: "remote-file-name"}, s.bucket)
+	s.fromJob = newSyncFromJob("local-file-name", s3.Key{}, s.bucket)
 	s.jobs = []amboy.Job{s.toJob, s.fromJob}
 }
 
@@ -53,7 +54,7 @@ func (s *BucketJobSuite) TestSyncJobsImplementInterface() {
 func (s *BucketJobSuite) TestSyncJobCorrectlyStoresFileNames() {
 	s.Equal("local-file-name", s.toJob.localPath)
 	s.Equal("local-file-name", s.fromJob.localPath)
-	s.Equal("remote-file-name", s.toJob.remoteFile.Name)
+	s.Equal("remote-file-name", s.toJob.remoteFile.Key)
 }
 
 func (s *BucketJobSuite) TestSyncJobsHaveExpectedJobTypes() {

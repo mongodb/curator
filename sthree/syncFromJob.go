@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/goamz/goamz/s3"
 	"github.com/mongodb/amboy"
 	"github.com/mongodb/amboy/dependency"
 	"github.com/mongodb/amboy/job"
@@ -25,7 +26,7 @@ import (
 // behavior of the job.
 type syncFromJob struct {
 	isComplete bool
-	remoteFile *s3Item
+	remoteFile s3.Key
 	b          *Bucket
 	t          amboy.JobType
 	localPath  string
@@ -33,7 +34,7 @@ type syncFromJob struct {
 	errors     []error
 }
 
-func newSyncFromJob(localPath string, remoteFile *s3Item, b *Bucket) *syncFromJob {
+func newSyncFromJob(localPath string, remoteFile s3.Key, b *Bucket) *syncFromJob {
 	return &syncFromJob{
 		name:       fmt.Sprintf("%s.%d.sync-from", localPath, job.GetNumber()),
 		remoteFile: remoteFile,
@@ -63,7 +64,7 @@ func (j *syncFromJob) markComplete() {
 }
 
 func (j *syncFromJob) doGet() error {
-	return j.b.Get(j.remoteFile.Name, j.localPath)
+	return j.b.Get(j.remoteFile.Key, j.localPath)
 }
 
 func (j *syncFromJob) addError(err error) {
@@ -94,20 +95,21 @@ func (j *syncFromJob) Run() {
 	defer j.markComplete()
 
 	// if the remote file doesn't exist, we should return early here.
-	if j.remoteFile == nil || j.remoteFile.Name == "" {
+	if j.remoteFile.Key == "" {
 		return
 	}
 
 	// if the remote file has disappeared, we should return early here.
-	exists, err := j.b.bucket.Exists(j.remoteFile.Name)
+	exists, err := j.b.bucket.Exists(j.remoteFile.Key)
 	if err != nil {
 		j.addError(errors.Wrapf(err, "problem checking if the file '%s' exists",
-			j.remoteFile.Name))
+			j.remoteFile.Key))
 		return
 	}
 	if !exists {
 		// if we get here the file doesn't exist so we shuold try to copy it.
-		grip.Warningf("file %s disappeared during sync pull operation", j.remoteFile.Name)
+		grip.Warningf("file %s disappeared during sync pull operation",
+			j.remoteFile.Key)
 		return
 	}
 
@@ -130,11 +132,14 @@ func (j *syncFromJob) Run() {
 		j.addError(errors.Wrap(err, "problem reading file before hashing for sync operation"))
 	}
 
-	if fmt.Sprintf("%x", md5.Sum(data)) != j.remoteFile.MD5 {
-		grip.Debugf("hashes aren't the same: [file=%s, local=%x, remote=%s]", j.remoteFile.Name, md5.Sum(data), j.remoteFile.MD5)
+	remoteChecksum := strings.Trim(j.remoteFile.ETag, "\" ")
+	if fmt.Sprintf("%x", md5.Sum(data)) != remoteChecksum {
+		grip.Debugf("hashes aren't the same: [file=%s, local=%x, remote=%s]",
+			j.remoteFile.Key, md5.Sum(data), remoteChecksum)
 		err := j.doGet()
 		if err != nil {
-			j.addError(errors.Wrapf(err, "problem fetching file '%s' during sync", j.remoteFile.Name))
+			j.addError(errors.Wrapf(err, "problem fetching file '%s' during sync",
+				j.remoteFile.Key))
 			return
 		}
 	}

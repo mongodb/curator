@@ -3,9 +3,9 @@ package main
 import (
 	"os"
 
-	"github.com/urfave/cli"
 	"github.com/mongodb/curator/operations"
 	"github.com/tychoish/grip"
+	"github.com/urfave/cli"
 )
 
 func main() {
