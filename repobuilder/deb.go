@@ -23,12 +23,12 @@ import (
 const releaseMetaDataDateFormat = "Wed, 15 Jun 2006 00:02:52 UTC"
 
 type BuildDEBRepoJob struct {
-	Job
+	*Job
 }
 
 func init() {
 	registry.AddJobType("build-deb-repo", func() amboy.Job {
-		return &BuildDEBRepoJob{*buildRepoJob()}
+		return &BuildDEBRepoJob{buildRepoJob()}
 	})
 }
 
@@ -43,7 +43,7 @@ func init() {
 
 func NewBuildDEBRepo(conf *RepositoryConfig, distro *RepositoryDefinition, version, arch, profile string, pkgs ...string) (*BuildDEBRepoJob, error) {
 	var err error
-	r := &BuildDEBRepoJob{Job: *buildRepoJob()}
+	r := &BuildDEBRepoJob{Job: buildRepoJob()}
 
 	r.release, err = curator.NewMongoDBVersion(version)
 	if err != nil {

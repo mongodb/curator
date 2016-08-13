@@ -383,10 +383,10 @@ func injectPackage(j interface{}, local, repoName string) ([]string, error) {
 	switch j := j.(type) {
 	case *Job:
 		if j.Type().Name == "build-deb-repo" {
-			job := BuildDEBRepoJob{*j}
+			job := BuildDEBRepoJob{j}
 			return job.injectPackage(local, repoName)
 		} else if j.Type().Name == "build-rpm-repo" {
-			job := BuildRPMRepoJob{*j}
+			job := BuildRPMRepoJob{j}
 			return job.injectPackage(local, repoName)
 		} else {
 			return []string{}, fmt.Errorf("builder %s is not supported", j.Type().Name)
@@ -402,10 +402,10 @@ func rebuildRepo(j interface{}, workingDir string, wg *sync.WaitGroup) {
 	switch j := j.(type) {
 	case *Job:
 		if j.Type().Name == "build-deb-repo" {
-			job := BuildDEBRepoJob{*j}
+			job := BuildDEBRepoJob{j}
 			job.rebuildRepo(workingDir, wg)
 		} else if j.Type().Name == "build-rpm-repo" {
-			job := BuildRPMRepoJob{*j}
+			job := BuildRPMRepoJob{j}
 			job.rebuildRepo(workingDir, wg)
 		} else {
 			e := fmt.Sprintf("builder %s is not supported", j.Type().Name)
