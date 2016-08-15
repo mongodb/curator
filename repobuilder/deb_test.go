@@ -24,7 +24,7 @@ func (s *DebRepoSuite) SetupSuite() {
 }
 
 func (s *DebRepoSuite) SetupTest() {
-	s.j = &BuildDEBRepoJob{*buildRepoJob()}
+	s.j = &BuildDEBRepoJob{buildRepoJob()}
 	s.require.NotNil(s.j)
 }
 
