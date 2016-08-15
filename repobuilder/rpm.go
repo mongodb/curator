@@ -57,11 +57,11 @@ func NewBuildRPMRepo(conf *RepositoryConfig, distro *RepositoryDefinition, versi
 	return r, nil
 }
 
-func (j *BuildRPMRepoJob) injectPackage(local, repoName string) ([]string, error) {
+func (j *BuildRPMRepoJob) injectPackage(local, repoName string) (string, error) {
 	repoPath := filepath.Join(local, repoName, j.Arch)
 	err := j.linkPackages(filepath.Join(repoPath, "RPMS"))
 
-	return []string{repoPath}, errors.Wrapf(err, "linking packages for %s", repoPath)
+	return repoPath, errors.Wrapf(err, "linking packages for %s", repoPath)
 }
 
 func (j *BuildRPMRepoJob) rebuildRepo(workingDir string, wg *sync.WaitGroup) {

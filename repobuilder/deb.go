@@ -78,32 +78,41 @@ func NewBuildDEBRepo(conf *RepositoryConfig, distro *RepositoryDefinition, versi
 	return r, nil
 }
 
-func (j *BuildDEBRepoJob) createArchDirs(basePath string) ([]string, error) {
+func (j *BuildDEBRepoJob) createArchDirs(basePath string) error {
 	catcher := grip.NewCatcher()
-	var changedPaths []string
 
 	for _, arch := range j.Distro.Architectures {
 		path := filepath.Join(basePath, "binary-"+arch)
 		if _, err := os.Stat(path); os.IsNotExist(err) {
-			catcher.Add(os.MkdirAll(path, 0755))
-			changedPaths = append(changedPaths, path)
+			err = os.MkdirAll(path, 0755)
+			if err != nil {
+				catcher.Add(err)
+				continue
+			}
+
+			// touch the Packages file
+			err = ioutil.WriteFile(filepath.Join(path, "Packages"), []byte(""), 0644)
+			if err != nil {
+				catcher.Add(err)
+				continue
+			}
+
+			catcher.Add(gzipAndWriteToFile(filepath.Join(path, "Packages.gz"), []byte("")))
 		}
 	}
 
-	return changedPaths, catcher.Resolve()
+	return catcher.Resolve()
 }
 
-func (j *BuildDEBRepoJob) injectPackage(local, repoName string) ([]string, error) {
+func (j *BuildDEBRepoJob) injectPackage(local, repoName string) (string, error) {
 	catcher := grip.NewCatcher()
 
 	repoPath := filepath.Join(local, repoName, j.Distro.Component)
-	changedPaths, err := j.createArchDirs(repoPath)
+	err := j.createArchDirs(repoPath)
 	catcher.Add(j.linkPackages(filepath.Join(repoPath, "binary-"+j.Arch)))
 	catcher.Add(err)
 
-	changedPaths = append(changedPaths, repoPath)
-
-	return changedPaths, catcher.Resolve()
+	return repoPath, catcher.Resolve()
 }
 
 func gzipAndWriteToFile(fileName string, content []byte) error {

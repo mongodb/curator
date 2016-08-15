@@ -19,7 +19,7 @@ import (
 
 type jobImpl interface {
 	rebuildRepo(string, *sync.WaitGroup)
-	injectPackage(string, string) ([]string, error)
+	injectPackage(string, string) (string, error)
 }
 
 type Job struct {
@@ -176,7 +176,7 @@ func (j *Job) injectNewPackages(local string) ([]string, error) {
 
 		changed, err := injectPackage(j, local, "testing")
 		catcher.Add(err)
-		changedRepos = append(changedRepos, changed...)
+		changedRepos = append(changedRepos, changed)
 	} else {
 		// all releases (not RCs, captured above,) either dev
 		// or stable go somewhere else...
@@ -184,7 +184,7 @@ func (j *Job) injectNewPackages(local string) ([]string, error) {
 		// there are repos for each series:
 		changed, err := injectPackage(j, local, j.release.Series())
 		catcher.Add(err)
-		changedRepos = append(changedRepos, changed...)
+		changedRepos = append(changedRepos, changed)
 
 		// all stable releases go into a special "stable"
 		// series so people can upgrade from one stable branch
@@ -193,14 +193,14 @@ func (j *Job) injectNewPackages(local string) ([]string, error) {
 		if j.release.IsStableSeries() {
 			changed, err = injectPackage(j, local, "stable")
 			catcher.Add(err)
-			changedRepos = append(changedRepos, changed...)
+			changedRepos = append(changedRepos, changed)
 		}
 
 		// all development releases go into a special unstable repo.
 		if j.release.IsDevelopmentSeries() {
 			changed, err = injectPackage(j, local, "unstable")
 			catcher.Add(err)
-			changedRepos = append(changedRepos, changed...)
+			changedRepos = append(changedRepos, changed)
 		}
 	}
 
@@ -387,7 +387,7 @@ func (j *Job) Run() {
 
 // shim methods so that we can reuse the Run() method from
 // repobuilder.Job for all types
-func injectPackage(j interface{}, local, repoName string) ([]string, error) {
+func injectPackage(j interface{}, local, repoName string) (string, error) {
 	switch j := j.(type) {
 	case *Job:
 		if j.Type().Name == "build-deb-repo" {
@@ -397,10 +397,10 @@ func injectPackage(j interface{}, local, repoName string) ([]string, error) {
 			job := BuildRPMRepoJob{j}
 			return job.injectPackage(local, repoName)
 		} else {
-			return []string{}, fmt.Errorf("builder %s is not supported", j.Type().Name)
+			return "", fmt.Errorf("builder %s is not supported", j.Type().Name)
 		}
 	default:
-		return []string{}, fmt.Errorf("type %T is not supported", j)
+		return "", fmt.Errorf("type %T is not supported", j)
 	}
 }
 
