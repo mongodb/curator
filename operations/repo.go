@@ -28,7 +28,8 @@ func Repo() cli.Command {
 				c.String("version"),
 				c.String("arch"),
 				c.String("profile"),
-				c.Bool("dry-run"))
+				c.Bool("dry-run"),
+				c.Bool("rebuild"))
 		},
 	}
 }
@@ -86,6 +87,10 @@ func repoFlags() []cli.Flag {
 			Name:  "dry-run",
 			Usage: "make task operate in a dry-run mode",
 		},
+		cli.BoolFlag{
+			Name:  "rebuild",
+			Usage: "rebuild a repository without adding any new packages",
+		},
 	}
 }
 
@@ -115,7 +120,7 @@ func getPackages(rootPath, suffix string) ([]string, error) {
 	return output, err
 }
 
-func buildRepo(packages, configPath, workingDir, distro, edition, version, arch, profile string, dryRun bool) error {
+func buildRepo(packages, configPath, workingDir, distro, edition, version, arch, profile string, dryRun, rebuild bool) error {
 	// validate inputs
 	if edition == "community" {
 		edition = "org"
@@ -134,12 +139,16 @@ func buildRepo(packages, configPath, workingDir, distro, edition, version, arch,
 		return errors.New(e)
 	}
 
+	var pkgs []string
+
 	// build the packages:
 	if repo.Type == repobuilder.RPM {
-		pkgs, err := getPackages(packages, ".rpm")
-		if err != nil {
-			grip.CatchError(err)
-			return err
+		if !rebuild {
+			pkgs, err = getPackages(packages, ".rpm")
+			if err != nil {
+				grip.CatchError(err)
+				return err
+			}
 		}
 
 		job, err := repobuilder.NewBuildRPMRepo(conf, repo, version, arch, profile, pkgs...)
@@ -151,10 +160,12 @@ func buildRepo(packages, configPath, workingDir, distro, edition, version, arch,
 		job.Run()
 		return job.Error()
 	} else if repo.Type == repobuilder.DEB {
-		pkgs, err := getPackages(packages, ".deb")
-		if err != nil {
-			grip.CatchError(err)
-			return err
+		if !rebuild {
+			pkgs, err = getPackages(packages, ".deb")
+			if err != nil {
+				grip.CatchError(err)
+				return err
+			}
 		}
 
 		job, err := repobuilder.NewBuildDEBRepo(conf, repo, version, arch, profile, pkgs...)
@@ -165,7 +176,7 @@ func buildRepo(packages, configPath, workingDir, distro, edition, version, arch,
 		job.DryRun = dryRun
 		job.Run()
 		return job.Error()
-	} else {
-		return fmt.Errorf("%s repositories are not supported", repo.Type)
 	}
+
+	return fmt.Errorf("%s repositories are not supported", repo.Type)
 }

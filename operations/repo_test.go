@@ -14,15 +14,16 @@ func (s *CommandsSuite) TestRepoFlags() {
 	for _, flag := range flags {
 		names[flag.GetName()] = true
 
-		if flag.GetName() == "dry-run" {
+		name := flag.GetName()
+		if name == "dry-run" || name == "rebuild" {
 			s.IsType(cli.BoolFlag{}, flag)
 		} else {
 			s.IsType(cli.StringFlag{}, flag)
 		}
 	}
 
-	s.Len(names, 9)
-	s.Len(flags, 9)
+	s.Len(names, 10)
+	s.Len(flags, 10)
 	s.True(names["config"])
 	s.True(names["distro"])
 	s.True(names["version"])
@@ -31,6 +32,22 @@ func (s *CommandsSuite) TestRepoFlags() {
 	s.True(names["packages"])
 	s.True(names["profile"])
 	s.True(names["dry-run"])
+}
+
+func (s *CommandsSuite) TestRebuildOperationOnProcess() {
+	err := buildRepo(
+		"./", // packages
+		"../repobuilder/config_test.yaml", // repo config path
+		"./",         // workingdir
+		"rhel7",      // distro
+		"enterprise", // edition
+		"2.8.0",      // mongodbe version
+		"x86_64",     // arch
+		"default",    // aws profile
+		true,         // dryrun
+		true)         // rebuild
+
+	s.NoError(err)
 }
 
 func (s *CommandsSuite) TestDryRunOperationOnProcess() {
@@ -43,7 +60,8 @@ func (s *CommandsSuite) TestDryRunOperationOnProcess() {
 		"2.8.0",      // mongodbe version
 		"x86_64",     // arch
 		"default",    // aws profile
-		true)         // dryrun
+		true,         // dryrun
+		false)        // rebuild
 
 	s.Equal(err.Error(), "no packages found in path './'")
 }
