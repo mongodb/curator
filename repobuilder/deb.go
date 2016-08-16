@@ -65,6 +65,8 @@ func NewBuildDEBRepo(conf *RepositoryConfig, distro *RepositoryDefinition, versi
 
 	if arch == "x86_64" {
 		r.Arch = "amd64"
+	} else if arch == "ppc64le" {
+		r.Arch = "ppc64el"
 	} else {
 		r.Arch = arch
 	}
