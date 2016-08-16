@@ -74,6 +74,5 @@ func (c *MultiCatcher) Resolve() (err error) {
 		err = errors.New(c.String())
 	}
 
-	c = NewCatcher()
 	return err
 }
