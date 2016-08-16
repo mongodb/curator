@@ -237,12 +237,11 @@ func (b *Bucket) Put(fileName, path string) error {
 
 		catcher.Add(errors.Wrapf(err, "error s3.PUT for %s/%s on attempt %d", path, b.name, i))
 
-		if i >= b.numRetries {
+		if i <= b.numRetries {
 			grip.Warningln(err, "retrying...")
 			time.Sleep(sleepBetweenRetriesLength)
+			grip.Debugf("retrying s3.GET %d of %d, for %s", i, b.numRetries, path)
 		}
-
-		grip.Debugf("retrying s3.GET %d of %d, for %s", i, b.numRetries, path)
 	}
 
 	return errors.Errorf("could not upload %s/%s in %d attempts. Errors: %s",
@@ -285,12 +284,11 @@ func (b *Bucket) Get(path, fileName string) error {
 
 		catcher.Add(errors.Wrap(err, "aws error from s3.Get"))
 
-		if i >= b.numRetries {
+		if i <= b.numRetries {
 			grip.Warningln(err, "retrying...")
 			time.Sleep(sleepBetweenRetriesLength)
+			grip.Debugf("retrying s3.GET %d of %d, for %s", i, b.numRetries, path)
 		}
-
-		grip.Debugf("retrying s3.GET %d of %d, for %s", i, b.numRetries, path)
 	}
 
 	// return early if we encountered an error attempting to build
