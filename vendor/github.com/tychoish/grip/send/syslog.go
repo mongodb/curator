@@ -15,11 +15,13 @@ import (
 )
 
 type syslogger struct {
-	name     string
-	logger   *syslog.Writer
-	fallback *log.Logger
-	level    LevelInfo
-	sync.RWMutex
+	name           string
+	logger         *syslog.Writer
+	defaultLevel   level.Priority
+	thresholdLevel level.Priority
+	fallback       *log.Logger
+
+	*sync.RWMutex
 }
 
 // NewSyslogLogger creates a new Sender object taht writes all
@@ -31,7 +33,8 @@ type syslogger struct {
 // output.
 func NewSyslogLogger(name, network, raddr string, thresholdLevel, defaultLevel level.Priority) (Sender, error) {
 	s := &syslogger{
-		name: name,
+		name:    name,
+		RWMutex: &sync.RWMutex{},
 	}
 
 	err := s.SetDefaultLevel(defaultLevel)
@@ -73,7 +76,7 @@ func (s *syslogger) createFallback() {
 }
 
 func (s *syslogger) setUpLocalSyslogConnection() error {
-	w, err := syslog.New(syslog.Priority(s.level.defaultLevel), s.name)
+	w, err := syslog.New(syslog.Priority(s.defaultLevel), s.name)
 	s.logger = w
 	return err
 }
@@ -87,7 +90,7 @@ func (s *syslogger) SetName(name string) {
 }
 
 func (s *syslogger) Send(p level.Priority, m message.Composer) {
-	if !GetMessageInfo(s.level, p, m).ShouldLog() {
+	if !ShouldLogMessage(s, p, m) {
 		return
 	}
 
@@ -128,7 +131,7 @@ func (s *syslogger) SetDefaultLevel(p level.Priority) error {
 	defer s.Unlock()
 
 	if level.IsValidPriority(p) {
-		s.level.defaultLevel = p
+		s.defaultLevel = p
 		return nil
 	}
 
@@ -140,7 +143,7 @@ func (s *syslogger) SetThresholdLevel(p level.Priority) error {
 	defer s.Unlock()
 
 	if level.IsValidPriority(p) {
-		s.level.thresholdLevel = p
+		s.thresholdLevel = p
 		return nil
 	}
 
@@ -151,14 +154,14 @@ func (s *syslogger) DefaultLevel() level.Priority {
 	s.RLock()
 	defer s.RUnlock()
 
-	return s.level.defaultLevel
+	return s.defaultLevel
 }
 
 func (s *syslogger) ThresholdLevel() level.Priority {
 	s.RLock()
 	defer s.RUnlock()
 
-	return s.level.thresholdLevel
+	return s.thresholdLevel
 }
 
 func (s *syslogger) AddOption(_, _ string) {

@@ -12,8 +12,10 @@ import (
 )
 
 type fileLogger struct {
-	name  string
-	level LevelInfo
+	name string
+
+	defaultLevel   level.Priority
+	thresholdLevel level.Priority
 
 	options  map[string]string
 	template string
@@ -61,7 +63,7 @@ func (f *fileLogger) Close() {
 }
 
 func (f *fileLogger) Send(p level.Priority, m message.Composer) {
-	if !GetMessageInfo(f.level, p, m).ShouldLog() {
+	if !ShouldLogMessage(f, p, m) {
 		return
 	}
 
@@ -88,14 +90,14 @@ func (f *fileLogger) DefaultLevel() level.Priority {
 	f.RLock()
 	defer f.RUnlock()
 
-	return f.level.defaultLevel
+	return f.defaultLevel
 }
 
 func (f *fileLogger) ThresholdLevel() level.Priority {
 	f.RLock()
 	defer f.RUnlock()
 
-	return f.level.thresholdLevel
+	return f.thresholdLevel
 }
 
 func (f *fileLogger) SetDefaultLevel(p level.Priority) error {
@@ -103,7 +105,7 @@ func (f *fileLogger) SetDefaultLevel(p level.Priority) error {
 	defer f.Unlock()
 
 	if level.IsValidPriority(p) {
-		f.level.defaultLevel = p
+		f.defaultLevel = p
 		return nil
 	}
 
@@ -115,7 +117,7 @@ func (f *fileLogger) SetThresholdLevel(p level.Priority) error {
 	defer f.Unlock()
 
 	if level.IsValidPriority(p) {
-		f.level.thresholdLevel = p
+		f.thresholdLevel = p
 		return nil
 	}
 

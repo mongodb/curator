@@ -14,12 +14,13 @@ import (
 // under-priority and unloggable messages. Used  for testing
 // purposes.
 type InternalSender struct {
-	name    string
-	options map[string]string
-	level   LevelInfo
-	output  chan *InternalMessage
+	name           string
+	options        map[string]string
+	defaultLevel   level.Priority
+	thresholdLevel level.Priority
+	output         chan *InternalMessage
 
-	sync.RWMutex
+	*sync.RWMutex
 }
 
 // InternalMessage provides a complete representation of all
@@ -40,6 +41,7 @@ func NewInternalLogger(thresholdLevel, defaultLevel level.Priority) (*InternalSe
 	l := &InternalSender{
 		output:  make(chan *InternalMessage, 100),
 		options: make(map[string]string),
+		RWMutex: &sync.RWMutex{},
 	}
 
 	err := l.SetDefaultLevel(defaultLevel)
@@ -60,7 +62,7 @@ func (s *InternalSender) Send(p level.Priority, m message.Composer) {
 		Message:  m,
 		Priority: p,
 		Rendered: m.Resolve(),
-		Logged:   GetMessageInfo(s.level, p, m).ShouldLog(),
+		Logged:   ShouldLogMessage(s, p, m),
 	}
 
 	s.output <- o
@@ -78,7 +80,7 @@ func (s *InternalSender) ThresholdLevel() level.Priority {
 	s.RLock()
 	defer s.RUnlock()
 
-	return s.level.thresholdLevel
+	return s.thresholdLevel
 }
 
 func (s *InternalSender) SetThresholdLevel(p level.Priority) error {
@@ -86,7 +88,7 @@ func (s *InternalSender) SetThresholdLevel(p level.Priority) error {
 	defer s.Unlock()
 
 	if level.IsValidPriority(p) {
-		s.level.thresholdLevel = p
+		s.thresholdLevel = p
 		return nil
 	}
 	return fmt.Errorf("%s (%d) is not a valid priority value (0-6)", p, int(p))
@@ -96,7 +98,7 @@ func (s *InternalSender) DefaultLevel() level.Priority {
 	s.RLock()
 	defer s.RUnlock()
 
-	return s.level.defaultLevel
+	return s.defaultLevel
 }
 
 func (s *InternalSender) SetDefaultLevel(p level.Priority) error {
@@ -104,7 +106,7 @@ func (s *InternalSender) SetDefaultLevel(p level.Priority) error {
 	defer s.Unlock()
 
 	if level.IsValidPriority(p) {
-		s.level.defaultLevel = p
+		s.defaultLevel = p
 		return nil
 	}
 	return fmt.Errorf("%s (%d) is not a valid priority value (0-6)", p, int(p))
