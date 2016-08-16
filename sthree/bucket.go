@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/goamz/goamz/aws"
 	"github.com/goamz/goamz/s3"
@@ -28,6 +29,8 @@ func init() {
 	grip.CatchError(mime.AddExtensionType(".yaml", "text/x-yaml"))
 	grip.CatchError(mime.AddExtensionType(".yml", "text/x-yaml"))
 }
+
+const sleepBetweenRetriesLength = 500 * time.Millisecond
 
 // AWSConnectionConfiguration defines configuration, including
 // authentication credentials and AWS region, used when creating new
@@ -55,6 +58,7 @@ type Bucket struct {
 	registry          *bucketRegistry
 	name              string
 	numJobs           int
+	numRetries        int
 	queue             amboy.Queue
 }
 
@@ -67,6 +71,7 @@ func (b *Bucket) NewBucket(name string) *Bucket {
 		NewFilePermission: b.NewFilePermission,
 		credentials:       b.credentials,
 		numJobs:           b.numJobs,
+		numRetries:        20,
 	}
 
 	b.registry.registerBucket(new)
@@ -99,10 +104,21 @@ func (b *Bucket) SetCredentials(c AWSConnectionConfiguration) {
 // Bucket is open and has a running queue.
 func (b *Bucket) SetNumJobs(n int) error {
 	if b.open {
-		return fmt.Errorf("numJobs=%d, cannot change for a running queue", b.numJobs)
+		return errors.Errorf("numJobs=%d, cannot change for a running queue", b.numJobs)
 	}
 
 	b.numJobs = n
+	return nil
+}
+
+// SetNumRetries allows callers to change the number of retries put
+// and get operations will take in the cse of an error.
+func (b *Bucket) SetNumRetries(n int) error {
+	if n < 0 {
+		return errors.Errorf("numRetries=%d, must be larger than 0", n)
+	}
+
+	b.numRetries = n
 	return nil
 }
 
@@ -127,7 +143,7 @@ func (b *Bucket) Open() error {
 
 	b.queue = queue.NewLocalUnordered(b.numJobs)
 
-	return b.queue.Start()
+	return errors.Wrap(b.queue.Start(), "starting worker queue for sync jobs")
 }
 
 // Close waits for all pending jobs to return and then releases all
@@ -199,7 +215,7 @@ func (b *Bucket) contents(prefix string) map[string]s3.Key {
 // underlying Put operation returns an error.
 func (b *Bucket) Put(fileName, path string) error {
 	if _, err := os.Stat(fileName); os.IsNotExist(err) {
-		return fmt.Errorf("file '%s' does not exist", fileName)
+		return errors.Errorf("file '%s' does not exist", fileName)
 	}
 
 	mimeType := getMimeType(fileName)
@@ -209,8 +225,28 @@ func (b *Bucket) Put(fileName, path string) error {
 		return errors.Wrapf(err, "error reading file '%s' before s3.Put", fileName)
 	}
 
-	grip.Debugf("uploading %s -> %s/%s", fileName, b.name, path)
-	return b.bucket.Put(path, contents, mimeType, b.NewFilePermission, s3.Options{})
+	// do put in a retry loop:
+	catcher := grip.NewCatcher()
+
+	for i := 1; i <= b.numRetries; i++ {
+		err = b.bucket.Put(path, contents, mimeType, b.NewFilePermission, s3.Options{})
+		if err == nil {
+			grip.Debugf("uploaded  %s -> %s/%s", fileName, b.name, path)
+			return nil
+		}
+
+		catcher.Add(errors.Wrapf(err, "error s3.PUT for %s/%s on attempt %d", path, b.name, i))
+
+		if i >= b.numRetries {
+			grip.Warningln(err, "retrying...")
+			time.Sleep(sleepBetweenRetriesLength)
+		}
+
+		grip.Debugf("retrying s3.GET %d of %d, for %s", i, b.numRetries, path)
+	}
+
+	return errors.Errorf("could not upload %s/%s in %d attempts. Errors: %s",
+		b.name, path, b.numRetries, catcher.Resolve())
 }
 
 // getMimeType takes a file name, attempts to determine the extension
@@ -232,15 +268,39 @@ func getMimeType(fileName string) string {
 // local file at the "fileName", creating enclosing directories as
 // needed.
 func (b *Bucket) Get(path, fileName string) error {
-	grip.Debugf("downloading %s/%s -> %s", b.name, path, fileName)
+	// do put in a retry loop:
+	catcher := grip.NewCatcher()
 
-	data, err := b.bucket.Get(path)
-	if err != nil {
-		return errors.Wrap(err, "aws error from s3.Get")
+	var data []byte
+	var err error
+
+	for i := 1; i <= b.numRetries; i++ {
+		data, err = b.bucket.Get(path)
+
+		if err == nil {
+			grip.Debugf("downloaded %s/%s -> %s", b.name, path, fileName)
+			catcher = grip.NewCatcher() // reset the error handler in the case of success
+			break
+		}
+
+		catcher.Add(errors.Wrap(err, "aws error from s3.Get"))
+
+		if i >= b.numRetries {
+			grip.Warningln(err, "retrying...")
+			time.Sleep(sleepBetweenRetriesLength)
+		}
+
+		grip.Debugf("retrying s3.GET %d of %d, for %s", i, b.numRetries, path)
+	}
+
+	// return early if we encountered an error attempting to build
+	if catcher.HasErrors() {
+		return errors.Errorf("could not download %s/%s in %d attempts. Errors: %s",
+			b.name, path, b.numRetries, catcher.Resolve())
 	}
 
 	dirName := filepath.Dir(fileName)
-	if _, err := os.Stat(dirName); os.IsNotExist(err) {
+	if _, err = os.Stat(dirName); os.IsNotExist(err) {
 		err = os.MkdirAll(dirName, 0755)
 		if err != nil {
 			return errors.Wrap(err, "creating directory for s3.Get operations")
@@ -248,13 +308,15 @@ func (b *Bucket) Get(path, fileName string) error {
 		grip.Debugf("created directory '%s' for object %s", dirName, fileName)
 	}
 
-	return ioutil.WriteFile(fileName, data, 0644)
+	return errors.Wrapf(ioutil.WriteFile(fileName, data, 0644),
+		"writing file %s during s3 get", fileName)
 }
 
 // Delete removes a single object from an S3 bucket.
 func (b *Bucket) Delete(path string) error {
 	grip.Noticef("removing %s.%s", b.name, path)
-	return b.bucket.Del(path)
+
+	return errors.Wrapf(b.bucket.Del(path), "deleting %s from %s", path, b.name)
 }
 
 // DeleteMany takes a variable number of strings, and sends a single
@@ -264,7 +326,7 @@ func (b *Bucket) DeleteMany(paths ...string) error {
 		// getting the bucket contents is a comparatively
 		// expensive operation so makes sense to avoid it in
 		// this case.
-		return b.Delete(paths[0])
+		return errors.Wrap(b.Delete(paths[0]), "single delete operation in multi-delete call")
 	}
 
 	catcher := grip.NewCatcher()
@@ -283,7 +345,9 @@ func (b *Bucket) DeleteMany(paths ...string) error {
 		// should batch accordingly too.
 		if count == 1000 {
 			grip.Debugf("sending a batch of delete operations to %s", b.name)
-			catcher.Add(b.bucket.DelMulti(toDelete))
+			catcher.Add(errors.Wrapf(b.bucket.DelMulti(toDelete),
+				"intermediate delete from %s, %d items encountered error",
+				b.name, count))
 
 			// reset the counters
 			toDelete = s3.Delete{}
@@ -298,7 +362,9 @@ func (b *Bucket) DeleteMany(paths ...string) error {
 
 	if len(toDelete.Objects) > 0 {
 		grip.Debugf("sending last batch of delete operations to %s", b.name)
-		catcher.Add(b.bucket.DelMulti(toDelete))
+		catcher.Add(errors.Wrapf(b.bucket.DelMulti(toDelete),
+			"delete from %s, %d items encountered error",
+			b.name, len(toDelete.Objects)))
 	}
 
 	return catcher.Resolve()
@@ -318,7 +384,9 @@ func (b *Bucket) DeletePrefix(prefix string) error {
 		// should batch accordingly too.
 		if count == 1000 {
 			grip.Debugf("sending a batch of delete operations to %s", b.name)
-			catcher.Add(b.bucket.DelMulti(toDelete))
+			catcher.Add(errors.Wrapf(b.bucket.DelMulti(toDelete),
+				"intermediate delete from %s, %d items encountered error",
+				b.name, count))
 
 			// reset the counters
 			toDelete = s3.Delete{}
@@ -341,7 +409,9 @@ func (b *Bucket) DeletePrefix(prefix string) error {
 
 	if len(toDelete.Objects) > 0 {
 		grip.Debugf("sending last batch of delete operations to %s", b.name)
-		catcher.Add(b.bucket.DelMulti(toDelete))
+		catcher.Add(errors.Wrapf(b.bucket.DelMulti(toDelete),
+			"delete from %s, %d items encountered error",
+			b.name, len(toDelete.Objects)))
 	}
 
 	return catcher.Resolve()

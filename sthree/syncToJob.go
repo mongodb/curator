@@ -65,7 +65,13 @@ func (j *syncToJob) markComplete() {
 }
 
 func (j *syncToJob) doPut() error {
-	return j.b.Put(j.localPath, j.remoteFile.Key)
+	err := j.b.Put(j.localPath, j.remoteFile.Key)
+
+	if err != nil {
+		return errors.Wrap(err, "s3 error with put during sync")
+	}
+
+	return nil
 }
 
 func (j *syncToJob) addError(err error) {
