@@ -210,8 +210,8 @@ func (b *Bucket) list(prefix string) <-chan s3.Key {
 				lastKey = key.Key
 
 				output <- key
-
 			}
+
 			if !results.IsTruncated {
 				break
 			}
@@ -226,11 +226,35 @@ func (b *Bucket) list(prefix string) <-chan s3.Key {
 // s3Item objects for random access patterns.
 func (b *Bucket) contents(prefix string) map[string]s3.Key {
 	output := make(map[string]s3.Key)
+
 	for file := range b.list(prefix) {
 		output[file.Key] = file
 	}
 
 	return output
+}
+
+// Exists checks to see if a key exists in the bucket, retrying the request, if needed.
+func (b *Bucket) Exists(path string) (bool, error) {
+	var exists bool
+	var err error
+
+	for i := 1; i <= b.numRetries; i++ {
+		exists, err = b.bucket.Exists(path)
+		if err == nil {
+			return exists, nil
+		}
+
+		err = errors.Wrapf(err, "error s3.EXISTS for %s/%s on attempt %d", path, b.name, i)
+
+		if i < b.numRetries {
+			grip.Warningln(err, "retrying...")
+			time.Sleep(sleepBetweenRetriesLength)
+			grip.Debugf("retrying s3.EXISTS %d of %d, for %s", i, b.numRetries, path)
+		}
+	}
+
+	return exists, err
 }
 
 // Put uploads the local fileName to the remote path object in the
@@ -268,7 +292,7 @@ func (b *Bucket) Put(fileName, path string) error {
 
 		catcher.Add(errors.Wrapf(err, "error s3.PUT for %s/%s on attempt %d", path, b.name, i))
 
-		if i <= b.numRetries {
+		if i < b.numRetries {
 			grip.Warningln(err, "retrying...")
 			time.Sleep(sleepBetweenRetriesLength)
 			grip.Debugf("retrying s3.GET %d of %d, for %s", i, b.numRetries, path)
@@ -315,7 +339,7 @@ func (b *Bucket) Get(path, fileName string) error {
 
 		catcher.Add(errors.Wrap(err, "aws error from s3.Get"))
 
-		if i <= b.numRetries {
+		if i < b.numRetries {
 			grip.Warningln(err, "retrying...")
 			time.Sleep(sleepBetweenRetriesLength)
 			grip.Debugf("retrying s3.GET %d of %d, for %s", i, b.numRetries, path)
@@ -497,11 +521,14 @@ func (b *Bucket) SyncTo(local, prefix string) error {
 			return nil
 		}
 
-		remoteFile, ok := remote[path]
+		// need the extra character to avoid missing this because of the leading slash.
+		keyName := path[len(local)+1:]
+		remoteFile, ok := remote[keyName]
 		if !ok {
-			remoteFile = s3.Key{Key: filepath.Join(prefix, path[len(local):])}
+			grip.Debugf("could not get information on remote file %s: %+v", keyName, remoteFile)
+			remoteFile = s3.Key{Key: filepath.Join(prefix, keyName)}
 		}
-
+		grip.Debugf("creating upload sync job for %s: %+v", keyName, remoteFile)
 		job := newSyncToJob(path, remoteFile, b)
 
 		counter++

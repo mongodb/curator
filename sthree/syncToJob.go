@@ -116,7 +116,7 @@ func (j *syncToJob) Run() {
 	// consistent.) if the file has appeared since we created the
 	// task can safely fall through this case and compare hashes,
 	// otherwise we should put it here.
-	exists, err := j.b.bucket.Exists(j.localPath)
+	exists, err := j.b.Exists(j.localPath)
 	if err != nil {
 		j.addError(errors.Wrapf(err,
 			"problem checking if the file '%s' exists in the bucket %s",
@@ -134,7 +134,7 @@ func (j *syncToJob) Run() {
 
 	objModTime, err := time.Parse(timeFormat, j.remoteFile.LastModified)
 	if err != nil {
-		grip.Warningf("could not identify the modification time for '%s', uploading local copy",
+		grip.Debugf("could not identify the modification time for '%s', uploading local copy",
 			j.remoteFile.Key)
 		err = j.doPut()
 		if err != nil {

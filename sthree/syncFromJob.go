@@ -100,7 +100,7 @@ func (j *syncFromJob) Run() {
 	}
 
 	// if the remote file has disappeared, we should return early here.
-	exists, err := j.b.bucket.Exists(j.remoteFile.Key)
+	exists, err := j.b.Exists(j.remoteFile.Key)
 	if err != nil {
 		j.addError(errors.Wrapf(err, "problem checking if the file '%s' exists",
 			j.remoteFile.Key))
