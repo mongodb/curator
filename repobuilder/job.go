@@ -170,37 +170,25 @@ func (j *Job) injectNewPackages(local string) ([]string, error) {
 	catcher := grip.NewCatcher()
 	var changedRepos []string
 
-	if j.release.IsDevelopmentBuild() || j.release.IsReleaseCandidate() {
-		// nightlies and release candidates go into the testing repo:
+	if j.release.IsDevelopmentBuild() {
+		// nightlies to the a "development" repo.
+		changed, err := injectPackage(j, local, "development")
+		catcher.Add(err)
+		changedRepos = append(changedRepos, changed)
 
+		// TODO: remove everything except the package that we
+		// added, which might require a different injection
+		// above, and AWS syncing strategy below.
+	} else if j.release.IsReleaseCandidate() {
+		// release candidates go into the testing repo:
 		changed, err := injectPackage(j, local, "testing")
 		catcher.Add(err)
 		changedRepos = append(changedRepos, changed)
 	} else {
-		// all releases (not RCs, captured above,) either dev
-		// or stable go somewhere else...
-
 		// there are repos for each series:
 		changed, err := injectPackage(j, local, j.release.Series())
 		catcher.Add(err)
 		changedRepos = append(changedRepos, changed)
-
-		// all stable releases go into a special "stable"
-		// series so people can upgrade from one stable branch
-		// to the next seamlessly (this might be an
-		// anti-pattern, but it's established.)
-		if j.release.IsStableSeries() {
-			changed, err = injectPackage(j, local, "stable")
-			catcher.Add(err)
-			changedRepos = append(changedRepos, changed)
-		}
-
-		// all development releases go into a special unstable repo.
-		if j.release.IsDevelopmentSeries() {
-			changed, err = injectPackage(j, local, "unstable")
-			catcher.Add(err)
-			changedRepos = append(changedRepos, changed)
-		}
 	}
 
 	return changedRepos, catcher.Resolve()
