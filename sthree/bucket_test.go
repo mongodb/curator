@@ -6,8 +6,10 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strconv"
+	"sync"
 	"testing"
 
 	"github.com/goamz/goamz/aws"
@@ -308,6 +310,52 @@ func (s *BucketSuite) TestDeleteManyOperationRemovesManyPathsFromBucket() {
 	s.NoError(s.b.DeleteMany(toDelete...))
 
 	s.Len(s.b.contents(filepath.Join(s.uuid, prefix)), 0)
+}
+
+func (s *BucketSuite) TestDeleteMatchingRemovesSomePaths() {
+	local := "bucket.go"
+	s.NoError(s.b.Open())
+	prefix := uuid.NewV4().String()
+
+	s.Len(s.b.contents(filepath.Join(s.uuid, prefix)), 0)
+
+	var toDelete []string
+	size := 20
+
+	expression := "-deleteMatch$"
+	matcher, err := regexp.Compile(expression)
+	s.NoError(err)
+
+	mutex := &sync.Mutex{}
+	wg := &sync.WaitGroup{}
+	for i := 0; i < size; i++ {
+		wg.Add(1)
+		go func(matcher *regexp.Regexp, num int) {
+			defer wg.Done()
+			name := filepath.Join(s.uuid, prefix, local+".five."+strconv.Itoa(num))
+
+			if num%2 == 0 {
+				name += "-deleteMatch"
+				s.True(matcher.MatchString(name))
+			} else {
+				s.False(matcher.MatchString(name))
+			}
+
+			s.NoError(s.b.Put(local, name))
+			mutex.Lock()
+			toDelete = append(toDelete, name)
+			mutex.Unlock()
+		}(matcher, i)
+
+	}
+	wg.Wait()
+
+	s.Len(s.b.contents(filepath.Join(s.uuid, prefix)), size)
+
+	s.False(s.b.dryRun)
+	s.NoError(s.b.DeleteMatching(filepath.Join(s.uuid, prefix), expression))
+
+	s.Equal(len(s.b.contents(filepath.Join(s.uuid, prefix))), size/2)
 }
 
 func numFilesInPath(path string, includeDirs bool) (int, error) {

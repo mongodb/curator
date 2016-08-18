@@ -105,13 +105,9 @@ func s3DeleteCmd() cli.Command {
 	return cli.Command{
 		Name:    "delete",
 		Aliases: []string{"del", "rm"},
-		Flags: baseS3Flags(
-			cli.StringSliceFlag{
-				Name:  "name",
-				Usage: "the name of an object in s3",
-			}),
+		Flags:   s3deleteFlags(),
 		Action: func(c *cli.Context) error {
-			return s3Delete(c.String("bucket"), c.String("profile"), c.StringSlice("name")...)
+			return s3Delete(c.String("bucket"), c.String("profile"), c.Bool("dry-run"), c.StringSlice("name")...)
 		},
 	}
 }
@@ -120,9 +116,33 @@ func s3DeletePrefixCmd() cli.Command {
 	return cli.Command{
 		Name:    "delete-prefix",
 		Aliases: []string{"del-prefix", "rm-prefix"},
-		Flags:   s3syncFlags(),
+		Flags:   s3deleteFlags(s3syncFlags()...),
 		Action: func(c *cli.Context) error {
-			return s3DeletePrefix(c.String("bucket"), c.String("profile"), c.String("prefix"))
+			return s3DeletePrefix(
+				c.String("bucket"),
+				c.String("profile"),
+				c.Bool("dry-run"),
+				c.String("prefix"))
+		},
+	}
+}
+
+func s3DeleteMatchingCmd() cli.Command {
+	return cli.Command{
+		Name:    "delete-match",
+		Aliases: []string{"del-match", "rm-match"},
+		Flags: s3deleteFlags(
+			s3syncFlags(cli.StringFlag{
+				Name:  "match",
+				Usage: "a regular expression definition",
+			})...),
+		Action: func(c *cli.Context) error {
+			return s3DeleteMatching(
+				c.String("bucket"),
+				c.String("profile"),
+				c.Bool("dry-run"),
+				c.String("prefix"),
+				c.String("match"))
 		},
 	}
 }
@@ -193,13 +213,21 @@ func s3Get(bucket, profile, remoteFile, file string) error {
 	return b.Get(remoteFile, file)
 }
 
-func s3Delete(bucket, profile string, file ...string) error {
+func s3Delete(bucket, profile string, dryRun bool, file ...string) error {
 	b := resolveBucket(bucket, profile)
 
 	err := b.Open()
 	defer b.Close()
 	if err != nil {
 		return err
+	}
+
+	if dryRun {
+		b, err = b.DryRunClone()
+		defer b.Close()
+		if err != nil {
+			return err
+		}
 	}
 
 	// DeleteMany handles the single-delete case gracefully, so
@@ -207,7 +235,7 @@ func s3Delete(bucket, profile string, file ...string) error {
 	return b.DeleteMany(file...)
 }
 
-func s3DeletePrefix(bucket, profile, prefix string) error {
+func s3DeletePrefix(bucket, profile string, dryRun bool, prefix string) error {
 	b := resolveBucket(bucket, profile)
 
 	err := b.Open()
@@ -216,7 +244,35 @@ func s3DeletePrefix(bucket, profile, prefix string) error {
 		return err
 	}
 
+	if dryRun {
+		b, err = b.DryRunClone()
+		defer b.Close()
+		if err != nil {
+			return err
+		}
+	}
+
 	return b.DeletePrefix(prefix)
+}
+
+func s3DeleteMatching(bucket, profile string, dryRun bool, prefix string, expression string) error {
+	b := resolveBucket(bucket, profile)
+
+	err := b.Open()
+	defer b.Close()
+	if err != nil {
+		return err
+	}
+
+	if dryRun {
+		b, err = b.DryRunClone()
+		defer b.Close()
+		if err != nil {
+			return err
+		}
+	}
+
+	return b.DeleteMatching(prefix, expression)
 }
 
 func s3SyncTo(bucket, profile, local, prefix string) error {
@@ -267,10 +323,10 @@ func baseS3Flags(args ...cli.Flag) []cli.Flag {
 	return flags
 }
 
-func s3syncFlags() []cli.Flag {
+func s3syncFlags(args ...cli.Flag) []cli.Flag {
 	pwd, _ := os.Getwd()
 
-	return baseS3Flags(
+	flags := baseS3Flags(
 		cli.StringFlag{
 			Name:  "local",
 			Value: pwd,
@@ -280,6 +336,9 @@ func s3syncFlags() []cli.Flag {
 			Name:  "prefix",
 			Usage: "a prefix of s3 key names",
 		})
+
+	flags = append(flags, args...)
+	return flags
 }
 
 func s3opFlags() []cli.Flag {
@@ -292,4 +351,22 @@ func s3opFlags() []cli.Flag {
 			Name:  "name",
 			Usage: "the remote s3 resource name. may include the prefix.",
 		})
+}
+
+func s3deleteFlags(args ...cli.Flag) []cli.Flag {
+	flags := []cli.Flag{
+		cli.StringSliceFlag{
+			Name:  "name",
+			Usage: "the name of an object in s3",
+		},
+		cli.BoolFlag{
+			Name:  "dry-run",
+			Usage: "make task operate in a dry-run mode",
+		},
+	}
+
+	flags = append(flags, args...)
+
+	return baseS3Flags(flags...)
+
 }

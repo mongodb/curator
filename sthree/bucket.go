@@ -6,6 +6,7 @@ import (
 	"mime"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -52,6 +53,7 @@ type Bucket struct {
 	// Put operations in the bucket.
 	NewFilePermission s3.ACL
 	open              bool
+	dryRun            bool
 	credentials       AWSConnectionConfiguration
 	bucket            *s3.Bucket
 	s3                *s3.S3
@@ -76,6 +78,30 @@ func (b *Bucket) NewBucket(name string) *Bucket {
 
 	b.registry.registerBucket(new)
 	return new
+}
+
+// DryRunClone creates a copy of the bucket, which is not a shared
+// resource, that runs with dry-run mode. In this mode, all PUT
+// and DELETE operations are no-ops, with more logging, but all other
+// operations (including "GET" operations) are as normal.
+func (b *Bucket) DryRunClone() (*Bucket, error) {
+	clone := &Bucket{
+		name:              b.name,
+		dryRun:            true,
+		open:              b.open,
+		NewFilePermission: b.NewFilePermission,
+		credentials:       b.credentials,
+		numJobs:           b.numJobs,
+	}
+
+	if clone.open {
+		err := clone.Open()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return clone, nil
 }
 
 func (b *Bucket) String() string {
@@ -229,10 +255,15 @@ func (b *Bucket) Put(fileName, path string) error {
 	catcher := grip.NewCatcher()
 
 	for i := 1; i <= b.numRetries; i++ {
-		err = b.bucket.Put(path, contents, mimeType, b.NewFilePermission, s3.Options{})
-		if err == nil {
-			grip.Debugf("uploaded  %s -> %s/%s", fileName, b.name, path)
+		if b.dryRun {
+			grip.Noticef("dry-run: would have uploaded %s -> %s/%s", fileName, b.name, path)
 			return nil
+		} else {
+			err = b.bucket.Put(path, contents, mimeType, b.NewFilePermission, s3.Options{})
+			if err == nil {
+				grip.Debugf("uploaded %s -> %s/%s", fileName, b.name, path)
+				return nil
+			}
 		}
 
 		catcher.Add(errors.Wrapf(err, "error s3.PUT for %s/%s on attempt %d", path, b.name, i))
@@ -324,67 +355,90 @@ func (b *Bucket) DeleteMany(paths ...string) error {
 		// getting the bucket contents is a comparatively
 		// expensive operation so makes sense to avoid it in
 		// this case.
-		return errors.Wrap(b.Delete(paths[0]), "single delete operation in multi-delete call")
+		if b.dryRun {
+			grip.Infof("dry-run: deleting object %s as a single object in a multi-delete call", paths[0])
+			return nil
+		} else {
+			return errors.Wrap(b.Delete(paths[0]), "single delete operation in multi-delete call")
+		}
 	}
 
-	catcher := grip.NewCatcher()
-
-	toDelete := s3.Delete{}
 	contents := b.contents("")
-	count := 0
-	for _, p := range paths {
-		key, ok := contents[p]
-		if !ok {
-			grip.Warningf("path %s does not exist in bucket %s", p, b.name)
-			continue
+	toDelete := make(chan s3.Key, 100)
+	go func() {
+		for _, p := range paths {
+			key, ok := contents[p]
+			if !ok {
+				grip.Warningf("path %s does not exist in bucket %s", p, b.name)
+				continue
+			}
+
+			toDelete <- key
 		}
 
-		// DeleteMulti maxes out at 1000 items per request. We
-		// should batch accordingly too.
-		if count == 1000 {
-			grip.Debugf("sending a batch of delete operations to %s", b.name)
-			catcher.Add(errors.Wrapf(b.bucket.DelMulti(toDelete),
-				"intermediate delete from %s, %d items encountered error",
-				b.name, count))
+		close(toDelete)
+	}()
 
-			// reset the counters
-			toDelete = s3.Delete{}
-			count = 0
-		}
-
-		grip.Noticef("removing group, with %s.%s", b.name, key)
-
-		count++
-		toDelete.Objects = append(toDelete.Objects, s3.Object{Key: key.Key})
-	}
-
-	if len(toDelete.Objects) > 0 {
-		grip.Debugf("sending last batch of delete operations to %s", b.name)
-		catcher.Add(errors.Wrapf(b.bucket.DelMulti(toDelete),
-			"delete from %s, %d items encountered error",
-			b.name, len(toDelete.Objects)))
-	}
-
-	return catcher.Resolve()
+	return b.deleteGroup(toDelete)
 }
 
 // DeletePrefix removes all items in a bucket that have key names that
 // begin with a specific prefix.
 func (b *Bucket) DeletePrefix(prefix string) error {
-	catcher := grip.NewCatcher()
+	return b.deleteGroup(b.list(prefix))
+}
 
+func (b *Bucket) DeleteMatching(prefix, expression string) error {
+	matcher, err := regexp.Compile(expression)
+	if err != nil {
+		return errors.Wrapf(err,
+			"problem compiling expression %s for delete matching operation on %s",
+			expression, b.name)
+	}
+
+	toDelete := make(chan s3.Key, 100)
+
+	go func() {
+		var count int
+		list := b.list(prefix)
+
+		for item := range list {
+			name := item.Key
+
+			if matcher.MatchString(name) {
+				toDelete <- item
+				count++
+				grip.Debugf("found %s/%s to delete", b.name, name)
+			} else {
+				grip.Debugf("%s/%s does not match %s", b.name, name, expression)
+			}
+		}
+
+		grip.Infof("found %d files matching '%s' in '%s/%s' for deletion",
+			count, expression, b.name, prefix)
+		close(toDelete)
+	}()
+
+	return b.deleteGroup(toDelete)
+}
+
+func (b *Bucket) deleteGroup(items <-chan s3.Key) error {
 	toDelete := s3.Delete{}
-	items := b.list(prefix)
 	count := 0
 
 	for {
 		// DeleteMulti maxes out at 1000 items per request. We
 		// should batch accordingly too.
 		if count == 1000 {
-			grip.Debugf("sending a batch of delete operations to %s", b.name)
-			catcher.Add(errors.Wrapf(b.bucket.DelMulti(toDelete),
-				"intermediate delete from %s, %d items encountered error",
-				b.name, count))
+			if b.dryRun {
+				grip.Infof("dry-run: would send a batch of delete operations to %s", b.name)
+			} else {
+				grip.Debugf("sending a batch of delete operations to %s", b.name)
+
+				return errors.Wrapf(b.bucket.DelMulti(toDelete),
+					"intermediate delete from %s, %d items encountered error",
+					b.name, count)
+			}
 
 			// reset the counters
 			toDelete = s3.Delete{}
@@ -397,7 +451,7 @@ func (b *Bucket) DeletePrefix(prefix string) error {
 			count++
 
 			toDelete.Objects = append(toDelete.Objects, s3.Object{Key: key.Key})
-			grip.Noticef("removing group, with %s.%s", b.name, key.Key)
+			grip.Debugf("removing group, with %s/%s", b.name, key.Key)
 
 			continue
 		}
@@ -406,13 +460,18 @@ func (b *Bucket) DeletePrefix(prefix string) error {
 	}
 
 	if len(toDelete.Objects) > 0 {
-		grip.Debugf("sending last batch of delete operations to %s", b.name)
-		catcher.Add(errors.Wrapf(b.bucket.DelMulti(toDelete),
-			"delete from %s, %d items encountered error",
-			b.name, len(toDelete.Objects)))
+		if b.dryRun {
+			grip.Infof("dry-run: would send last batch of delete operations to %s", b.name)
+		} else {
+			grip.Debugf("sending last batch of delete operations to %s", b.name)
+
+			return errors.Wrapf(b.bucket.DelMulti(toDelete),
+				"delete from %s, %d items encountered error",
+				b.name, len(toDelete.Objects))
+		}
 	}
 
-	return catcher.Resolve()
+	return nil
 }
 
 // SyncTo takes a local path, typically directory, and an S3 path
