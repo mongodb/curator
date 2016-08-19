@@ -282,12 +282,12 @@ func (b *Bucket) Put(fileName, path string) error {
 		if b.dryRun {
 			grip.Noticef("dry-run: would have uploaded %s -> %s/%s", fileName, b.name, path)
 			return nil
-		} else {
-			err = b.bucket.Put(path, contents, mimeType, b.NewFilePermission, s3.Options{})
-			if err == nil {
-				grip.Debugf("uploaded %s -> %s/%s", fileName, b.name, path)
-				return nil
-			}
+		}
+
+		err = b.bucket.Put(path, contents, mimeType, b.NewFilePermission, s3.Options{})
+		if err == nil {
+			grip.Debugf("uploaded %s -> %s/%s", fileName, b.name, path)
+			return nil
 		}
 
 		catcher.Add(errors.Wrapf(err, "error s3.PUT for %s/%s on attempt %d", path, b.name, i))
@@ -299,8 +299,12 @@ func (b *Bucket) Put(fileName, path string) error {
 		}
 	}
 
-	return errors.Errorf("could not upload %s/%s in %d attempts. Errors: %s",
-		b.name, path, b.numRetries, catcher.Resolve())
+	if catcher.HasErrors() {
+		return errors.Errorf("could not upload %s/%s in %d attempts. Errors: %s",
+			b.name, path, b.numRetries, catcher.Resolve())
+	}
+
+	return nil
 }
 
 // getMimeType takes a file name, attempts to determine the extension
@@ -522,18 +526,19 @@ func (b *Bucket) SyncTo(local, prefix string) error {
 		}
 
 		// need the extra character to avoid missing this because of the leading slash.
-		keyName := path[len(local)+1:]
+		keyName := filepath.Join(prefix, path[len(local)+1:])
 		remoteFile, ok := remote[keyName]
 		if !ok {
 			grip.Debugf("could not get information on remote file %s: %+v", keyName, remoteFile)
-			remoteFile = s3.Key{Key: filepath.Join(prefix, keyName)}
+			remoteFile = s3.Key{Key: keyName}
 		}
 		grip.Debugf("creating upload sync job for %s: %+v", keyName, remoteFile)
 		job := newSyncToJob(path, remoteFile, b)
 
 		counter++
 
-		return b.queue.Put(job)
+		return errors.Wrap(b.queue.Put(job),
+			"problem putting syncTo job into queue")
 	}))
 
 	b.queue.Wait()
@@ -541,7 +546,7 @@ func (b *Bucket) SyncTo(local, prefix string) error {
 	for job := range b.queue.Results() {
 		err := job.Error()
 		if err != nil {
-			catcher.Add(err)
+			catcher.Add(errors.Wrapf(err, "error in syncTo job %s", job.ID()))
 		}
 	}
 
@@ -569,7 +574,8 @@ func (b *Bucket) SyncFrom(local, prefix string) error {
 		job := newSyncFromJob(filepath.Join(local, remote.Key[len(prefix):]), remote, b)
 
 		// add the job to the queue
-		catcher.Add(b.queue.Put(job))
+		catcher.Add(errors.Wrap(b.queue.Put(job),
+			"problem putting syncFrom job into worker queue"))
 	}
 
 	b.queue.Wait()
@@ -577,9 +583,10 @@ func (b *Bucket) SyncFrom(local, prefix string) error {
 	for job := range b.queue.Results() {
 		err := job.Error()
 		if err != nil {
-			catcher.Add(err)
+			catcher.Add(errors.Wrapf(err, "error with syncFrom job %s", job.ID()))
 		}
 	}
+
 	if catcher.HasErrors() {
 		grip.Alertf("problem with sync pull operation (%s/%s -> %s)",
 			b.name, prefix, local)

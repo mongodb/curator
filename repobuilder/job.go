@@ -291,6 +291,12 @@ func (j *Job) signFile(fileName, archiveExtension string, overwrite bool) error 
 
 func (j *Job) Run() {
 	bucket := sthree.GetBucketWithProfile(j.Distro.Bucket, j.Profile)
+	if j.DryRun {
+		// the error (second argument) will be caught (when we
+		// run open below)
+		bucket, _ = bucket.DryRunClone()
+	}
+
 	bucket.NewFilePermission = s3.PublicRead
 
 	err := bucket.Open()
@@ -320,28 +326,19 @@ func (j *Job) Run() {
 				return
 			}
 
-			if j.DryRun {
-				grip.Noticef("in dry run mode. would download from %s to %s", remote, local)
-			} else {
-				grip.Infof("downloading from %s to %s", remote, local)
-				err = bucket.SyncFrom(local, remote)
-				if err != nil {
-					j.addError(errors.Wrapf(err, "sync from %s to %s", remote, local))
-					return
-				}
+			grip.Infof("downloading from %s to %s", remote, local)
+			err = bucket.SyncFrom(local, remote)
+			if err != nil {
+				j.addError(errors.Wrapf(err, "sync from %s to %s", remote, local))
+				return
 			}
 
 			var changedRepos []string
-			if j.DryRun {
-				grip.Noticef("in dry run mode. would link packages [%s] to %s",
-					strings.Join(j.PackagePaths, "; "), local)
-			} else {
-				grip.Info("copying new packages into local staging area")
-				changedRepos, err = j.injectNewPackages(local)
-				if err != nil {
-					j.addError(errors.Wrap(err, "copying packages into staging repos"))
-					return
-				}
+			grip.Info("copying new packages into local staging area")
+			changedRepos, err = j.injectNewPackages(local)
+			if err != nil {
+				j.addError(errors.Wrap(err, "copying packages into staging repos"))
+				return
 			}
 
 			rWg := &sync.WaitGroup{}
@@ -362,27 +359,28 @@ func (j *Job) Run() {
 				return
 			}
 
-			if j.DryRun {
-				grip.Noticef("in dry run mode. otherwise would have built %s (%s)",
-					remote, local)
-			} else {
-				err = bucket.SyncTo(local, remote)
-				if err != nil {
-					j.addError(errors.Wrapf(err, "sync %s to %s", local, remote))
-					return
+			for _, dir := range changedRepos {
+				rWg.Add(1)
+				go func(workingDir string) {
+					defer rWg.Done()
 
-				}
-				grip.Noticef("completed rebuilding repo %s (%s)", remote, local)
+					// the extra character is so we don't start with a slash
+					changedComponent := workingDir[len(local)+1:]
+
+					err := bucket.SyncTo(workingDir, filepath.Join(remote, changedComponent))
+					if err != nil {
+						j.addError(errors.Wrapf(err, "problem uploading %s to %s/%s",
+							workingDir, bucket, changedComponent))
+					}
+				}(dir)
 			}
+			rWg.Wait()
 		}(j.Distro, j.WorkSpace, remote)
 	}
 	wg.Wait()
 
-	if j.hasErrors() {
-		grip.Warning("encountered error rebuilding repositories. operation complete.")
-		return
-	}
-	grip.Notice("completed rebuilding all repositories")
+	grip.WarningWhen(j.hasErrors(), "encountered error rebuilding and uploading repositories. operation complete.")
+	grip.NoticeWhen(!j.hasErrors(), "completed rebuilding all repositories")
 }
 
 // shim methods so that we can reuse the Run() method from
