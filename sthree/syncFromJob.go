@@ -134,7 +134,7 @@ func (j *syncFromJob) Run() {
 
 	remoteChecksum := strings.Trim(j.remoteFile.ETag, "\" ")
 	if fmt.Sprintf("%x", md5.Sum(data)) != remoteChecksum {
-		grip.Debugf("hashes aren't the same: [file=%s, local=%x, remote=%s]",
+		grip.Debugf("hashes aren't the same: [op=pull, file=%s, local=%x, remote=%s]",
 			j.remoteFile.Key, md5.Sum(data), remoteChecksum)
 		err := j.doGet()
 		if err != nil {

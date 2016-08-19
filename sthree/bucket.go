@@ -85,16 +85,30 @@ func (b *Bucket) NewBucket(name string) *Bucket {
 // and DELETE operations are no-ops, with more logging, but all other
 // operations (including "GET" operations) are as normal.
 func (b *Bucket) DryRunClone() (*Bucket, error) {
+	clone, err := b.Clone()
+
+	if err != nil {
+		return nil, err
+	}
+
+	clone.dryRun = true
+	return clone, nil
+}
+
+// Clone returns a copy of the existing bucket, which is not a shared
+// resource. Useful when you want to run bucket operations with sync
+// from/to operations, issued from different threads.
+func (b *Bucket) Clone() (*Bucket, error) {
 	clone := &Bucket{
 		name:              b.name,
-		dryRun:            true,
-		open:              b.open,
+		open:              false,
 		NewFilePermission: b.NewFilePermission,
 		credentials:       b.credentials,
 		numJobs:           b.numJobs,
+		numRetries:        b.numRetries,
 	}
 
-	if clone.open {
+	if b.open {
 		err := clone.Open()
 		if err != nil {
 			return nil, err
@@ -275,15 +289,15 @@ func (b *Bucket) Put(fileName, path string) error {
 		return errors.Wrapf(err, "error reading file '%s' before s3.Put", fileName)
 	}
 
+	if b.dryRun {
+		grip.Noticef("dry-run: would have uploaded %s -> %s/%s", fileName, b.name, path)
+		return nil
+	}
+
 	// do put in a retry loop:
 	catcher := grip.NewCatcher()
 
 	for i := 1; i <= b.numRetries; i++ {
-		if b.dryRun {
-			grip.Noticef("dry-run: would have uploaded %s -> %s/%s", fileName, b.name, path)
-			return nil
-		}
-
 		err = b.bucket.Put(path, contents, mimeType, b.NewFilePermission, s3.Options{})
 		if err == nil {
 			grip.Debugf("uploaded %s -> %s/%s", fileName, b.name, path)
@@ -529,10 +543,8 @@ func (b *Bucket) SyncTo(local, prefix string) error {
 		keyName := filepath.Join(prefix, path[len(local)+1:])
 		remoteFile, ok := remote[keyName]
 		if !ok {
-			grip.Debugf("could not get information on remote file %s: %+v", keyName, remoteFile)
 			remoteFile = s3.Key{Key: keyName}
 		}
-		grip.Debugf("creating upload sync job for %s: %+v", keyName, remoteFile)
 		job := newSyncToJob(path, remoteFile, b)
 
 		counter++
@@ -551,10 +563,11 @@ func (b *Bucket) SyncTo(local, prefix string) error {
 	}
 
 	if catcher.HasErrors() {
-		grip.Alertf("problem with sync push operation (%s -> %s/%s) [%d items]",
+		grip.Alertf("problem with sync push operation (%s -> %s/%s) [considered %d items]",
 			local, b.name, prefix, counter)
 	} else {
-		grip.Infof("completed push operation. uploaded %d items to %s/%s", counter, b.name, prefix)
+		grip.Infof("completed push operation. uploade items to %s/%s [considered %d items]",
+			b.name, prefix, counter)
 	}
 
 	return catcher.Resolve()

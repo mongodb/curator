@@ -1,10 +1,11 @@
 package sthree
 
 import (
+	"crypto/md5"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/goamz/goamz/s3"
 	"github.com/mongodb/amboy"
@@ -32,8 +33,6 @@ type syncToJob struct {
 	localPath  string
 	errors     []error
 }
-
-const timeFormat = "2006-01-02T15:04:05.000Z07:00"
 
 func newSyncToJob(localPath string, remoteFile s3.Key, b *Bucket) *syncToJob {
 	return &syncToJob{
@@ -97,17 +96,14 @@ func (j *syncToJob) Error() error {
 // Run executes the synchronization job. If local file doesn't exist
 // this operation becomes a noop. Otherwise, will always upload the
 // local file if a remote file exists, and if both the local and
-// remote file exists, compares the timestamp and size, and if the
-// local file is newer and of different size, it uploads the current
-// file. A previous implementation attempted to compare hashes, but
-// the s3 API would not reliably return checksums.
+// remote file exists, compares the hashes between these files and
+// uploads the local file if it differs from the remote file.
 func (j *syncToJob) Run() {
 	defer j.markComplete()
 
 	// if the local file doesn't exist or has disappeared since
 	// the job was created, there's nothing to do, we can return early
-	stat, err := os.Stat(j.localPath)
-	if os.IsNotExist(err) {
+	if _, err := os.Stat(j.localPath); os.IsNotExist(err) {
 		grip.Debugf("local file %s does not exist, so we can't upload it", j.localPath)
 		return
 	}
@@ -116,7 +112,7 @@ func (j *syncToJob) Run() {
 	// consistent.) if the file has appeared since we created the
 	// task can safely fall through this case and compare hashes,
 	// otherwise we should put it here.
-	exists, err := j.b.Exists(j.localPath)
+	exists, err := j.b.Exists(j.remoteFile.Key)
 	if err != nil {
 		j.addError(errors.Wrapf(err,
 			"problem checking if the file '%s' exists in the bucket %s",
@@ -124,6 +120,8 @@ func (j *syncToJob) Run() {
 		return
 	}
 	if !exists {
+		grip.Debugf("uploading %s because remote file %s/%s does not exist",
+			j.localPath, j.b.name, j.remoteFile.Key)
 		err = j.doPut()
 		if err != nil {
 			j.addError(errors.Wrapf(err, "problem uploading file %s -> %s",
@@ -132,10 +130,13 @@ func (j *syncToJob) Run() {
 		}
 	}
 
-	objModTime, err := time.Parse(timeFormat, j.remoteFile.LastModified)
-	if err != nil {
-		grip.Debugf("could not identify the modification time for '%s', uploading local copy",
-			j.remoteFile.Key)
+	remoteChecksum := strings.Trim(j.remoteFile.ETag, "\" ")
+
+	// if s3 doesn't know what the hash of the remote file is or
+	// returns it to us, then we don't need to hash it locally,
+	// because we'll always upload it in that situation.
+	if remoteChecksum == "" {
+		grip.Debugf("s3 does not report a hash for %s, uploading file", j.remoteFile.Key)
 		err = j.doPut()
 		if err != nil {
 			j.addError(errors.Wrapf(err, "problem uploading file '%s' during sync",
@@ -144,13 +145,24 @@ func (j *syncToJob) Run() {
 		return
 	}
 
-	if stat.ModTime().After(objModTime) && stat.Size() != j.remoteFile.Size {
+	// if the remote object exists, then we should compare md5
+	// checksums between the local and remote objects and upload
+	// the local file if they differ.
+	data, err := ioutil.ReadFile(j.localPath)
+	if err != nil {
+		j.addError(errors.Wrap(err,
+			"problem reading file before hashing for sync operation"))
+		return
+	}
+
+	if fmt.Sprintf("%x", md5.Sum(data)) != remoteChecksum {
+		grip.Debugf("hashes aren't the same: [op=push, file=%s, local=%x, remote=%s]",
+			j.remoteFile.Key, md5.Sum(data), remoteChecksum)
 		err = j.doPut()
 		if err != nil {
 			j.addError(errors.Wrapf(err, "problem uploading file '%s' during sync",
 				j.remoteFile.Key))
 		}
-		return
 	}
 }
 
