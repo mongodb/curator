@@ -20,7 +20,7 @@ var buckets *bucketRegistry
 // "GetBucket" provide public wrappers around/for the global registry.
 type bucketRegistry struct {
 	m map[string]*Bucket
-	l *sync.Mutex
+	l sync.Mutex
 	c AWSConnectionConfiguration
 }
 
@@ -33,7 +33,6 @@ func init() {
 
 func newBucketRegistry() *bucketRegistry {
 	return &bucketRegistry{
-		l: &sync.Mutex{},
 		m: make(map[string]*Bucket),
 		c: AWSConnectionConfiguration{},
 	}
@@ -144,7 +143,6 @@ func (r *bucketRegistry) getBucketWithCredentials(name string, creds AWSConnecti
 			bucket:            client.Bucket(name),
 			credentials:       creds,
 			name:              name,
-			registry:          r,
 			numJobs:           runtime.NumCPU() * 4,
 			numRetries:        20,
 		}

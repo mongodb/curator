@@ -68,7 +68,6 @@ type Bucket struct {
 	credentials       AWSConnectionConfiguration
 	bucket            *s3.Bucket
 	s3                *s3.S3
-	registry          *bucketRegistry
 	name              string
 	numJobs           int
 	numRetries        int
@@ -87,7 +86,7 @@ func (b *Bucket) NewBucket(name string) *Bucket {
 		numRetries:        20,
 	}
 
-	b.registry.registerBucket(new)
+	buckets.registerBucket(new)
 	return new
 }
 
@@ -107,8 +106,7 @@ func (b *Bucket) DryRunClone() (*Bucket, error) {
 }
 
 // Clone returns a copy of the existing bucket, which is not a shared
-// resource. Useful when you want to run bucket operations with sync
-// from/to operations, issued from different threads.
+// resource.
 func (b *Bucket) Clone() (*Bucket, error) {
 	clone := &Bucket{
 		name:              b.name,
@@ -201,7 +199,7 @@ func (b *Bucket) Open() error {
 // worker resources and releases the object from the internal registry
 // of buckets. Close is a noop if the bucket is not open.
 func (b *Bucket) Close() {
-	defer b.registry.removeBucket(b)
+	defer buckets.removeBucket(b)
 
 	if b.open {
 		b.queue.Close()

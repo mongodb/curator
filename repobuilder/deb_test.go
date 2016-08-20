@@ -66,6 +66,7 @@ func (s *DebRepoSuite) TestCompletedSetter() {
 	conf, err := GetConfig("config_test.yaml")
 	s.NoError(err)
 	repo, ok := conf.GetRepositoryDefinition("debian8", "enterprise")
+	repo.Bucket = "build-curator-testing"
 	s.True(ok)
 	s.j, err = NewBuildDEBRepo(conf, repo, "2.8.8", "x86_64", "default")
 	s.NoError(err)
@@ -76,9 +77,6 @@ func (s *DebRepoSuite) TestCompletedSetter() {
 	s.False(s.j.Completed())
 	s.Equal(s.j.IsComplete, s.j.Completed())
 
-	// ignoring the error here because it depends on local
-	// createrepo and other factors which are not actually what
-	// we're testing here.
 	s.j.Run()
 	s.True(s.j.Completed())
 	s.Equal(s.j.IsComplete, s.j.Completed())

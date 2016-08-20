@@ -5,6 +5,7 @@ import (
 
 	"github.com/goamz/goamz/aws"
 	"github.com/goamz/goamz/s3"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"github.com/tychoish/grip"
 )
@@ -13,10 +14,11 @@ import (
 // a factory for and pool of bucket tracking resources.
 type RegistrySuite struct {
 	registry *bucketRegistry
+	require  *require.Assertions
 	suite.Suite
 }
 
-func TestVersionSuite(t *testing.T) {
+func TestRegistrySuite(t *testing.T) {
 	suite.Run(t, new(RegistrySuite))
 }
 
@@ -24,11 +26,26 @@ func (s *RegistrySuite) SetupSuite() {
 	grip.SetName("curator.sthree.registry.suite")
 	grip.CatchError(grip.UseNativeLogger())
 	s.registry = newBucketRegistry()
+	s.require = s.Require()
+
+	for _, b := range buckets.m {
+		b.Close()
+	}
 }
 
 func (s *RegistrySuite) SetupTest() {
 	s.registry.m = make(map[string]*Bucket)
 	s.registry.c = AWSConnectionConfiguration{}
+}
+
+func (s *RegistrySuite) TearDownSuite() {
+	for _, b := range s.registry.m {
+		b.Close()
+	}
+
+	s.require.Len(buckets.m, 0)
+	s.require.Len(s.registry.m, 0)
+
 }
 
 func (s *RegistrySuite) TestInitialStateIsEmpty() {
@@ -102,30 +119,39 @@ func (s *RegistrySuite) TestRegistryShouldFunctionAsBucketFactory() {
 }
 
 func (s *RegistrySuite) TestBucketCreationFromExistingBucket() {
-	s.registry.init()
+	b := buckets.getBucket("test")
+	defer b.Close()
 
-	b := s.registry.getBucket("test")
-	s.Len(s.registry.m, 1)
+	s.Len(buckets.m, 1)
 	s.Equal(b.name, "test")
 	s.Equal(b.NewFilePermission, s3.BucketOwnerFull)
 
 	b.NewFilePermission = s3.PublicRead
+	s.Equal(b.NewFilePermission, s3.PublicRead)
+
 	second := b.NewBucket("two")
-	s.Len(s.registry.m, 2)
+	defer second.Close()
+
+	s.NoError(second.Open())
+
+	s.Len(buckets.m, 2)
 	s.Equal(b.NewFilePermission, second.NewFilePermission)
 
-	two := s.registry.getBucket("two")
+	two := buckets.getBucket("two")
+	defer two.Close()
+
 	s.Exactly(second, two)
 	s.NotEqual(b, second)
 	s.NotEqual(b, two)
 }
 
 func (s *RegistrySuite) TestRemoveBucketFromRegistryOnClose() {
-	b := s.registry.getBucket("test")
+	b := buckets.getBucket("test")
 
-	s.Len(s.registry.m, 1)
+	s.Len(buckets.m, 1)
+	s.NoError(b.Open())
 	b.Close()
-	s.Len(s.registry.m, 0)
+	s.require.Len(s.registry.m, 0)
 }
 
 func (s *RegistrySuite) TestRegisterDuplicateNameShouldOverwriteExistingBucket() {

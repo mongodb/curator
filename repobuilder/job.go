@@ -290,20 +290,32 @@ func (j *Job) signFile(fileName, archiveExtension string, overwrite bool) error 
 
 func (j *Job) Run() {
 	bucket := sthree.GetBucketWithProfile(j.Distro.Bucket, j.Profile)
-	if j.DryRun {
-		// the error (second argument) will be caught (when we
-		// run open below)
-		bucket, _ = bucket.DryRunClone()
-	}
-
-	bucket.NewFilePermission = s3.PublicRead
-
 	err := bucket.Open()
-	defer bucket.Close()
 	if err != nil {
 		j.addError(errors.Wrapf(err, "opening bucket %s", bucket))
 		return
 	}
+	defer bucket.Close()
+
+	if j.DryRun {
+		// the error (second argument) will be caught (when we
+		// run open below)
+		bucket, err = bucket.DryRunClone()
+		if err != nil {
+			j.addError(errors.Wrapf(err,
+				"problem getting bucket '%s' in dry-mode", bucket))
+			return
+		}
+
+		err := bucket.Open()
+		if err != nil {
+			j.addError(errors.Wrapf(err, "opening bucket %s [dry-run]", bucket))
+			return
+		}
+		defer bucket.Close()
+	}
+
+	bucket.NewFilePermission = s3.PublicRead
 
 	defer j.markComplete()
 	wg := &sync.WaitGroup{}
