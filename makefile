@@ -122,7 +122,6 @@ coverage-%:
 	@grep -s -q -e "^PASS" $(buildDir)/coverage.$*.out
 html-coverage-%:
 	@$(MAKE) $(makeArgs) $(buildDir)/coverage.$*.html
-	@grep -s -q -e "^PASS" $(buildDir)/coverage.$*.html
 # end convienence targets
 
 
@@ -182,7 +181,7 @@ testArgs := -v --timeout=20m
 $(buildDir)/coverage.%.html:$(buildDir)/coverage.%.out
 	$(vendorGopath) go tool cover -html=$< -o $@
 $(buildDir)/coverage.%.out:$(testRunDeps)
-	$(vendorGopath) go test -covermode=count -coverprofile=$@ $(projectPath)/$*
+	$(vendorGopath) go test -v -covermode=count -coverprofile=$@ $(projectPath)/$*
 	@-[ -f $@ ] && go tool cover -func=$@ | sed 's%$(projectPath)/%%' | column -t
 $(buildDir)/coverage.$(name).out:$(testRunDeps)
 	$(vendorGopath) go test -covermode=count -coverprofile=$@ $(projectPath)

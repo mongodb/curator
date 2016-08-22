@@ -26,6 +26,7 @@ import (
 // behavior of the job.
 type syncToJob struct {
 	isComplete bool
+	withDelete bool
 	remoteFile s3.Key
 	b          *Bucket
 	t          amboy.JobType
@@ -34,9 +35,10 @@ type syncToJob struct {
 	errors     []error
 }
 
-func newSyncToJob(localPath string, remoteFile s3.Key, b *Bucket) *syncToJob {
+func newSyncToJob(b *Bucket, localPath string, remoteFile s3.Key, withDelete bool) *syncToJob {
 	return &syncToJob{
 		name:       fmt.Sprintf("%s.%d.sync-to", remoteFile.Key, job.GetNumber()),
+		withDelete: withDelete,
 		remoteFile: remoteFile,
 		localPath:  localPath,
 		b:          b,
@@ -104,8 +106,26 @@ func (j *syncToJob) Run() {
 	// if the local file doesn't exist or has disappeared since
 	// the job was created, there's nothing to do, we can return early
 	if _, err := os.Stat(j.localPath); os.IsNotExist(err) {
-		grip.Debugf("local file %s does not exist, so we can't upload it", j.localPath)
-		return
+		if j.withDelete && !j.b.dryRun {
+			err := j.b.Delete(j.remoteFile.Key)
+			if err != nil {
+				j.addError(errors.Wrapf(err,
+					"problem deleting %s from bucket %s",
+					j.remoteFile.Key, j.b.name))
+				return
+			}
+			grip.Debugf("deleted file %s from bucket %s", j.remoteFile.Key, j.b.name)
+			return
+		} else {
+			grip.NoticeWhenf(j.b.dryRun,
+				"dry-run: would delete remote file %s from bucket %s because it doesn't exist locally",
+				j.remoteFile.Key, j.b.name)
+
+			grip.DebugWhenf(!j.b.dryRun,
+				"local file %s does not exist, so we can't upload it", j.localPath)
+
+			return
+		}
 	}
 
 	// first double check that it doesn't exist (s3 is eventually

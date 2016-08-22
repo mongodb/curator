@@ -26,6 +26,7 @@ import (
 // behavior of the job.
 type syncFromJob struct {
 	isComplete bool
+	withDelete bool
 	remoteFile s3.Key
 	b          *Bucket
 	t          amboy.JobType
@@ -34,10 +35,11 @@ type syncFromJob struct {
 	errors     []error
 }
 
-func newSyncFromJob(localPath string, remoteFile s3.Key, b *Bucket) *syncFromJob {
+func newSyncFromJob(b *Bucket, localPath string, remoteFile s3.Key, withDelete bool) *syncFromJob {
 	return &syncFromJob{
 		name:       fmt.Sprintf("%s.%d.sync-from", localPath, job.GetNumber()),
 		remoteFile: remoteFile,
+		withDelete: withDelete,
 		localPath:  localPath,
 		b:          b,
 		t: amboy.JobType{
@@ -64,7 +66,13 @@ func (j *syncFromJob) markComplete() {
 }
 
 func (j *syncFromJob) doGet() error {
-	return j.b.Get(j.remoteFile.Key, j.localPath)
+	err := j.b.Get(j.remoteFile.Key, j.localPath)
+
+	if err != nil {
+		return errors.Wrap(err, "problem with s3 get during sync")
+	}
+
+	return nil
 }
 
 func (j *syncFromJob) addError(err error) {
@@ -107,10 +115,29 @@ func (j *syncFromJob) Run() {
 		return
 	}
 	if !exists {
-		// if we get here the file doesn't exist so we shuold try to copy it.
-		grip.Warningf("file %s disappeared during sync pull operation",
-			j.remoteFile.Key)
-		return
+		if j.withDelete && !j.b.dryRun {
+			err := os.RemoveAll(j.localPath)
+			if err != nil {
+				j.addError(errors.Wrapf(err,
+					"problem removing local file %s, during sync from bucket %s with delete",
+					j.localPath, j.b.name))
+				return
+			}
+			grip.Debugf("removed local file %s during sync from bucket %s with delete",
+				j.localPath, j.b.name)
+			return
+		} else {
+			grip.NoticeWhenf(j.b.dryRun,
+				"dry-run: would remove local file %s from becasue it doesn't exist in bucket %s",
+				j.remoteFile.Key, j.b.name)
+
+			// if we get here the file doesn't exist so we shuold try to copy it.
+			grip.WarningWhenf(!j.b.dryRun, "file %s disappeared during sync pull operation. "+
+				"Doing nothing because *not* in delete-mode",
+				j.remoteFile.Key)
+
+			return
+		}
 	}
 
 	// if the local file doesn't exist, download the remote file and return.

@@ -1,26 +1,42 @@
 package sthree
 
 import (
+	"errors"
 	"strings"
 	"testing"
 
 	"github.com/goamz/goamz/s3"
 	"github.com/mongodb/amboy"
+	"github.com/mongodb/amboy/dependency"
 	"github.com/stretchr/testify/suite"
 )
 
 // BucketJobSuite collects tests of the amboy.Job implementations that
-// support syncing files to and from S3.
+// support syncing files to and from S3. See BucketSuite for
+// integration tests from a high level, and SyncFromSuite and
+// SyncToSuite for more narrowly scoped checks of the behavior of
+// single file/object sync operations.
 type BucketJobSuite struct {
-	fromJob *syncFromJob
-	toJob   *syncToJob
-	bucket  *Bucket
-	jobs    []amboy.Job
+	fromJob    *syncFromJob
+	toJob      *syncToJob
+	bucket     *Bucket
+	jobs       []amboy.Job
+	withDelete bool
 	suite.Suite
 }
 
-func TestBucketJobSuite(t *testing.T) {
-	suite.Run(t, new(BucketJobSuite))
+func TestBucketJobSuiteWithoutDelete(t *testing.T) {
+	t.Parallel()
+	suite.Run(t, &BucketJobSuite{
+		withDelete: false,
+	})
+}
+
+func TestBucketJobSuiteWithDelete(t *testing.T) {
+	t.Parallel()
+	suite.Run(t, &BucketJobSuite{
+		withDelete: true,
+	})
 }
 
 func (s *BucketJobSuite) SetupSuite() {
@@ -29,8 +45,8 @@ func (s *BucketJobSuite) SetupSuite() {
 }
 
 func (s *BucketJobSuite) SetupTest() {
-	s.toJob = newSyncToJob("local-file-name", s3.Key{Key: "remote-file-name"}, s.bucket)
-	s.fromJob = newSyncFromJob("local-file-name", s3.Key{}, s.bucket)
+	s.toJob = newSyncToJob(s.bucket, "local-file-name", s3.Key{Key: "remote-file-name"}, s.withDelete)
+	s.fromJob = newSyncFromJob(s.bucket, "local-file-name", s3.Key{}, s.withDelete)
 	s.jobs = []amboy.Job{s.toJob, s.fromJob}
 }
 
@@ -76,6 +92,17 @@ func (s *BucketJobSuite) TestSyncJobsAreIncompleteByDefault() {
 	}
 }
 
+func (s *BucketJobSuite) TestSyncJobsHaveStaticDepenendecyManagers() {
+	always := dependency.NewAlways()
+	creates := dependency.NewCreatesFileInstance()
+
+	for _, job := range s.jobs {
+		s.Equal(job.Dependency(), always)
+		job.SetDependency(creates)
+		s.Equal(job.Dependency(), always)
+	}
+}
+
 func (s *BucketJobSuite) TestMarkCompleteMethodChangesCompleteState() {
 	s.False(s.fromJob.Completed())
 	s.False(s.toJob.Completed())
@@ -87,4 +114,61 @@ func (s *BucketJobSuite) TestMarkCompleteMethodChangesCompleteState() {
 	s.True(s.toJob.Completed())
 }
 
-// TODO write test for run method once we have a test bucket.
+func (s *BucketJobSuite) TestAddErrorDoesNotPersistNilErrors() {
+	var err error
+
+	s.Len(s.fromJob.errors, 0)
+	s.Len(s.toJob.errors, 0)
+
+	s.NoError(s.fromJob.Error())
+	s.NoError(s.toJob.Error())
+
+	s.fromJob.addError(err)
+	s.toJob.addError(err)
+
+	s.Len(s.fromJob.errors, 0)
+	s.Len(s.toJob.errors, 0)
+
+	s.NoError(s.fromJob.Error())
+	s.NoError(s.toJob.Error())
+}
+
+func (s *BucketJobSuite) AddErrorsDoesPersistErrors() {
+	err := errors.New("test")
+
+	s.Len(s.fromJob.errors, 0)
+	s.Len(s.toJob.errors, 0)
+
+	s.NoError(s.fromJob.Error())
+	s.NoError(s.toJob.Error())
+
+	s.fromJob.addError(err)
+	s.toJob.addError(err)
+
+	s.Len(s.fromJob.errors, 1)
+	s.Len(s.toJob.errors, 1)
+
+	s.Error(s.fromJob.Error())
+	s.Error(s.toJob.Error())
+}
+
+func (s *BucketJobSuite) TestErrorMethodDoesNotImpactInternalErrorState() {
+	err := errors.New("test")
+
+	s.Len(s.fromJob.errors, 0)
+	s.Len(s.toJob.errors, 0)
+
+	s.NoError(s.fromJob.Error())
+	s.NoError(s.toJob.Error())
+
+	s.fromJob.addError(err)
+	s.toJob.addError(err)
+
+	for i := 1; i < 20; i++ {
+		s.Len(s.fromJob.errors, 1)
+		s.Len(s.toJob.errors, 1)
+
+		s.Error(s.fromJob.Error())
+		s.Error(s.toJob.Error())
+	}
+}

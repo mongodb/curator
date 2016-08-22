@@ -154,7 +154,13 @@ func s3SyncToCmd() cli.Command {
 		Usage:   "sync changes from the local system to s3",
 		Flags:   s3syncFlags(),
 		Action: func(c *cli.Context) error {
-			return s3SyncTo(c.String("bucket"), c.String("profile"), c.String("local"), c.String("prefix"))
+			return s3SyncTo(
+				c.String("bucket"),
+				c.String("profile"),
+				c.String("local"),
+				c.String("prefix"),
+				c.Bool("delete"),
+				c.Bool("dry-run"))
 		},
 	}
 }
@@ -166,7 +172,13 @@ func s3SyncFromCmd() cli.Command {
 		Usage:   "sync changes from s3 to the local system",
 		Flags:   s3syncFlags(),
 		Action: func(c *cli.Context) error {
-			return s3SyncFrom(c.String("bucket"), c.String("profile"), c.String("local"), c.String("prefix"))
+			return s3SyncFrom(
+				c.String("bucket"),
+				c.String("profile"),
+				c.String("local"),
+				c.String("prefix"),
+				c.Bool("delete"),
+				c.Bool("dry-run"))
 		},
 	}
 }
@@ -275,20 +287,27 @@ func s3DeleteMatching(bucket, profile string, dryRun bool, prefix string, expres
 	return b.DeleteMatching(prefix, expression)
 }
 
-func s3SyncTo(bucket, profile, local, prefix string) error {
+func s3SyncTo(bucket, profile, local, prefix string, withDelete, dryRun bool) error {
 	b := resolveBucket(bucket, profile)
 
 	err := b.Open()
 	defer b.Close()
-
 	if err != nil {
 		return err
 	}
 
-	return b.SyncTo(local, prefix)
+	if dryRun {
+		b, err = b.DryRunClone()
+		defer b.Close()
+		if err != nil {
+			return err
+		}
+	}
+
+	return b.SyncTo(local, prefix, withDelete)
 }
 
-func s3SyncFrom(bucket, profile, local, prefix string) error {
+func s3SyncFrom(bucket, profile, local, prefix string, withDelete, dryRun bool) error {
 	b := resolveBucket(bucket, profile)
 
 	err := b.Open()
@@ -297,7 +316,15 @@ func s3SyncFrom(bucket, profile, local, prefix string) error {
 		return err
 	}
 
-	return b.SyncFrom(local, prefix)
+	if dryRun {
+		b, err = b.DryRunClone()
+		defer b.Close()
+		if err != nil {
+			return err
+		}
+	}
+
+	return b.SyncFrom(local, prefix, withDelete)
 }
 
 /////////////////////////
@@ -335,7 +362,16 @@ func s3syncFlags(args ...cli.Flag) []cli.Flag {
 		cli.StringFlag{
 			Name:  "prefix",
 			Usage: "a prefix of s3 key names",
-		})
+		},
+		cli.BoolFlag{
+			Name:  "dry-run",
+			Usage: "make task operate in a dry-run mode",
+		},
+		cli.BoolFlag{
+			Name:  "delete",
+			Usage: "delete items from the target that do not exist in the source",
+		},
+	)
 
 	flags = append(flags, args...)
 	return flags

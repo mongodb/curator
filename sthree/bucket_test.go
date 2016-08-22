@@ -108,7 +108,7 @@ func (s *BucketSuite) TestAdditionalMimeTypesAndMimeTypeDiscovery() {
 	s.Equal("text/plain", getMimeType("unrecognizedtargz"))
 }
 
-func (s *BucketSuite) TestCredentialSetterOverridesCredentialsForASingleBucket() {
+func (s *BucketSuite) TestCredentialSetterDoesNotOverrideCachedCredentialsBucket() {
 	newCreds := AWSConnectionConfiguration{
 		Auth: aws.Auth{
 			AccessKey: "foo",
@@ -125,9 +125,9 @@ func (s *BucketSuite) TestCredentialSetterOverridesCredentialsForASingleBucket()
 	// means if we get another pointer to this variable it's set
 	// (i.e. buckets are shared. )
 	copyOfOne := GetBucket(s.bucketName)
-	second := GetBucket("test-two")
+	second := GetBucket("test-second-bucket")
 	s.NotEqual(s.b.credentials.Region, second.credentials.Region)
-	s.Equal(s.b.credentials.Region, copyOfOne.credentials.Region)
+	s.NotEqual(s.b.credentials.Region, copyOfOne.credentials.Region)
 }
 
 func (s *BucketSuite) TestOpenMethodStartsQueueAndConnections() {
@@ -184,13 +184,34 @@ func (s *BucketSuite) TestContentsAndListProduceIdenticalData() {
 func (s *BucketSuite) TestJobNumberIsConfigurableBeforeBucketOpens() {
 	s.Equal(s.b.numJobs, runtime.NumCPU()*4)
 
-	for i := 1; i < 25; i++ {
+	for i := 1; i < 20; i = i + 2 {
 		s.False(s.b.open)
 		s.NoError(s.b.SetNumJobs(i))
 		s.NoError(s.b.Open())
 		s.True(s.b.open)
 		s.Equal(i, s.b.queue.Runner().Size())
 		s.b.Close()
+	}
+}
+
+func (s *BucketSuite) TestRetriesNubmerIsSetableGreaterThanZero() {
+	for i := 1; i < 20; i++ {
+		err := s.b.SetNumRetries(i)
+		s.NoError(err)
+		s.Equal(i, s.b.numRetries)
+	}
+}
+
+func (s *BucketSuite) TestRetriesNumberSetterDoesNotSetToLessThanOrEqualToZero() {
+	num := 4
+
+	s.b.SetNumRetries(num)
+	s.Equal(num, s.b.numRetries)
+
+	for i := -20; i <= 0; i++ {
+		err := s.b.SetNumRetries(i)
+		s.Error(err)
+		s.Equal(num, s.b.numRetries)
 	}
 }
 
@@ -290,6 +311,33 @@ func (s *BucketSuite) TestDeleteOperationRemovesPathFromBucket() {
 	s.False(ok)
 }
 
+func (s *BucketSuite) TestDryRunDeleteOperationDoesNotRemovePathsFromBucket() {
+	local := "bucket.go"
+	remote := filepath.Join(s.uuid, local+".four")
+
+	s.NoError(s.b.Open())
+	s.False(s.b.dryRun)
+	bucket, err := s.b.DryRunClone()
+	s.True(bucket.dryRun)
+	s.NoError(err)
+	s.NoError(bucket.Open())
+	defer bucket.Close()
+
+	// upload the file to s3
+	s.NoError(s.b.Put(local, remote))
+
+	_, ok := s.b.contents(s.uuid)[remote]
+	s.True(ok)
+
+	_, ok = bucket.contents(s.uuid)[remote]
+	s.True(ok)
+
+	s.NoError(bucket.Delete(remote))
+
+	_, ok = bucket.contents(s.uuid)[remote]
+	s.True(ok)
+}
+
 func (s *BucketSuite) TestDeleteManyOperationRemovesManyPathsFromBucket() {
 	local := "bucket.go"
 	s.NoError(s.b.Open())
@@ -309,6 +357,20 @@ func (s *BucketSuite) TestDeleteManyOperationRemovesManyPathsFromBucket() {
 
 	s.NoError(s.b.DeleteMany(toDelete...))
 
+	s.Len(s.b.contents(filepath.Join(s.uuid, prefix)), 0)
+}
+
+func (s *BucketSuite) TestDeleteManySpecialCasesSingleOperation() {
+	local := "bucket.go"
+	s.NoError(s.b.Open())
+	prefix := uuid.NewV4().String()
+
+	s.Len(s.b.contents(filepath.Join(s.uuid, prefix)), 0)
+	name := filepath.Join(s.uuid, prefix, local+".fiveish.0")
+	s.NoError(s.b.Put(local, name))
+	s.Len(s.b.contents(filepath.Join(s.uuid, prefix)), 1)
+
+	s.NoError(s.b.DeleteMany(name))
 	s.Len(s.b.contents(filepath.Join(s.uuid, prefix)), 0)
 }
 
@@ -387,13 +449,43 @@ func (s *BucketSuite) TestSyncToUploadsNewFilesWithoutError() {
 
 	s.Len(s.b.contents(remotePrefix), 0)
 
-	err = s.b.SyncTo(pwd, remotePrefix)
+	for i := 0; i < 3; i++ {
+		err = s.b.SyncTo(pwd, remotePrefix, false)
+		s.NoError(err)
+
+		num, err := numFilesInPath(pwd, false)
+		s.NoError(err)
+		s.Len(s.b.contents(remotePrefix), num)
+	}
+}
+
+func (s *BucketSuite) TestSyncToDryRunDoesNotUploadFiles() {
+	pwd, err := os.Getwd()
 	s.NoError(err)
 
-	num, err := numFilesInPath(pwd, false)
-	s.NoError(err)
-	s.Len(s.b.contents(remotePrefix), num)
+	remotePrefix := filepath.Join(s.uuid, "sync-to-none")
 
+	bucket, err := s.b.DryRunClone()
+	s.NoError(err)
+
+	s.NoError(bucket.Open())
+
+	s.Len(bucket.contents(remotePrefix), 0)
+
+	err = bucket.SyncTo(pwd, remotePrefix, false)
+	s.NoError(err)
+
+	s.Len(s.b.contents(remotePrefix), 0)
+}
+
+func (s *BucketSuite) TestCloneOpenBucketReturnsOpenBucket() {
+	s.False(s.b.open)
+	s.NoError(s.b.Open())
+	s.True(s.b.open)
+
+	clone, err := s.b.Clone()
+	s.NoError(err)
+	s.True(clone.open)
 }
 
 func (s *BucketSuite) TestSyncFromDownloadsFiles() {
@@ -406,7 +498,7 @@ func (s *BucketSuite) TestSyncFromDownloadsFiles() {
 	s.Len(s.b.contents(remotePrefix), 0)
 
 	// populate bucket.
-	err = s.b.SyncTo(pwd, remotePrefix)
+	err = s.b.SyncTo(pwd, remotePrefix, false)
 	s.NoError(err)
 	numFiles, err := numFilesInPath(pwd, false)
 	s.NoError(err)
@@ -415,15 +507,38 @@ func (s *BucketSuite) TestSyncFromDownloadsFiles() {
 	s.Len(s.b.contents(remotePrefix), numFiles)
 	s.True(numFiles > 0)
 
-	local := filepath.Join(s.tempDir, "sync-from-one")
-	err = s.b.SyncFrom(local, remotePrefix)
+	// do this in a loop to make sure it's idempotent.
+	for i := 0; i < 3; i++ {
+		local := filepath.Join(s.tempDir, "sync-from-one")
+		err = s.b.SyncFrom(local, remotePrefix, false)
+		s.NoError(err)
+
+		// make sure we pulled the right number of files out of the
+		// bucket.
+		num, err := numFilesInPath(local, false)
+		s.NoError(err)
+		s.Equal(numFiles, num)
+	}
+}
+
+func (s *BucketSuite) TestSyncFromDryRunDoesNotUploadFiles() {
+	pwd, err := os.Getwd()
 	s.NoError(err)
 
-	// make sure we pulled the right number of files out of the
-	// bucket.
-	num, err := numFilesInPath(local, false)
+	remotePrefix := filepath.Join(s.uuid, "sync-to-none")
+
+	bucket, err := s.b.DryRunClone()
 	s.NoError(err)
-	s.Equal(numFiles, num)
+
+	s.NoError(bucket.Open())
+
+	s.Len(bucket.contents(remotePrefix), 0)
+
+	err = bucket.SyncFrom(pwd, remotePrefix, false)
+	s.NoError(err)
+
+	s.Len(s.b.contents(remotePrefix), 0)
+
 }
 
 func (s *BucketSuite) TestSyncFromTestWhenFilesHaveChanged() {
@@ -432,11 +547,11 @@ func (s *BucketSuite) TestSyncFromTestWhenFilesHaveChanged() {
 	s.NoError(s.b.Open())
 
 	remotePrefix := filepath.Join(s.uuid, "sync-round-trip")
-	err = s.b.SyncTo(pwd, remotePrefix)
+	err = s.b.SyncTo(pwd, remotePrefix, false)
 	s.NoError(err)
 
 	local := filepath.Join(s.tempDir, "sync-round-trip")
-	err = s.b.SyncFrom(local, remotePrefix)
+	err = s.b.SyncFrom(local, remotePrefix, false)
 	s.NoError(err)
 
 	err = filepath.Walk(local, func(p string, info os.FileInfo, err error) error {
@@ -450,7 +565,7 @@ func (s *BucketSuite) TestSyncFromTestWhenFilesHaveChanged() {
 	})
 	s.NoError(err)
 
-	err = s.b.SyncFrom(local, remotePrefix)
+	err = s.b.SyncFrom(local, remotePrefix, false)
 	s.NoError(err)
 
 	err = filepath.Walk(local, func(p string, info os.FileInfo, err error) error {

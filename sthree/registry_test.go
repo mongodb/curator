@@ -1,6 +1,7 @@
 package sthree
 
 import (
+	"os"
 	"testing"
 
 	"github.com/goamz/goamz/aws"
@@ -27,15 +28,17 @@ func (s *RegistrySuite) SetupSuite() {
 	grip.CatchError(grip.UseNativeLogger())
 	s.registry = newBucketRegistry()
 	s.require = s.Require()
-
-	for _, b := range buckets.m {
-		b.Close()
-	}
 }
 
 func (s *RegistrySuite) SetupTest() {
 	s.registry.m = make(map[string]*Bucket)
 	s.registry.c = AWSConnectionConfiguration{}
+
+	for _, b := range buckets.m {
+		b.Close()
+	}
+
+	s.require.Len(buckets.m, 0)
 }
 
 func (s *RegistrySuite) TearDownSuite() {
@@ -45,25 +48,26 @@ func (s *RegistrySuite) TearDownSuite() {
 
 	s.require.Len(buckets.m, 0)
 	s.require.Len(s.registry.m, 0)
-
 }
 
 func (s *RegistrySuite) TestInitialStateIsEmpty() {
 	s.Len(s.registry.m, 0)
 	s.Equal(s.registry.c.Region, aws.Region{})
+
 	s.Equal(s.registry.c.Auth.AccessKey, "")
 	s.Equal(s.registry.c.Auth.SecretKey, "")
 }
 
 func (s *RegistrySuite) TestImpactOfInitializationOperation() {
+	s.NoError(os.Setenv("AWS_PROFILE", "default"))
 	s.registry.init()
 
 	s.Equal(s.registry.c.Region, aws.USEast)
 
 	// these checks depend on having aws credentials in
 	// ~/.aws/credentials or environment variables
-	s.NotEqual(s.registry.c.Auth.AccessKey, "")
-	s.NotEqual(s.registry.c.Auth.SecretKey, "")
+	s.NotEqual("", s.registry.c.Auth.AccessKey)
+	s.NotEqual("", s.registry.c.Auth.SecretKey)
 }
 
 func (s *RegistrySuite) TestSetCredentialChangesInternalValue() {
@@ -103,6 +107,8 @@ func (s *RegistrySuite) TestSetCredentialDoesNotNulifyRegion() {
 	s.Equal(s.registry.c.Region, aws.USEast)
 }
 
+// Test standard bucket getter
+
 func (s *RegistrySuite) TestRegistryShouldFunctionAsBucketFactory() {
 	s.registry.init()
 
@@ -119,17 +125,19 @@ func (s *RegistrySuite) TestRegistryShouldFunctionAsBucketFactory() {
 }
 
 func (s *RegistrySuite) TestBucketCreationFromExistingBucket() {
-	b := buckets.getBucket("test")
+	name := "test-recreation"
+	s.Len(buckets.m, 0)
+	b := buckets.getBucket(name)
 	defer b.Close()
 
 	s.Len(buckets.m, 1)
-	s.Equal(b.name, "test")
+	s.Equal(b.name, name)
 	s.Equal(b.NewFilePermission, s3.BucketOwnerFull)
 
 	b.NewFilePermission = s3.PublicRead
 	s.Equal(b.NewFilePermission, s3.PublicRead)
 
-	second := b.NewBucket("two")
+	second := b.NewBucket(name + "two")
 	defer second.Close()
 
 	s.NoError(second.Open())
@@ -137,7 +145,7 @@ func (s *RegistrySuite) TestBucketCreationFromExistingBucket() {
 	s.Len(buckets.m, 2)
 	s.Equal(b.NewFilePermission, second.NewFilePermission)
 
-	two := buckets.getBucket("two")
+	two := buckets.getBucket(name + "two")
 	defer two.Close()
 
 	s.Exactly(second, two)
@@ -154,19 +162,86 @@ func (s *RegistrySuite) TestRemoveBucketFromRegistryOnClose() {
 	s.require.Len(s.registry.m, 0)
 }
 
-func (s *RegistrySuite) TestRegisterDuplicateNameShouldOverwriteExistingBucket() {
-	s.Len(s.registry.m, 0)
-	b := s.registry.getBucket("test")
-	s.Len(s.registry.m, 1)
+func (s *RegistrySuite) TestRegisterDuplicateNameShouldNotOverwriteExistingBucket() {
+	s.Len(buckets.m, 0)
+	b := buckets.getBucket("test")
+	s.Len(buckets.m, 1)
 
-	b.credentials.Auth.AccessKey = "foo"
-
-	dup := s.registry.getBucket("test")
+	dup := buckets.getBucket("test")
 	s.Exactly(b, dup)
 	s.Equal(dup.credentials.Auth.AccessKey, b.credentials.Auth.AccessKey)
 
-	s.registry.registerBucket(&Bucket{name: "test"})
-	new := s.registry.getBucket("test")
-	s.NotEqual(new, dup)
-	s.NotEqual(new, b)
+	buckets.registerBucket(&Bucket{name: "test"})
+	new := buckets.getBucket("test")
+	s.Equal(new, dup)
+	s.Equal(new, b)
+}
+
+// test bucketGetterWithProfile no AWS_PROFILE env var set, so should
+// fall back to the same behavior as bucket getting through the normal means.
+
+func (s *RegistrySuite) TestRegistryShouldFunctionAsBucketFactoryWithProfileAndEnvUnset() {
+	b := buckets.getBucketFromProfile("test", "extra")
+	s.Len(buckets.m, 1)
+	s.Equal(b.name, "test")
+	s.NotEqual(b.credentials, buckets.c)
+	s.Equal(string(b.NewFilePermission), "bucket-owner-full-control")
+
+	second := buckets.getBucketFromProfile("test", "extra")
+	s.Len(buckets.m, 1)
+	s.Equal(b.name, "test")
+	s.Exactly(b, second)
+}
+
+func (s *RegistrySuite) TestBucketCreationFromExistingBucketWithProfileAndEnvUnset() {
+	b := buckets.getBucketFromProfile("test", "extra")
+	s.Len(buckets.m, 1)
+	s.Equal(b.name, "test")
+	s.Equal(b.NewFilePermission, s3.BucketOwnerFull)
+
+	b.NewFilePermission = s3.PublicRead
+	second := b.NewBucket("two")
+	s.Len(buckets.m, 2)
+	s.Equal(b.NewFilePermission, second.NewFilePermission)
+
+	two := buckets.getBucketFromProfile("two", "extra")
+	s.Equal(second, two)
+	s.NotEqual(b, second)
+	s.NotEqual(b, two)
+}
+
+func (s *RegistrySuite) TestRemoveBucketFromRegistryOnCloseWithProfileAndEnvUnset() {
+	s.Len(buckets.m, 0)
+	b := buckets.getBucketFromProfile("test", "extra")
+
+	s.Len(buckets.m, 1)
+	b.Close()
+	s.Len(buckets.m, 0)
+}
+
+func (s *RegistrySuite) TestRegisterDuplicateNameShouldNotOverwriteExistingBucketWithProfileAndEnvUnset() {
+	s.Len(buckets.m, 0)
+	b := buckets.getBucketFromProfile("test", "extra")
+	s.Len(buckets.m, 1)
+
+	dup := buckets.getBucketFromProfile("test", "extra")
+	s.Exactly(b, dup)
+	s.Equal(dup.credentials.Auth.AccessKey, b.credentials.Auth.AccessKey)
+
+	buckets.registerBucket(&Bucket{name: "test"})
+	new := buckets.getBucketFromProfile("test", "extra")
+	s.Equal(new, dup)
+	s.Equal(new, b)
+}
+
+// test bucketGetterWithProfile *with* AWS_PROFILE env var set, Use different crentials
+
+func (s *RegistrySuite) TestGetBucketFromCacheWithProfileSet() {
+	bucketName := "build-curator-testing"
+	one := GetBucketWithProfile(bucketName, "foo")
+	s.NoError(os.Setenv("AWS_PROFILE", "foo"))
+	// defer s.NoError(os.Unsetenv("AWS_PROFILE"))
+
+	two := GetBucketWithProfile(bucketName, "foo")
+	s.Equal(one.credentials, two.credentials)
 }

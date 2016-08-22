@@ -338,7 +338,7 @@ func (j *Job) Run() {
 			}
 
 			grip.Infof("downloading from %s to %s", remote, local)
-			err = bucket.SyncFrom(local, remote)
+			err = bucket.SyncFrom(local, remote, false)
 			if err != nil {
 				j.addError(errors.Wrapf(err, "sync from %s to %s", remote, local))
 				return
@@ -383,7 +383,7 @@ func (j *Job) Run() {
 				}
 
 				// do the sync. It's ok,
-				err = bucket.SyncTo(syncSource, filepath.Join(remote, changedComponent))
+				err = bucket.SyncTo(syncSource, filepath.Join(remote, changedComponent), false)
 				if err != nil {
 					j.addError(errors.Wrapf(err, "problem uploading %s to %s/%s",
 						syncSource, bucket, changedComponent))

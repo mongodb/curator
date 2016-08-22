@@ -98,19 +98,17 @@ func (r *bucketRegistry) getBucketFromProfile(name, account string) *Bucket {
 	r.l.Lock()
 	defer r.l.Unlock()
 
-	existing := os.Getenv("AWS_PROFILE")
-	if existing == "" {
-		return r.getBucketWithCredentials(name, r.c)
-	}
+	previousProfile := os.Getenv("AWS_PROFILE")
+	defer grip.CatchError(os.Setenv("AWS_PROFILE", previousProfile))
 
 	grip.CatchError(os.Setenv("AWS_PROFILE", account))
+
 	auth, err := aws.SharedAuth()
 	grip.CatchWarning(err)
 	creds := AWSConnectionConfiguration{
 		Auth:   auth,
 		Region: r.c.Region,
 	}
-	grip.CatchError(os.Setenv("AWS_PROFILE", existing))
 
 	return r.getBucketWithCredentials(name, creds)
 }
@@ -135,21 +133,27 @@ func (r *bucketRegistry) registerBucket(b *Bucket) {
 
 func (r *bucketRegistry) getBucketWithCredentials(name string, creds AWSConnectionConfiguration) *Bucket {
 	b, ok := r.m[name]
-	if !ok {
-		client := s3.New(r.c.Auth, r.c.Region)
-		b = &Bucket{
-			NewFilePermission: s3.BucketOwnerFull,
-			s3:                client,
-			bucket:            client.Bucket(name),
-			credentials:       creds,
-			name:              name,
-			numJobs:           runtime.NumCPU() * 4,
-			numRetries:        20,
-		}
-		grip.Noticef("creating new connection to bucket '%s'", name)
-
-		r.m[name] = b
+	if ok && (b.credentials.Auth == creds.Auth && b.credentials.Region == creds.Region) {
+		return b
 	}
+
+	client := s3.New(creds.Auth, creds.Region)
+	b = &Bucket{
+		NewFilePermission: s3.BucketOwnerFull,
+		s3:                client,
+		bucket:            client.Bucket(name),
+		credentials:       creds,
+		name:              name,
+		numJobs:           runtime.NumCPU() * 4,
+		numRetries:        20,
+	}
+
+	grip.Noticef("creating new connection to bucket '%s'", name)
+
+	grip.WarningWhenln(ok, "overwriting previous connection to '", name,
+		"' after accessing and existing bucket with new credentials.")
+
+	r.m[name] = b
 
 	return b
 }

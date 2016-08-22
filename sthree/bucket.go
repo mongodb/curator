@@ -163,7 +163,7 @@ func (b *Bucket) SetNumJobs(n int) error {
 // SetNumRetries allows callers to change the number of retries put
 // and get operations will take in the cse of an error.
 func (b *Bucket) SetNumRetries(n int) error {
-	if n < 0 {
+	if n <= 0 {
 		return errors.Errorf("numRetries=%d, must be larger than 0", n)
 	}
 
@@ -399,6 +399,11 @@ func (b *Bucket) Get(path, fileName string) error {
 func (b *Bucket) Delete(path string) error {
 	grip.Noticef("removing %s.%s", b.name, path)
 
+	if b.dryRun {
+		grip.Infof("dry-run: would delete %s from %s", path, b.name)
+		return nil
+	}
+
 	return errors.Wrapf(b.bucket.Del(path), "deleting %s from %s", path, b.name)
 }
 
@@ -533,7 +538,7 @@ func (b *Bucket) deleteGroup(items <-chan s3.Key) error {
 // not exist or if the local file has different content from the
 // remote file. All operations execute in the worker pool, and SyncTo
 // waits for all jobs to complete before returning an aggregated error.
-func (b *Bucket) SyncTo(local, prefix string) error {
+func (b *Bucket) SyncTo(local, prefix string, withDelete bool) error {
 	grip.Infof("sync push %s -> %s/%s", local, b.name, prefix)
 
 	remote := b.contents(prefix)
@@ -547,7 +552,7 @@ func (b *Bucket) SyncTo(local, prefix string) error {
 			return err
 		}
 
-		if info.IsDir() {
+		if info.IsDir() && !withDelete {
 			return nil
 		}
 
@@ -557,7 +562,8 @@ func (b *Bucket) SyncTo(local, prefix string) error {
 		if !ok {
 			remoteFile = s3.Key{Key: keyName}
 		}
-		job := newSyncToJob(path, remoteFile, b)
+
+		job := newSyncToJob(b, path, remoteFile, withDelete)
 
 		counter++
 
@@ -591,12 +597,12 @@ func (b *Bucket) SyncTo(local, prefix string) error {
 // download files if the content of the local file have *not* changed.
 // All operations execute in the worker pool, and SyncTo waits for all
 // jobs to complete before returning an aggregated erro
-func (b *Bucket) SyncFrom(local, prefix string) error {
+func (b *Bucket) SyncFrom(local, prefix string, withDelete bool) error {
 	catcher := grip.NewCatcher()
 	grip.Infof("sync pull %s/%s -> %s", b.name, prefix, local)
 
 	for remote := range b.list(prefix) {
-		job := newSyncFromJob(filepath.Join(local, remote.Key[len(prefix):]), remote, b)
+		job := newSyncFromJob(b, filepath.Join(local, remote.Key[len(prefix):]), remote, withDelete)
 
 		// add the job to the queue
 		catcher.Add(errors.Wrap(b.queue.Put(job),
