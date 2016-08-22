@@ -3,6 +3,7 @@ package sthree
 import (
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"mime"
 	"os"
 	"path/filepath"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/goamz/goamz/aws"
 	"github.com/goamz/goamz/s3"
+	"github.com/jpillora/backoff"
 	"github.com/mongodb/amboy"
 	"github.com/mongodb/amboy/queue"
 	"github.com/pkg/errors"
@@ -20,7 +22,6 @@ import (
 
 func init() {
 	// adds, at process startup time.
-
 	grip.CatchError(mime.AddExtensionType(".deb", "application/octet-stream"))
 	grip.CatchError(mime.AddExtensionType(".gz", "application/x-gzip"))
 	grip.CatchError(mime.AddExtensionType(".json", "application/json"))
@@ -29,9 +30,19 @@ func init() {
 	grip.CatchError(mime.AddExtensionType(".txt", "text/plain"))
 	grip.CatchError(mime.AddExtensionType(".yaml", "text/x-yaml"))
 	grip.CatchError(mime.AddExtensionType(".yml", "text/x-yaml"))
+
+	// for jitter in expoential backoff
+	rand.Seed(time.Now().Unix())
 }
 
-const sleepBetweenRetriesLength = 500 * time.Millisecond
+func getBackoff() *backoff.Backoff {
+	return &backoff.Backoff{
+		Min:    100 * time.Millisecond,
+		Max:    5 * time.Second,
+		Factor: 2,
+		Jitter: true,
+	}
+}
 
 // AWSConnectionConfiguration defines configuration, including
 // authentication credentials and AWS region, used when creating new
@@ -253,6 +264,8 @@ func (b *Bucket) Exists(path string) (bool, error) {
 	var exists bool
 	var err error
 
+	backoff := getBackoff()
+
 	for i := 1; i <= b.numRetries; i++ {
 		exists, err = b.bucket.Exists(path)
 		if err == nil {
@@ -263,7 +276,7 @@ func (b *Bucket) Exists(path string) (bool, error) {
 
 		if i < b.numRetries {
 			grip.Warningln(err, "retrying...")
-			time.Sleep(sleepBetweenRetriesLength)
+			time.Sleep(backoff.Duration())
 			grip.Debugf("retrying s3.EXISTS %d of %d, for %s", i, b.numRetries, path)
 		}
 	}
@@ -296,7 +309,7 @@ func (b *Bucket) Put(fileName, path string) error {
 
 	// do put in a retry loop:
 	catcher := grip.NewCatcher()
-
+	backoff := getBackoff()
 	for i := 1; i <= b.numRetries; i++ {
 		err = b.bucket.Put(path, contents, mimeType, b.NewFilePermission, s3.Options{})
 		if err == nil {
@@ -308,7 +321,7 @@ func (b *Bucket) Put(fileName, path string) error {
 
 		if i < b.numRetries {
 			grip.Warningln(err, "retrying...")
-			time.Sleep(sleepBetweenRetriesLength)
+			time.Sleep(backoff.Duration())
 			grip.Debugf("retrying s3.GET %d of %d, for %s", i, b.numRetries, path)
 		}
 	}
@@ -346,6 +359,7 @@ func (b *Bucket) Get(path, fileName string) error {
 	var data []byte
 	var err error
 
+	backoff := getBackoff()
 	for i := 1; i <= b.numRetries; i++ {
 		data, err = b.bucket.Get(path)
 
@@ -359,7 +373,7 @@ func (b *Bucket) Get(path, fileName string) error {
 
 		if i < b.numRetries {
 			grip.Warningln(err, "retrying...")
-			time.Sleep(sleepBetweenRetriesLength)
+			time.Sleep(backoff.Duration())
 			grip.Debugf("retrying s3.GET %d of %d, for %s", i, b.numRetries, path)
 		}
 	}
