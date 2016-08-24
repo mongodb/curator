@@ -132,14 +132,14 @@ func (s *BucketSuite) TestCredentialSetterDoesNotOverrideCachedCredentialsBucket
 
 func (s *BucketSuite) TestOpenMethodStartsQueueAndConnections() {
 	// make sure that we start out with a non-opened host.
-	s.False(s.b.open)
+	s.False(s.b.IsOpen())
 
 	// abort if opening causes an error
 	s.require.NoError(s.b.Open())
 	s.True(s.b.queue.Started())
 
 	// confirm that the bucket is open
-	s.True(s.b.open)
+	s.True(s.b.IsOpen())
 	s.NotNil(s.b.bucket)
 	s.True(s.b.queue.Started())
 
@@ -151,7 +151,7 @@ func (s *BucketSuite) TestOpenMethodStartsQueueAndConnections() {
 
 	// cleanup at the end
 	s.b.Close()
-	s.False(s.b.open)
+	s.False(s.b.IsOpen())
 }
 
 func (s *BucketSuite) TestContentsAndListProduceIdenticalData() {
@@ -185,10 +185,10 @@ func (s *BucketSuite) TestJobNumberIsConfigurableBeforeBucketOpens() {
 	s.Equal(s.b.numJobs, runtime.NumCPU()*4)
 
 	for i := 1; i < 20; i = i + 2 {
-		s.False(s.b.open)
+		s.False(s.b.IsOpen())
 		s.NoError(s.b.SetNumJobs(i))
 		s.NoError(s.b.Open())
-		s.True(s.b.open)
+		s.True(s.b.IsOpen())
 		s.Equal(i, s.b.queue.Runner().Size())
 		s.b.Close()
 	}
@@ -217,7 +217,7 @@ func (s *BucketSuite) TestRetriesNumberSetterDoesNotSetToLessThanOrEqualToZero()
 
 func (s *BucketSuite) TestJobNumberIsNotConfigurableAfterBucketOpens() {
 	s.NoError(s.b.Open())
-	s.True(s.b.open)
+	s.True(s.b.IsOpen())
 
 	s.Equal(s.b.numJobs, runtime.NumCPU()*4)
 	s.Equal(s.b.numJobs, s.b.queue.Runner().Size())
@@ -479,13 +479,13 @@ func (s *BucketSuite) TestSyncToDryRunDoesNotUploadFiles() {
 }
 
 func (s *BucketSuite) TestCloneOpenBucketReturnsOpenBucket() {
-	s.False(s.b.open)
+	s.False(s.b.IsOpen())
 	s.NoError(s.b.Open())
-	s.True(s.b.open)
+	s.True(s.b.IsOpen())
 
 	clone, err := s.b.Clone()
 	s.NoError(err)
-	s.True(clone.open)
+	s.True(clone.IsOpen())
 }
 
 func (s *BucketSuite) TestSyncFromDownloadsFiles() {

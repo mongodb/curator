@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/goamz/goamz/aws"
@@ -63,7 +64,6 @@ type Bucket struct {
 	// The permission defined by NewFilePermission is used for all
 	// Put operations in the bucket.
 	NewFilePermission s3.ACL
-	open              bool
 	dryRun            bool
 	credentials       AWSConnectionConfiguration
 	bucket            *s3.Bucket
@@ -72,6 +72,7 @@ type Bucket struct {
 	numJobs           int
 	numRetries        int
 	queue             amboy.Queue
+	mutex             sync.Mutex
 }
 
 // NewBucket clones the settings of one bucket into a new bucket. The
@@ -100,8 +101,15 @@ func (b *Bucket) DryRunClone() (*Bucket, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	clone.dryRun = true
+
+	if b.queue != nil {
+		err = clone.Open()
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return clone, nil
 }
 
@@ -110,14 +118,13 @@ func (b *Bucket) DryRunClone() (*Bucket, error) {
 func (b *Bucket) Clone() (*Bucket, error) {
 	clone := &Bucket{
 		name:              b.name,
-		open:              false,
 		NewFilePermission: b.NewFilePermission,
 		credentials:       b.credentials,
 		numJobs:           b.numJobs,
 		numRetries:        b.numRetries,
 	}
 
-	if b.open {
+	if b.queue != nil {
 		err := clone.Open()
 		if err != nil {
 			return nil, err
@@ -152,7 +159,10 @@ func (b *Bucket) SetCredentials(c AWSConnectionConfiguration) {
 // the Bucket will start to process sync jobs. Returns an error if the
 // Bucket is open and has a running queue.
 func (b *Bucket) SetNumJobs(n int) error {
-	if b.open {
+	b.mutex.Lock()
+	defer b.mutex.Unlock()
+
+	if b.queue != nil {
 		return errors.Errorf("numJobs=%d, cannot change for a running queue", b.numJobs)
 	}
 
@@ -176,10 +186,6 @@ func (b *Bucket) SetNumRetries(n int) error {
 // creating creating the worker queue. Does *not* return an error if
 // the Bucket has been opened, and is a noop in this case.
 func (b *Bucket) Open() error {
-	if b.open {
-		return nil
-	}
-
 	if b.s3 == nil {
 		b.s3 = s3.New(b.credentials.Auth, b.credentials.Region)
 	}
@@ -188,11 +194,15 @@ func (b *Bucket) Open() error {
 		b.bucket = b.s3.Bucket(b.name)
 	}
 
-	b.open = true
+	b.mutex.Lock()
+	defer b.mutex.Unlock()
 
-	b.queue = queue.NewLocalUnordered(b.numJobs)
+	if b.queue == nil {
+		b.queue = queue.NewLocalUnordered(b.numJobs)
+		return errors.Wrap(b.queue.Start(), "starting worker queue for sync jobs")
+	}
 
-	return errors.Wrap(b.queue.Start(), "starting worker queue for sync jobs")
+	return nil
 }
 
 // Close waits for all pending jobs to return and then releases all
@@ -201,10 +211,20 @@ func (b *Bucket) Open() error {
 func (b *Bucket) Close() {
 	defer buckets.removeBucket(b)
 
-	if b.open {
+	b.mutex.Lock()
+	defer b.mutex.Unlock()
+
+	if b.queue != nil {
 		b.queue.Close()
-		b.open = false
+		b.queue = nil
 	}
+}
+
+func (b *Bucket) IsOpen() bool {
+	b.mutex.Lock()
+	defer b.mutex.Unlock()
+
+	return b.queue != nil
 }
 
 // list returns a channel of strings of key names in the bucket. Allows
