@@ -1,6 +1,7 @@
 package operations
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -35,35 +36,40 @@ func (s *CommandsSuite) TestRepoFlags() {
 }
 
 func (s *CommandsSuite) TestRebuildOperationOnProcess() {
+	os.Setenv("NOTARY_TOKEN", "foo")
 	err := buildRepo(
 		"./", // packages
 		"../repobuilder/config_test.yaml", // repo config path
-		"./",         // workingdir
-		"rhel7",      // distro
-		"enterprise", // edition
-		"2.8.0",      // mongodbe version
-		"x86_64",     // arch
-		"default",    // aws profile
-		true,         // dryrun
-		true)         // rebuild
+		"../build/repo-build-test",        // workingdir
+		"rhel7",                           // distro
+		"enterprise",                      // edition
+		"2.8.0",                           // mongodbe version
+		"x86_64",                          // arch
+		"default",                         // aws profile
+		true,                              // dryrun
+		true)                              // rebuild
 
-	s.NoError(err)
+	if !s.NoError(err) {
+		fmt.Println(err)
+	}
 }
 
 func (s *CommandsSuite) TestDryRunOperationOnProcess() {
 	err := buildRepo(
 		"./", // packages
 		"../repobuilder/config_test.yaml", // repo config path
-		"./",         // workingdir
-		"rhel7",      // distro
-		"enterprise", // edition
-		"2.8.0",      // mongodbe version
-		"x86_64",     // arch
-		"default",    // aws profile
-		true,         // dryrun
-		false)        // rebuild
+		"../build/repo-build-test",        // workingdir
+		"rhel7",                           // distro
+		"enterprise",                      // edition
+		"2.8.0",                           // mongodbe version
+		"x86_64",                          // arch
+		"default",                         // aws profile
+		true,                              // dryrun
+		false)                             // rebuild
 
-	s.Equal(err.Error(), "no packages found in path './'")
+	if !s.Equal(err.Error(), "no packages found in path './'") {
+		fmt.Println(err)
+	}
 }
 
 func (s *CommandsSuite) TestGetPackagesFunction() {

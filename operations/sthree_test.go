@@ -2,7 +2,6 @@ package operations
 
 import (
 	"os"
-	"runtime"
 	"strings"
 
 	"github.com/urfave/cli"
@@ -30,25 +29,26 @@ func (s *CommandsSuite) TestSyncFlagsFactory() {
 	flags := s3syncFlags()
 	names := make(map[string]bool)
 	for _, flag := range flags {
-		names[flag.GetName()] = true
-		if flag.GetName() == "local" {
+		flagName := flag.GetName()
+		names[flagName] = true
+		if flagName == "local" {
 			f, ok := flag.(cli.StringFlag)
 			s.True(ok)
 			s.Equal(pwd, f.Value)
-		} else if flag.GetName() == "jobs" {
-			f, ok := flag.(cli.IntFlag)
-			s.True(ok)
-			s.Equal(f.Value, runtime.NumCPU()*2)
+		} else if flagName == "dry-run" || flagName == "delete" {
+			s.IsType(cli.BoolFlag{}, flag)
 		} else {
 			s.IsType(cli.StringFlag{}, flag)
 		}
 	}
 
-	s.Len(names, 4)
-	s.Len(flags, 4)
+	s.Len(names, 6)
+	s.Len(flags, 6)
 	s.True(names["bucket"])
 	s.True(names["local"])
 	s.True(names["prefix"])
+	s.True(names["dry-run"])
+	s.True(names["delete"])
 }
 
 func (s *CommandsSuite) TestS3ParentCommandHasExpectedProperties() {
