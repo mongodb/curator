@@ -16,6 +16,8 @@ import (
 	"github.com/tychoish/grip"
 )
 
+// BuildRPMRepoJob contains specific implementation for building RPM
+// repositories using createrepo.
 type BuildRPMRepoJob struct {
 	*Job
 }
@@ -26,6 +28,7 @@ func init() {
 	})
 }
 
+// NewBuildRPMRepo returns a new populated BuildRPMRepoJob object.
 func NewBuildRPMRepo(conf *RepositoryConfig, distro *RepositoryDefinition, version, arch, profile string, pkgs ...string) (*BuildRPMRepoJob, error) {
 	var err error
 	r := &BuildRPMRepoJob{buildRepoJob()}
@@ -69,6 +72,8 @@ func (j *BuildRPMRepoJob) rebuildRepo(workingDir string, wg *sync.WaitGroup) {
 
 	var output string
 	var err error
+	var out []byte
+
 	cmd := exec.Command("createrepo", "-d", "-s", "sha", workingDir)
 	grip.Infoln("building repo with operation:", strings.Join(cmd.Args, " "))
 
@@ -77,16 +82,15 @@ func (j *BuildRPMRepoJob) rebuildRepo(workingDir string, wg *sync.WaitGroup) {
 		grip.Noticeln("[dry-run] would run:", strings.Join(cmd.Args, " "))
 	} else {
 		grip.Noticeln("building repo with operation:", strings.Join(cmd.Args, " "))
-		out, err := cmd.CombinedOutput()
+		out, err = cmd.CombinedOutput()
 		output = string(out)
 		if err != nil {
 			j.addError(errors.Wrapf(err, "running createrepo for %s", workingDir))
 			grip.Error(err)
 			grip.Info(output)
 			return
-		} else {
-			grip.Debug(output)
 		}
+		grip.Debug(output)
 	}
 
 	grip.Infoln("rebuilt repo for:", workingDir)

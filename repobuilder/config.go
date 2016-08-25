@@ -20,9 +20,14 @@ import (
 // global configuration, and a list of repositories, controlled by the
 // RepositoryDefinition type.
 type RepositoryConfig struct {
-	Templates        *RepositoryTemplates    `bson:"templates" json:"templates" yaml:"templates"`
-	Repos            []*RepositoryDefinition `bson:"repos" json:"repos" yaml:"repos"`
-	Services         Services                `bson:"services" json:"services" yaml:"services"`
+	Repos    []*RepositoryDefinition `bson:"repos" json:"repos" yaml:"repos"`
+	Services struct {
+		NotaryURL string `bson:"notary_url" json:"notary_url" yaml:"notary_url"`
+	} `bson:"services" json:"services" yaml:"services"`
+	Templates struct {
+		Index string            `bson:"index_page" json:"index_page" yaml:"index_page"`
+		Deb   map[string]string `bson:"deb" json:"deb" yaml:"deb"`
+	} `bson:"templates" json:"templates" yaml:"templates"`
 	fileName         string
 	definitionLookup map[string]map[string]*RepositoryDefinition
 	grip             grip.Journaler
@@ -51,27 +56,18 @@ type RepositoryDefinition struct {
 	Component     string   `bson:"component" json:"component" yaml:"component"`
 }
 
-type Services struct {
-	NotaryURL string `bson:"notary_url" json:"notary_url" yaml:"notary_url"`
-}
-
-type RepositoryTemplates struct {
-	Deb   map[string]string `bson:"deb" json:"deb" yaml:"deb"`
-	Index string            `bson:"index_page" json:"index_page" yaml:"index_page"`
-}
-
 // NewRepositoryConfig produces a pointer to an initialized
 // RepositoryConfig object.
 func NewRepositoryConfig() *RepositoryConfig {
 	logger := grip.NewJournaler("curator.repo.config")
 	logger.CloneSender(grip.Sender())
-	return &RepositoryConfig{
-		Templates: &RepositoryTemplates{
-			Deb: make(map[string]string),
-		},
+	c := &RepositoryConfig{
 		definitionLookup: make(map[string]map[string]*RepositoryDefinition),
 		grip:             logger,
 	}
+	c.Templates.Deb = make(map[string]string)
+
+	return c
 }
 
 // GetConfig takes the name of a file and returns a pointer to

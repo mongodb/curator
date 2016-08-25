@@ -87,7 +87,7 @@ func (s *CommandsSuite) TestGetPackagesFunction() {
 	s.NoError(err)
 	for _, fn := range testFiles {
 		s.True(filepath.IsAbs(fn))
-		_, err := os.Stat(fn)
+		_, err = os.Stat(fn)
 		s.False(os.IsNotExist(err))
 	}
 
@@ -95,7 +95,7 @@ func (s *CommandsSuite) TestGetPackagesFunction() {
 	s.NoError(err)
 	for _, fn := range goFiles {
 		s.True(filepath.IsAbs(fn))
-		_, err := os.Stat(fn)
+		_, err = os.Stat(fn)
 		s.False(os.IsNotExist(err))
 	}
 

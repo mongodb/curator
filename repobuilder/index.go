@@ -17,6 +17,8 @@ import (
 // integration for this function only regenerates pages on a very
 // narrow swath (i.e. only the changed repos.)
 
+// BuildIndexPageForDirectory builds default Apache HTTPD-style
+// directory listing index.html files for a hierarchy.
 func (c *RepositoryConfig) BuildIndexPageForDirectory(path, repoName string) error {
 	tmpl, err := template.New("index").Parse(c.Templates.Index)
 	if err != nil {

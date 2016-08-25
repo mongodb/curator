@@ -66,6 +66,7 @@ func S3() cli.Command {
 			s3GetCmd(),
 			s3DeleteCmd(),
 			s3DeletePrefixCmd(),
+			s3DeleteMatchingCmd(),
 			s3SyncToCmd(),
 			s3SyncFromCmd(),
 		},

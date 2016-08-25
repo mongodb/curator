@@ -116,7 +116,7 @@ func (j *syncFromJob) Run() {
 	}
 	if !exists {
 		if j.withDelete && !j.b.dryRun {
-			err := os.RemoveAll(j.localPath)
+			err = os.RemoveAll(j.localPath)
 			if err != nil {
 				j.addError(errors.Wrapf(err,
 					"problem removing local file %s, during sync from bucket %s with delete",
@@ -126,23 +126,23 @@ func (j *syncFromJob) Run() {
 			grip.Debugf("removed local file %s during sync from bucket %s with delete",
 				j.localPath, j.b.name)
 			return
-		} else {
-			grip.NoticeWhenf(j.b.dryRun,
-				"dry-run: would remove local file %s from becasue it doesn't exist in bucket %s",
-				j.remoteFile.Key, j.b.name)
-
-			// if we get here the file doesn't exist so we shuold try to copy it.
-			grip.WarningWhenf(!j.b.dryRun, "file %s disappeared during sync pull operation. "+
-				"Doing nothing because *not* in delete-mode",
-				j.remoteFile.Key)
-
-			return
 		}
+
+		grip.NoticeWhenf(j.b.dryRun,
+			"dry-run: would remove local file %s from because it doesn't exist in bucket %s",
+			j.remoteFile.Key, j.b.name)
+
+		// if we get here the file doesn't exist so we should try to copy it.
+		grip.WarningWhenf(!j.b.dryRun, "file %s disappeared during sync pull operation. "+
+			"Doing nothing because *not* in delete-mode",
+			j.remoteFile.Key)
+
+		return
 	}
 
 	// if the local file doesn't exist, download the remote file and return.
 	if _, err = os.Stat(j.localPath); os.IsNotExist(err) {
-		err := j.doGet()
+		err = j.doGet()
 		if err != nil {
 			j.addError(errors.Wrap(err, "problem downloading file during sync"))
 		}

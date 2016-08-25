@@ -21,8 +21,8 @@ import (
 	"github.com/tychoish/grip"
 )
 
-const releaseMetaDataDateFormat = "Wed, 15 Jun 2006 00:02:52 UTC"
-
+// BuildDEBRepoJob is an amboy.Job implementation that builds Debian
+// and Ubuntu repositories.
 type BuildDEBRepoJob struct {
 	*Job
 }
@@ -33,15 +33,8 @@ func init() {
 	})
 }
 
-// TODO: need to find some way to create the arch directories if they
-// don't exist, which probably means a configuration change. Currently
-// arch directories are created when attempting to build the repos,
-// which means that there's a condition where we add a new
-// architecture (e.g. a community arm build,) and until we've pushed
-// packages to all repos the repo-metadata will be "ahead" of the
-// state of the repo. Should correct itself when everything
-// pushes. Unclear if current solution is susceptible to this.
-
+// NewBuildDEBRepo takes a repository and configurations along with several
+// runtime configurations, and returns a repository building job.
 func NewBuildDEBRepo(conf *RepositoryConfig, distro *RepositoryDefinition, version, arch, profile string, pkgs ...string) (*BuildDEBRepoJob, error) {
 	var err error
 	r := &BuildDEBRepoJob{Job: buildRepoJob()}

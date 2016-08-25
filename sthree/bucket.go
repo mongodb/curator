@@ -446,9 +446,8 @@ func (b *Bucket) DeleteMany(paths ...string) error {
 		if b.dryRun {
 			grip.Infof("dry-run: deleting object %s as a single object in a multi-delete call", paths[0])
 			return nil
-		} else {
-			return errors.Wrap(b.Delete(paths[0]), "single delete operation in multi-delete call")
 		}
+		return errors.Wrap(b.Delete(paths[0]), "single delete operation in multi-delete call")
 	}
 
 	contents := b.contents("")
@@ -476,6 +475,8 @@ func (b *Bucket) DeletePrefix(prefix string) error {
 	return b.deleteGroup(b.list(prefix))
 }
 
+// DeleteMatching removes all objects from a bucket, given a prefix,
+// that match a regular expression.
 func (b *Bucket) DeleteMatching(prefix, expression string) error {
 	matcher, err := regexp.Compile(expression)
 	if err != nil {

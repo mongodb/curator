@@ -16,9 +16,9 @@ lintDeps := github.com/alecthomas/gometalinter
 #   avoid using the installation/update options, which often hit
 #   timeouts and do not propagate dependency installation errors.
 lintDeps += github.com/alecthomas/gocyclo
-lintDeps += github.com/golang/lint/golint
+lintDeps += github.com/golang/lint
 lintDeps += github.com/gordonklaus/ineffassign
-lintDeps += github.com/jgautheron/goconst/cmd/goconst
+lintDeps += github.com/jgautheron/goconst
 lintDeps += github.com/kisielk/errcheck
 lintDeps += github.com/mdempsky/unconvert
 lintDeps += github.com/mibk/dupl
@@ -34,16 +34,15 @@ lintDeps += honnef.co/go/staticcheck
 
 # start linting configuration
 #   include test files and give linters 40s to run to avoid timeouts
-lintArgs := --tests --deadline=40s --vendor
-#   skip the build directory and the gopath,
-lintArgs += --skip="$(buildDir)" --skip="buildscripts"
+lintArgs := --tests --deadline=1m --vendor
 #   gotype produces false positives because it reads .a files which
 #   are rarely up to date.
-lintArgs += --disable="gotype"
+lintArgs += --disable="gotype" --disable="gas"
+lintArgs += --skip="build" --skip="buildscripts"
 #   enable and configure additional linters
 lintArgs += --enable="go fmt -s" --enable="goimports"
 lintArgs += --linter='misspell:misspell ./*.go:PATH:LINE:COL:MESSAGE' --enable=misspell
-lintArgs += --line-length=100 --dupl-threshold=100 --cyclo-over=12
+lintArgs += --line-length=100 --dupl-threshold=100 --cyclo-over=15
 #   the gotype linter has an imperfect compilation simulator and
 #   produces the following false postive errors:
 lintArgs += --exclude="error: could not import github.com/mongodb/curator"
@@ -76,7 +75,7 @@ $(gopath)/src/%:
 
 # userfacing targets for basic build and development operations
 lint:$(lintDeps)
-	$(gopath)/bin/gometalinter $(lintArgs) ./... | sed 's%$</%%' | grep -v "$(gopath)"
+	$(gopath)/bin/gometalinter $(lintArgs) ./...
 lint-deps:$(lintDeps)
 build:$(buildDir)/$(name)
 build-race:$(buildDir)/$(name).race

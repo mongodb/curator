@@ -205,7 +205,7 @@ func (s *BucketSuite) TestRetriesNubmerIsSetableGreaterThanZero() {
 func (s *BucketSuite) TestRetriesNumberSetterDoesNotSetToLessThanOrEqualToZero() {
 	num := 4
 
-	s.b.SetNumRetries(num)
+	s.NoError(s.b.SetNumRetries(num))
 	s.Equal(num, s.b.numRetries)
 
 	for i := -20; i <= 0; i++ {

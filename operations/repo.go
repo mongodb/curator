@@ -1,18 +1,20 @@
 package operations
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/mongodb/curator/repobuilder"
+	"github.com/pkg/errors"
 	"github.com/satori/go.uuid"
 	"github.com/tychoish/grip"
 	"github.com/urfave/cli"
 )
 
+// Repo returns a cli.Command object for the repo building and
+// rebuilding operation.
 func Repo() cli.Command {
 	return cli.Command{
 		Name:  "repo",
@@ -151,9 +153,11 @@ func buildRepo(packages, configPath, workingDir, distro, edition, version, arch,
 			}
 		}
 
-		job, err := repobuilder.NewBuildRPMRepo(conf, repo, version, arch, profile, pkgs...)
+		var job *repobuilder.BuildRPMRepoJob
+
+		job, err = repobuilder.NewBuildRPMRepo(conf, repo, version, arch, profile, pkgs...)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "problem building repository")
 		}
 		job.WorkSpace = workingDir
 		job.DryRun = dryRun
@@ -164,13 +168,15 @@ func buildRepo(packages, configPath, workingDir, distro, edition, version, arch,
 			pkgs, err = getPackages(packages, ".deb")
 			if err != nil {
 				grip.CatchError(err)
-				return err
+				return errors.Wrap(err, "problem building repository")
 			}
 		}
 
-		job, err := repobuilder.NewBuildDEBRepo(conf, repo, version, arch, profile, pkgs...)
+		var job *repobuilder.BuildDEBRepoJob
+
+		job, err = repobuilder.NewBuildDEBRepo(conf, repo, version, arch, profile, pkgs...)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "problem building repository")
 		}
 		job.WorkSpace = workingDir
 		job.DryRun = dryRun

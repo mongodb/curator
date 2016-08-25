@@ -116,16 +116,16 @@ func (j *syncToJob) Run() {
 			}
 			grip.Debugf("deleted file %s from bucket %s", j.remoteFile.Key, j.b.name)
 			return
-		} else {
-			grip.NoticeWhenf(j.b.dryRun,
-				"dry-run: would delete remote file %s from bucket %s because it doesn't exist locally",
-				j.remoteFile.Key, j.b.name)
-
-			grip.DebugWhenf(!j.b.dryRun,
-				"local file %s does not exist, so we can't upload it", j.localPath)
-
-			return
 		}
+
+		grip.NoticeWhenf(j.b.dryRun,
+			"dry-run: would delete remote file %s from bucket %s because it doesn't exist locally",
+			j.remoteFile.Key, j.b.name)
+
+		grip.DebugWhenf(!j.b.dryRun,
+			"local file %s does not exist, so we can't upload it", j.localPath)
+
+		return
 	}
 
 	// first double check that it doesn't exist (s3 is eventually

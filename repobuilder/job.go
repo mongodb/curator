@@ -17,11 +17,16 @@ import (
 	"github.com/tychoish/grip"
 )
 
+// TODO embed a jobImpl in Job, and then have constructors
+// build+dependency inject so that control is inverted relative to the
+// present, for a cleaner implementation.
+
 type jobImpl interface {
 	rebuildRepo(string, *sync.WaitGroup)
 	injectPackage(string, string) (string, error)
 }
 
+// Job provides the common structure for a repository building Job.
 type Job struct {
 	Name         string                `bson:"name" json:"name" yaml:"name"`
 	Distro       *RepositoryDefinition `bson:"distro" json:"distro" yaml:"distro"`
@@ -53,22 +58,32 @@ func buildRepoJob() *Job {
 	}
 }
 
+// ID returns the name of the job, and is a component of the amboy.Job
+// interface.
 func (j *Job) ID() string {
 	return j.Name
 }
 
+// Completed returns true if the job has been marked completed, and is
+// a component of the amboy.Job interface.
 func (j *Job) Completed() bool {
 	return j.IsComplete
 }
 
+// Type returns the amboy.JobType specification for this object, and
+// is a component of the amboy.Job interface.
 func (j *Job) Type() amboy.JobType {
 	return j.JobType
 }
 
+// Dependency returns an amboy Job dependency interface object, and is
+// a component of the amboy.Job interface.
 func (j *Job) Dependency() dependency.Manager {
 	return j.D
 }
 
+// SetDependency allows you to inject a different amboy.Job dependency
+// object, and is a component of the amboy.Job interface.
 func (j *Job) SetDependency(d dependency.Manager) {
 	if d.Type().Name == dependency.AlwaysRun {
 		j.D = d
@@ -94,11 +109,7 @@ func (j *Job) hasErrors() bool {
 	j.mutex.RLock()
 	defer j.mutex.RUnlock()
 
-	if len(j.Errors) == 0 {
-		return false
-	}
-
-	return true
+	return len(j.Errors) > 0
 }
 
 func (j *Job) Error() error {
@@ -276,6 +287,7 @@ func (j *Job) signFile(fileName, archiveExtension string, overwrite bool) error 
 	return err
 }
 
+// Run is the main execution entry point into repository building, and is a component
 func (j *Job) Run() {
 	bucket := sthree.GetBucketWithProfile(j.Distro.Bucket, j.Profile)
 	err := bucket.Open()
