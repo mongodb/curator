@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"compress/flate"
 	"compress/gzip"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -13,10 +12,6 @@ import (
 	"sync"
 	"text/template"
 
-	"github.com/mongodb/amboy"
-	"github.com/mongodb/amboy/job"
-	"github.com/mongodb/amboy/registry"
-	"github.com/mongodb/curator"
 	"github.com/pkg/errors"
 	"github.com/tychoish/grip"
 )
@@ -27,50 +22,9 @@ type BuildDEBRepoJob struct {
 	*Job
 }
 
-func init() {
-	registry.AddJobType("build-deb-repo", func() amboy.Job {
-		return &BuildDEBRepoJob{buildRepoJob()}
-	})
-}
-
-// NewBuildDEBRepo takes a repository and configurations along with several
-// runtime configurations, and returns a repository building job.
-func NewBuildDEBRepo(conf *RepositoryConfig, distro *RepositoryDefinition, version, arch, profile string, pkgs ...string) (*BuildDEBRepoJob, error) {
-	var err error
-	r := &BuildDEBRepoJob{Job: buildRepoJob()}
-
-	r.release, err = curator.NewMongoDBVersion(version)
-	if err != nil {
-		return nil, err
-	}
-
-	r.WorkSpace, err = os.Getwd()
-	if err != nil {
-		grip.Errorln("system error: cannot determine the current working directory.",
-			"not creating a job object.")
-		return nil, err
-	}
-
-	r.JobType = amboy.JobType{
-		Name:    "build-deb-repo",
-		Version: 0,
-	}
-
-	if arch == "x86_64" {
-		r.Arch = "amd64"
-	} else if arch == "ppc64le" {
-		r.Arch = "ppc64el"
-	} else {
-		r.Arch = arch
-	}
-
-	r.Name = fmt.Sprintf("build-deb-repo.%d", job.GetNumber())
-	r.Distro = distro
-	r.Conf = conf
-	r.PackagePaths = pkgs
-	r.Version = version
-	r.Profile = profile
-	return r, nil
+func setupDEBJob(j *Job) {
+	r := &BuildDEBRepoJob{j}
+	r.Job.builder = r
 }
 
 func (j *BuildDEBRepoJob) createArchDirs(basePath string) error {

@@ -11,6 +11,8 @@ import (
 	"github.com/goamz/goamz/s3"
 	"github.com/mongodb/amboy"
 	"github.com/mongodb/amboy/dependency"
+	"github.com/mongodb/amboy/job"
+	"github.com/mongodb/amboy/registry"
 	"github.com/mongodb/curator"
 	"github.com/mongodb/curator/sthree"
 	"github.com/pkg/errors"
@@ -45,6 +47,13 @@ type Job struct {
 	workingDirs  []string
 	release      *curator.MongoDBVersion
 	mutex        sync.RWMutex
+	builder      jobImpl
+}
+
+func init() {
+	registry.AddJobType("build-repo", func() amboy.Job {
+		return buildRepoJob()
+	})
 }
 
 func buildRepoJob() *Job {
@@ -56,6 +65,39 @@ func buildRepoJob() *Job {
 			Version: 0,
 		},
 	}
+}
+
+func NewBuildRepoJob(conf *RepositoryConfig, distro *RepositoryDefinition, version, arch, profile string, pkgs ...string) (*Job, error) {
+	var err error
+
+	j := buildRepoJob()
+	if distro.Type == DEB {
+		setupDEBJob(j)
+	} else if distro.Type == RPM {
+		setupRPMJob(j)
+	}
+
+	j.release, err = curator.NewMongoDBVersion(version)
+	if err != nil {
+		return nil, err
+	}
+
+	j.WorkSpace, err = os.Getwd()
+	if err != nil {
+		grip.Errorln("system error: cannot determine the current working directory.",
+			"not creating a job object.")
+		return nil, err
+	}
+
+	j.Name = fmt.Sprintf("build-%s-repo.%d", distro.Type, job.GetNumber())
+	j.Arch = distro.getArchForDistro(arch)
+	j.Distro = distro
+	j.Conf = conf
+	j.PackagePaths = pkgs
+	j.Version = version
+	j.Profile = profile
+
+	return j, nil
 }
 
 // ID returns the name of the job, and is a component of the amboy.Job
@@ -183,7 +225,7 @@ func (j *Job) injectNewPackages(local string) ([]string, error) {
 
 	if j.release.IsDevelopmentBuild() {
 		// nightlies to the a "development" repo.
-		changed, err := injectPackage(j, local, "development")
+		changed, err := j.builder.injectPackage(j, local, "development")
 		catcher.Add(err)
 		changedRepos = append(changedRepos, changed)
 
@@ -192,12 +234,12 @@ func (j *Job) injectNewPackages(local string) ([]string, error) {
 		// above, and AWS syncing strategy below.
 	} else if j.release.IsReleaseCandidate() {
 		// release candidates go into the testing repo:
-		changed, err := injectPackage(j, local, "testing")
+		changed, err := j.builder.injectPackage(local, "testing")
 		catcher.Add(err)
 		changedRepos = append(changedRepos, changed)
 	} else {
 		// there are repos for each series:
-		changed, err := injectPackage(j, local, j.release.Series())
+		changed, err := j.builder.injectPackage(local, j.release.Series())
 		catcher.Add(err)
 		changedRepos = append(changedRepos, changed)
 	}
@@ -355,7 +397,7 @@ func (j *Job) Run() {
 			rWg := &sync.WaitGroup{}
 			for _, dir := range changedRepos {
 				rWg.Add(1)
-				go rebuildRepo(j, dir, rWg)
+				go j.builder.rebuildRepo(dir, rWg)
 			}
 			rWg.Wait()
 
@@ -395,45 +437,4 @@ func (j *Job) Run() {
 
 	grip.WarningWhen(j.hasErrors(), "encountered error rebuilding and uploading repositories. operation complete.")
 	grip.NoticeWhen(!j.hasErrors(), "completed rebuilding all repositories")
-}
-
-// shim methods so that we can reuse the Run() method from
-// repobuilder.Job for all types
-func injectPackage(j interface{}, local, repoName string) (string, error) {
-	switch j := j.(type) {
-	case *Job:
-		if j.Type().Name == "build-deb-repo" {
-			job := BuildDEBRepoJob{j}
-			return job.injectPackage(local, repoName)
-		} else if j.Type().Name == "build-rpm-repo" {
-			job := BuildRPMRepoJob{j}
-			return job.injectPackage(local, repoName)
-		} else {
-			return "", fmt.Errorf("builder %s is not supported", j.Type().Name)
-		}
-	default:
-		return "", fmt.Errorf("type %T is not supported", j)
-	}
-}
-
-func rebuildRepo(j interface{}, workingDir string, wg *sync.WaitGroup) {
-	grip.Infoln("rebuilding repo:", workingDir)
-
-	switch j := j.(type) {
-	case *Job:
-		if j.Type().Name == "build-deb-repo" {
-			job := BuildDEBRepoJob{j}
-			job.rebuildRepo(workingDir, wg)
-		} else if j.Type().Name == "build-rpm-repo" {
-			job := BuildRPMRepoJob{j}
-			job.rebuildRepo(workingDir, wg)
-		} else {
-			e := fmt.Sprintf("builder %s is not supported", j.Type().Name)
-			grip.Error(e)
-			j.addError(errors.New(e))
-		}
-	default:
-		e := fmt.Sprintf("cannot build repo for type: %T", j)
-		grip.ErrorPanic(e)
-	}
 }

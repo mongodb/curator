@@ -116,7 +116,7 @@ func getPackages(rootPath, suffix string) ([]string, error) {
 	}
 
 	if len(output) == 0 {
-		return []string{}, fmt.Errorf("no packages found in path '%s'", rootPath)
+		return []string{}, fmt.Errorf("no '%s' packages found in path '%s'", suffix, rootPath)
 	}
 
 	return output, err
@@ -132,7 +132,7 @@ func buildRepo(packages, configPath, workingDir, distro, edition, version, arch,
 	conf, err := repobuilder.GetConfig(configPath)
 	if err != nil {
 		grip.CatchError(err)
-		return err
+		return errors.Wrap(err, "problem getting repo config")
 	}
 	repo, ok := conf.GetRepositoryDefinition(distro, edition)
 	if !ok {
@@ -143,46 +143,30 @@ func buildRepo(packages, configPath, workingDir, distro, edition, version, arch,
 
 	var pkgs []string
 
-	// build the packages:
-	if repo.Type == repobuilder.RPM {
-		if !rebuild {
+	if !rebuild {
+		if repo.Type == repobuilder.RPM {
 			pkgs, err = getPackages(packages, ".rpm")
-			if err != nil {
-				grip.CatchError(err)
-				return err
-			}
-		}
-
-		var job *repobuilder.BuildRPMRepoJob
-
-		job, err = repobuilder.NewBuildRPMRepo(conf, repo, version, arch, profile, pkgs...)
-		if err != nil {
-			return errors.Wrap(err, "problem building repository")
-		}
-		job.WorkSpace = workingDir
-		job.DryRun = dryRun
-		job.Run()
-		return job.Error()
-	} else if repo.Type == repobuilder.DEB {
-		if !rebuild {
+		} else if repo.Type == repobuilder.DEB {
 			pkgs, err = getPackages(packages, ".deb")
-			if err != nil {
-				grip.CatchError(err)
-				return errors.Wrap(err, "problem building repository")
-			}
 		}
 
-		var job *repobuilder.BuildDEBRepoJob
-
-		job, err = repobuilder.NewBuildDEBRepo(conf, repo, version, arch, profile, pkgs...)
 		if err != nil {
-			return errors.Wrap(err, "problem building repository")
+			return errors.Wrap(err, "problem finding packages")
 		}
-		job.WorkSpace = workingDir
-		job.DryRun = dryRun
-		job.Run()
-		return job.Error()
 	}
 
-	return fmt.Errorf("%s repositories are not supported", repo.Type)
+	job, err := repobuilder.NewBuildRepoJob(conf, repo, version, arch, profile, pkgs...)
+	if err != nil {
+		return errors.Wrap(err, "problem constructing task for building repository")
+	}
+	job.WorkSpace = workingDir
+	job.DryRun = dryRun
+
+	job.Run()
+	err = job.Error()
+	if err != nil {
+		return errors.Wrap(err, "encountered error rebuilding repository")
+	}
+
+	return nil
 }

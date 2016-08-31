@@ -1,11 +1,13 @@
 package repobuilder
 
 import (
+	"os"
 	"testing"
 
 	"github.com/mongodb/amboy/dependency"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"github.com/tychoish/grip"
 )
 
 type RepoJobSuite struct {
@@ -23,9 +25,14 @@ func (s *RepoJobSuite) SetupSuite() {
 }
 
 func (s *RepoJobSuite) SetupTest() {
-	job := buildRepoJob()
-	s.j = job
+	s.j = buildRepoJob()
 	s.require.NotNil(s.j)
+}
+
+func (s *RepoJobSuite) TearDownTest() {
+	for _, path := range s.j.workingDirs {
+		grip.CatchError(os.RemoveAll(path))
+	}
 }
 
 func (s *RepoJobSuite) TestIdIsAccessorForNameAttribute() {

@@ -156,3 +156,15 @@ func (c *RepositoryConfig) GetRepositoryDefinition(name, edition string) (*Repos
 
 	return dfn, true
 }
+
+func (c *RepositoryDefinition) getArchForDistro(arch string) string {
+	if c.Type == DEB {
+		if arch == "x86_64" {
+			return "amd64"
+		} else if arch == "ppc64le" {
+			return "ppc64el"
+		}
+	}
+
+	return arch
+}

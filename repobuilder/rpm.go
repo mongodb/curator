@@ -1,17 +1,11 @@
 package repobuilder
 
 import (
-	"fmt"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
 
-	"github.com/mongodb/amboy"
-	"github.com/mongodb/amboy/job"
-	"github.com/mongodb/amboy/registry"
-	"github.com/mongodb/curator"
 	"github.com/pkg/errors"
 	"github.com/tychoish/grip"
 )
@@ -22,42 +16,9 @@ type BuildRPMRepoJob struct {
 	*Job
 }
 
-func init() {
-	registry.AddJobType("build-rpm-repo", func() amboy.Job {
-		return &BuildRPMRepoJob{buildRepoJob()}
-	})
-}
-
-// NewBuildRPMRepo returns a new populated BuildRPMRepoJob object.
-func NewBuildRPMRepo(conf *RepositoryConfig, distro *RepositoryDefinition, version, arch, profile string, pkgs ...string) (*BuildRPMRepoJob, error) {
-	var err error
-	r := &BuildRPMRepoJob{buildRepoJob()}
-
-	r.WorkSpace, err = os.Getwd()
-	if err != nil {
-		grip.Errorln("system error: cannot determine the current working directory.",
-			"not creating a job object.")
-		return nil, err
-	}
-
-	r.release, err = curator.NewMongoDBVersion(version)
-	if err != nil {
-		return nil, err
-	}
-
-	r.JobType = amboy.JobType{
-		Name:    "build-rpm-repo",
-		Version: 0,
-	}
-	r.Name = fmt.Sprintf("build-rpm-repo.%d", job.GetNumber())
-	r.Distro = distro
-	r.Conf = conf
-	r.PackagePaths = pkgs
-	r.Version = version
-	r.Arch = arch
-	r.Profile = profile
-
-	return r, nil
+func setupRPMJob(j *Job) {
+	r := &BuildRPMRepoJob{j}
+	r.Job.builder = r
 }
 
 func (j *BuildRPMRepoJob) injectPackage(local, repoName string) (string, error) {
