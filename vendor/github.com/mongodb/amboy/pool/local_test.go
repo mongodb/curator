@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/suite"
 	"github.com/mongodb/amboy"
 	"github.com/mongodb/amboy/job"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 	"github.com/tychoish/grip"
 	"github.com/tychoish/grip/level"
+	"golang.org/x/net/context"
 )
 
 type LocalWorkersSuite struct {
@@ -53,51 +54,17 @@ func (s *LocalWorkersSuite) TestConstructedInstanceImplementsInterface() {
 	s.Implements((*amboy.Runner)(nil), s.pool)
 }
 
-func (s *LocalWorkersSuite) TestPoolSizeCannotBeSetLessThanOne() {
-	s.Equal(s.pool.Size(), s.size)
-
-	for i := -20; i <= 0; i++ {
-		err := s.pool.SetSize(i)
-
-		s.Error(err)
-		s.Equal(s.pool.Size(), s.size)
-	}
-}
-
-func (s *LocalWorkersSuite) TestSettingPoolSizeAreSettableForUnstartedPoolsWithValidSizes() {
-	s.Equal(s.pool.Size(), s.size)
-
-	s.False(s.pool.Started())
-
-	for i := 1; i <= 20; i++ {
-		err := s.pool.SetSize(i)
-
-		s.NoError(err)
-		s.Equal(s.pool.Size(), i)
-	}
-}
-
-func (s *LocalWorkersSuite) TestPoolSizeAreNotSettableForStartedPools() {
-	s.Equal(s.pool.Size(), s.size)
-
-	s.NoError(s.pool.Start())
-	s.True(s.pool.Started())
-	for i := 1; i <= 20; i++ {
-		err := s.pool.SetSize(i)
-
-		s.Error(err)
-		s.Equal(s.pool.Size(), s.size)
-	}
-}
-
 func (s *LocalWorkersSuite) TestPoolErrorsOnSuccessiveStarts() {
 	s.False(s.pool.Started())
 
-	s.NoError(s.pool.Start())
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	s.pool.Start(ctx)
 	s.True(s.pool.Started())
 
 	for i := 0; i < 20; i++ {
-		s.Error(s.pool.Start())
+		s.pool.Start(ctx)
 		s.True(s.pool.Started())
 	}
 }
@@ -113,9 +80,11 @@ func (s *LocalWorkersSuite) TestPoolStartsAndProcessesJobs() {
 
 	s.False(s.pool.Started())
 	s.False(s.queue.Started())
-	s.NoError(s.pool.Error())
 
-	s.NoError(s.queue.Start())
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	s.NoError(s.queue.Start(ctx))
 
 	for _, job := range jobs {
 		s.NoError(s.queue.Put(job))
@@ -124,13 +93,11 @@ func (s *LocalWorkersSuite) TestPoolStartsAndProcessesJobs() {
 	s.True(s.pool.Started())
 	s.True(s.queue.Started())
 
+	s.queue.Wait()
 	s.queue.Close() // this should call pool.Wait()
-	s.pool.Wait()   // this is effectively a noop, but just to be sure
 	for _, job := range jobs {
 		s.True(job.Completed())
 	}
-
-	s.NoError(s.pool.Error())
 }
 
 func (s *LocalWorkersSuite) TestQueueIsMutableBeforeStartingPool() {
@@ -148,7 +115,10 @@ func (s *LocalWorkersSuite) TestQueueIsNotMutableAfterStartingPool() {
 	s.NotNil(s.pool.queue)
 	s.False(s.pool.Started())
 
-	s.NoError(s.pool.Start())
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	s.pool.Start(ctx)
 	s.True(s.pool.Started())
 
 	newQueue := NewQueueTester(s.pool)
