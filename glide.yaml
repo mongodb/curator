@@ -24,3 +24,4 @@ import:
 - package: github.com/pkg/errors
   version: ^0.7.0
 - package: github.com/jpillora/backoff
+- package: golang.org/x/net

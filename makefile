@@ -147,7 +147,8 @@ vendor-sync:$(vendorDeps)
 vendor-clean:
 	rm -rf vendor/github.com/stretchr/testify/vendor/
 	rm -rf vendor/github.com/mongodb/amboy/vendor/github.com/tychoish/grip/
-	find vendor/ -name "*.gif" -o -name "*.gz" -o -name "*.png" -o -name "*.ico" | xargs rm -f
+	rm -rf vendor/github.com/mongodb/amboy/vendor/github.com/golang.org/x/net/
+	find vendor/ -name "*.gif" -o -name "*.gz" -o -name "*.png" -o -name "*.ico" -o -name "*testdata*"| xargs rm -rf
 change-go-version:
 	rm -rf $(buildDir)/make-vendor $(buildDir)/render-gopath
 	@$(MAKE) $(makeArgs) vendor > /dev/null 2>&1

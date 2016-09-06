@@ -189,7 +189,7 @@ func (s *BucketSuite) TestJobNumberIsConfigurableBeforeBucketOpens() {
 		s.NoError(s.b.SetNumJobs(i))
 		s.NoError(s.b.Open())
 		s.True(s.b.IsOpen())
-		s.Equal(i, s.b.queue.Runner().Size())
+		s.True(s.b.queue.Started())
 		s.b.Close()
 	}
 }
@@ -220,9 +220,8 @@ func (s *BucketSuite) TestJobNumberIsNotConfigurableAfterBucketOpens() {
 	s.True(s.b.IsOpen())
 
 	s.Equal(s.b.numJobs, runtime.NumCPU()*4)
-	s.Equal(s.b.numJobs, s.b.queue.Runner().Size())
 	s.Error(s.b.SetNumJobs(100))
-	s.Equal(s.b.numJobs, s.b.queue.Runner().Size())
+	s.Equal(s.b.numJobs, runtime.NumCPU()*4)
 }
 
 func (s *BucketSuite) TestPutOptionUploadsFile() {

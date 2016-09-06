@@ -19,6 +19,7 @@ import (
 	"github.com/mongodb/amboy/queue"
 	"github.com/pkg/errors"
 	"github.com/tychoish/grip"
+	"golang.org/x/net/context"
 )
 
 func init() {
@@ -73,6 +74,7 @@ type Bucket struct {
 	numRetries        int
 	queue             amboy.Queue
 	mutex             sync.Mutex
+	closer            context.CancelFunc
 }
 
 // NewBucket clones the settings of one bucket into a new bucket. The
@@ -186,6 +188,9 @@ func (b *Bucket) SetNumRetries(n int) error {
 // creating creating the worker queue. Does *not* return an error if
 // the Bucket has been opened, and is a noop in this case.
 func (b *Bucket) Open() error {
+	ctx, cancel := context.WithCancel(context.TODO())
+	b.closer = cancel
+
 	if b.s3 == nil {
 		b.s3 = s3.New(b.credentials.Auth, b.credentials.Region)
 	}
@@ -199,7 +204,7 @@ func (b *Bucket) Open() error {
 
 	if b.queue == nil {
 		b.queue = queue.NewLocalUnordered(b.numJobs)
-		return errors.Wrap(b.queue.Start(), "starting worker queue for sync jobs")
+		return errors.Wrap(b.queue.Start(ctx), "starting worker queue for sync jobs")
 	}
 
 	return nil
@@ -215,8 +220,12 @@ func (b *Bucket) Close() {
 	defer b.mutex.Unlock()
 
 	if b.queue != nil {
-		b.queue.Close()
+		b.queue.Runner().Close()
 		b.queue = nil
+	}
+
+	if b.closer != nil {
+		b.closer()
 	}
 }
 
