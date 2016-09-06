@@ -84,7 +84,7 @@ func s3PutCmd() cli.Command {
 	return cli.Command{
 		Name:  "put",
 		Usage: "put a local file object into s3",
-		Flags: s3opFlags(),
+		Flags: baseS3Flags(s3opFlags()...),
 		Action: func(c *cli.Context) error {
 			return s3Put(c.String("bucket"), c.String("profile"), c.String("file"), c.String("name"))
 		},
@@ -95,7 +95,7 @@ func s3GetCmd() cli.Command {
 	return cli.Command{
 		Name:  "get",
 		Usage: "download a local file object from s3",
-		Flags: s3opFlags(),
+		Flags: baseS3Flags(s3opFlags()...),
 		Action: func(c *cli.Context) error {
 			return s3Get(c.String("bucket"), c.String("profile"), c.String("name"), c.String("file"))
 		},
@@ -106,7 +106,7 @@ func s3DeleteCmd() cli.Command {
 	return cli.Command{
 		Name:    "delete",
 		Aliases: []string{"del", "rm"},
-		Flags:   s3deleteFlags(),
+		Flags:   baseS3Flags(s3deleteFlags()...),
 		Action: func(c *cli.Context) error {
 			return s3Delete(c.String("bucket"), c.String("profile"), c.Bool("dry-run"), c.StringSlice("name")...)
 		},
@@ -132,11 +132,12 @@ func s3DeleteMatchingCmd() cli.Command {
 	return cli.Command{
 		Name:    "delete-match",
 		Aliases: []string{"del-match", "rm-match"},
-		Flags: s3deleteFlags(
-			s3syncFlags(cli.StringFlag{
-				Name:  "match",
-				Usage: "a regular expression definition",
-			})...),
+		Flags: baseS3Flags(
+			s3deleteFlags(
+				s3syncFlags(cli.StringFlag{
+					Name:  "match",
+					Usage: "a regular expression definition",
+				})...)...),
 		Action: func(c *cli.Context) error {
 			return s3DeleteMatching(
 				c.String("bucket"),
@@ -153,7 +154,7 @@ func s3SyncToCmd() cli.Command {
 		Name:    "sync-to",
 		Aliases: []string{"push"},
 		Usage:   "sync changes from the local system to s3",
-		Flags:   s3syncFlags(),
+		Flags:   baseS3Flags(s3syncFlags()...),
 		Action: func(c *cli.Context) error {
 			return s3SyncTo(
 				c.String("bucket"),
@@ -171,7 +172,7 @@ func s3SyncFromCmd() cli.Command {
 		Name:    "sync-from",
 		Aliases: []string{"pull"},
 		Usage:   "sync changes from s3 to the local system",
-		Flags:   s3syncFlags(),
+		Flags:   baseS3Flags(s3syncFlags()...),
 		Action: func(c *cli.Context) error {
 			return s3SyncFrom(
 				c.String("bucket"),
@@ -345,6 +346,10 @@ func baseS3Flags(args ...cli.Flag) []cli.Flag {
 			Usage: fmt.Sprintln("set the AWS profile. By default reads from ENV vars and the default or",
 				"AWS_PROFILE specified profile in ~/.aws/credentials."),
 		},
+		cli.BoolFlag{
+			Name:  "dry-run",
+			Usage: "make task operate in a dry-run mode",
+		},
 	}
 
 	flags = append(flags, args...)
@@ -354,7 +359,7 @@ func baseS3Flags(args ...cli.Flag) []cli.Flag {
 func s3syncFlags(args ...cli.Flag) []cli.Flag {
 	pwd, _ := os.Getwd()
 
-	flags := baseS3Flags(
+	flags := []cli.Flag{
 		cli.StringFlag{
 			Name:  "local",
 			Value: pwd,
@@ -365,21 +370,17 @@ func s3syncFlags(args ...cli.Flag) []cli.Flag {
 			Usage: "a prefix of s3 key names",
 		},
 		cli.BoolFlag{
-			Name:  "dry-run",
-			Usage: "make task operate in a dry-run mode",
-		},
-		cli.BoolFlag{
 			Name:  "delete",
 			Usage: "delete items from the target that do not exist in the source",
 		},
-	)
+	}
 
 	flags = append(flags, args...)
 	return flags
 }
 
 func s3opFlags() []cli.Flag {
-	return baseS3Flags(
+	return []cli.Flag{
 		cli.StringFlag{
 			Name:  "file",
 			Usage: "a local path (directory)",
@@ -387,7 +388,8 @@ func s3opFlags() []cli.Flag {
 		cli.StringFlag{
 			Name:  "name",
 			Usage: "the remote s3 resource name. may include the prefix.",
-		})
+		},
+	}
 }
 
 func s3deleteFlags(args ...cli.Flag) []cli.Flag {
@@ -396,14 +398,9 @@ func s3deleteFlags(args ...cli.Flag) []cli.Flag {
 			Name:  "name",
 			Usage: "the name of an object in s3",
 		},
-		cli.BoolFlag{
-			Name:  "dry-run",
-			Usage: "make task operate in a dry-run mode",
-		},
 	}
 
 	flags = append(flags, args...)
 
-	return baseS3Flags(flags...)
-
+	return flags
 }
