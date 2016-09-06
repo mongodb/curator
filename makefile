@@ -153,8 +153,8 @@ change-go-version:
 	rm -rf $(buildDir)/make-vendor $(buildDir)/render-gopath
 	@$(MAKE) $(makeArgs) vendor > /dev/null 2>&1
 vendor:$(buildDir)/vendor/src
-	$(MAKE) $(makeArgs) -C vendor/github.com/tychoish/grip $@
-	$(MAKE) $(makeArgs) -C vendor/github.com/mongodb/amboy $@
+	@$(MAKE) $(makeArgs) -C vendor/github.com/tychoish/grip $@
+	@-$(MAKE) $(makeArgs) -k -C vendor/github.com/mongodb/amboy $@
 $(buildDir)/vendor/src:$(buildDir)/make-vendor $(buildDir)/render-gopath
 	@./$(buildDir)/make-vendor
 #   targets to build the small programs used to support vendoring.
