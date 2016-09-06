@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/goamz/goamz/aws"
+	"github.com/goamz/goamz/s3"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -155,30 +156,26 @@ func (s *BucketSuite) TestOpenMethodStartsQueueAndConnections() {
 }
 
 func (s *BucketSuite) TestContentsAndListProduceIdenticalData() {
-	// right now this noops in the code because the "test" bucket
-	// doesn't have any data, and we might want to have some
-	// additional fixtures that adds data to the bucket.
-
 	s.require.NoError(s.b.Open())
 	var prefix string
-	content := s.b.contents(prefix)
 
 	var count int
+	seen := make(map[string]s3.Key)
 
 	for bucketItem := range s.b.list(prefix) {
-		item, ok := content[bucketItem.Key]
-
-		if s.True(ok, fmt.Sprintf("item %s should exist in bucket %s",
-			bucketItem.Key, s.bucketName)) {
-
-			s.Equal(bucketItem.Key, item.Key)
-			s.Equal(bucketItem.ETag, item.ETag)
-		}
-
+		seen[bucketItem.Key] = bucketItem
 		count++
 	}
 
+	content := s.b.contents(prefix)
+
 	s.Len(content, count)
+	s.Len(seen, count)
+	for key, bucketItem := range content {
+		item, ok := seen[key]
+		s.True(ok)
+		s.Equal(bucketItem, item)
+	}
 }
 
 func (s *BucketSuite) TestJobNumberIsConfigurableBeforeBucketOpens() {
