@@ -16,10 +16,9 @@ func (s *CommandsSuite) TestPutGetFlagFactory() {
 		names[flag.GetName()] = true
 	}
 
-	s.Len(names, 4)
-	s.Len(flags, 4)
+	s.Len(names, 2)
+	s.Len(flags, 2)
 	s.True(names["file"])
-	s.True(names["bucket"])
 	s.True(names["name"])
 }
 
@@ -42,12 +41,10 @@ func (s *CommandsSuite) TestSyncFlagsFactory() {
 		}
 	}
 
-	s.Len(names, 6)
-	s.Len(flags, 6)
-	s.True(names["bucket"])
+	s.Len(names, 3)
+	s.Len(flags, 3)
 	s.True(names["local"])
 	s.True(names["prefix"])
-	s.True(names["dry-run"])
 	s.True(names["delete"])
 }
 
@@ -60,13 +57,13 @@ func (s *CommandsSuite) TestS3ParentCommandHasExpectedProperties() {
 		names[sub.Name] = true
 
 		if sub.Name == "put" || sub.Name == "get" {
-			s.Equal(sub.Flags, s3opFlags())
+			s.Equal(sub.Flags, baseS3Flags(s3opFlags()...))
 		} else if strings.HasPrefix(sub.Name, "sync") {
-			s.Equal(sub.Flags, s3syncFlags())
+			s.Equal(sub.Flags, baseS3Flags(s3syncFlags()...))
 		}
 	}
 
-	s.Len(cmd.Subcommands, 6)
+	s.Len(cmd.Subcommands, 7)
 	s.Equal(cmd.Name, "s3")
 	s.Len(cmd.Aliases, 1)
 
