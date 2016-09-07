@@ -299,7 +299,7 @@ func (b *Bucket) Exists(path string) (bool, error) {
 			return exists, nil
 		}
 
-		err = errors.Wrapf(err, "error s3.EXISTS for %s/%s on attempt %d", path, b.name, i)
+		err = errors.Wrapf(err, "error s3.EXISTS for %s/%s on attempt %d", b.name, path, i)
 
 		if i < b.numRetries {
 			grip.Warningln(err, "retrying...")
@@ -451,7 +451,7 @@ func (b *Bucket) DeleteMany(paths ...string) error {
 	}
 
 	contents := b.contents("")
-	toDelete := make(chan s3.Key, 100)
+	toDelete := make(chan s3.Key)
 	go func() {
 		for _, p := range paths {
 			key, ok := contents[p]
@@ -485,7 +485,7 @@ func (b *Bucket) DeleteMatching(prefix, expression string) error {
 			expression, b.name)
 	}
 
-	toDelete := make(chan s3.Key, 100)
+	toDelete := make(chan s3.Key)
 
 	go func() {
 		var count int
@@ -497,13 +497,15 @@ func (b *Bucket) DeleteMatching(prefix, expression string) error {
 			if matcher.MatchString(name) {
 				toDelete <- item
 				count++
-				grip.Debugf("found %s/%s to delete", b.name, name)
+
+				grip.NoticeWhenf(b.dryRun, "found %s/%s to delete", b.name, name)
+				grip.DebugWhenf(!b.dryRun, "found %s/%s to delete", b.name, name)
 			} else {
-				grip.Debugf("%s/%s does not match %s", b.name, name, expression)
+				grip.DebugWhenf(b.dryRun, "%s/%s does not match %s", b.name, name, expression)
 			}
 		}
 
-		grip.Infof("found %d files matching '%s' in '%s/%s' for deletion",
+		grip.Noticef("found %d files matching '%s' in '%s/%s' for deletion",
 			count, expression, b.name, prefix)
 		close(toDelete)
 	}()
@@ -514,6 +516,7 @@ func (b *Bucket) DeleteMatching(prefix, expression string) error {
 func (b *Bucket) deleteGroup(items <-chan s3.Key) error {
 	toDelete := s3.Delete{}
 	count := 0
+	catcher := grip.NewCatcher()
 
 	for {
 		// DeleteMulti maxes out at 1000 items per request. We
@@ -524,9 +527,9 @@ func (b *Bucket) deleteGroup(items <-chan s3.Key) error {
 			} else {
 				grip.Debugf("sending a batch of delete operations to %s", b.name)
 
-				return errors.Wrapf(b.bucket.DelMulti(toDelete),
+				catcher.Add(errors.Wrapf(b.bucket.DelMulti(toDelete),
 					"intermediate delete from %s, %d items encountered error",
-					b.name, count)
+					b.name, count))
 			}
 
 			// reset the counters
@@ -540,7 +543,7 @@ func (b *Bucket) deleteGroup(items <-chan s3.Key) error {
 			count++
 
 			toDelete.Objects = append(toDelete.Objects, s3.Object{Key: key.Key})
-			grip.Debugf("removing group, with %s/%s", b.name, key.Key)
+			grip.Infof("removing group, with %s/%s", b.name, key.Key)
 
 			continue
 		}
@@ -554,12 +557,18 @@ func (b *Bucket) deleteGroup(items <-chan s3.Key) error {
 		} else {
 			grip.Debugf("sending last batch of delete operations to %s", b.name)
 
-			return errors.Wrapf(b.bucket.DelMulti(toDelete),
+			catcher.Add(errors.Wrapf(b.bucket.DelMulti(toDelete),
 				"delete from %s, %d items encountered error",
-				b.name, len(toDelete.Objects))
+				b.name, len(toDelete.Objects)))
 		}
 	}
 
+	if catcher.HasErrors() {
+		return catcher.Resolve()
+	}
+
+	grip.NoticeWhenf(b.dryRun, "dry-run: completed delete operation, removing %d items", count)
+	grip.NoticeWhenf(!b.dryRun, "completed delete operation, removing %d items", count)
 	return nil
 }
 
@@ -614,7 +623,7 @@ func (b *Bucket) SyncTo(local, prefix string, withDelete bool) error {
 		grip.Alertf("problem with sync push operation (%s -> %s/%s) [considered %d items]",
 			local, b.name, prefix, counter)
 	} else {
-		grip.Infof("completed push operation. uploade items to %s/%s [considered %d items]",
+		grip.Infof("completed push operation. upload items to %s/%s [considered %d items]",
 			b.name, prefix, counter)
 	}
 
