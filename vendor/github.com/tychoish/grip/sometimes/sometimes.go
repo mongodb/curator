@@ -16,19 +16,19 @@ func getRandNumber() int {
 }
 
 func Half() bool {
-	return getRandNumber()/2 > 50
+	return getRandNumber() > 50
 }
 
 func Fifth() bool {
-	return getRandNumber()/5 > 20
+	return getRandNumber() > 20
 }
 
 func Third() bool {
-	return getRandNumber()/3 > 33
+	return getRandNumber() > 33
 }
 
 func Quarter() bool {
-	return getRandNumber()/3 > 25
+	return getRandNumber() > 25
 }
 
 func ThreeQuarters() bool {
