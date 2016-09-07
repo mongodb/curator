@@ -36,8 +36,9 @@ func (s *CommandsSuite) TestRepoFlags() {
 }
 
 func (s *CommandsSuite) TestRebuildOperationOnProcess() {
-	os.Setenv("NOTARY_TOKEN", "foo")
-	err := buildRepo(
+	err := os.Setenv("NOTARY_TOKEN", "foo")
+	s.NoError(err)
+	err = buildRepo(
 		"./", // packages
 		"../repobuilder/config_test.yaml", // repo config path
 		"../build/repo-build-test",        // workingdir

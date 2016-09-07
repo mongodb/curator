@@ -12,27 +12,6 @@ projectPath := $(orgPath)/$(name)
 #   separately. This is a temporary solution: eventually we should
 #   vendorize all of these dependencies.
 lintDeps := github.com/alecthomas/gometalinter
-#   explicitly download linters used by the metalinter so that we can
-#   avoid using the installation/update options, which often hit
-#   timeouts and do not propagate dependency installation errors.
-lintDeps += github.com/alecthomas/gocyclo
-lintDeps += github.com/golang/lint
-lintDeps += github.com/gordonklaus/ineffassign
-lintDeps += github.com/jgautheron/goconst
-lintDeps += github.com/kisielk/errcheck
-lintDeps += github.com/mdempsky/unconvert
-lintDeps += github.com/mibk/dupl
-lintDeps += github.com/mvdan/interfacer
-lintDeps += github.com/opennota/check
-lintDeps += github.com/tsenart/deadcode
-lintDeps += github.com/client9/misspell
-lintDeps += github.com/walle/lll
-lintDeps += honnef.co/go/simple
-lintDeps += honnef.co/go/staticcheck
-# end dependency declarations
-
-
-# start linting configuration
 #   include test files and give linters 40s to run to avoid timeouts
 lintArgs := --tests --deadline=1m --vendor
 #   gotype produces false positives because it reads .a files which
@@ -75,6 +54,7 @@ $(gopath)/src/%:
 
 # userfacing targets for basic build and development operations
 lint:$(lintDeps)
+	@-$(gopath)/bin/gometalinter --install >/dev/null
 	$(gopath)/bin/gometalinter $(lintArgs) ./...
 lint-deps:$(lintDeps)
 build:$(buildDir)/$(name)

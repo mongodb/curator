@@ -229,6 +229,8 @@ func (b *Bucket) Close() {
 	}
 }
 
+// IsOpen returns true if the queue, used by the sync operations is
+// initialized, which is the final stage of the Open operation.
 func (b *Bucket) IsOpen() bool {
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
