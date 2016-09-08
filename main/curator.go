@@ -31,6 +31,7 @@ func buildApp() *cli.App {
 		operations.HelloWorld(),
 		operations.S3(),
 		operations.Repo(),
+		operations.Index(),
 	}
 
 	// These are global options. Use this to configure logging or

@@ -30,24 +30,22 @@ type jobImpl interface {
 
 // Job provides the common structure for a repository building Job.
 type Job struct {
-	Name         string                `bson:"name" json:"name" yaml:"name"`
 	Distro       *RepositoryDefinition `bson:"distro" json:"distro" yaml:"distro"`
 	Conf         *RepositoryConfig     `bson:"conf" json:"conf" yaml:"conf"`
 	DryRun       bool                  `bson:"dry_run" json:"dry_run" yaml:"dry_run"`
-	IsComplete   bool                  `bson:"completed" json:"completed" yaml:"completed"`
 	Output       map[string]string     `bson:"output" json:"output" yaml:"output"`
-	JobType      amboy.JobType         `bson:"job_type" json:"job_type" yaml:"job_type"`
-	D            dependency.Manager    `bson:"dependency" json:"dependency" yaml:"dependency"`
 	Version      string                `bson:"version" json:"version" yaml:"version"`
 	Arch         string                `bson:"arch" json:"arch" yaml:"arch"`
 	Profile      string                `bson:"aws_profile" json:"aws_profile" yaml:"aws_profile"`
 	WorkSpace    string                `bson:"local_workdir" json:"local_workdir" yaml:"local_workdir"`
 	PackagePaths []string              `bson:"package_paths" json:"package_paths" yaml:"package_paths"`
-	Errors       []error               `bson:"errors" json:"errors" yaml:"errors"`
-	workingDirs  []string
-	release      *curator.MongoDBVersion
-	mutex        sync.RWMutex
-	builder      jobImpl
+
+	workingDirs []string
+	release     *curator.MongoDBVersion
+	mutex       sync.RWMutex
+	builder     jobImpl
+
+	*JobBase `bson:"base" json:"base" yaml:"base"`
 }
 
 func init() {
@@ -58,11 +56,13 @@ func init() {
 
 func buildRepoJob() *Job {
 	return &Job{
-		D:      dependency.NewAlways(),
 		Output: make(map[string]string),
-		JobType: amboy.JobType{
-			Name:    "build-repo",
-			Version: 0,
+		JobBase: &JobBase{
+			D: dependency.NewAlways(),
+			JobType: amboy.JobType{
+				Name:    "build-repo",
+				Version: 1,
+			},
 		},
 	}
 }
@@ -100,77 +100,6 @@ func NewBuildRepoJob(conf *RepositoryConfig, distro *RepositoryDefinition, versi
 	j.Profile = profile
 
 	return j, nil
-}
-
-// ID returns the name of the job, and is a component of the amboy.Job
-// interface.
-func (j *Job) ID() string {
-	return j.Name
-}
-
-// Completed returns true if the job has been marked completed, and is
-// a component of the amboy.Job interface.
-func (j *Job) Completed() bool {
-	return j.IsComplete
-}
-
-// Type returns the amboy.JobType specification for this object, and
-// is a component of the amboy.Job interface.
-func (j *Job) Type() amboy.JobType {
-	return j.JobType
-}
-
-// Dependency returns an amboy Job dependency interface object, and is
-// a component of the amboy.Job interface.
-func (j *Job) Dependency() dependency.Manager {
-	return j.D
-}
-
-// SetDependency allows you to inject a different amboy.Job dependency
-// object, and is a component of the amboy.Job interface.
-func (j *Job) SetDependency(d dependency.Manager) {
-	if d.Type().Name == dependency.AlwaysRun {
-		j.D = d
-	} else {
-		grip.Warning("repo building jobs should take 'always'-run dependencies.")
-	}
-}
-
-func (j *Job) markComplete() {
-	j.IsComplete = true
-}
-
-func (j *Job) addError(err error) {
-	if err != nil {
-		j.mutex.Lock()
-		defer j.mutex.Unlock()
-
-		j.Errors = append(j.Errors, err)
-	}
-}
-
-func (j *Job) hasErrors() bool {
-	j.mutex.RLock()
-	defer j.mutex.RUnlock()
-
-	return len(j.Errors) > 0
-}
-
-func (j *Job) Error() error {
-	j.mutex.RLock()
-	defer j.mutex.RUnlock()
-
-	if len(j.Errors) == 0 {
-		return nil
-	}
-
-	var outputs []string
-
-	for _, err := range j.Errors {
-		outputs = append(outputs, fmt.Sprintf("%+v", err))
-	}
-
-	return errors.New(strings.Join(outputs, "\n"))
 }
 
 func (j *Job) linkPackages(dest string) error {
