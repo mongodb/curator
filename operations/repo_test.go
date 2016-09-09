@@ -74,7 +74,7 @@ func (s *CommandsSuite) TestDryRunOperationOnProcess() {
 		true,                              // dryrun
 		false)                             // rebuild
 
-	if !s.Equal(err.Error(), "problem finding packages: no packages '.rpm' found in path './'") {
+	if !s.Equal(err.Error(), "problem finding packages: no '.rpm' packages found in path './'") {
 		grip.Error(err)
 	}
 	grip.CatchNotice(err)
