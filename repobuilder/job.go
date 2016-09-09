@@ -67,6 +67,8 @@ func buildRepoJob() *Job {
 	}
 }
 
+// NewBuildRepoJob constructs a repository building job, which
+// implements the amboy.Job interface.
 func NewBuildRepoJob(conf *RepositoryConfig, distro *RepositoryDefinition, version, arch, profile string, pkgs ...string) (*Job, error) {
 	var err error
 
@@ -225,7 +227,7 @@ func (j *Job) injectNewPackages(local string) ([]string, error) {
 
 	if j.release.IsDevelopmentBuild() {
 		// nightlies to the a "development" repo.
-		changed, err := j.builder.injectPackage(j, local, "development")
+		changed, err := j.builder.injectPackage(local, "development")
 		catcher.Add(err)
 		changedRepos = append(changedRepos, changed)
 
