@@ -24,7 +24,6 @@ import (
 type Group struct {
 	size     int
 	started  bool
-	catcher  grip.MultiCatcher
 	queues   []amboy.Queue
 	wg       sync.WaitGroup
 	mutex    sync.RWMutex
@@ -127,10 +126,10 @@ func (r *Group) startMerger(ctx context.Context) <-chan *workUnit {
 			// continue conditions in the above loop, particularly on the next call.
 			select {
 			case <-ctx.Done():
-				break
+				break mergerLoop
 			default:
 				if len(r.queues) == completed {
-					break
+					break mergerLoop
 				}
 			}
 		}
@@ -191,6 +190,8 @@ func (r *Group) Start(ctx context.Context) error {
 	return nil
 }
 
+// Close cancels all pending workers and waits for the running
+// processes to return.
 func (r *Group) Close() {
 	if r.canceler != nil {
 		r.canceler()

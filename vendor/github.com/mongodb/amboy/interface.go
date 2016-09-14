@@ -34,9 +34,22 @@ type Job interface {
 	SetDependency(dependency.Manager)
 	Dependency() dependency.Manager
 
+	// Provides access to the job's priority value, which some
+	// queues may use to order job dispatching. Most Jobs
+	// implement these values by composing the
+	// amboy/priority.Value type.
+	SetPriority(int)
+	Priority() int
+
 	// Error returns an error object if the task was an
 	// error. Typically if the job has not run, this is nil.
 	Error() error
+
+	// Exposes access to a serialized representation of the job
+	// object, using the method the "Format" specified in the
+	// JobType object.
+	Export() ([]byte, error)
+	Import([]byte) error
 }
 
 // JobType contains information about the type of a job, which queues
@@ -46,6 +59,7 @@ type Job interface {
 type JobType struct {
 	Name    string `json:"name" bson:"name" yaml:"name"`
 	Version int    `json:"version" bson:"version" yaml:"version"`
+	Format  Format `json:"format" bson:"format" yaml:"format"`
 }
 
 // Queue describes a very simple Job queue interface that allows users
@@ -81,7 +95,7 @@ type Queue interface {
 
 	// Returns an object that contains statistics about the
 	// current state of the Queue.
-	Stats() *QueueStats
+	Stats() QueueStats
 
 	// Getter for the Runner implementation embedded in the Queue
 	// instance.

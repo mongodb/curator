@@ -60,11 +60,11 @@ func (s *LocalWorkersSuite) TestPoolErrorsOnSuccessiveStarts() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	s.pool.Start(ctx)
+	s.NoError(s.pool.Start(ctx))
 	s.True(s.pool.Started())
 
 	for i := 0; i < 20; i++ {
-		s.pool.Start(ctx)
+		s.NoError(s.pool.Start(ctx))
 		s.True(s.pool.Started())
 	}
 }
@@ -94,7 +94,14 @@ func (s *LocalWorkersSuite) TestPoolStartsAndProcessesJobs() {
 	s.True(s.queue.Started())
 
 	s.queue.Wait()
-	s.queue.Close() // this should call pool.Wait()
+
+	counter := 0
+	for j := range s.queue.Results() {
+		s.True(j.Completed())
+		counter++
+	}
+	s.Equal(counter, len(jobs))
+
 	for _, job := range jobs {
 		s.True(job.Completed())
 	}
@@ -118,7 +125,7 @@ func (s *LocalWorkersSuite) TestQueueIsNotMutableAfterStartingPool() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	s.pool.Start(ctx)
+	s.NoError(s.pool.Start(ctx))
 	s.True(s.pool.Started())
 
 	newQueue := NewQueueTester(s.pool)

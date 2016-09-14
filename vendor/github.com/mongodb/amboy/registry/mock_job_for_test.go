@@ -8,6 +8,7 @@ import (
 
 	"github.com/mongodb/amboy"
 	"github.com/mongodb/amboy/dependency"
+	"github.com/mongodb/amboy/priority"
 )
 
 func init() {
@@ -19,8 +20,10 @@ type JobTest struct {
 	Content    string
 	complete   bool
 	shouldFail bool
-	D          dependency.Manager
 	T          amboy.JobType
+	dep        dependency.Manager
+
+	priority.Value
 }
 
 func NewTestJob(content string) *JobTest {
@@ -29,9 +32,10 @@ func NewTestJob(content string) *JobTest {
 	return &JobTest{
 		Name:    id,
 		Content: content,
-		D:       dependency.NewAlways(),
+		dep:     dependency.NewAlways(),
 		T: amboy.JobType{
 			Name:    "test",
+			Format:  amboy.BSON,
 			Version: 0,
 		},
 	}
@@ -41,39 +45,48 @@ func jobTestFactory() amboy.Job {
 	return &JobTest{
 		T: amboy.JobType{
 			Name:    "test",
+			Format:  amboy.BSON,
 			Version: 0,
 		},
 	}
 }
 
-func (f *JobTest) ID() string {
-	return f.Name
+func (j *JobTest) ID() string {
+	return j.Name
 }
 
-func (f *JobTest) Run() {
-	f.complete = true
+func (j *JobTest) Run() {
+	j.complete = true
 }
 
-func (f *JobTest) Error() error {
-	if f.shouldFail {
+func (j *JobTest) Error() error {
+	if j.shouldFail {
 		return errors.New("poisoned task")
 	}
 
 	return nil
 }
 
-func (f *JobTest) Completed() bool {
-	return f.complete
+func (j *JobTest) Completed() bool {
+	return j.complete
 }
 
-func (f *JobTest) Type() amboy.JobType {
-	return f.T
+func (j *JobTest) Type() amboy.JobType {
+	return j.T
 }
 
-func (f *JobTest) Dependency() dependency.Manager {
-	return f.D
+func (j *JobTest) Dependency() dependency.Manager {
+	return j.dep
 }
 
-func (f *JobTest) SetDependency(d dependency.Manager) {
-	f.D = d
+func (j *JobTest) SetDependency(d dependency.Manager) {
+	j.dep = d
+}
+
+func (j *JobTest) Export() ([]byte, error) {
+	return amboy.ConvertTo(j.Type().Format, j)
+}
+
+func (j *JobTest) Import(data []byte) error {
+	return amboy.ConvertFrom(j.Type().Format, data, j)
 }
