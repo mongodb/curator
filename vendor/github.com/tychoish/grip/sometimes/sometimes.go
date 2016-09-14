@@ -5,36 +5,34 @@ import (
 	"time"
 )
 
-var entropy *rand.Rand
-
 func init() {
-	entropy = rand.New(rand.NewSource(time.Now().Unix()))
+	rand.Seed(time.Now().Unix())
 }
 
 func getRandNumber() int {
-	return entropy.Intn(101)
+	return rand.Intn(101)
+}
+
+func Fifth() bool {
+	return getRandNumber() > 80
 }
 
 func Half() bool {
 	return getRandNumber() > 50
 }
 
-func Fifth() bool {
-	return getRandNumber() > 20
-}
-
 func Third() bool {
-	return getRandNumber() > 33
+	return getRandNumber() > 66
 }
 
 func Quarter() bool {
-	return getRandNumber() > 25
+	return getRandNumber() > 75
 }
 
 func ThreeQuarters() bool {
-	return getRandNumber()/3 > 75
+	return getRandNumber() > 25
 }
 
 func TwoThirds() bool {
-	return getRandNumber()/3 > 66
+	return getRandNumber() > 33
 }
