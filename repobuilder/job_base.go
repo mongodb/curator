@@ -8,6 +8,7 @@ import (
 
 	"github.com/mongodb/amboy"
 	"github.com/mongodb/amboy/dependency"
+	"github.com/mongodb/amboy/priority"
 	"github.com/tychoish/grip"
 )
 
@@ -23,6 +24,7 @@ type JobBase struct {
 	D          dependency.Manager `bson:"dependency" json:"dependency" yaml:"dependency"`
 	Errors     []error            `bson:"errors" json:"errors" yaml:"errors"`
 	mutex      sync.RWMutex
+	priority.Value
 }
 
 // ID returns the name of the job, and is a component of the amboy.Job
@@ -107,4 +109,19 @@ func (j *JobBase) Error() error {
 	}
 
 	return errors.New(strings.Join(outputs, "\n"))
+}
+
+// Export serializes the job object according to the Format specified
+// in the the JobType argument.
+func (j *JobBase) Export() ([]byte, error) {
+	return amboy.ConvertTo(j.Type().Format, j)
+}
+
+// Import takes a byte array, and attempts to marshal that data into
+// the current job object according to the format specified in the Job
+// type definition for this object.
+func (j *JobBase) Import(data []byte) error {
+	err := amboy.ConvertFrom(j.Type().Format, data, j)
+
+	return err
 }

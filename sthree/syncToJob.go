@@ -11,6 +11,7 @@ import (
 	"github.com/mongodb/amboy"
 	"github.com/mongodb/amboy/dependency"
 	"github.com/mongodb/amboy/job"
+	"github.com/mongodb/amboy/priority"
 	"github.com/pkg/errors"
 	"github.com/tychoish/grip"
 )
@@ -33,6 +34,7 @@ type syncToJob struct {
 	name       string
 	localPath  string
 	errors     []error
+	priority.Value
 }
 
 func newSyncToJob(b *Bucket, localPath string, remoteFile s3.Key, withDelete bool) *syncToJob {
@@ -192,4 +194,17 @@ func (j *syncToJob) Dependency() dependency.Manager {
 
 func (j *syncToJob) SetDependency(_ dependency.Manager) {
 	return
+}
+
+// Export serializes the job object according to the Format specified
+// in the the JobType argument.
+func (j *syncToJob) Export() ([]byte, error) {
+	return amboy.ConvertTo(j.Type().Format, j)
+}
+
+// Import takes a byte array, and attempts to marshal that data into
+// the current job object according to the format specified in the Job
+// type definition for this object.
+func (j *syncToJob) Import(data []byte) error {
+	return amboy.ConvertFrom(j.Type().Format, data, j)
 }

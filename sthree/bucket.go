@@ -188,9 +188,6 @@ func (b *Bucket) SetNumRetries(n int) error {
 // creating creating the worker queue. Does *not* return an error if
 // the Bucket has been opened, and is a noop in this case.
 func (b *Bucket) Open() error {
-	ctx, cancel := context.WithCancel(context.TODO())
-	b.closer = cancel
-
 	if b.s3 == nil {
 		b.s3 = s3.New(b.credentials.Auth, b.credentials.Region)
 	}
@@ -203,6 +200,9 @@ func (b *Bucket) Open() error {
 	defer b.mutex.Unlock()
 
 	if b.queue == nil {
+		ctx, cancel := context.WithCancel(context.TODO())
+		b.closer = cancel
+
 		b.queue = queue.NewLocalUnordered(b.numJobs)
 		return errors.Wrap(b.queue.Start(ctx), "starting worker queue for sync jobs")
 	}
