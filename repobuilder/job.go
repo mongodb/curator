@@ -24,7 +24,7 @@ import (
 // present, for a cleaner implementation.
 
 type jobImpl interface {
-	rebuildRepo(string, *sync.WaitGroup)
+	rebuildRepo(string) error
 	injectPackage(string, string) (string, error)
 }
 
@@ -304,15 +304,13 @@ func (j *Job) Run() {
 			var err error
 			j.workingDirs = append(j.workingDirs, local)
 
-			err = os.MkdirAll(local, 0755)
-			if err != nil {
+			if err = os.MkdirAll(local, 0755); err != nil {
 				j.addError(errors.Wrapf(err, "creating directory %s", local))
 				return
 			}
 
 			grip.Infof("downloading from %s to %s", remote, local)
-			err = bucket.SyncFrom(local, remote, false)
-			if err != nil {
+			if err = bucket.SyncFrom(local, remote, false); err != nil {
 				j.addError(errors.Wrapf(err, "sync from %s to %s", remote, local))
 				return
 			}
@@ -325,18 +323,11 @@ func (j *Job) Run() {
 				return
 			}
 
-			rWg := &sync.WaitGroup{}
 			for _, dir := range changedRepos {
-				rWg.Add(1)
-				go j.builder.rebuildRepo(dir, rWg)
-			}
-			rWg.Wait()
-
-			if j.hasErrors() {
-				grip.Errorf(
-					"encountered error rebuilding %s (%s). Uploaded no changes",
-					remote, local)
-				return
+				if err = j.builder.rebuildRepo(dir); err != nil {
+					j.addError(errors.Wrapf(err, "problem building repo in '%s'", dir))
+					return
+				}
 			}
 
 			for _, dir := range changedRepos {

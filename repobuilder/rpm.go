@@ -4,7 +4,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/tychoish/grip"
@@ -28,9 +27,7 @@ func (j *BuildRPMRepoJob) injectPackage(local, repoName string) (string, error) 
 	return repoPath, errors.Wrapf(err, "linking packages for %s", repoPath)
 }
 
-func (j *BuildRPMRepoJob) rebuildRepo(workingDir string, wg *sync.WaitGroup) {
-	defer wg.Done()
-
+func (j *BuildRPMRepoJob) rebuildRepo(workingDir string) error {
 	var output string
 	var err error
 	var out []byte
@@ -46,10 +43,9 @@ func (j *BuildRPMRepoJob) rebuildRepo(workingDir string, wg *sync.WaitGroup) {
 		out, err = cmd.CombinedOutput()
 		output = string(out)
 		if err != nil {
-			j.addError(errors.Wrapf(err, "running createrepo for %s", workingDir))
 			grip.Error(err)
 			grip.Info(output)
-			return
+			return errors.Wrap(err, "problem building repo")
 		}
 		grip.Debug(output)
 	}
@@ -60,15 +56,15 @@ func (j *BuildRPMRepoJob) rebuildRepo(workingDir string, wg *sync.WaitGroup) {
 	j.mutex.Unlock()
 
 	metaDataFile := filepath.Join(workingDir, "repodata", "repomd.xml")
-	err = j.signFile(metaDataFile, "asc", false) // (name, extension, overwrite)
-	if err != nil {
-		j.addError(errors.Wrapf(err, "signing release metadata for %s", workingDir))
-		return
+
+	// signFile(name, extension, overwrite)
+	if err = j.signFile(metaDataFile, "asc", false); err != nil {
+		return errors.Wrapf(err, "signing release metadata for %s", workingDir)
 	}
 
-	err = j.Conf.BuildIndexPageForDirectory(workingDir, j.Distro.Bucket)
-	if err != nil {
-		j.addError(errors.Wrapf(err, "building index.html pages for %s", workingDir))
-		return
+	if err = j.Conf.BuildIndexPageForDirectory(workingDir, j.Distro.Bucket); err != nil {
+		return errors.Wrapf(err, "building index.html pages for %s", workingDir)
 	}
+
+	return nil
 }

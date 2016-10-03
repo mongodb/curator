@@ -9,7 +9,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"sync"
 	"text/template"
 
 	"github.com/pkg/errors"
@@ -90,9 +89,7 @@ func gzipAndWriteToFile(fileName string, content []byte) error {
 	return nil
 }
 
-func (j *BuildDEBRepoJob) rebuildRepo(workingDir string, wg *sync.WaitGroup) {
-	defer wg.Done()
-
+func (j *BuildDEBRepoJob) rebuildRepo(workingDir string) error {
 	arch := "binary-" + j.Arch
 
 	// start by running dpkg-scanpackages to generate a packages file
@@ -104,39 +101,33 @@ func (j *BuildDEBRepoJob) rebuildRepo(workingDir string, wg *sync.WaitGroup) {
 	grip.Infof("running command='%s' path='%s'", strings.Join(cmd.Args, " "), cmd.Dir)
 	out, err := cmd.Output()
 	if err != nil {
-		j.addError(errors.Wrapf(err, "building 'Packages': [%s]", string(out)))
-		return
+		return errors.Wrapf(err, "building 'Packages': [%s]", string(out))
 	}
 
 	// Write the packages file to disk.
 	pkgsFile := filepath.Join(workingDir, arch, "Packages")
-	err = ioutil.WriteFile(pkgsFile, out, 0644)
-	if err != nil {
-		j.addError(err)
-		return
+	if err = ioutil.WriteFile(pkgsFile, out, 0644); err != nil {
+		return errors.Wrapf(err, "problem writing packages file to '%s'", pkgsFile)
 	}
 	grip.Noticeln("wrote packages file to:", pkgsFile)
 
 	// Compress/gzip the packages file
-	err = gzipAndWriteToFile(pkgsFile+".gz", out)
-	if err != nil {
-		j.addError(errors.Wrap(err, "compressing the 'Packages' file"))
-		return
+
+	if err = gzipAndWriteToFile(pkgsFile+".gz", out); err != nil {
+		return errors.Wrap(err, "compressing the 'Packages' file")
 	}
 
 	// Continue by building the Releases file, first by using the
 	// template, and then by
 	releaseTmplSrc, ok := j.Conf.Templates.Deb[j.Distro.Edition]
 	if !ok {
-		j.addError(errors.Errorf("no 'Release' template defined for %s", j.Distro.Edition))
-		return
+		return errors.Errorf("no 'Release' template defined for %s", j.Distro.Edition)
 	}
 
 	// initialize the template.
 	tmpl, err := template.New("Releases").Parse(releaseTmplSrc)
 	if err != nil {
-		j.addError(errors.Wrap(err, "reading Releases template"))
-		return
+		return errors.Wrap(err, "reading Releases template")
 	}
 
 	buffer := bytes.NewBuffer([]byte{})
@@ -150,8 +141,7 @@ func (j *BuildDEBRepoJob) rebuildRepo(workingDir string, wg *sync.WaitGroup) {
 		Architectures: strings.Join(j.Distro.Architectures, " "),
 	})
 	if err != nil {
-		j.addError(errors.Wrap(err, "rendering Releases template"))
-		return
+		return errors.Wrap(err, "rendering Releases template")
 	}
 
 	// This builds a Release file using the header info generated
@@ -163,8 +153,7 @@ func (j *BuildDEBRepoJob) rebuildRepo(workingDir string, wg *sync.WaitGroup) {
 	outString := string(out)
 	grip.Debug(outString)
 	if err != nil {
-		j.addError(errors.Wrapf(err, "generating Release content for %s", workingDir))
-		return
+		return errors.Wrapf(err, "generating Release content for %s", workingDir)
 	}
 
 	// get the content from the template and add the output of
@@ -179,10 +168,9 @@ func (j *BuildDEBRepoJob) rebuildRepo(workingDir string, wg *sync.WaitGroup) {
 
 	// write the content of the release file to disk.
 	relFileName := filepath.Join(filepath.Dir(workingDir), "Release")
-	err = ioutil.WriteFile(relFileName, releaseContent, 0644)
-	if err != nil {
-		j.addError(errors.Wrapf(err, "writing Release file to disk %s", relFileName))
-		return
+
+	if err = ioutil.WriteFile(relFileName, releaseContent, 0644); err != nil {
+		return errors.Wrapf(err, "writing Release file to disk %s", relFileName)
 	}
 
 	grip.Noticeln("wrote release files to:", relFileName)
@@ -190,16 +178,16 @@ func (j *BuildDEBRepoJob) rebuildRepo(workingDir string, wg *sync.WaitGroup) {
 	// sign the file using the notary service. To remove the
 	// MongoDB-specificity we could make this configurable, or
 	// offer ways of specifying different signing option.
-	err = j.signFile(relFileName, "gpg", false) // (name, extension, overwrite)
-	if err != nil {
-		j.addError(errors.Wrapf(err, "signing Release file for %s", workingDir))
-		return
+	//
+	// signFile(name, extension, overwrite)
+	if err = j.signFile(relFileName, "gpg", false); err != nil {
+		return errors.Wrapf(err, "signing Release file for %s", workingDir)
 	}
 
 	// build the index page.
-	err = j.Conf.BuildIndexPageForDirectory(workingDir, j.Distro.Bucket)
-	if err != nil {
-		j.addError(errors.Wrapf(err, "building index.html pages for %s", workingDir))
-		return
+	if err = j.Conf.BuildIndexPageForDirectory(workingDir, j.Distro.Bucket); err != nil {
+		return errors.Wrapf(err, "building index.html pages for %s", workingDir)
 	}
+
+	return nil
 }
