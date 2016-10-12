@@ -32,12 +32,19 @@ func (j *BuildRPMRepoJob) rebuildRepo(workingDir string) error {
 	var err error
 	var out []byte
 
+	// We want to ensure that we don't run more than one
+	// createrepo operation at a time. Eventually it would be nice
+	// if there were a pure-Go way to build repositories that we
+	// knew was safe, but we've seen a number of racey-failures
+	// because of running createrepo at the same time.
+	j.mutex.Lock()
+	defer j.mutex.Unlock()
+
 	cmd := exec.Command("createrepo", "-d", "-s", "sha", workingDir)
-	grip.Infoln("building repo with operation:", strings.Join(cmd.Args, " "))
 
 	if j.DryRun {
-		output = "no output: dry run"
 		grip.Noticeln("[dry-run] would run:", strings.Join(cmd.Args, " "))
+		output = "no output: dry run"
 	} else {
 		grip.Noticeln("building repo with operation:", strings.Join(cmd.Args, " "))
 		out, err = cmd.CombinedOutput()
@@ -51,9 +58,7 @@ func (j *BuildRPMRepoJob) rebuildRepo(workingDir string) error {
 	}
 
 	grip.Infoln("rebuilt repo for:", workingDir)
-	j.mutex.Lock()
 	j.Output[workingDir] = output
-	j.mutex.Unlock()
 
 	metaDataFile := filepath.Join(workingDir, "repodata", "repomd.xml")
 

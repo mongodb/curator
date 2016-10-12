@@ -118,7 +118,11 @@ func (j *Job) linkPackages(dest string) error {
 
 		if _, err := os.Stat(dest); os.IsNotExist(err) {
 			grip.Noticeln("creating directory:", dest)
-			catcher.Add(os.MkdirAll(dest, 0744))
+			if err := os.MkdirAll(dest, 0744); err != nil {
+				catcher.Add(errors.Wrapf(err, "problem creating directory %s",
+					dest))
+				continue
+			}
 		}
 
 		mirror := filepath.Join(dest, filepath.Base(pkg))
@@ -126,10 +130,9 @@ func (j *Job) linkPackages(dest string) error {
 		if _, err := os.Stat(mirror); os.IsNotExist(err) {
 			grip.Infof("copying package %s to local staging %s", pkg, dest)
 
-			err = os.Link(pkg, mirror)
-			if err != nil {
-				catcher.Add(err)
-				grip.Error(err)
+			if err = os.Link(pkg, mirror); err != nil {
+				catcher.Add(errors.Wrapf(err, "problem copying package %s to %s",
+					pkg, mirror))
 				continue
 			}
 
@@ -137,7 +140,8 @@ func (j *Job) linkPackages(dest string) error {
 				wg.Add(1)
 				go func(toSign string) {
 					// sign each package, overwriting the package with the signed package.
-					catcher.Add(j.signFile(toSign, "", true)) // (name, extension, overwrite)
+					catcher.Add(errors.Wrapf(j.signFile(toSign, "", true), // (name, extension, overwrite)
+						"problem signing file %s", toSign))
 					wg.Done()
 				}(mirror)
 			}
@@ -150,32 +154,17 @@ func (j *Job) linkPackages(dest string) error {
 	return catcher.Resolve()
 }
 
-func (j *Job) injectNewPackages(local string) ([]string, error) {
-	catcher := grip.NewCatcher()
-	var changedRepos []string
-
+func (j *Job) injectNewPackages(local string) (string, error) {
 	if j.release.IsDevelopmentBuild() {
 		// nightlies to the a "development" repo.
-		changed, err := j.builder.injectPackage(local, "development")
-		catcher.Add(err)
-		changedRepos = append(changedRepos, changed)
-
-		// TODO: remove everything except the package that we
-		// added, which might require a different injection
-		// above, and AWS syncing strategy below.
+		return j.builder.injectPackage(local, "development")
 	} else if j.release.IsReleaseCandidate() {
 		// release candidates go into the testing repo:
-		changed, err := j.builder.injectPackage(local, "testing")
-		catcher.Add(err)
-		changedRepos = append(changedRepos, changed)
+		return j.builder.injectPackage(local, "testing")
 	} else {
 		// there are repos for each series:
-		changed, err := j.builder.injectPackage(local, j.release.Series())
-		catcher.Add(err)
-		changedRepos = append(changedRepos, changed)
+		return j.builder.injectPackage(local, j.release.Series())
 	}
-
-	return changedRepos, catcher.Resolve()
 }
 
 // signFile wraps the python notary-client.py script. Pass it the name
@@ -243,21 +232,17 @@ func (j *Job) signFile(fileName, archiveExtension string, overwrite bool) error 
 		token, "XXXXX", -1))
 
 	out, err := cmd.CombinedOutput()
-	output := string(out)
+	output := strings.Trim(string(out), " \n\t")
 
 	if err != nil {
-		grip.Warningf("error signed file '%s': %s", fileName, err.Error())
-	} else {
-		grip.Noticeln("successfully signed file:", fileName)
+		grip.Warningf("error signed file '%s': %s (%s)",
+			fileName, err.Error(), output)
+		return errors.Wrap(err, "problem with notary service client signing file")
 	}
 
-	grip.Debugln("notary-client.py output:", output)
+	grip.Noticef("successfully signed file: %s (%s)", fileName, output)
 
-	j.mutex.Lock()
-	defer j.mutex.Unlock()
-	j.Output["sign-"+fileName] = output
-
-	return err
+	return nil
 }
 
 // Run is the main execution entry point into repository building, and is a component
@@ -293,6 +278,7 @@ func (j *Job) Run() {
 	defer j.markComplete()
 	wg := &sync.WaitGroup{}
 
+	// at the moment there is only multiple repos for RPM distros
 	for _, remote := range j.Distro.Repos {
 		wg.Add(1)
 		go func(remote string) {
@@ -315,43 +301,42 @@ func (j *Job) Run() {
 				return
 			}
 
-			var changedRepos []string
 			grip.Info("copying new packages into local staging area")
-			changedRepos, err = j.injectNewPackages(local)
+			changed, err := j.injectNewPackages(local)
 			if err != nil {
 				j.addError(errors.Wrap(err, "copying packages into staging repos"))
 				return
 			}
 
-			for _, dir := range changedRepos {
-				if err = j.builder.rebuildRepo(dir); err != nil {
-					j.addError(errors.Wrapf(err, "problem building repo in '%s'", dir))
-					return
-				}
+			// rebuildRepo may hold the lock (and does for
+			// the bulk of the operation with RPM
+			// distros.)
+			if err = j.builder.rebuildRepo(changed); err != nil {
+				j.addError(errors.Wrapf(err, "problem building repo in '%s'", changed))
+				return
 			}
 
-			for _, dir := range changedRepos {
-				var syncSource string
-				var changedComponent string
+			var syncSource string
+			var changedComponent string
 
-				if j.Distro.Type == DEB {
-					changedComponent = filepath.Dir(dir[len(local)+1:])
-					syncSource = filepath.Dir(dir)
-				} else if j.Distro.Type == RPM {
-					changedComponent = dir[len(local)+1:]
-					syncSource = dir
-				} else {
-					j.addError(errors.Errorf("curator does not support uploading '%s' repos",
-						j.Distro.Type))
-					continue
-				}
+			if j.Distro.Type == DEB {
+				changedComponent = filepath.Dir(changed[len(local)+1:])
+				syncSource = filepath.Dir(changed)
+			} else if j.Distro.Type == RPM {
+				changedComponent = changed[len(local)+1:]
+				syncSource = changed
+			} else {
+				j.addError(errors.Errorf("curator does not support uploading '%s' repos",
+					j.Distro.Type))
+				return
+			}
 
-				// do the sync. It's ok,
-				err = bucket.SyncTo(syncSource, filepath.Join(remote, changedComponent), false)
-				if err != nil {
-					j.addError(errors.Wrapf(err, "problem uploading %s to %s/%s",
-						syncSource, bucket, changedComponent))
-				}
+			// do the sync. It's ok,
+			err = bucket.SyncTo(syncSource, filepath.Join(remote, changedComponent), false)
+			if err != nil {
+				j.addError(errors.Wrapf(err, "problem uploading %s to %s/%s",
+					syncSource, bucket, changedComponent))
+				return
 			}
 		}(remote)
 	}
