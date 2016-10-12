@@ -5,6 +5,8 @@
 // global logger and for Journaler logging objects.
 package grip
 
+import "github.com/tychoish/grip/level"
+
 // Emergency + (fatal/panic)
 // Alert + (fatal/panic)
 // Critical + (fatal/panic)
@@ -13,6 +15,10 @@ package grip
 // Notice
 // Info
 // Debug
+
+func CatchSend(l level.Priority, err error) {
+	std.CatchSend(l, err)
+}
 
 func CatchDefault(err error) {
 	std.CatchDefault(err)

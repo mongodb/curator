@@ -10,6 +10,10 @@ import (
 	"github.com/tychoish/grip/message"
 )
 
+func (g *Grip) CatchSend(l level.Priority, err error) {
+	g.sender.Send(l, message.NewErrorMessage(err))
+}
+
 func (g *Grip) CatchDefault(err error) {
 	g.sender.Send(g.DefaultLevel(), message.NewErrorMessage(err))
 }

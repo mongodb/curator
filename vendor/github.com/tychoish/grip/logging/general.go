@@ -23,6 +23,16 @@ import (
 	"github.com/tychoish/grip/message"
 )
 
+func (g *Grip) Send(l level.Priority, msg interface{}) {
+	g.sender.Send(l, message.ConvertToComposer(msg))
+}
+func (g *Grip) Sendf(l level.Priority, msg string, a ...interface{}) {
+	g.sender.Send(l, message.NewFormatedMessage(msg, a...))
+}
+func (g *Grip) Sendln(l level.Priority, a ...interface{}) {
+	g.sender.Send(l, message.NewLinesMessage(a...))
+}
+
 func (g *Grip) Default(msg interface{}) {
 	g.sender.Send(g.sender.DefaultLevel(), message.ConvertToComposer(msg))
 }

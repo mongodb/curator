@@ -14,6 +14,18 @@ expensive message building operations.
 */
 package grip
 
+import "github.com/tychoish/grip/level"
+
+func SendWhen(conditional bool, l level.Priority, m interface{}) {
+	std.SendWhen(conditional, l, m)
+}
+func SendWhenln(conditional bool, l level.Priority, msg ...interface{}) {
+	std.SendWhenln(conditional, l, msg...)
+}
+func SendWhenf(conditional bool, l level.Priority, msg string, args ...interface{}) {
+	std.SendWhenf(conditional, l, msg, args...)
+}
+
 // Default-level Conditional Methods
 
 func DefaultWhen(conditional bool, m interface{}) {

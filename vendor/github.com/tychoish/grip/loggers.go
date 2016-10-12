@@ -24,6 +24,18 @@ functionality. You must pass printf/println-style arguments to these methods.
 */
 package grip
 
+import "github.com/tychoish/grip/level"
+
+func Send(l level.Priority, msg interface{}) {
+	std.Send(l, msg)
+}
+func Sendf(l level.Priority, msg string, a ...interface{}) {
+	std.Sendf(l, msg, a...)
+}
+func Sendln(l level.Priority, a ...interface{}) {
+	std.Sendln(l, a...)
+}
+
 // default methods for sending messages at the default level.
 
 func Default(msg interface{}) {
