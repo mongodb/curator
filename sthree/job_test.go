@@ -26,14 +26,12 @@ type BucketJobSuite struct {
 }
 
 func TestBucketJobSuiteWithoutDelete(t *testing.T) {
-	t.Parallel()
 	suite.Run(t, &BucketJobSuite{
 		withDelete: false,
 	})
 }
 
 func TestBucketJobSuiteWithDelete(t *testing.T) {
-	t.Parallel()
 	suite.Run(t, &BucketJobSuite{
 		withDelete: true,
 	})

@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"strconv"
 	"sync"
 	"testing"
@@ -179,8 +178,6 @@ func (s *BucketSuite) TestContentsAndListProduceIdenticalData() {
 }
 
 func (s *BucketSuite) TestJobNumberIsConfigurableBeforeBucketOpens() {
-	s.Equal(s.b.numJobs, runtime.NumCPU()*4)
-
 	for i := 1; i < 20; i = i + 2 {
 		s.False(s.b.IsOpen())
 		s.NoError(s.b.SetNumJobs(i))
@@ -216,9 +213,9 @@ func (s *BucketSuite) TestJobNumberIsNotConfigurableAfterBucketOpens() {
 	s.NoError(s.b.Open())
 	s.True(s.b.IsOpen())
 
-	s.Equal(s.b.numJobs, runtime.NumCPU()*4)
+	existingNum := s.b.numJobs
 	s.Error(s.b.SetNumJobs(100))
-	s.Equal(s.b.numJobs, runtime.NumCPU()*4)
+	s.Equal(s.b.numJobs, existingNum)
 }
 
 func (s *BucketSuite) TestPutOptionUploadsFile() {

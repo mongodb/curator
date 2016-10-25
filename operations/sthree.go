@@ -13,13 +13,7 @@ sub-command, for example:
    curator s3 put --bucket <bucket> --file <local> --name <remote>
    curator s3 get --bucket <bucket> --file <local> --name <remote>
 
-For the sync jobs, you can use the aliases "push" and "pull", as in:
-
-   curator s3 push --jobs <int> --bucket <bucket> --local <path> --prefix <remote>
-   curator s3 pull --jobs <int> --bucket <bucket> --local <path> --prefix <remote>
-
-For sync commands, the "jobs" argument is optional and defaults to 2
-times the number of available processors. The "prefix" argument allows
+For sync commands, the "prefix" argument allows
 you to sync only a portion of the bucket (e.g. all items with
 key-names that start with that prefix.) For the "push" operation, the
 curator prepends prefix (e.g. "folder" or leading ortion of the key

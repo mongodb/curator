@@ -304,9 +304,10 @@ func (b *Bucket) Exists(path string) (bool, error) {
 		err = errors.Wrapf(err, "error s3.EXISTS for %s/%s on attempt %d", b.name, path, i)
 
 		if i < b.numRetries {
-			grip.Warningln(err, "retrying...")
-			time.Sleep(backoff.Duration())
-			grip.Debugf("retrying s3.EXISTS %d of %d, for %s", i, b.numRetries, path)
+			dur := backoff.Duration()
+			grip.Debugf("retrying s3.EXISTS attempt %d of %d (after %s), for %s (%+v)",
+				i, b.numRetries, dur, path, err)
+			time.Sleep(dur)
 		}
 	}
 
