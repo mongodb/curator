@@ -10,6 +10,9 @@ import (
 	"github.com/urfave/cli"
 )
 
+// PruneCache returns a command object for cache pruning helper for
+// removing objects from a file system cache based on last
+// modification time.
 func PruneCache() cli.Command {
 	return cli.Command{
 		Name:  "prune",

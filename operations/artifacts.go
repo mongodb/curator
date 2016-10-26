@@ -14,6 +14,8 @@ import (
 	"golang.org/x/net/context"
 )
 
+// Artifacts returns a command object for the "archives" sub command
+// which contains functions to download MongoDB archives.
 func Artifacts() cli.Command {
 	var target string
 	var arch string
@@ -36,7 +38,7 @@ func Artifacts() cli.Command {
 
 	return cli.Command{
 		Name:    "artifacts",
-		Aliases: []string{"archives", "build"},
+		Aliases: []string{"archives", "builds"},
 		Usage:   "download ",
 		Subcommands: []cli.Command{
 			cli.Command{

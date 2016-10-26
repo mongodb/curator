@@ -25,16 +25,6 @@ type JobBase struct {
 	dep        dependency.Manager
 	mutex      sync.RWMutex
 	priority.Value
-
-	// a pointer to the outer job so that Import/Export work
-	outer Job
-}
-
-func NewBase(name string, j Job) *JobBase {
-	return &JobBase{
-		Name:  name,
-		outer: j,
-	}
 }
 
 // ID returns the name of the job, and is a component of the amboy.Job

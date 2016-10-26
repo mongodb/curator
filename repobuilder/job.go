@@ -19,10 +19,6 @@ import (
 	"github.com/tychoish/grip"
 )
 
-// TODO embed a jobImpl in Job, and then have constructors
-// build+dependency inject so that control is inverted relative to the
-// present, for a cleaner implementation.
-
 type jobImpl interface {
 	rebuildRepo(string) error
 	injectPackage(string, string) (string, error)
