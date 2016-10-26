@@ -18,13 +18,23 @@ import (
 // Jobs interface and contains data that would need to be serialized
 // with the job object.
 type JobBase struct {
-	Name       string             `bson:"name" json:"name" yaml:"name"`
-	IsComplete bool               `bson:"completed" json:"completed" yaml:"completed"`
-	JobType    amboy.JobType      `bson:"job_type" json:"job_type" yaml:"job_type"`
-	D          dependency.Manager `bson:"dependency" json:"dependency" yaml:"dependency"`
-	Errors     []error            `bson:"errors" json:"errors" yaml:"errors"`
+	Name       string        `bson:"name" json:"name" yaml:"name"`
+	IsComplete bool          `bson:"completed" json:"completed" yaml:"completed"`
+	JobType    amboy.JobType `bson:"job_type" json:"job_type" yaml:"job_type"`
+	Errors     []error       `bson:"errors" json:"errors" yaml:"errors"`
+	dep        dependency.Manager
 	mutex      sync.RWMutex
 	priority.Value
+
+	// a pointer to the outer job so that Import/Export work
+	outer Job
+}
+
+func NewBase(name string, j Job) *JobBase {
+	return &JobBase{
+		Name:  name,
+		outer: j,
+	}
 }
 
 // ID returns the name of the job, and is a component of the amboy.Job
@@ -54,21 +64,23 @@ func (j *JobBase) Dependency() dependency.Manager {
 	j.mutex.RLock()
 	defer j.mutex.RUnlock()
 
-	return j.D
+	return j.dep
 }
 
 // SetDependency allows you to inject a different amboy.Job dependency
 // object, and is a component of the amboy.Job interface.
 func (j *JobBase) SetDependency(d dependency.Manager) {
-	if d.Type().Name == dependency.AlwaysRun {
-		j.mutex.Lock()
-		defer j.mutex.Unlock()
+	j.mutex.Lock()
+	defer j.mutex.Unlock()
 
-		j.D = d
-	} else {
-		grip.Warningln("repo must have 'always'-run dependencies.",
-			"not setting dependency to:", d.Type().Name)
+	if d.Type().Name != dependency.AlwaysRun {
+
+		grip.Warningf("not setting dependency to %s, because %s jobs "+
+			"must have AlwaysRun dependencies",
+			d.Type().Name, j.Type().Name)
+
 	}
+	j.dep = d
 }
 
 func (j *JobBase) markComplete() {
@@ -109,19 +121,4 @@ func (j *JobBase) Error() error {
 	}
 
 	return errors.New(strings.Join(outputs, "\n"))
-}
-
-// Export serializes the job object according to the Format specified
-// in the the JobType argument.
-func (j *JobBase) Export() ([]byte, error) {
-	return amboy.ConvertTo(j.Type().Format, j)
-}
-
-// Import takes a byte array, and attempts to marshal that data into
-// the current job object according to the format specified in the Job
-// type definition for this object.
-func (j *JobBase) Import(data []byte) error {
-	err := amboy.ConvertFrom(j.Type().Format, data, j)
-
-	return err
 }

@@ -115,6 +115,8 @@ vendor-deps:$(vendorDeps)
 #   for go1.4, we can delete most of this.
 -include $(buildDir)/makefile.vendor
 nestedVendored := vendor/github.com/tychoish/grip
+nestedVendored += vendor/github.com/tychoish/bond
+nestedVendored += vendor/github.com/tychoish/lru
 nestedVendored += vendor/github.com/mongodb/amboy
 nestedVendored := $(foreach project,$(nestedVendored),$(project)/build/vendor)
 $(buildDir)/makefile.vendor:$(buildDir)/render-gopath makefile
@@ -127,6 +129,17 @@ vendor-clean:
 	rm -rf vendor/github.com/stretchr/testify/vendor/
 	rm -rf vendor/github.com/mongodb/amboy/vendor/github.com/tychoish/grip/
 	rm -rf vendor/github.com/mongodb/amboy/vendor/github.com/golang.org/x/net/
+	rm -rf vendor/github.com/mongodb/amboy/vendor/golang.org/x/net/
+	rm -rf vendor/github.com/tychoish/bond/vendor/github.com/tychoish/
+	rm -rf vendor/github.com/tychoish/bond/vendor/github.com/mongodb/amboy/
+	rm -rf vendor/github.com/tychoish/bond/vendor/golang.org/x/net/
+	rm -rf vendor/github.com/tychoish/lru/vendor/github.com/tychoish/grip/
+	rm -rf vendor/github.com/tychoish/lru/vendor/github.com/pkg/errors/
+	rm -rf vendor/github.com/tychoish/bond/vendor/github.com/davecgh/go-spew/
+	rm -rf vendor/github.com/tychoish/bond/vendor/github.com/pkg/errors/
+	rm -rf vendor/github.com/tychoish/bond/vendor/github.com/stretchr
+	rm -rf vendor/github.com/tychoish/bond/vendor/github.com/satori/
+	rm -rf vendor/github.com/tychoish/bond/vendor/github.com/pmezard/
 	find vendor/ -name "*.gif" -o -name "*.gz" -o -name "*.png" -o -name "*.ico" -o -name "*testdata*"| xargs rm -rf
 change-go-version:
 	rm -rf $(buildDir)/make-vendor $(buildDir)/render-gopath

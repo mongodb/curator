@@ -31,20 +31,23 @@ func init() {
 
 // NewIndexBuildJob constructs an IndexBuildJob object.
 func NewIndexBuildJob(conf *RepositoryConfig, workSpace, repoName, bucket string, dryRun bool) *IndexBuildJob {
-	return &IndexBuildJob{
+	j := &IndexBuildJob{
 		Conf:      conf,
 		DryRun:    dryRun,
 		WorkSpace: workSpace,
 		Bucket:    bucket,
 		RepoName:  repoName,
 		JobBase: &JobBase{
-			D: dependency.NewAlways(),
 			JobType: amboy.JobType{
 				Name:    "build-index-pages",
 				Version: 0,
 			},
 		},
 	}
+
+	j.SetDependency(dependency.NewAlways())
+
+	return j
 }
 
 // Run downloads the repository, and generates index pages at all

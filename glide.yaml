@@ -25,3 +25,5 @@ import:
   version: ^0.7.0
 - package: github.com/jpillora/backoff
 - package: golang.org/x/net
+- package: github.com/tychoish/lru
+- package: github.com/tychoish/bond

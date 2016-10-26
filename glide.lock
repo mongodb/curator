@@ -15,7 +15,7 @@ imports:
   - aws
   - s3
 - name: github.com/mongodb/amboy
-  version: 22c84b7ac2906e65f36b49e6c19e5decfe297378
+  version: 9577a6f470d611268531ac59a4b23b09fa97a8f2
   subpackages:
   - dependency
   - job
@@ -45,4 +45,8 @@ imports:
   version: a6f64285fd4072883335339357436b78d62c96a4
 - name: golang.org/x/net
   version: 1358eff22f0dd0c54fc521042cc607f6ff4b531a
+- name: github.com/tychoish/lru
+  version: b4dbc0f6623fffbf1b27afd5f12d8e5d931e6f84
+- name: github.com/tychoish/bond
+  version: 32a49e48acfe7083fb999314c5edc9e41dc718e7
 devImports: []

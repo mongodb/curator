@@ -1,7 +1,6 @@
 package repobuilder
 
 import (
-	"fmt"
 	"os"
 	"testing"
 
@@ -44,8 +43,6 @@ func (s *RepoJobSuite) TestIdIsAccessorForNameAttribute() {
 }
 
 func (s *RepoJobSuite) TestDependencyAccessorIsCorrect() {
-	fmt.Printf("%+v", s.j.JobBase)
-	s.Equal(s.j.D, s.j.Dependency())
 	s.Equal(dependency.AlwaysRun, s.j.Dependency().Type().Name)
 }
 
@@ -60,9 +57,9 @@ func (s *RepoJobSuite) TestSetDependencyAcceptsDifferentAlwaysRunInstances() {
 }
 
 func (s *RepoJobSuite) TestSetDependencyRejectsNonAlwaysRunDependencies() {
-	s.Equal(dependency.AlwaysRun, s.j.D.Type().Name)
+	s.Equal(dependency.AlwaysRun, s.j.Dependency().Type().Name)
 	localDep := dependency.NewLocalFileInstance()
 	s.NotEqual(localDep.Type().Name, dependency.AlwaysRun)
 	s.j.SetDependency(localDep)
-	s.Equal(dependency.AlwaysRun, s.j.D.Type().Name)
+	s.Equal(dependency.AlwaysRun, s.j.Dependency().Type().Name)
 }

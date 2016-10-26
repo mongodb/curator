@@ -45,7 +45,7 @@ type Job struct {
 	mutex       sync.RWMutex
 	builder     jobImpl
 
-	*JobBase `bson:"base" json:"base" yaml:"base"`
+	*JobBase `bson:"metadata" json:"metadata" yaml:"metadata"`
 }
 
 func init() {
@@ -55,16 +55,19 @@ func init() {
 }
 
 func buildRepoJob() *Job {
-	return &Job{
+	j := &Job{
 		Output: make(map[string]string),
 		JobBase: &JobBase{
-			D: dependency.NewAlways(),
 			JobType: amboy.JobType{
 				Name:    "build-repo",
-				Version: 1,
+				Version: 2,
 			},
 		},
 	}
+
+	j.SetDependency(dependency.NewAlways())
+
+	return j
 }
 
 // NewBuildRepoJob constructs a repository building job, which

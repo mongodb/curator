@@ -229,14 +229,14 @@ post:
 #######################################
 buildvariants:
   - name: archlinux
-    display_name: Arch Linux (go1.6)
+    display_name: Arch Linux
     run_on:
       - archlinux-test
     tasks:
       *dev-tasks
 
   - name: race-detector
-    display_name: Race Detector (Arch Linux; go1.6)
+    display_name: Race Detector (Arch Linux)
     run_on:
       - archlinux-test
     tasks:
