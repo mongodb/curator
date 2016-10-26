@@ -147,6 +147,9 @@ func (q *RemoteUnordered) Complete(ctx context.Context, j amboy.Job) {
 				lock.Lock(ctx)
 			}
 
+			if ctx.Err() != nil {
+				return
+			}
 			err = q.driver.Save(j)
 			if err == nil {
 				lock.Unlock(ctx)
@@ -161,7 +164,6 @@ func (q *RemoteUnordered) Complete(ctx context.Context, j amboy.Job) {
 			case <-timer.C:
 				continue
 			}
-
 		}
 	}()
 }

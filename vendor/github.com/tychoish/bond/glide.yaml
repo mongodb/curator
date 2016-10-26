@@ -1,0 +1,17 @@
+package: github.com/tychoish/bond
+import:
+- package: github.com/mongodb/amboy
+  subpackages:
+  - dependency
+  - queue
+  - registry
+- package: github.com/pkg/errors
+- package: github.com/tychoish/grip
+- package: golang.org/x/net
+  subpackages:
+  - context
+- package: github.com/stretchr/testify
+- package: github.com/stretchr/objx
+- package: github.com/pmezard/go-difflib
+- package: github.com/davecgh/go-spew
+- package: github.com/mholt/archiver

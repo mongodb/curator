@@ -3,6 +3,7 @@ package queue
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"golang.org/x/net/context"
 
@@ -22,6 +23,7 @@ import (
 func init() {
 	grip.SetThreshold(level.Debug)
 	grip.CatchError(grip.UseNativeLogger())
+	job.RegisterDefaultJobs()
 }
 
 type RemoteUnorderedSuite struct {
@@ -102,8 +104,12 @@ func (s *RemoteUnorderedSuite) SetupTest() {
 }
 
 func (s *RemoteUnorderedSuite) TearDownTest() {
-	s.canceler()
+	// this order is important, running teardown before canceling
+	// the context to prevent closing the connection before
+	// running the teardown procedure, given that some connection
+	// resources may be shared in the driver.
 	s.tearDown()
+	s.canceler()
 }
 
 func (s *RemoteUnorderedSuite) TestDriverIsUnitializedByDefault() {
@@ -129,12 +135,12 @@ func (s *RemoteUnorderedSuite) TestJobPutIntoQueueFetchableViaGetMethod() {
 		s.Equal(j.Type(), fetchedJob.Type())
 
 		nj := fetchedJob.(*job.ShellJob)
-		s.Equal(j.Name, nj.Name)
+		s.Equal(j.ID(), nj.ID())
 		s.Equal(j.IsComplete, nj.IsComplete)
-		s.Equal(j.Command, nj.Command)
+		s.Equal(j.Command, nj.Command, fmt.Sprintf("%+v\n%+v", j, nj))
 		s.Equal(j.Output, nj.Output)
 		s.Equal(j.WorkingDir, nj.WorkingDir)
-		s.Equal(j.T, nj.T)
+		s.Equal(j.Type(), nj.Type())
 	}
 }
 
@@ -264,7 +270,7 @@ func (s *RemoteUnorderedSuite) TestStartMethodCanBeCalledMultipleTimes() {
 
 func (s *RemoteUnorderedSuite) TestNextMethodSkipsLockedJobs() {
 	s.require.NoError(s.queue.SetDriver(s.driver))
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 	numLocked := 0
 	testJobs := make(map[string]*job.ShellJob)

@@ -1,7 +1,7 @@
 # start project configuration
 name := amboy
 buildDir := build
-packages := dependency job registry pool queue queue-driver
+packages := dependency job registry pool queue queue-driver rest $(name)
 orgPath := github.com/mongodb
 projectPath := $(orgPath)/$(name)
 # end project configuration
@@ -63,9 +63,9 @@ lint:$(lintDeps)
 	$(gopath)/bin/gometalinter $(lintArgs) ./...
 lint-deps:$(lintDeps)
 build:$(deps) $(srcFiles) $(gopath)/src/$(projectPath)
-	$(vendorGopath) go build $(subst -,/,$(foreach pkg,$(packages),./$(pkg)))
+	$(vendorGopath) go build $(subst $(name),,$(subst -,/,$(foreach pkg,$(packages),./$(pkg))))
 build-race:$(deps) $(srcFiles) $(gopath)/src/$(projectPath)
-	$(vendorGopath) go build -race $(subst -,/,$(foreach pkg,$(packages),./$(pkg)))
+	$(vendorGopath) go build -race $(subst $(name),,$(subst -,/,$(foreach pkg,$(packages),./$(pkg))))
 test:$(testOutput)
 race:$(raceOutput)
 coverage:$(coverageOutput)
@@ -112,7 +112,7 @@ html-coverage-%:
 #    that the tests actually need to run. (The "build" target is
 #    intentional and makes these targets rerun as expected.)
 testRunDeps := $(testSrcFiles) build
-testArgs := -v --timeout=20m
+testArgs := -v --timeout=10m
 #    implementation for package coverage and test running,mongodb to produce
 #    and save test output.
 $(buildDir)/coverage.%.html:$(buildDir)/coverage.%.out
@@ -144,7 +144,7 @@ vendor-deps:$(vendorDeps)
 #   new-style vendor directories. When this codebase can drop support
 #   for go1.4, we can delete most of this.
 -include $(buildDir)/makefile.vendor
-nestedVendored := vendor/github.com/tychoish/grip
+nestedVendored := vendor/github.com/tychoish/grip vendor/github.com/tychoish/gimlet
 nestedVendored := $(foreach project,$(nestedVendored),$(project)/build/vendor)
 $(buildDir)/makefile.vendor:$(buildDir)/render-gopath makefile
 	@mkdir -p $(buildDir)
@@ -155,12 +155,16 @@ vendor-sync:$(vendorDeps)
 vendor-clean:
 	rm -rf vendor/gopkg.in/mgo.v2/harness/
 	rm -rf vendor/github.com/stretchr/testify/vendor/
+	rm -rf vendor/github.com/tychoish/gimlet/vendor/github.com/stretchr/
+	rm -rf vendor/github.com/tychoish/gimlet/vendor/github.com/davecgh/
+	rm -rf vendor/github.com/tychoish/gimlet/vendor/github.com/pmezard/
+	rm -rf vendor/github.com/tychoish/gimlet/vendor/github.com/tychoish/grip/
 	find vendor/ -name "*.gif" -o -name "*.gz" -o -name "*.png" -o -name "*.ico" -o -name "*.dat" -o -name "*testdata" | xargs rm -f
 change-go-version:
 	rm -rf $(buildDir)/make-vendor $(buildDir)/render-gopath
 	@$(MAKE) $(makeArgs) vendor > /dev/null 2>&1
 vendor:$(buildDir)/vendor/src
-	$(MAKE) $(makeArgs) -C vendor/github.com/tychoish/grip $@
+	$(MAKE) $(makeArgs) -C vendor/github.com/tychoish/gimlet $@
 $(buildDir)/vendor/src:$(buildDir)/make-vendor $(buildDir)/render-gopath
 	@./$(buildDir)/make-vendor
 #   targets to build the small programs used to support vendoring.

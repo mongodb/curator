@@ -48,32 +48,38 @@ variables:
       # must additionally add the test suite name to the dev-tasks list
       # bellow and the task list, using the run-go-suite template
       - name: build
+      - name: test-amboy
       - name: test-dependency
       - name: test-job
       - name: test-registry
       - name: test-pool
       - name: test-queue
       - name: test-queue-driver
+      - name: test-rest
   - &dev-tasks
       # dev tasks contains all the test suites plus coverage and
       # linting. Only need/want to run lint/coverage on one builder.
       - name: build
       - name: lint
+      - name: test-amboy
       - name: test-dependency
       - name: test-job
       - name: test-registry
       - name: test-pool
       - name: test-queue
       - name: test-queue-driver
+      - name: test-rest
       - name: coverage
   - &race-detector-tasks
       - name: build-race
+      - name: race-amboy
       - name: race-dependency
       - name: race-job
       - name: race-registry
       - name: race-pool
       - name: race-queue
       - name: race-queue-driver
+      - name: race-rest
 
 
 #######################################
@@ -186,6 +192,8 @@ tasks:
       - func: run-make
         vars: { target: "coverage-html"}
       - func: upload-coverage
+        vars: { name: "amboy"}
+      - func: upload-coverage
         vars: { name: "dependency"}
       - func: upload-coverage
         vars: { name: "job"}
@@ -197,8 +205,12 @@ tasks:
         vars: { name: "queue"}
       - func: upload-coverage
         vars: { name: "queue-driver"}
+      - func: upload-coverage
+        vars: { name: "rest"}
 
   # define tasks for all test suites (modules)
+  - <<: *run-go-test-suite
+    name: test-amboy
   - <<: *run-go-test-suite
     name: test-dependency
   - <<: *run-go-test-suite
@@ -207,6 +219,8 @@ tasks:
     name: test-registry
   - <<: *run-go-test-suite
     name: test-pool
+  - <<: *run-go-test-suite
+    name: test-rest
   - <<: *run-go-test-suite-with-mongodb
     name: test-queue
   - <<: *run-go-test-suite-with-mongodb
@@ -214,11 +228,19 @@ tasks:
 
   # run the suites with the race detector (one variant only)
   - <<: *run-go-test-suite
+    name: race-amboy
+    depends_on:
+      - name: build-race
+  - <<: *run-go-test-suite
     name: race-dependency
     depends_on:
       - name: build-race
   - <<: *run-go-test-suite
     name: race-job
+    depends_on:
+      - name: build-race
+  - <<: *run-go-test-suite
+    name: race-rest
     depends_on:
       - name: build-race
   - <<: *run-go-test-suite
@@ -257,7 +279,7 @@ post:
 #######################################
 buildvariants:
   - name: archlinux
-    display_name: Arch Linux (go1.6)
+    display_name: Arch Linux
     expansions:
       mongodb_url: https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-3.2.9.tgz
     run_on:
@@ -266,7 +288,7 @@ buildvariants:
       *dev-tasks
 
   - name: race-detector
-    display_name: Race Detector (Arch Linux; go1.6)
+    display_name: Race Detector (Arch Linux)
     expansions:
       mongodb_url: https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-3.2.9.tgz
     run_on:

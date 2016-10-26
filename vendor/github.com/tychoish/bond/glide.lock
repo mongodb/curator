@@ -1,0 +1,39 @@
+hash: 7c97c5ab258e7c40c81cad1debb2d8abe9dbdc11a06b90d1475732a4b7ed8194
+updated: 2016-10-20T16:48:42.872025812-04:00
+imports:
+- name: github.com/davecgh/go-spew
+  version: 6d212800a42e8ab5c146b8ace3490ee17e5225f9
+- name: github.com/mongodb/amboy
+  version: bdc848e05c533ac061ffd62fe1d8cdd65b079ed4
+  subpackages:
+  - dependency
+  - queue
+  - registry
+  - priority
+  - pool
+  - queue/driver
+- name: github.com/pkg/errors
+  version: 839d9e913e063e28dfd0e6c7b7512793e0a48be9
+- name: github.com/pmezard/go-difflib
+  version: 792786c7400a136282c1664665ae0a8db921c6c2
+- name: github.com/satori/go.uuid
+  version: b061729afc07e77a8aa4fad0a2fd840958f1942a
+- name: github.com/stretchr/objx
+  version: 1a9d0bb9f541897e62256577b352fdbc1fb4fd94
+- name: github.com/stretchr/testify
+  version: 976c720a22c8eb4eb6a0b4348ad85ad12491a506
+- name: github.com/tychoish/grip
+  version: a8e3b9f07d14b9bf147b33ce3ef3be9565eb83d4
+  subpackages:
+  - level
+  - logging
+  - send
+  - sometimes
+  - message
+- name: golang.org/x/net
+  version: daba796358cd2742b75aae05761f1b898c9f6a5c
+  subpackages:
+  - context
+- name: github.com/mholt/archiver
+  version: 4a8a092653655d29c8e091cf2ecf91cbe697f0de
+devImports: []
