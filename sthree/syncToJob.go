@@ -11,7 +11,6 @@ import (
 	"github.com/mongodb/amboy"
 	"github.com/mongodb/amboy/dependency"
 	"github.com/mongodb/amboy/job"
-	"github.com/mongodb/amboy/priority"
 	"github.com/pkg/errors"
 	"github.com/tychoish/grip"
 )
@@ -26,45 +25,31 @@ import (
 // the documentation of the Run method for information about the
 // behavior of the job.
 type syncToJob struct {
-	isComplete bool
 	withDelete bool
+	localPath  string
 	remoteFile s3.Key
 	b          *Bucket
-	t          amboy.JobType
-	name       string
-	localPath  string
-	errors     []error
-	priority.Value
+
+	*amboy.JobBase
 }
 
 func newSyncToJob(b *Bucket, localPath string, remoteFile s3.Key, withDelete bool) *syncToJob {
-	return &syncToJob{
-		name:       fmt.Sprintf("%s.%d.sync-to", remoteFile.Key, job.GetNumber()),
+	j := &syncToJob{
 		withDelete: withDelete,
 		remoteFile: remoteFile,
 		localPath:  localPath,
 		b:          b,
-		t: amboy.JobType{
-			Name:    "s3-sync-to",
-			Version: 0,
+		JobBase: &amboy.JobBase{
+			JobType: amboy.JobType{
+				Name:    "s3-sync-to",
+				Version: 1,
+			},
 		},
 	}
-}
 
-func (j *syncToJob) ID() string {
-	return j.name
-}
+	j.SetID(fmt.Sprintf("%s.%d.sync-to", remoteFile.Key, job.GetNumber()))
 
-func (j *syncToJob) Type() amboy.JobType {
-	return j.t
-}
-
-func (j *syncToJob) Completed() bool {
-	return j.isComplete
-}
-
-func (j *syncToJob) markComplete() {
-	j.isComplete = true
+	return j
 }
 
 func (j *syncToJob) doPut() error {
@@ -77,33 +62,13 @@ func (j *syncToJob) doPut() error {
 	return nil
 }
 
-func (j *syncToJob) addError(err error) {
-	if err != nil {
-		j.errors = append(j.errors, err)
-	}
-}
-
-func (j *syncToJob) Error() error {
-	if len(j.errors) == 0 {
-		return nil
-	}
-
-	var outputs []string
-
-	for _, err := range j.errors {
-		outputs = append(outputs, fmt.Sprintf("%+v", err))
-	}
-
-	return errors.New(strings.Join(outputs, "\n"))
-}
-
 // Run executes the synchronization job. If local file doesn't exist
 // this operation becomes a noop. Otherwise, will always upload the
 // local file if a remote file exists, and if both the local and
 // remote file exists, compares the hashes between these files and
 // uploads the local file if it differs from the remote file.
 func (j *syncToJob) Run() {
-	defer j.markComplete()
+	defer j.MarkComplete()
 
 	// if the local file doesn't exist or has disappeared since
 	// the job was created, there's nothing to do, we can return early
@@ -111,7 +76,7 @@ func (j *syncToJob) Run() {
 		if j.withDelete && !j.b.dryRun {
 			err := j.b.Delete(j.remoteFile.Key)
 			if err != nil {
-				j.addError(errors.Wrapf(err,
+				j.AddError(errors.Wrapf(err,
 					"problem deleting %s from bucket %s",
 					j.remoteFile.Key, j.b.name))
 				return
@@ -136,7 +101,7 @@ func (j *syncToJob) Run() {
 	// otherwise we should put it here.
 	exists, err := j.b.Exists(j.remoteFile.Key)
 	if err != nil {
-		j.addError(errors.Wrapf(err,
+		j.AddError(errors.Wrapf(err,
 			"problem checking if the file '%s' exists in the bucket %s",
 			j.localPath, j.b.name))
 		return
@@ -146,7 +111,7 @@ func (j *syncToJob) Run() {
 			j.localPath, j.b.name, j.remoteFile.Key)
 		err = j.doPut()
 		if err != nil {
-			j.addError(errors.Wrapf(err, "problem uploading file %s -> %s",
+			j.AddError(errors.Wrapf(err, "problem uploading file %s -> %s",
 				j.localPath, j.remoteFile.Key))
 			return
 		}
@@ -161,7 +126,7 @@ func (j *syncToJob) Run() {
 		grip.Debugf("s3 does not report a hash for %s, uploading file", j.remoteFile.Key)
 		err = j.doPut()
 		if err != nil {
-			j.addError(errors.Wrapf(err, "problem uploading file '%s' during sync",
+			j.AddError(errors.Wrapf(err, "problem uploading file '%s' during sync",
 				j.remoteFile.Key))
 		}
 		return
@@ -172,7 +137,7 @@ func (j *syncToJob) Run() {
 	// the local file if they differ.
 	data, err := ioutil.ReadFile(j.localPath)
 	if err != nil {
-		j.addError(errors.Wrap(err,
+		j.AddError(errors.Wrap(err,
 			"problem reading file before hashing for sync operation"))
 		return
 	}
@@ -182,7 +147,7 @@ func (j *syncToJob) Run() {
 			j.remoteFile.Key, md5.Sum(data), remoteChecksum)
 		err = j.doPut()
 		if err != nil {
-			j.addError(errors.Wrapf(err, "problem uploading file '%s' during sync",
+			j.AddError(errors.Wrapf(err, "problem uploading file '%s' during sync",
 				j.remoteFile.Key))
 		}
 	}

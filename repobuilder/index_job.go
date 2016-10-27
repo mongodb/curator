@@ -20,7 +20,7 @@ type IndexBuildJob struct {
 	RepoName  string            `bson:"repo_name" json:"repo_name" yaml:"repo_name"`
 	DryRun    bool              `bson:"dry_run" json:"dry_run" yaml:"dry_run"`
 
-	*JobBase `bson:"base" json:"base" yaml:"base"`
+	*amboy.JobBase `bson:"metadata" json:"metadata" yaml:"metadata"`
 }
 
 func init() {
@@ -37,10 +37,10 @@ func NewIndexBuildJob(conf *RepositoryConfig, workSpace, repoName, bucket string
 		WorkSpace: workSpace,
 		Bucket:    bucket,
 		RepoName:  repoName,
-		JobBase: &JobBase{
+		JobBase: &amboy.JobBase{
 			JobType: amboy.JobType{
 				Name:    "build-index-pages",
-				Version: 0,
+				Version: 1,
 			},
 		},
 	}
@@ -57,7 +57,7 @@ func (j *IndexBuildJob) Run() {
 
 	err := bucket.Open()
 	if err != nil {
-		j.addError(errors.Wrapf(err, "opening bucket %s", bucket))
+		j.AddError(errors.Wrapf(err, "opening bucket %s", bucket))
 		return
 	}
 	defer bucket.Close()
@@ -67,26 +67,26 @@ func (j *IndexBuildJob) Run() {
 		// run open below)
 		bucket, err = bucket.DryRunClone()
 		if err != nil {
-			j.addError(errors.Wrapf(err,
+			j.AddError(errors.Wrapf(err,
 				"problem getting bucket '%s' in dry-mode", bucket))
 			return
 		}
 
 		err = bucket.Open()
 		if err != nil {
-			j.addError(errors.Wrapf(err, "opening bucket %s [dry-run]", bucket))
+			j.AddError(errors.Wrapf(err, "opening bucket %s [dry-run]", bucket))
 			return
 		}
 		defer bucket.Close()
 	}
 	bucket.NewFilePermission = s3.PublicRead
 
-	defer j.markComplete()
+	defer j.MarkComplete()
 
 	grip.Infof("downloading from %s to %s", bucket, j.WorkSpace)
 	err = bucket.SyncFrom(j.WorkSpace, "", false)
 	if err != nil {
-		j.addError(errors.Wrapf(err, "sync from %s to %s", bucket, j.WorkSpace))
+		j.AddError(errors.Wrapf(err, "sync from %s to %s", bucket, j.WorkSpace))
 		return
 	}
 
@@ -96,13 +96,13 @@ func (j *IndexBuildJob) Run() {
 
 	err = j.Conf.BuildIndexPageForDirectory(j.WorkSpace, j.RepoName)
 	if err != nil {
-		j.addError(errors.Wrapf(err, "building index.html pages for %s", j.WorkSpace))
+		j.AddError(errors.Wrapf(err, "building index.html pages for %s", j.WorkSpace))
 		return
 	}
 
 	err = bucket.SyncTo(j.WorkSpace, "", false)
 	if err != nil {
-		j.addError(errors.Wrapf(err, "problem uploading %s to %s",
+		j.AddError(errors.Wrapf(err, "problem uploading %s to %s",
 			j.WorkSpace, bucket))
 	}
 }

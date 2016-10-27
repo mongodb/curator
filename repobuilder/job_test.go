@@ -35,13 +35,6 @@ func (s *RepoJobSuite) TearDownTest() {
 	}
 }
 
-func (s *RepoJobSuite) TestIdIsAccessorForNameAttribute() {
-	s.Equal(s.j.Name, s.j.ID())
-	s.j.Name = "foo"
-	s.Equal("foo", s.j.ID())
-	s.Equal(s.j.Name, s.j.ID())
-}
-
 func (s *RepoJobSuite) TestDependencyAccessorIsCorrect() {
 	s.Equal(dependency.AlwaysRun, s.j.Dependency().Type().Name)
 }

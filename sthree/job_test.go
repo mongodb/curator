@@ -105,8 +105,8 @@ func (s *BucketJobSuite) TestMarkCompleteMethodChangesCompleteState() {
 	s.False(s.fromJob.Completed())
 	s.False(s.toJob.Completed())
 
-	s.fromJob.markComplete()
-	s.toJob.markComplete()
+	s.fromJob.MarkComplete()
+	s.toJob.MarkComplete()
 
 	s.True(s.fromJob.Completed())
 	s.True(s.toJob.Completed())
@@ -115,17 +115,17 @@ func (s *BucketJobSuite) TestMarkCompleteMethodChangesCompleteState() {
 func (s *BucketJobSuite) TestAddErrorDoesNotPersistNilErrors() {
 	var err error
 
-	s.Len(s.fromJob.errors, 0)
-	s.Len(s.toJob.errors, 0)
+	s.False(s.fromJob.HasErrors())
+	s.False(s.toJob.HasErrors())
 
 	s.NoError(s.fromJob.Error())
 	s.NoError(s.toJob.Error())
 
-	s.fromJob.addError(err)
-	s.toJob.addError(err)
+	s.fromJob.AddError(err)
+	s.toJob.AddError(err)
 
-	s.Len(s.fromJob.errors, 0)
-	s.Len(s.toJob.errors, 0)
+	s.False(s.fromJob.HasErrors())
+	s.False(s.toJob.HasErrors())
 
 	s.NoError(s.fromJob.Error())
 	s.NoError(s.toJob.Error())
@@ -134,17 +134,17 @@ func (s *BucketJobSuite) TestAddErrorDoesNotPersistNilErrors() {
 func (s *BucketJobSuite) AddErrorsDoesPersistErrors() {
 	err := errors.New("test")
 
-	s.Len(s.fromJob.errors, 0)
-	s.Len(s.toJob.errors, 0)
+	s.False(s.fromJob.HasErrors())
+	s.False(s.toJob.HasErrors())
 
 	s.NoError(s.fromJob.Error())
 	s.NoError(s.toJob.Error())
 
-	s.fromJob.addError(err)
-	s.toJob.addError(err)
+	s.fromJob.AddError(err)
+	s.toJob.AddError(err)
 
-	s.Len(s.fromJob.errors, 1)
-	s.Len(s.toJob.errors, 1)
+	s.True(s.fromJob.HasErrors())
+	s.True(s.toJob.HasErrors())
 
 	s.Error(s.fromJob.Error())
 	s.Error(s.toJob.Error())
@@ -153,18 +153,18 @@ func (s *BucketJobSuite) AddErrorsDoesPersistErrors() {
 func (s *BucketJobSuite) TestErrorMethodDoesNotImpactInternalErrorState() {
 	err := errors.New("test")
 
-	s.Len(s.fromJob.errors, 0)
-	s.Len(s.toJob.errors, 0)
+	s.False(s.fromJob.HasErrors())
+	s.False(s.toJob.HasErrors())
 
 	s.NoError(s.fromJob.Error())
 	s.NoError(s.toJob.Error())
 
-	s.fromJob.addError(err)
-	s.toJob.addError(err)
+	s.fromJob.AddError(err)
+	s.toJob.AddError(err)
 
 	for i := 1; i < 20; i++ {
-		s.Len(s.fromJob.errors, 1)
-		s.Len(s.toJob.errors, 1)
+		s.True(s.fromJob.HasErrors())
+		s.True(s.toJob.HasErrors())
 
 		s.Error(s.fromJob.Error())
 		s.Error(s.toJob.Error())

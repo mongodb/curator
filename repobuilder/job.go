@@ -26,22 +26,21 @@ type jobImpl interface {
 
 // Job provides the common structure for a repository building Job.
 type Job struct {
-	Distro       *RepositoryDefinition `bson:"distro" json:"distro" yaml:"distro"`
-	Conf         *RepositoryConfig     `bson:"conf" json:"conf" yaml:"conf"`
-	DryRun       bool                  `bson:"dry_run" json:"dry_run" yaml:"dry_run"`
-	Output       map[string]string     `bson:"output" json:"output" yaml:"output"`
-	Version      string                `bson:"version" json:"version" yaml:"version"`
-	Arch         string                `bson:"arch" json:"arch" yaml:"arch"`
-	Profile      string                `bson:"aws_profile" json:"aws_profile" yaml:"aws_profile"`
-	WorkSpace    string                `bson:"local_workdir" json:"local_workdir" yaml:"local_workdir"`
-	PackagePaths []string              `bson:"package_paths" json:"package_paths" yaml:"package_paths"`
+	Distro         *RepositoryDefinition `bson:"distro" json:"distro" yaml:"distro"`
+	Conf           *RepositoryConfig     `bson:"conf" json:"conf" yaml:"conf"`
+	DryRun         bool                  `bson:"dry_run" json:"dry_run" yaml:"dry_run"`
+	Output         map[string]string     `bson:"output" json:"output" yaml:"output"`
+	Version        string                `bson:"version" json:"version" yaml:"version"`
+	Arch           string                `bson:"arch" json:"arch" yaml:"arch"`
+	Profile        string                `bson:"aws_profile" json:"aws_profile" yaml:"aws_profile"`
+	WorkSpace      string                `bson:"local_workdir" json:"local_workdir" yaml:"local_workdir"`
+	PackagePaths   []string              `bson:"package_paths" json:"package_paths" yaml:"package_paths"`
+	*amboy.JobBase `bson:"metadata" json:"metadata" yaml:"metadata"`
 
 	workingDirs []string
 	release     *curator.MongoDBVersion
 	mutex       sync.RWMutex
 	builder     jobImpl
-
-	*JobBase `bson:"metadata" json:"metadata" yaml:"metadata"`
 }
 
 func init() {
@@ -53,7 +52,7 @@ func init() {
 func buildRepoJob() *Job {
 	j := &Job{
 		Output: make(map[string]string),
-		JobBase: &JobBase{
+		JobBase: &amboy.JobBase{
 			JobType: amboy.JobType{
 				Name:    "build-repo",
 				Version: 2,
@@ -90,7 +89,7 @@ func NewBuildRepoJob(conf *RepositoryConfig, distro *RepositoryDefinition, versi
 		return nil, err
 	}
 
-	j.Name = fmt.Sprintf("build-%s-repo.%d", distro.Type, job.GetNumber())
+	j.SetID(fmt.Sprintf("build-%s-repo.%d", distro.Type, job.GetNumber()))
 	j.Arch = distro.getArchForDistro(arch)
 	j.Distro = distro
 	j.Conf = conf
@@ -249,7 +248,7 @@ func (j *Job) Run() {
 	bucket := sthree.GetBucketWithProfile(j.Distro.Bucket, j.Profile)
 	err := bucket.Open()
 	if err != nil {
-		j.addError(errors.Wrapf(err, "opening bucket %s", bucket))
+		j.AddError(errors.Wrapf(err, "opening bucket %s", bucket))
 		return
 	}
 	defer bucket.Close()
@@ -259,14 +258,14 @@ func (j *Job) Run() {
 		// run open below)
 		bucket, err = bucket.DryRunClone()
 		if err != nil {
-			j.addError(errors.Wrapf(err,
+			j.AddError(errors.Wrapf(err,
 				"problem getting bucket '%s' in dry-mode", bucket))
 			return
 		}
 
 		err := bucket.Open()
 		if err != nil {
-			j.addError(errors.Wrapf(err, "opening bucket %s [dry-run]", bucket))
+			j.AddError(errors.Wrapf(err, "opening bucket %s [dry-run]", bucket))
 			return
 		}
 		defer bucket.Close()
@@ -274,7 +273,7 @@ func (j *Job) Run() {
 
 	bucket.NewFilePermission = s3.PublicRead
 
-	defer j.markComplete()
+	defer j.MarkComplete()
 	wg := &sync.WaitGroup{}
 
 	// at the moment there is only multiple repos for RPM distros
@@ -290,20 +289,20 @@ func (j *Job) Run() {
 			j.workingDirs = append(j.workingDirs, local)
 
 			if err = os.MkdirAll(local, 0755); err != nil {
-				j.addError(errors.Wrapf(err, "creating directory %s", local))
+				j.AddError(errors.Wrapf(err, "creating directory %s", local))
 				return
 			}
 
 			grip.Infof("downloading from %s to %s", remote, local)
 			if err = bucket.SyncFrom(local, remote, false); err != nil {
-				j.addError(errors.Wrapf(err, "sync from %s to %s", remote, local))
+				j.AddError(errors.Wrapf(err, "sync from %s to %s", remote, local))
 				return
 			}
 
 			grip.Info("copying new packages into local staging area")
 			changed, err := j.injectNewPackages(local)
 			if err != nil {
-				j.addError(errors.Wrap(err, "copying packages into staging repos"))
+				j.AddError(errors.Wrap(err, "copying packages into staging repos"))
 				return
 			}
 
@@ -311,7 +310,7 @@ func (j *Job) Run() {
 			// the bulk of the operation with RPM
 			// distros.)
 			if err = j.builder.rebuildRepo(changed); err != nil {
-				j.addError(errors.Wrapf(err, "problem building repo in '%s'", changed))
+				j.AddError(errors.Wrapf(err, "problem building repo in '%s'", changed))
 				return
 			}
 
@@ -325,7 +324,7 @@ func (j *Job) Run() {
 				changedComponent = changed[len(local)+1:]
 				syncSource = changed
 			} else {
-				j.addError(errors.Errorf("curator does not support uploading '%s' repos",
+				j.AddError(errors.Errorf("curator does not support uploading '%s' repos",
 					j.Distro.Type))
 				return
 			}
@@ -333,7 +332,7 @@ func (j *Job) Run() {
 			// do the sync. It's ok,
 			err = bucket.SyncTo(syncSource, filepath.Join(remote, changedComponent), false)
 			if err != nil {
-				j.addError(errors.Wrapf(err, "problem uploading %s to %s/%s",
+				j.AddError(errors.Wrapf(err, "problem uploading %s to %s/%s",
 					syncSource, bucket, changedComponent))
 				return
 			}
@@ -341,6 +340,6 @@ func (j *Job) Run() {
 	}
 	wg.Wait()
 
-	grip.WarningWhen(j.hasErrors(), "encountered error rebuilding and uploading repositories. operation complete.")
-	grip.NoticeWhen(!j.hasErrors(), "completed rebuilding all repositories")
+	grip.WarningWhen(j.HasErrors(), "encountered error rebuilding and uploading repositories. operation complete.")
+	grip.NoticeWhen(!j.HasErrors(), "completed rebuilding all repositories")
 }

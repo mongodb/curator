@@ -9,9 +9,7 @@ import (
 
 	"github.com/goamz/goamz/s3"
 	"github.com/mongodb/amboy"
-	"github.com/mongodb/amboy/dependency"
 	"github.com/mongodb/amboy/job"
-	"github.com/mongodb/amboy/priority"
 	"github.com/pkg/errors"
 	"github.com/tychoish/grip"
 )
@@ -26,46 +24,31 @@ import (
 // the documentation of the Run method for information about the
 // behavior of the job.
 type syncFromJob struct {
-	isComplete bool
 	withDelete bool
+	localPath  string
 	remoteFile s3.Key
 	b          *Bucket
-	t          amboy.JobType
-	localPath  string
-	name       string
-	errors     []error
 
-	priority.Value
+	*amboy.JobBase
 }
 
 func newSyncFromJob(b *Bucket, localPath string, remoteFile s3.Key, withDelete bool) *syncFromJob {
-	return &syncFromJob{
-		name:       fmt.Sprintf("%s.%d.sync-from", localPath, job.GetNumber()),
+	j := &syncFromJob{
 		remoteFile: remoteFile,
 		withDelete: withDelete,
 		localPath:  localPath,
 		b:          b,
-		t: amboy.JobType{
-			Name:    "s3-sync-from",
-			Version: 0,
+		JobBase: &amboy.JobBase{
+			JobType: amboy.JobType{
+				Name:    "s3-sync-from",
+				Version: 1,
+			},
 		},
 	}
-}
 
-func (j *syncFromJob) ID() string {
-	return j.name
-}
+	j.SetID(fmt.Sprintf("sync-from_%s.%d", localPath, job.GetNumber()))
 
-func (j *syncFromJob) Type() amboy.JobType {
-	return j.t
-}
-
-func (j *syncFromJob) Completed() bool {
-	return j.isComplete
-}
-
-func (j *syncFromJob) markComplete() {
-	j.isComplete = true
+	return j
 }
 
 func (j *syncFromJob) doGet() error {
@@ -78,32 +61,12 @@ func (j *syncFromJob) doGet() error {
 	return nil
 }
 
-func (j *syncFromJob) addError(err error) {
-	if err != nil {
-		j.errors = append(j.errors, err)
-	}
-}
-
-func (j *syncFromJob) Error() error {
-	if len(j.errors) == 0 {
-		return nil
-	}
-
-	var outputs []string
-
-	for _, err := range j.errors {
-		outputs = append(outputs, fmt.Sprintf("%+v", err))
-	}
-
-	return errors.New(strings.Join(outputs, "\n"))
-}
-
 // Run executes the synchronization job. If the local file doesn't
 // exist, pulls down the remote file, otherwise hashes the local file
 // and compares that hash to the remote file's hash. If they differ,
 // pull the remote file.
 func (j *syncFromJob) Run() {
-	defer j.markComplete()
+	defer j.MarkComplete()
 
 	// if the remote file doesn't exist, we should return early here.
 	if j.remoteFile.Key == "" {
@@ -113,7 +76,7 @@ func (j *syncFromJob) Run() {
 	// if the remote file has disappeared, we should return early here.
 	exists, err := j.b.Exists(j.remoteFile.Key)
 	if err != nil {
-		j.addError(errors.Wrapf(err, "problem checking if the file '%s' exists",
+		j.AddError(errors.Wrapf(err, "problem checking if the file '%s' exists",
 			j.remoteFile.Key))
 		return
 	}
@@ -121,7 +84,7 @@ func (j *syncFromJob) Run() {
 		if j.withDelete && !j.b.dryRun {
 			err = os.RemoveAll(j.localPath)
 			if err != nil {
-				j.addError(errors.Wrapf(err,
+				j.AddError(errors.Wrapf(err,
 					"problem removing local file %s, during sync from bucket %s with delete",
 					j.localPath, j.b.name))
 				return
@@ -147,7 +110,7 @@ func (j *syncFromJob) Run() {
 	if _, err = os.Stat(j.localPath); os.IsNotExist(err) {
 		err = j.doGet()
 		if err != nil {
-			j.addError(errors.Wrap(err, "problem downloading file during sync"))
+			j.AddError(errors.Wrap(err, "problem downloading file during sync"))
 		}
 		return
 	}
@@ -159,7 +122,7 @@ func (j *syncFromJob) Run() {
 	// Start by reading the file.
 	data, err := ioutil.ReadFile(j.localPath)
 	if err != nil {
-		j.addError(errors.Wrap(err, "problem reading file before hashing for sync operation"))
+		j.AddError(errors.Wrap(err, "problem reading file before hashing for sync operation"))
 	}
 
 	remoteChecksum := strings.Trim(j.remoteFile.ETag, "\" ")
@@ -168,32 +131,11 @@ func (j *syncFromJob) Run() {
 			j.remoteFile.Key, md5.Sum(data), remoteChecksum)
 		err := j.doGet()
 		if err != nil {
-			j.addError(errors.Wrapf(err, "problem fetching file '%s' during sync",
+			j.AddError(errors.Wrapf(err, "problem fetching file '%s' during sync",
 				j.remoteFile.Key))
 			return
 		}
 	}
 
 	return
-}
-
-func (j *syncFromJob) Dependency() dependency.Manager {
-	return dependency.NewAlways()
-}
-
-func (j *syncFromJob) SetDependency(_ dependency.Manager) {
-	return
-}
-
-// Export serializes the job object according to the Format specified
-// in the the JobType argument.
-func (j *syncFromJob) Export() ([]byte, error) {
-	return amboy.ConvertTo(j.Type().Format, j)
-}
-
-// Import takes a byte array, and attempts to marshal that data into
-// the current job object according to the format specified in the Job
-// type definition for this object.
-func (j *syncFromJob) Import(data []byte) error {
-	return amboy.ConvertFrom(j.Type().Format, data, j)
 }
