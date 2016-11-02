@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/goamz/goamz/s3"
+	"github.com/mongodb/amboy/job"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -45,7 +46,7 @@ func (s *SyncToSuite) SetupSuite() {
 
 func (s *SyncToSuite) SetupTest() {
 	s.bucket = GetBucket("build-test-curator")
-	s.job = &syncToJob{b: s.bucket}
+	s.job = &syncToJob{b: s.bucket, Base: &job.Base{}}
 }
 
 func (s *SyncToSuite) TearDownTest() {

@@ -7,7 +7,6 @@ import (
 
 	"github.com/goamz/goamz/s3"
 	"github.com/mongodb/amboy"
-	"github.com/mongodb/amboy/dependency"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -72,8 +71,8 @@ func (s *BucketJobSuite) TestSyncJobCorrectlyStoresFileNames() {
 }
 
 func (s *BucketJobSuite) TestSyncJobsHaveExpectedJobTypes() {
-	s.Equal(0, s.fromJob.Type().Version)
-	s.Equal(0, s.toJob.Type().Version)
+	s.Equal(1, s.fromJob.Type().Version)
+	s.Equal(1, s.toJob.Type().Version)
 
 	s.Equal("s3-sync-from", s.fromJob.Type().Name)
 	s.Equal("s3-sync-to", s.toJob.Type().Name)
@@ -87,17 +86,6 @@ func (s *BucketJobSuite) TestSyncJobsHaveWellFormedName() {
 func (s *BucketJobSuite) TestSyncJobsAreIncompleteByDefault() {
 	for _, job := range s.jobs {
 		s.False(job.Completed())
-	}
-}
-
-func (s *BucketJobSuite) TestSyncJobsHaveStaticDepenendecyManagers() {
-	always := dependency.NewAlways()
-	creates := dependency.NewCreatesFileInstance()
-
-	for _, job := range s.jobs {
-		s.Equal(job.Dependency(), always)
-		job.SetDependency(creates)
-		s.Equal(job.Dependency(), always)
 	}
 }
 
