@@ -4,6 +4,7 @@ import (
 	"github.com/goamz/goamz/s3"
 	"github.com/mongodb/amboy"
 	"github.com/mongodb/amboy/dependency"
+	"github.com/mongodb/amboy/job"
 	"github.com/mongodb/amboy/registry"
 	"github.com/mongodb/curator/sthree"
 	"github.com/pkg/errors"
@@ -19,8 +20,7 @@ type IndexBuildJob struct {
 	WorkSpace string            `bson:"local_workdir" json:"local_workdir" yaml:"local_workdir"`
 	RepoName  string            `bson:"repo_name" json:"repo_name" yaml:"repo_name"`
 	DryRun    bool              `bson:"dry_run" json:"dry_run" yaml:"dry_run"`
-
-	*amboy.JobBase `bson:"metadata" json:"metadata" yaml:"metadata"`
+	*job.Base `bson:"metadata" json:"metadata" yaml:"metadata"`
 }
 
 func init() {
@@ -37,7 +37,7 @@ func NewIndexBuildJob(conf *RepositoryConfig, workSpace, repoName, bucket string
 		WorkSpace: workSpace,
 		Bucket:    bucket,
 		RepoName:  repoName,
-		JobBase: &amboy.JobBase{
+		Base: &job.Base{
 			JobType: amboy.JobType{
 				Name:    "build-index-pages",
 				Version: 1,

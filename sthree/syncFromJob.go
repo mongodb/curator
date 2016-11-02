@@ -29,7 +29,7 @@ type syncFromJob struct {
 	remoteFile s3.Key
 	b          *Bucket
 
-	*amboy.JobBase
+	*job.Base
 }
 
 func newSyncFromJob(b *Bucket, localPath string, remoteFile s3.Key, withDelete bool) *syncFromJob {
@@ -38,7 +38,7 @@ func newSyncFromJob(b *Bucket, localPath string, remoteFile s3.Key, withDelete b
 		withDelete: withDelete,
 		localPath:  localPath,
 		b:          b,
-		JobBase: &amboy.JobBase{
+		Base: &job.Base{
 			JobType: amboy.JobType{
 				Name:    "s3-sync-from",
 				Version: 1,

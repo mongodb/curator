@@ -20,10 +20,10 @@ import (
 // DownloadFileJob is an amboy.Job implementation that supports
 // downloading a a file to the local file system.
 type DownloadFileJob struct {
-	URL            string `bson:"url" json:"url" yaml:"url"`
-	Directory      string `bson:"dir" json:"dir" yaml:"dir"`
-	FileName       string `bson:"file" json:"file" yaml:"file"`
-	*amboy.JobBase `bson:"metadata" json:"metadata" yaml:"metadata"`
+	URL       string `bson:"url" json:"url" yaml:"url"`
+	Directory string `bson:"dir" json:"dir" yaml:"dir"`
+	FileName  string `bson:"file" json:"file" yaml:"file"`
+	*job.Base `bson:"metadata" json:"metadata" yaml:"metadata"`
 }
 
 func init() {
@@ -34,7 +34,7 @@ func init() {
 
 func newDownloadJob() *DownloadFileJob {
 	return &DownloadFileJob{
-		JobBase: &amboy.JobBase{
+		Base: &job.Base{
 			JobType: amboy.JobType{
 				Name:    "bond-recall-download-file",
 				Version: 0,

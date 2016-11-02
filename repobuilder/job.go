@@ -35,7 +35,7 @@ type Job struct {
 	Profile        string                `bson:"aws_profile" json:"aws_profile" yaml:"aws_profile"`
 	WorkSpace      string                `bson:"local_workdir" json:"local_workdir" yaml:"local_workdir"`
 	PackagePaths   []string              `bson:"package_paths" json:"package_paths" yaml:"package_paths"`
-	*amboy.JobBase `bson:"metadata" json:"metadata" yaml:"metadata"`
+	*job.Base `bson:"metadata" json:"metadata" yaml:"metadata"`
 
 	workingDirs []string
 	release     *curator.MongoDBVersion
@@ -52,7 +52,7 @@ func init() {
 func buildRepoJob() *Job {
 	j := &Job{
 		Output: make(map[string]string),
-		JobBase: &amboy.JobBase{
+		Base: &job.Base{
 			JobType: amboy.JobType{
 				Name:    "build-repo",
 				Version: 2,
