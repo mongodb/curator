@@ -48,11 +48,3 @@ func (s *RepoJobSuite) TestSetDependencyAcceptsDifferentAlwaysRunInstances() {
 	s.True(originalDep != s.j.Dependency())
 	s.Exactly(newDep, s.j.Dependency())
 }
-
-func (s *RepoJobSuite) TestSetDependencyRejectsNonAlwaysRunDependencies() {
-	s.Equal(dependency.AlwaysRun, s.j.Dependency().Type().Name)
-	localDep := dependency.NewLocalFileInstance()
-	s.NotEqual(localDep.Type().Name, dependency.AlwaysRun)
-	s.j.SetDependency(localDep)
-	s.Equal(dependency.AlwaysRun, s.j.Dependency().Type().Name)
-}
