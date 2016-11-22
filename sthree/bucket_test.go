@@ -270,7 +270,7 @@ func (s *BucketSuite) TestGetMakesEnclosingDirectories() {
 	// download the file to a temp location, in a directory that doesn't exist
 	copy := filepath.Join(s.tempDir, "newDir", local)
 
-	// directroy doesn't exist
+	// directory doesn't exist
 	_, err := os.Stat(filepath.Dir(copy))
 	s.True(os.IsNotExist(err))
 
