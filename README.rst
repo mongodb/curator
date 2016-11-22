@@ -57,7 +57,7 @@ Artifacts
 ~~~~~~~~~
 
 The artifacts functionality uses the release metadata feeds
-(e.g. ``https://downloads.mongodb.org/full.Jason``) to fetch and
+(e.g. ``https://downloads.mongodb.org/full.json``) to fetch and
 extract release build artifacts for local use. It is particularly
 useful for fetching artifacts for and maintaining local caches of
 MongoDB builds for multiple releases. Set the
@@ -127,5 +127,5 @@ Issues
 ~~~~~~
 
 Please file all issues in the `MAKE project
-<https://jira.mongodb.org/browse/MAKE>`_ in the `MongoSB Jira
+<https://jira.mongodb.org/browse/MAKE>`_ in the `MongoDB Jira
 <https://jira.mongodb.org/>`_ instance.
