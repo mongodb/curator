@@ -17,25 +17,6 @@ import (
 // Artifacts returns a command object for the "archives" sub command
 // which contains functions to download MongoDB archives.
 func Artifacts() cli.Command {
-	var target string
-	var arch string
-
-	if runtime.GOOS == "darwin" {
-		target = "osx"
-	} else {
-		target = runtime.GOOS
-	}
-
-	if runtime.GOARCH == "amd64" {
-		arch = "x86_64"
-	} else if runtime.GOARCH == "386" {
-		arch = "i686"
-	} else if runtime.GOARCH == "arm" {
-		arch = "arm64"
-	} else {
-		arch = runtime.GOARCH
-	}
-
 	return cli.Command{
 		Name:    "artifacts",
 		Aliases: []string{"archives", "builds"},
@@ -45,31 +26,12 @@ func Artifacts() cli.Command {
 				Name:    "download",
 				Usage:   "downloads builds of MongoDB",
 				Aliases: []string{"dl", "get"},
-				Flags: baseDlFlags(true,
+				Flags: buildInfoFlags(baseDlFlags(true,
 					cli.StringFlag{
 						Name:  "timeout",
 						Value: "no-timeout",
 						Usage: "maximum duration for operation, defaults to no time out",
-					},
-					cli.StringFlag{
-						Name:  "target",
-						Value: target,
-						Usage: "name of target platform or operating system",
-					},
-					cli.StringFlag{
-						Name:  "arch",
-						Value: arch,
-						Usage: "name of target architecture",
-					},
-					cli.StringFlag{
-						Name:  "edition",
-						Value: "base",
-						Usage: "name of build edition",
-					},
-					cli.BoolFlag{
-						Name:  "debug",
-						Usage: "specify to download debug symbols",
-					}),
+					})...),
 				Action: func(c *cli.Context) error {
 					var cancel context.CancelFunc
 					ctx := context.Background()
@@ -130,8 +92,72 @@ func Artifacts() cli.Command {
 					return nil
 				},
 			},
+			cli.Command{
+				Name:  "get-path",
+				Usage: "get path to a build",
+				Flags: buildInfoFlags(baseDlFlags(false)...),
+				Action: func(c *cli.Context) error {
+					catalog, err := bond.NewCatalog(c.String("path"))
+					if err != nil {
+						return errors.Wrap(err, "problem building catalog")
+					}
+
+					path, err := catalog.Get(c.String("version"), c.String("edition"),
+						c.String("target"), c.String("arch"), c.Bool("debug"))
+
+					if err != nil {
+						return errors.Wrap(err, "problem finding build")
+					}
+
+					fmt.Println(path)
+
+					return nil
+				},
+			},
 		},
 	}
+}
+
+func buildInfoFlags(flags ...cli.Flag) []cli.Flag {
+	var target string
+	var arch string
+
+	if runtime.GOOS == "darwin" {
+		target = "osx"
+	} else {
+		target = runtime.GOOS
+	}
+
+	if runtime.GOARCH == "amd64" {
+		arch = "x86_64"
+	} else if runtime.GOARCH == "386" {
+		arch = "i686"
+	} else if runtime.GOARCH == "arm" {
+		arch = "arm64"
+	} else {
+		arch = runtime.GOARCH
+	}
+
+	return append(flags,
+		cli.StringFlag{
+			Name:  "target",
+			Value: target,
+			Usage: "name of target platform or operating system",
+		},
+		cli.StringFlag{
+			Name:  "arch",
+			Value: arch,
+			Usage: "name of target architecture",
+		},
+		cli.StringFlag{
+			Name:  "edition",
+			Value: "base",
+			Usage: "name of build edition",
+		},
+		cli.BoolFlag{
+			Name:  "debug",
+			Usage: "specify to download debug symbols",
+		})
 }
 
 func baseDlFlags(versionSlice bool, flags ...cli.Flag) []cli.Flag {

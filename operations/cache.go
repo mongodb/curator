@@ -23,9 +23,10 @@ func PruneCache() cli.Command {
 				Usage: "specify the max size of the cache to prune to in megabytes",
 			},
 			cli.StringFlag{
-				Name:  "path",
-				Value: filepath.Join(os.TempDir(), "curator-artifact-cache"),
-				Usage: "path to top level of cache directory",
+				Name:   "path",
+				EnvVar: "CURATOR_ARTIFACTS_DIRECTORY",
+				Value:  filepath.Join(os.TempDir(), "curator-artifact-cache"),
+				Usage:  "path to top level of cache directory",
 			},
 			cli.BoolFlag{
 				Name: "recursive",

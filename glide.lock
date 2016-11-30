@@ -48,5 +48,5 @@ imports:
 - name: github.com/tychoish/lru
   version: b4dbc0f6623fffbf1b27afd5f12d8e5d931e6f84
 - name: github.com/tychoish/bond
-  version: 32a49e48acfe7083fb999314c5edc9e41dc718e7
+  version: 86ca9bf8ad4b25e3b32db910fe59a959eaf3be62
 devImports: []
