@@ -1,6 +1,8 @@
 package recall
 
 import (
+	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -8,23 +10,37 @@ import (
 	"github.com/mongodb/amboy"
 	"github.com/mongodb/amboy/dependency"
 	"github.com/mongodb/amboy/registry"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"github.com/tychoish/grip"
 )
 
 type DownloadJobSuite struct {
 	job     *DownloadFileJob
 	require *require.Assertions
+	tempDir string
 	suite.Suite
 }
 
 func TestDownloadJobSuite(t *testing.T) {
+	t.Parallel()
 	suite.Run(t, new(DownloadJobSuite))
 }
 
 func (s *DownloadJobSuite) SetupSuite() {
+	var err error
 	s.require = s.Require()
+	// s.tempDir, err = ioutil.TempDir("", uuid.NewV4().String())
+	s.tempDir, err = ioutil.TempDir("", "")
+	s.require.NoError(err)
+}
+
+func (s *DownloadJobSuite) TearDownSuite() {
+	grip.Warningln("leaking tempdir for quicker tests:", s.tempDir)
+	// err := os.RemoveAll(s.tempDir)
+	// s.require.NoError(err)
 }
 
 func (s *DownloadJobSuite) SetupTest() {
@@ -155,11 +171,100 @@ func (s *DownloadJobSuite) TestConstructorSetsDependencyBasedOnForceParameter() 
 	s.Equal(dependency.NewCreatesFile("../build/foo.tgz").Type(), j.Dependency().Type())
 }
 
+func (s *DownloadJobSuite) TestErrorHandler() {
+	s.False(s.job.HasErrors())
+	s.job.handleError(nil)
+	s.False(s.job.HasErrors())
+
+	s.job.handleError(errors.New("foo"))
+	s.True(s.job.HasErrors())
+
+}
+
+func (s *DownloadJobSuite) TestJobSmokeTests() {
+	for _, url := range []string{
+		"https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-3.2.11.tgz",
+		"https://fastdl.mongodb.org/win32/mongodb-win32-x86_64-3.2.11.zip",
+	} {
+		fn := filepath.Base(url)
+		j, err := NewDownloadJob(url, s.tempDir, false)
+		s.NoError(err)
+
+		j.Run()
+		s.NoError(j.Error())
+
+		_, err = os.Stat(filepath.Join(s.tempDir, fn))
+		s.False(os.IsNotExist(err))
+		stat, err := os.Stat(filepath.Join(s.tempDir, fn[:len(fn)-4]))
+		s.False(os.IsNotExist(err))
+		s.True(stat.IsDir())
+	}
+}
+
+func (s *DownloadJobSuite) TestJobWithFileThatDoesNotExistReportsError() {
+	for _, url := range []string{
+		"https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-3.2.11.zip",
+		"https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-2.8.11.tgz",
+	} {
+		j, err := NewDownloadJob(url, s.tempDir, true)
+		s.NoError(err)
+
+		j.Run()
+		s.Error(j.Error())
+	}
+}
+
+func (s *DownloadJobSuite) TestInvalidExtensionsReturnErrors() {
+	for _, url := range []string{
+		"https://downloads.mongodb.org/default.json",
+		"https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-3.2.11.tgz.sig",
+	} {
+		j, err := NewDownloadJob(url, s.tempDir, true)
+		s.NoError(err)
+
+		j.Run()
+		s.Error(j.Error())
+	}
+}
+
+func (s *DownloadJobSuite) TestNoopCaseIfDependencyIsSatisfiedAndForceIsNotSet() {
+	url := "https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-3.2.10.tgz"
+	fn := filepath.Base(url)
+
+	j, err := NewDownloadJob(url, s.tempDir, false)
+	s.NoError(err)
+
+	j.SetDependency(dependency.NewCreatesFile("/etc"))
+	s.Equal(j.Dependency().State(), dependency.Passed)
+	j.Run()
+	s.NoError(j.Error())
+
+	_, err = os.Stat(fn)
+	s.True(os.IsNotExist(err))
+}
+
+func (s *DownloadJobSuite) TestIfDependencyIsSatisfiedAndForceIsSetThereIsNoNoop() {
+	url := "https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-3.2.9.tgz"
+	fn := filepath.Base(url)
+
+	j, err := NewDownloadJob(url, s.tempDir, true)
+	s.NoError(err)
+
+	j.SetDependency(dependency.NewCreatesFile(s.tempDir))
+	s.Equal(j.Dependency().State(), dependency.Passed)
+	j.Run()
+	s.NoError(j.Error())
+
+	_, err = os.Stat(fn)
+	s.True(os.IsNotExist(err))
+}
+
 //
 // Standalone Test Cases:
 //
 
 func TestJobRegistry(t *testing.T) {
+	t.Parallel()
 	assert := assert.New(t)
 
 	var names []string

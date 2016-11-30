@@ -123,7 +123,7 @@ func attemptTimestampUpdate(fn string) {
 	}
 
 	// hopefully directory names in archives are the same are the
-	// same as the filenames. Wnwinding the assumption will
+	// same as the filenames. Unwinding this assumption will
 	// probably require a different archiver tool.
 	dirname := fn[0 : len(fn)-len(filepath.Ext(fn))]
 	if err := os.Chtimes(dirname, now, now); err != nil {

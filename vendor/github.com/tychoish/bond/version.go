@@ -8,6 +8,9 @@ import (
 	"github.com/pkg/errors"
 )
 
+// ArtifactVersion represents a document in the Version field of the
+// MongoDB build information feed. See
+// http://downloads.mongodb.org/full.json for an example.ownload
 type ArtifactVersion struct {
 	Version   string
 	Downloads []ArtifactDownload
@@ -32,6 +35,8 @@ func (version *ArtifactVersion) refresh() {
 	}
 }
 
+// GetDownload returns a matching ArtifactDownload object
+// given a BuildOptions object.
 func (version *ArtifactVersion) GetDownload(key BuildOptions) (ArtifactDownload, error) {
 	version.mutex.RLock()
 	defer version.mutex.RLock()
@@ -56,6 +61,8 @@ func (version *ArtifactVersion) GetDownload(key BuildOptions) (ArtifactDownload,
 	return dl, nil
 }
 
+// GetBuildTypes builds, from an ArtifactsVersion object a BuildTypes
+// object that reports on the available builds for this version.
 func (version *ArtifactVersion) GetBuildTypes() *BuildTypes {
 	out := BuildTypes{}
 
@@ -101,16 +108,4 @@ func (version *ArtifactVersion) String() string {
 	}
 
 	return strings.Join(out, "\n")
-}
-
-func (dl ArtifactDownload) GetPackages() []string {
-	if dl.Msi != "" && len(dl.Packages) == 0 {
-		return []string{dl.Msi}
-	}
-
-	return dl.Packages
-}
-
-func (dl ArtifactDownload) GetArchive() string {
-	return dl.Archive.Url
 }

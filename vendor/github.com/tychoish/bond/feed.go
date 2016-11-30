@@ -14,6 +14,10 @@ import (
 	"github.com/tychoish/grip"
 )
 
+const day = time.Hour * 24
+
+// ArtifactsFeed represents the entire structure of the MongoDB build information feed.
+// Seehttp://downloads.mongodb.org/full.json for an example.
 type ArtifactsFeed struct {
 	Versions []*ArtifactVersion
 
@@ -23,32 +27,10 @@ type ArtifactsFeed struct {
 	path  string
 }
 
-type ArtifactDownload struct {
-	Arch    MongoDBArch
-	Edition MongoDBEdition
-	Target  string
-	Archive struct {
-		Debug  string `bson:"debug_symbols" json:"debug_symbols" yaml:"debug_symbols"`
-		Sha1   string
-		Sha256 string
-		Url    string
-	}
-	Msi      string
-	Packages []string
-}
-
-func (dl ArtifactDownload) GetBuildOptions() BuildOptions {
-	opts := BuildOptions{
-		Target:  dl.Target,
-		Arch:    dl.Arch,
-		Edition: dl.Edition,
-	}
-
-	return opts
-}
-
-const day = time.Hour * 24
-
+// GetArtifactsFeed parses a ArtifactsFeed object from a file on the file system.
+// This operation will automatically refresh the feed from
+// http://downloads.mongodb.org/full.json if the modification time of
+// the file on the file system is more than 48 hours old.
 func GetArtifactsFeed(path string) (*ArtifactsFeed, error) {
 	feed, err := NewArtifactsFeed(path)
 	if err != nil {
@@ -62,6 +44,9 @@ func GetArtifactsFeed(path string) (*ArtifactsFeed, error) {
 	return feed, nil
 }
 
+// NewArtifactsFeed takes the path of a file and returns an empty
+// ArtifactsFeed object. You may specify an empty string as an argument
+// to return a feed object homed on a temporary directory.
 func NewArtifactsFeed(path string) (*ArtifactsFeed, error) {
 	f := &ArtifactsFeed{
 		table: make(map[string]*ArtifactVersion),
@@ -95,6 +80,10 @@ func NewArtifactsFeed(path string) (*ArtifactsFeed, error) {
 	return f, nil
 }
 
+// Populate updates the local copy of the full feed in the the feed's
+// cache if the local file doesn't exist or is older than the
+// specified TTL. Additional Populate parses the data feed, using the
+// Reload method.
 func (feed *ArtifactsFeed) Populate(ttl time.Duration) error {
 	data, err := CacheDownload(ttl, "http://downloads.mongodb.org/full.json", feed.path, false)
 
@@ -109,6 +98,8 @@ func (feed *ArtifactsFeed) Populate(ttl time.Duration) error {
 	return nil
 }
 
+// Reload takes the content of the full.json file and loads this data
+// into the current ArtifactsFeed object, overwriting any existing data.
 func (feed *ArtifactsFeed) Reload(data []byte) error {
 	// file exists, remove it if it's more than 48 hours old.
 	feed.mutex.Lock()
@@ -132,6 +123,8 @@ func (feed *ArtifactsFeed) Reload(data []byte) error {
 	return err
 }
 
+// GetVersion takes a version string and returns the entire Artifacts version.
+// The second value indicates if that release exists in the current feed.
 func (feed *ArtifactsFeed) GetVersion(release string) (*ArtifactVersion, bool) {
 	feed.mutex.RLock()
 	defer feed.mutex.RUnlock()
@@ -140,6 +133,10 @@ func (feed *ArtifactsFeed) GetVersion(release string) (*ArtifactVersion, bool) {
 	return version, ok
 }
 
+// GetLatestArchive given a release series (e.g. 3.2, 3.0, or 3.0),
+// return the URL of the "latest" (e.g. nightly) build archive. These
+// builds are atypical, and given how they're produced, may not
+// necessarily reflect the most recent released or unreleased changes on a branch.
 func (feed *ArtifactsFeed) GetLatestArchive(series string, options BuildOptions) (string, error) {
 	if len(series) != 3 || string(series[1]) != "." {
 		return "", errors.Errorf("series '%s' is not a valid version series", series)
@@ -170,13 +167,17 @@ func (feed *ArtifactsFeed) GetLatestArchive(series string, options BuildOptions)
 	}
 
 	if seriesNum%2 == 1 {
-		return strings.Replace(dl.Archive.Url, version.Version, "latest", -1), nil
+		return strings.Replace(dl.Archive.URL, version.Version, "latest", -1), nil
 	}
 
 	// if it's a stable version we just replace the version with the word latest.
-	return strings.Replace(dl.Archive.Url, version.Version, "v"+series+"-latest", -1), nil
+	return strings.Replace(dl.Archive.URL, version.Version, "v"+series+"-latest", -1), nil
 }
 
+// GetArchives provides an iterator for all archives given a list of
+// releases (versions) for a specific set of build operations.
+// Returns channels of urls (strings) and errors. Read from the error channel,
+// after completing all results.
 func (feed *ArtifactsFeed) GetArchives(releases []string, options BuildOptions) (<-chan string, <-chan error) {
 	output := make(chan string)
 	errOut := make(chan error)
@@ -210,7 +211,7 @@ func (feed *ArtifactsFeed) GetArchives(releases []string, options BuildOptions) 
 				output <- dl.Archive.Debug
 				continue
 			}
-			output <- dl.Archive.Url
+			output <- dl.Archive.URL
 		}
 		close(output)
 		if catcher.HasErrors() {

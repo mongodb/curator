@@ -6,6 +6,7 @@ import (
 	"github.com/tychoish/grip"
 )
 
+// BuildTypes represents all information about builds in a cache.
 type BuildTypes struct {
 	Version       string           `bson:"version" json:"version" yaml:"version"`
 	Targets       []string         `bson:"targets" json:"targets" yaml:"targets"`

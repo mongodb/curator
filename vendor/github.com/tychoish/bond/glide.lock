@@ -4,7 +4,7 @@ imports:
 - name: github.com/davecgh/go-spew
   version: 6d212800a42e8ab5c146b8ace3490ee17e5225f9
 - name: github.com/mongodb/amboy
-  version: bdc848e05c533ac061ffd62fe1d8cdd65b079ed4
+  version: ad868bf74132d5fe5a40b1e2e7fe45e2e5652546
   subpackages:
   - dependency
   - queue
