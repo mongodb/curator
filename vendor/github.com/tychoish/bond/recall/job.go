@@ -1,7 +1,11 @@
 package recall
 
 import (
+	"archive/tar"
+	"archive/zip"
+	"compress/gzip"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -62,7 +66,9 @@ func NewDownloadJob(url, path string, force bool) (*DownloadFileJob, error) {
 		strings.Replace(fn, string(filepath.Separator), "-", -1),
 		job.GetNumber()))
 
-	if force {
+	if force || strings.Contains(fn, "latest") {
+		_ = os.Remove(fn)
+		_ = os.RemoveAll(fn[:len(fn)-4])
 		j.SetDependency(dependency.NewAlways())
 	} else {
 		j.SetDependency(dependency.NewCreatesFile(fn))
@@ -93,17 +99,7 @@ func (j *DownloadFileJob) Run() {
 	}
 	grip.Noticef("downloaded %s file", fn)
 
-	var err error
-	if strings.HasSuffix(fn, ".tgz") {
-		// there is no tar.gz because we renamed it in setURL()
-		err = archiver.TarGz.Open(fn, filepath.Dir(fn))
-	} else if strings.HasSuffix(fn, ".zip") {
-		err = archiver.Zip.Open(fn, filepath.Dir(fn))
-	} else {
-		err = errors.Errorf("file %s is in unsupported archive format", fn)
-	}
-
-	if err != nil {
+	if err := extractArchive(fn); err != nil {
 		j.handleError(errors.Wrap(err, "problem extracting artifacts"))
 		return
 	}
@@ -112,6 +108,78 @@ func (j *DownloadFileJob) Run() {
 //
 // Internal Methods
 //
+
+func extractArchive(fn string) error {
+	dir := filepath.Dir(fn)
+	baseName := filepath.Base(fn)
+	baseName = baseName[:len(baseName)-4]
+
+	if filepath.Ext(fn) == ".tgz" {
+		// there is no tar.gz because we renamed it in setURL()
+		if err := archiver.TarGz.Open(fn, dir); err != nil {
+			return errors.Wrap(err, "problem extracting archive")
+		}
+
+		f, err := os.Open(fn)
+		if err != nil {
+			return errors.Wrap(err, "error opening file")
+		}
+		defer f.Close()
+
+		gzr, err := gzip.NewReader(f)
+		if err != nil {
+			return errors.Wrap(err, "problem reading gzip")
+		}
+		defer gzr.Close()
+
+		archive := tar.NewReader(gzr)
+		for {
+			header, err := archive.Next()
+			if err == io.EOF {
+				return errors.Wrap(err, "could not read archive contents")
+			}
+			if strings.HasSuffix(header.Name, "mongod") {
+				dirName := filepath.Dir(filepath.Dir(header.Name))
+				if baseName != dirName {
+					if err := os.Rename(filepath.Join(dir, dirName),
+						filepath.Join(dir, baseName)); err != nil {
+
+						return errors.Wrapf(err, "error renaming %s to %s", dirName, baseName)
+					}
+				}
+				break
+			}
+		}
+	} else if filepath.Ext(fn) == ".zip" {
+		if err := archiver.Zip.Open(fn, dir); err != nil {
+			return errors.Wrap(err, "problem extracting archive")
+		}
+		r, err := zip.OpenReader(fn)
+		if err != nil {
+			return errors.Wrap(err, "problem parsing archive")
+		}
+
+		for _, f := range r.File {
+			if strings.HasSuffix(f.Name, "mongod.exe") {
+				// name is generally mongodb-<platform>-<version>/bin/mongo
+				// call filepath.Dir twice to get the magic parts.
+				dirName := filepath.Dir(filepath.Dir(f.Name))
+				if baseName != dirName {
+					if err := os.Rename(filepath.Join(dir, dirName),
+						filepath.Join(dir, baseName)); err != nil {
+
+						return errors.Wrapf(err, "error renaming %s to %s", dirName, baseName)
+					}
+				}
+			}
+		}
+	} else {
+		return errors.Errorf("file %s is in unsupported archive format", fn)
+	}
+
+	grip.Noticeln("extracted archive:", fn)
+	return nil
+}
 
 func attemptTimestampUpdate(fn string) {
 	// update the timestamps so we playwell with the cache. These
@@ -134,7 +202,8 @@ func attemptTimestampUpdate(fn string) {
 func (j *DownloadFileJob) handleError(err error) {
 	j.AddError(err)
 	grip.CatchError(err)
-	grip.CatchDebug(os.RemoveAll(j.getFileName())) // cleanup
+	grip.Infoln("cleaning up artifacts:", j.FileName)
+	grip.CatchWarning(os.RemoveAll(j.getFileName())) // cleanup
 }
 
 func (j *DownloadFileJob) getFileName() string {

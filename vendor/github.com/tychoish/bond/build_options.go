@@ -1,6 +1,7 @@
 package bond
 
 import (
+	"encoding/json"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -8,10 +9,18 @@ import (
 
 // BuildOptions is a common method to describe a build variant.
 type BuildOptions struct {
-	Target  string
-	Arch    MongoDBArch
-	Edition MongoDBEdition
-	Debug   bool
+	Target  string         `json:"target"`
+	Arch    MongoDBArch    `json:"arch"`
+	Edition MongoDBEdition `json:"edition"`
+	Debug   bool           `json:"debug"`
+}
+
+func (o BuildOptions) String() string {
+	out, err := json.Marshal(o)
+	if err != nil {
+		return "{}"
+	}
+	return string(out)
 }
 
 // GetBuildInfo given a version string, generates a BuildInfo object

@@ -1,6 +1,8 @@
 package bond
 
 import (
+	"encoding/json"
+	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -11,8 +13,16 @@ import (
 // includes information about the build variant (i.e. edition, target
 // platform, and architecture) as well as the version.
 type BuildInfo struct {
-	Version string
-	Options BuildOptions
+	Version string       `json:"version"`
+	Options BuildOptions `json:"options"`
+}
+
+func (i *BuildInfo) String() string {
+	out, err := json.MarshalIndent(i, "", "   ")
+	if err != nil {
+		return fmt.Sprintf("{ '%s': 'error' }", i.Version)
+	}
+	return string(out)
 }
 
 // GetInfoFromFileName given a path, parses information about the
@@ -63,40 +73,16 @@ func getVersion(fn string) (string, error) {
 		return "", errors.Errorf("path %s does not contain enough elements to include a version", fn)
 	}
 
-	if strings.Contains(fn, "-v2.4-") || len(parts[len(parts)-4]) == 40 {
-		return strings.Join(parts[len(parts)-4:], "-"), nil
-	}
-
-	var isNightly bool
-	var isRc bool
-
-	// the (rear) index of the rc depends if it's a nightly or
-	// not, so we have to start there.
-	rcPos := 1
-	if len(parts[len(parts)-1]) == 8 {
-		isNightly = true
-		rcPos = 3
-	}
-	isRc = strings.Contains(parts[len(parts)-rcPos], "rc")
-
-	var rIdx int
-
-	// now figure out where the version part starts.
-	if isRc {
-		if isNightly {
-			rIdx = len(parts) - 4
-		} else {
-			rIdx = len(parts) - 2
+	if strings.Contains(fn, "latest") {
+		if strings.HasPrefix(parts[len(parts)-2], "v") {
+			return strings.Join(parts[len(parts)-2:], "-"), nil
 		}
-	} else {
-		if isNightly {
-			rIdx = len(parts) - 3
-		} else {
-			rIdx = len(parts) - 1
-		}
+		return "latest", nil
+	} else if strings.Contains(fn, "rc") {
+		return strings.Join(parts[len(parts)-1:], "-"), nil
 	}
 
-	return strings.Join(parts[rIdx:], "-"), nil
+	return parts[len(parts)-1], nil
 }
 
 func getEdition(fn string) (MongoDBEdition, error) {
@@ -135,15 +121,8 @@ func getTarget(fn, version string) (string, error) {
 	// all base and community targeted cases
 
 	// linux distros
-	if strings.Contains(fn, "linux-i386") {
-		return "linux_i386", nil
-	}
 	if strings.Contains(fn, "linux") {
-		if len(version)+21 == len(fn) {
-			return "linux_x86_64", nil
-		}
-
-		return strings.Split(fn, "-")[3], nil
+		return "linux", nil
 	}
 
 	// all windows windows

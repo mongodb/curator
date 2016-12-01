@@ -1,6 +1,8 @@
 package bond
 
 import (
+	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -99,6 +101,40 @@ func (c *BuildCatalog) Add(fileName string) error {
 	c.table[info] = fileName
 
 	return nil
+}
+
+// Contents returns a copy of the contents of the catalog.
+func (c *BuildCatalog) Contents() map[BuildInfo]string {
+	output := map[BuildInfo]string{}
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+
+	for k, v := range c.table {
+		output[k] = v
+	}
+
+	return output
+}
+
+func (c *BuildCatalog) String() string {
+	inverted := map[string]BuildInfo{}
+
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+
+	for k, v := range c.table {
+		inverted[v] = k
+	}
+	if len(inverted) != len(c.table) {
+		return "{ 'error': 'invalid catalog data' }"
+	}
+
+	out, err := json.MarshalIndent(inverted, "", "   ")
+	if err != nil {
+		return fmt.Sprintf("%+v", inverted)
+	}
+
+	return string(out)
 }
 
 // Get returns the path to a build in the BuildCatalog based on the

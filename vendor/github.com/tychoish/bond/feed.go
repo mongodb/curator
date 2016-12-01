@@ -14,8 +14,6 @@ import (
 	"github.com/tychoish/grip"
 )
 
-const day = time.Hour * 24
-
 // ArtifactsFeed represents the entire structure of the MongoDB build information feed.
 // Seehttp://downloads.mongodb.org/full.json for an example.
 type ArtifactsFeed struct {
@@ -37,7 +35,7 @@ func GetArtifactsFeed(path string) (*ArtifactsFeed, error) {
 		return nil, errors.Wrap(err, "problem building feed")
 	}
 
-	if err := feed.Populate(day * 2); err != nil {
+	if err := feed.Populate(4 * time.Hour); err != nil {
 		return nil, errors.Wrap(err, "problem getting feed data")
 	}
 
