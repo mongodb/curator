@@ -65,7 +65,7 @@ func Artifacts() cli.Command {
 				},
 			},
 			cli.Command{
-				Name:  "list-all",
+				Name:  "list-variants",
 				Usage: "find all targets, editions and architectures for a version",
 				Flags: baseDlFlags(false),
 				Action: func(c *cli.Context) error {
@@ -89,6 +89,19 @@ func Artifacts() cli.Command {
 					}
 
 					fmt.Println(version)
+					return nil
+				},
+			},
+			cli.Command{
+				Name:  "list-all",
+				Usage: "prints a listing of the current contents of the version cache",
+				Flags: baseDlFlags(false),
+				Action: func(c *cli.Context) error {
+					catalog, err := bond.NewCatalog(c.String("path"))
+					if err != nil {
+						return errors.Wrap(err, "problem building catalog")
+					}
+					fmt.Println(catalog)
 					return nil
 				},
 			},
