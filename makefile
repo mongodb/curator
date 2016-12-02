@@ -126,6 +126,7 @@ $(buildDir)/makefile.vendor:$(buildDir)/render-gopath makefile
 vendor-sync:$(vendorDeps)
 	glide install -s
 vendor-clean:
+	-git checkout vendor/github.com/tychoish/bond/makefile
 	rm -rf vendor/github.com/stretchr/testify/vendor/
 	rm -rf vendor/github.com/mongodb/amboy/vendor/github.com/tychoish/grip/
 	rm -rf vendor/github.com/mongodb/amboy/vendor/github.com/golang.org/x/net/

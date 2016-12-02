@@ -20,6 +20,7 @@ import (
 type BuildCatalog struct {
 	Path  string
 	table map[BuildInfo]string
+	feed  *ArtifactsFeed
 	mutex sync.RWMutex
 }
 
@@ -36,8 +37,14 @@ func NewCatalog(path string) (*BuildCatalog, error) {
 		return nil, errors.Wrap(err, "could not find contents")
 	}
 
+	feed, err := GetArtifactsFeed(path)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not find build feed")
+	}
+
 	cache := &BuildCatalog{
 		Path:  path,
+		feed:  feed,
 		table: map[BuildInfo]string{},
 	}
 
@@ -141,6 +148,18 @@ func (c *BuildCatalog) String() string {
 // parameters presented. Returns an error if a build matching the
 // parameters specified does not exist in the cache.
 func (c *BuildCatalog) Get(version, edition, target, arch string, debug bool) (string, error) {
+	if strings.Contains(version, "current") {
+		v, err := c.feed.GetStableRelease(version)
+		if err != nil {
+			return "", errors.Wrapf(err,
+				"could not determine current stable release for %s series", version)
+		}
+
+		version = v.Version
+	} else if strings.Contains(version, "latest") {
+		version = fmt.Sprintf("%s-latest", coerceSeries(version))
+	}
+
 	info := BuildInfo{
 		Version: version,
 		Options: BuildOptions{
@@ -168,7 +187,6 @@ func (c *BuildCatalog) Get(version, edition, target, arch string, debug bool) (s
 
 func getContents(path string) ([]os.FileInfo, error) {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-
 		return []os.FileInfo{}, errors.Errorf("path %s does not exist", path)
 	}
 

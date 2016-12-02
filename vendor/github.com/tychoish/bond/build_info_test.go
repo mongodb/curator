@@ -28,7 +28,7 @@ func TestTargetIdentification(t *testing.T) {
 		"https://downloads.mongodb.com/osx/mongodb-osx-x86_64-enterprise-3.4.0-rc5.tgz":                "osx",
 		"https://downloads.mongodb.com/win32/mongodb-win32-x86_64-enterprise-windows-64-3.4.0-rc5.zip": "windows",
 		"https://fastdl.mongodb.org/linux/mongodb-linux-arm64-ubuntu1604-3.4.0-rc5.tgz":                "ubuntu1604",
-		"https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-3.4.0-rc5.tgz":                          "linux_x86_64",
+		"https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-3.4.0-rc5.tgz":                          "linux",
 		"https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-amazon-3.4.0-rc5.tgz":                   "amazon",
 		"https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-debian71-3.4.0-rc5.tgz":                 "debian71",
 		"https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-debian81-3.4.0-rc5.tgz":                 "debian81",
@@ -48,19 +48,19 @@ func TestTargetIdentification(t *testing.T) {
 
 		// targets removed before 3.4.0 that older versions still support
 		"https://fastdl.mongodb.org/win32/mongodb-win32-i386-2.6.9.zip": "windows_i686",
-		"https://fastdl.mongodb.org/linux/mongodb-linux-i386-2.6.9.tgz": "linux_i386",
+		"https://fastdl.mongodb.org/linux/mongodb-linux-i386-2.6.9.tgz": "linux",
 	}
 
 	for url, target := range builds {
 		fn := filepath.Base(url)
 		fn = fn[:len(fn)-4]
 
-		out, err := getTarget(fn, "3.4.0-rc5")
+		out, err := getTarget(fn)
 		assert.NoError(err)
 		assert.Equal(target, out, fmt.Sprintln(target, "-->", url))
 	}
 
-	out, err := getTarget("invalid", "other")
+	out, err := getTarget("invalid")
 	assert.Error(err)
 	assert.Equal("", out)
 }
@@ -315,26 +315,23 @@ func TestVersionIdentification(t *testing.T) {
 		"mongodb-linux-x86_64-2.4.0-rc1":  "2.4.0-rc1",
 		"mongodb-linux-x86_64-2.4.0-rc0":  "2.4.0-rc0",
 
-		// nightlies, new era
-		"mongodb-osx-x86_64-3.2.9-rc0-8-g22ec9e9":                                "3.2.9-rc0-8-g22ec9e9",
-		"mongodb-osx-x86_64-3.4.0-rc1-21-gf50bc8e":                               "3.4.0-rc1-21-gf50bc8e",
-		"mongodb-osx-x86_64-3.2.9-8-g22ec9e9":                                    "3.2.9-8-g22ec9e9",
-		"mongodb-osx-x86_64-3.4.0-21-gf50bc8e":                                   "3.4.0-21-gf50bc8e",
-		"mongodb-osx-x86_64-3.2.11-11-g72bd156":                                  "3.2.11-11-g72bd156",
-		"mongodb-osx-x86_64-3.4.0-rc3-97-g99f1f23":                               "3.4.0-rc3-97-g99f1f23",
-		"mongodb-osx-x86_64-c9a76918c01d86d08ee102ebeedd79e2911bb1ce-2016-08-25": "c9a76918c01d86d08ee102ebeedd79e2911bb1ce-2016-08-25", // 2.6 was odd
-		"mongodb-osx-x86_64-v2.4-2015-07-09":                                     "v2.4-2015-07-09",
+		// latest
+		"mongodb-linux-x86_64-v2.4-latest": "2.4-latest",
+		"mongodb-linux-x86_64-v2.6-latest": "2.6-latest",
+		"mongodb-linux-x86_64-v3.2-latest": "3.2-latest",
+		"mongodb-linux-x86_64-v3.0-latest": "3.0-latest",
+		"mongodb-linux-x86_64-latest":      "latest",
 	}
 
 	for dir, version := range builds {
-		v, err := getVersion(dir)
+		v, err := getVersion(dir, Base)
 		assert.Equal(version, v)
 		assert.NoError(err)
 	}
 
 	// various error cases
 	for _, fn := range []string{"invalid", "invalid-invalid", "invalid-invalid-invalid"} {
-		v, err := getVersion(fn)
+		v, err := getVersion(fn, Base)
 		assert.Equal("", v)
 		assert.Error(err)
 	}

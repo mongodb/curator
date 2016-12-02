@@ -46,19 +46,19 @@ func GetInfoFromFileName(fileName string) (BuildInfo, error) {
 		return BuildInfo{}, errors.Errorf("path '%s' does not specify an arch", fileName)
 	}
 
-	version, err := getVersion(fileName)
-	if err != nil {
-		return BuildInfo{}, errors.Wrap(err, "problem resolving version")
-	}
-	info.Version = version
-
 	edition, err := getEdition(fileName)
 	if err != nil {
 		return BuildInfo{}, errors.Wrap(err, "problem resolving edition")
 	}
 	info.Options.Edition = edition
 
-	target, err := getTarget(fileName, version)
+	version, err := getVersion(fileName, edition)
+	if err != nil {
+		return BuildInfo{}, errors.Wrap(err, "problem resolving version")
+	}
+	info.Version = version
+
+	target, err := getTarget(fileName)
 	if err != nil {
 		return BuildInfo{}, errors.Wrap(err, "problem resolving target")
 	}
@@ -67,19 +67,24 @@ func GetInfoFromFileName(fileName string) (BuildInfo, error) {
 	return info, nil
 }
 
-func getVersion(fn string) (string, error) {
+func getVersion(fn string, edition MongoDBEdition) (string, error) {
 	parts := strings.Split(fn, "-")
 	if len(parts) <= 3 {
 		return "", errors.Errorf("path %s does not contain enough elements to include a version", fn)
 	}
 
-	if strings.Contains(fn, "latest") {
-		if strings.HasPrefix(parts[len(parts)-2], "v") {
-			return strings.Join(parts[len(parts)-2:], "-"), nil
+	if strings.Contains(fn, "rc") {
+		return strings.Join(parts[len(parts)-2:], "-"), nil
+	} else if strings.Contains(fn, "latest") {
+		if isArch(parts[len(parts)-2]) {
+			return "latest", nil
 		}
-		return "latest", nil
-	} else if strings.Contains(fn, "rc") {
-		return strings.Join(parts[len(parts)-1:], "-"), nil
+
+		version := strings.Join(parts[len(parts)-2:], "-")
+		if version[0] == 'v' {
+			return version[1:], nil
+		}
+		return parts[len(parts)-1], nil
 	}
 
 	return parts[len(parts)-1], nil
@@ -105,7 +110,7 @@ func getEdition(fn string) (MongoDBEdition, error) {
 	return "", errors.Errorf("path %s does not have a valid edition", fn)
 }
 
-func getTarget(fn, version string) (string, error) {
+func getTarget(fn string) (string, error) {
 	// enterprise targets:
 	if strings.Contains(fn, "enterprise") {
 		for _, platform := range []string{"windows", "osx"} {
@@ -122,7 +127,20 @@ func getTarget(fn, version string) (string, error) {
 
 	// linux distros
 	if strings.Contains(fn, "linux") {
-		return "linux", nil
+		var target string
+		parts := strings.Split(fn, "-")
+
+		if strings.Contains(fn, "latest") || strings.Contains(fn, "rc") {
+			target = parts[len(parts)-3]
+		} else {
+			target = parts[len(parts)-2]
+		}
+
+		if isArch(target) || strings.Contains(fn, "i386") {
+			return "linux", nil
+		}
+
+		return target, nil
 	}
 
 	// all windows windows
@@ -153,4 +171,10 @@ func getTarget(fn, version string) (string, error) {
 	}
 
 	return "", errors.Errorf("could not determine platform for %s", fn)
+}
+
+func isArch(part string) bool {
+	arch := MongoDBArch(part)
+
+	return arch == AMD64 || arch == ZSeries || arch == POWER || arch == X86
 }

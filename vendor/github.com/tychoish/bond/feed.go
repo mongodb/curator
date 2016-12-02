@@ -136,9 +136,7 @@ func (feed *ArtifactsFeed) GetVersion(release string) (*ArtifactVersion, bool) {
 // builds are atypical, and given how they're produced, may not
 // necessarily reflect the most recent released or unreleased changes on a branch.
 func (feed *ArtifactsFeed) GetLatestArchive(series string, options BuildOptions) (string, error) {
-	if len(series) != 3 || string(series[1]) != "." {
-		return "", errors.Errorf("series '%s' is not a valid version series", series)
-	}
+	series = coerceSeries(series)
 
 	if options.Debug {
 		return "", errors.New("debug symbols are not valid for nightly releases")
@@ -172,6 +170,46 @@ func (feed *ArtifactsFeed) GetLatestArchive(series string, options BuildOptions)
 	return strings.Replace(dl.Archive.URL, version.Version, "v"+series+"-latest", -1), nil
 }
 
+// GetCurrentArchive is a helper to download the latest stable release for a specific series.
+func (feed *ArtifactsFeed) GetCurrentArchive(series string, options BuildOptions) (string, error) {
+	feed.mutex.RLock()
+	defer feed.mutex.RUnlock()
+
+	version, err := feed.GetStableRelease(series)
+	if err != nil {
+		return "", errors.Wrap(err, "could not find version for: "+series)
+	}
+
+	dl, err := version.GetDownload(options)
+	if err != nil {
+		return "", errors.Wrap(err, "problem finding version")
+	}
+
+	return dl.Archive.URL, nil
+
+}
+
+// GetStableRelease returns the latest official release for a specific series.
+func (feed *ArtifactsFeed) GetStableRelease(series string) (*ArtifactVersion, error) {
+	series = coerceSeries(series)
+
+	if series == "2.4" {
+		version, ok := feed.GetVersion("2.4.14")
+		if !ok {
+			return nil, errors.Errorf("could not find current version 2.4.14")
+		}
+		return version, nil
+	}
+
+	for _, version := range feed.Versions {
+		if version.Current && strings.HasPrefix(version.Version, series) {
+			return version, nil
+		}
+	}
+
+	return nil, errors.Errorf("could not find a current version for series: %s", series)
+}
+
 // GetArchives provides an iterator for all archives given a list of
 // releases (versions) for a specific set of build operations.
 // Returns channels of urls (strings) and errors. Read from the error channel,
@@ -184,8 +222,24 @@ func (feed *ArtifactsFeed) GetArchives(releases []string, options BuildOptions) 
 		catcher := grip.NewCatcher()
 		for _, rel := range releases {
 			// this is a series, have to handle it differently
-			if len(rel) == 3 {
+			hasLatest := strings.Contains(rel, "latest")
+			if len(rel) == 3 || hasLatest {
+				if hasLatest {
+					rel = strings.Split(rel, "-")[0]
+				}
+
 				url, err := feed.GetLatestArchive(rel, options)
+				if err != nil {
+					catcher.Add(err)
+					continue
+				}
+				output <- url
+				continue
+			}
+
+			if strings.HasSuffix(rel, "-current") || strings.HasSuffix(rel, "-stable") {
+				rel = strings.Split(rel, "-")[0]
+				url, err := feed.GetCurrentArchive(rel, options)
 				if err != nil {
 					catcher.Add(err)
 					continue
@@ -219,4 +273,16 @@ func (feed *ArtifactsFeed) GetArchives(releases []string, options BuildOptions) 
 	}()
 
 	return output, errOut
+}
+
+func coerceSeries(series string) string {
+	if series[0] == 'v' {
+		series = series[1:]
+	}
+
+	if len(series) > 3 {
+		series = series[:3]
+	}
+
+	return series
 }
