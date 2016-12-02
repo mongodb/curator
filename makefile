@@ -38,6 +38,7 @@ lintArgs += --exclude="unused struct field .*repobuilder.Job.mutex" # this is us
 
 # start dependency installation tools
 #   implementation details for being able to lazily install dependencies
+.DEFAULT_GOAL := $(name)
 gopath := $(shell go env GOPATH)
 lintDeps := $(addprefix $(gopath)/src/,$(lintDeps))
 srcFiles := makefile $(shell find . -name "*.go" -not -path "./$(buildDir)/*" -not -name "*_test.go" -not -path "./buildscripts/*" )
