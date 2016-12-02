@@ -23,7 +23,7 @@ func main() {
 func buildApp() *cli.App {
 	app := cli.NewApp()
 	app.Name = "curator"
-	app.Usage = "a package repository generation tool."
+	app.Usage = "build and release tool"
 	app.Version = "0.0.1-pre"
 
 	// Register sub-commands here.
