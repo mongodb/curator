@@ -42,21 +42,6 @@ func (g *Grip) UseNativeLogger() error {
 	return err
 }
 
-// UseSystemdLogger set the Journaler to use the systemd loggerwithout
-// changing the configuration of the Journaler.
-func (g *Grip) UseSystemdLogger() error {
-	// name, threshold, default
-	sender, err := send.NewJournaldLogger(g.name, g.sender.ThresholdLevel(), g.sender.DefaultLevel())
-	if err != nil {
-		if g.Sender().Name() == "bootstrap" {
-			g.SetSender(sender)
-		}
-		return err
-	}
-	g.SetSender(sender)
-	return nil
-}
-
 // UseFileLogger creates a file-based logger that writes all log
 // output to a file, based on the standard library logging methods.
 func (g *Grip) UseFileLogger(filename string) error {

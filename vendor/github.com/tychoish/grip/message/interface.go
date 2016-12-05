@@ -15,7 +15,7 @@ type Composer interface {
 
 	// A "raw" format of the logging output for use by some Sender
 	// implementations that write logged items to interfaces that
-	// accept JSON or another structured.
+	// accept JSON or another structured format.
 	Raw() interface{}
 
 	// Returns "true" when the message has content and should be

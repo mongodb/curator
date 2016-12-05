@@ -31,13 +31,6 @@ func UseNativeLogger() error {
 	return std.UseNativeLogger()
 }
 
-// UseSystemdLogger configures the standard grip package logger to use
-// the systemd loggerwithout changing the configuration of the
-// Journaler.
-func UseSystemdLogger() error {
-	return std.UseSystemdLogger()
-}
-
 // UseFileLogger configures the standard grip package logger to use a
 // file-based logger that writes all log output to a file, based on
 // the go standard library logging methods.
