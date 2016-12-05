@@ -142,6 +142,7 @@ vendor-clean:
 	rm -rf vendor/github.com/tychoish/bond/vendor/github.com/stretchr
 	rm -rf vendor/github.com/tychoish/bond/vendor/github.com/satori/
 	rm -rf vendor/github.com/tychoish/bond/vendor/github.com/pmezard/
+	rm -rf vendor/github.com/mongodb/amboy/vendor/golang.org/x/net/
 	find vendor/ -name "*.gif" -o -name "*.gz" -o -name "*.png" -o -name "*.ico" -o -name "*testdata*"| xargs rm -rf
 change-go-version:
 	rm -rf $(buildDir)/make-vendor $(buildDir)/render-gopath
