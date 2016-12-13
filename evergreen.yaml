@@ -12,17 +12,6 @@ variables:
           directory: gopath/src/github.com/mongodb/curator
       - func: run-make
         vars: { target: "${task_name}" }
-      - command: s3.put
-        params:
-          optional: true
-          aws_key: ${aws_key}
-          aws_secret: ${aws_secret}
-          local_file: gopath/src/github.com/mongodb/curator/build/${task_name}.tar.gz
-          remote_file: curator/${build_id}-${build_variant}/curator-dist-${revision}.tar.gz
-          bucket: mciuploads
-          content_type: application/x-gzip
-          permissions: public-read
-          display_name: dist.tar.gz
 
   - &run-go-test-suite
     # runs a make target and then uploads gotest output to
@@ -103,19 +92,24 @@ tasks:
           directory: gopath/src/github.com/mongodb/curator
       - func: run-make
         vars: { target: "build dist" }
+      - command: s3.put
+        params:
+          aws_key: ${aws_key}
+          aws_secret: ${aws_secret}
+          local_file: gopath/src/github.com/mongodb/curator/build/dist.tar.gz
+          remote_file: curator/${build_id}-${build_variant}/curator-dist-${revision}.tar.gz
+          bucket: mciuploads
+          content_type: application/x-gzip
+          permissions: public-read
+          display_name: dist.tar.gz
 
   - <<: *run-build
     tags: ["race"]
     name: build-race
 
-  - name: lint
-    tags: [ "report" ]
-    commands:
-      - command: git.get_project
-        params:
-          directory: gopath/src/github.com/mongodb/curator
-      - func: run-make
-        vars: { target: "${task_name}" }
+  - <<: *run-build
+    tags: ["report"]
+    name: lint
 
   - name: coverage
     tags: [ "report" ]
@@ -194,9 +188,10 @@ tasks:
 
   - name: push
     patchable: false
+    stepback: false
+    tags: ["dist"]
     depends_on:
     - name: "*"
-    stepback: false
     commands:
       - command: s3Copy.copy
         params:
