@@ -30,7 +30,6 @@ type RepositoryConfig struct {
 	} `bson:"templates" json:"templates" yaml:"templates"`
 	fileName         string
 	definitionLookup map[string]map[string]*RepositoryDefinition
-	grip             grip.Journaler
 }
 
 // RepoType defines type of repositories.
@@ -59,11 +58,8 @@ type RepositoryDefinition struct {
 // NewRepositoryConfig produces a pointer to an initialized
 // RepositoryConfig object.
 func NewRepositoryConfig() *RepositoryConfig {
-	logger := grip.NewJournaler("curator.repo.config")
-	logger.CloneSender(grip.Sender())
 	c := &RepositoryConfig{
 		definitionLookup: make(map[string]map[string]*RepositoryDefinition),
-		grip:             logger,
 	}
 	c.Templates.Deb = make(map[string]string)
 
@@ -98,7 +94,7 @@ func (c *RepositoryConfig) read(fileName string) error {
 
 	data, err := ioutil.ReadFile(fileName)
 	if err != nil {
-		c.grip.Infof("could not read file %v", fileName)
+		grip.Infof("could not read file %v", fileName)
 		return err
 	}
 

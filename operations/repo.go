@@ -38,7 +38,7 @@ func Repo() cli.Command {
 
 func repoFlags() []cli.Flag {
 	confPath, err := filepath.Abs("repo_config.yaml")
-	grip.CatchErrorFatal(err)
+	grip.CatchEmergencyFatal(err)
 
 	profile := os.Getenv("AWS_PROFILE")
 	if profile == "" {
@@ -46,7 +46,7 @@ func repoFlags() []cli.Flag {
 	}
 
 	pwd, err := os.Getwd()
-	grip.CatchErrorFatal(err)
+	grip.CatchEmergencyFatal(err)
 	workingDir := filepath.Join(pwd, uuid.NewV4().String())
 
 	return []cli.Flag{

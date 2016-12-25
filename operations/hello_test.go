@@ -6,7 +6,13 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/suite"
+	"github.com/tychoish/grip"
 )
+
+func init() {
+	grip.SetName("curator.operations.test")
+
+}
 
 // CommandsSuite provide a group of tests of the entry points and
 // command wrappers for command-line interface to curator.

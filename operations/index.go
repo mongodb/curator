@@ -15,7 +15,7 @@ import (
 // Index returns the index page rebuilder command line interface.
 func Index() cli.Command {
 	confPath, err := filepath.Abs("repo_config.yaml")
-	grip.CatchErrorFatal(err)
+	grip.CatchEmergencyFatal(err)
 
 	profile := os.Getenv("AWS_PROFILE")
 	if profile == "" {
@@ -23,7 +23,7 @@ func Index() cli.Command {
 	}
 
 	pwd, err := os.Getwd()
-	grip.CatchErrorFatal(err)
+	grip.CatchEmergencyFatal(err)
 	workingDir := filepath.Join(pwd, uuid.NewV4().String())
 
 	return cli.Command{

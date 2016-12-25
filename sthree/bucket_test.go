@@ -49,7 +49,6 @@ func (s *BucketSuite) SetupSuite() {
 	s.uuid = id.String()
 
 	grip.SetName("curator.sthree.bucket.suite")
-	grip.CatchError(grip.UseNativeLogger())
 	grip.Noticef("running s3 bucket tests, using %s (%s)", s.bucketName, s.uuid)
 
 	tempDir, err := ioutil.TempDir("", s.uuid)

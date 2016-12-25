@@ -16,7 +16,7 @@ func main() {
 	// environment.
 	app := buildApp()
 	err := app.Run(os.Args)
-	grip.CatchErrorFatal(err)
+	grip.CatchEmergencyFatal(err)
 }
 
 // we build the app outside of main so that we can test the operation
@@ -47,24 +47,14 @@ func buildApp() *cli.App {
 	}
 
 	app.Before = func(c *cli.Context) error {
-		return loggingSetup(app.Name, c.String("level"))
+		loggingSetup(app.Name, c.String("level"))
+		return nil
 	}
 
 	return app
 }
 
-// logging setup is separate to make it unit testable
-func loggingSetup(name, level string) error {
-	// grip is a systemd/standard logging wrapper.
+func loggingSetup(name, level string) {
 	grip.SetName(name)
 	grip.SetThreshold(level)
-
-	// This set's the logging system to write logging messages to
-	// standard output.
-	//
-	// Could also call "grip.UseSystemdLogger()" to write log
-	// messages directly to systemd's journald logger,
-	// grip.UseFileLogger(<filename>), to write log messages to a
-	// file, among other possible logging backends.
-	return grip.UseNativeLogger()
 }
