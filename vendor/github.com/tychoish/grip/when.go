@@ -16,14 +16,14 @@ package grip
 
 import "github.com/tychoish/grip/level"
 
-func SendWhen(conditional bool, l level.Priority, m interface{}) {
-	std.SendWhen(conditional, l, m)
+func LogWhen(conditional bool, l level.Priority, m interface{}) {
+	std.LogWhen(conditional, l, m)
 }
-func SendWhenln(conditional bool, l level.Priority, msg ...interface{}) {
-	std.SendWhenln(conditional, l, msg...)
+func LogWhenln(conditional bool, l level.Priority, msg ...interface{}) {
+	std.LogWhenln(conditional, l, msg...)
 }
-func SendWhenf(conditional bool, l level.Priority, msg string, args ...interface{}) {
-	std.SendWhenf(conditional, l, msg, args...)
+func LogWhenf(conditional bool, l level.Priority, msg string, args ...interface{}) {
+	std.LogWhenf(conditional, l, msg, args...)
 }
 
 // Default-level Conditional Methods
@@ -49,24 +49,6 @@ func EmergencyWhenln(conditional bool, msg ...interface{}) {
 func EmergencyWhenf(conditional bool, msg string, args ...interface{}) {
 	std.EmergencyWhenf(conditional, msg, args...)
 }
-func EmergencyPanicWhen(conditional bool, msg interface{}) {
-	std.EmergencyPanicWhen(conditional, msg)
-}
-func EmergencyPanicWhenln(conditional bool, msg ...interface{}) {
-	std.EmergencyFatalWhenln(conditional, msg...)
-}
-func EmergencyPanicWhenf(conditional bool, msg string, args ...interface{}) {
-	std.EmergencyPanicWhenf(conditional, msg, args...)
-}
-func EmergencyFatalWhen(conditional bool, msg interface{}) {
-	std.EmergencyFatalWhen(conditional, msg)
-}
-func EmergencyFatalWhenln(conditional bool, msg ...interface{}) {
-	std.EmergencyFatalWhenln(conditional, msg...)
-}
-func EmergencyFatalWhenf(conditional bool, msg string, args ...interface{}) {
-	std.EmergencyFatalWhenf(conditional, msg, args...)
-}
 
 // Alert-Level Conditional Methods
 
@@ -78,24 +60,6 @@ func AlertWhenln(conditional bool, msg ...interface{}) {
 }
 func AlertWhenf(conditional bool, msg string, args ...interface{}) {
 	std.AlertWhenf(conditional, msg, args...)
-}
-func AlertPanicWhen(conditional bool, msg interface{}) {
-	std.AlertPanicWhen(conditional, msg)
-}
-func AlertPanicWhenln(conditional bool, msg ...interface{}) {
-	std.AlertPanicWhenln(conditional, msg...)
-}
-func AlertPanicWhenf(conditional bool, msg string, args ...interface{}) {
-	std.AlertPanicWhenf(conditional, msg, args...)
-}
-func AlertFatalWhen(conditional bool, msg interface{}) {
-	std.AlertFatalWhen(conditional, msg)
-}
-func AlertFatalWhenln(conditional bool, msg ...interface{}) {
-	std.AlertFatalWhenln(conditional, msg...)
-}
-func AlertFatalWhenf(conditional bool, msg string, args ...interface{}) {
-	std.AlertFatalWhenf(conditional, msg, args)
 }
 
 // Critical-level Conditional Methods
@@ -109,24 +73,6 @@ func CriticalWhenln(conditional bool, msg ...interface{}) {
 func CriticalWhenf(conditional bool, msg string, args ...interface{}) {
 	std.CriticalWhenf(conditional, msg, args...)
 }
-func CriticalPanicWhen(conditional bool, msg interface{}) {
-	std.CriticalPanicWhen(conditional, msg)
-}
-func CriticalPanicWhenln(conditional bool, msg ...interface{}) {
-	std.CriticalPanicWhenln(conditional, msg...)
-}
-func CriticalPanicWhenf(conditional bool, msg string, args ...interface{}) {
-	std.CriticalPanicWhenf(conditional, msg, args...)
-}
-func CriticalFatalWhen(conditional bool, msg interface{}) {
-	std.CriticalFatalWhen(conditional, msg)
-}
-func CriticalFatalWhenln(conditional bool, msg ...interface{}) {
-	std.CriticalFatalWhenln(conditional, msg...)
-}
-func CriticalFatalWhenf(conditional bool, msg string, args ...interface{}) {
-	std.CriticalFatalWhenf(conditional, msg, args...)
-}
 
 // Error-level Conditional Methods
 
@@ -138,24 +84,6 @@ func ErrorWhenln(conditional bool, msg ...interface{}) {
 }
 func ErrorWhenf(conditional bool, msg string, args ...interface{}) {
 	std.ErrorWhenf(conditional, msg, args...)
-}
-func ErrorPanicWhen(conditional bool, msg interface{}) {
-	std.ErrorPanicWhen(conditional, msg)
-}
-func ErrorPanicWhenln(conditional bool, msg ...interface{}) {
-	std.ErrorPanicWhenln(conditional, msg...)
-}
-func ErrorPanicWhenf(conditional bool, msg string, args ...interface{}) {
-	std.ErrorPanicWhenf(conditional, msg, args...)
-}
-func ErrorFatalWhen(conditional bool, msg interface{}) {
-	std.ErrorFatalWhen(conditional, msg)
-}
-func ErrorFatalWhenln(conditional bool, msg ...interface{}) {
-	std.ErrorFatalWhenln(conditional, msg...)
-}
-func ErrorFatalWhenf(conditional bool, msg string, args ...interface{}) {
-	std.ErrorFatalWhenf(conditional, msg, args...)
 }
 
 // Warning-level Conditional Methods

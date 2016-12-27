@@ -1,7 +1,7 @@
 # project configuration
 name := grip
 buildDir := build
-packages := logging $(name)
+packages := logging send slogger $(name)
 orgPath := github.com/tychoish
 projectPath := $(orgPath)/$(name)
 # end project configuration
@@ -62,7 +62,7 @@ lint:$(lintDeps)
 	$(gopath)/bin/gometalinter $(lintArgs) ./...
 lint-deps:$(lintDeps)
 build:$(deps) $(srcFiles) $(gopath)/src/$(projectPath)
-	$(vendorGopath) go build ./
+	$(vendorGopath) go build $(subst $(name),,$(subst -,/,$(foreach pkg,$(packages),./$(pkg))))
 build-race:$(deps) $(srcFiles) $(gopath)/src/$(projectPath)
 	$(vendorGopath) go build -race $(subst -,/,$(foreach pkg,$(packages),./$(pkg)))
 test:$(testOutput)
@@ -111,13 +111,13 @@ html-coverage-%:
 #    that the tests actually need to run. (The "build" target is
 #    intentional and makes these targets rerun as expected.)
 testRunDeps := $(testSrcFiles) build
-testArgs := -v --timeout=20m
+testArgs := -v --timeout=20m -covermode=count 
 #    implementation for package coverage and test running,mongodb to produce
 #    and save test output.
 $(buildDir)/coverage.%.html:$(buildDir)/coverage.%.out
 	go tool cover -html=$(buildDir)/coverage.$(subst /,-,$*).out -o $(buildDir)/coverage.$(subst /,-,$*).html
 $(buildDir)/coverage.%.out:$(testRunDeps)
-	$(vendorGopath) go test $(testArgs) -covermode=count -coverprofile=$(buildDir)/coverage.$(subst /,-,$*).out $(projectPath)/$(subst -,/,$*)
+	$(vendorGopath) go test $(testArgs) -coverprofile=$(buildDir)/coverage.$(subst /,-,$*).out $(projectPath)/$(subst -,/,$*)
 	@-[ -f $(buildDir)/coverage.$(subst /,-,$*).out ] && go tool cover -func=$(buildDir)/coverage.$(subst /,-,$*).out | sed 's%$(projectPath)/%%' | column -t
 $(buildDir)/coverage.$(name).out:$(testRunDeps)
 	$(vendorGopath) go test -covermode=count -coverprofile=$@ $(projectPath)
