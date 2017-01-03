@@ -19,7 +19,7 @@ lintArgs := --tests --deadline=1m --vendor
 lintArgs += --disable="gotype" --disable="gas"
 lintArgs += --skip="build" --skip="buildscripts"
 #   enable and configure additional linters
-lintArgs += --enable="go fmt -s" --enable="goimports"
+lintArgs += --enable="goimports"
 lintArgs += --linter='misspell:misspell ./*.go:PATH:LINE:COL:MESSAGE' --enable=misspell
 lintArgs += --line-length=100 --dupl-threshold=100 --cyclo-over=15
 #   the gotype linter has an imperfect compilation simulator and
