@@ -598,8 +598,14 @@ func (b *Bucket) SyncTo(local, prefix string, withDelete bool) error {
 			return nil
 		}
 
-		// need the extra character to avoid missing this because of the leading slash.
-		keyName := filepath.Join(prefix, path[len(local)+1:])
+		var keyName string
+		if local == path {
+			keyName = filepath.Join(prefix, path)
+		} else {
+			// need the extra character to avoid missing this because of the leading slash.
+			keyName = filepath.Join(prefix, path[len(local)+1:])
+		}
+
 		remoteFile, ok := remote[keyName]
 		if !ok {
 			remoteFile = s3.Key{Key: keyName}
