@@ -8,12 +8,6 @@ import (
 	"github.com/tychoish/grip/send"
 )
 
-type logger interface {
-	send(message.Composer)
-	sendFatal(message.Composer)
-	sendPanic(message.Composer)
-}
-
 // Grip provides the core implementation of the Logging interface. The
 // interface is mirrored in the "grip" package's public interface, to
 // provide a single, global logging interface that requires minimal

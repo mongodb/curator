@@ -71,6 +71,10 @@ func (s *internalSender) GetMessage() *internalMessage {
 	return <-s.output
 }
 
+func (s *internalSender) Len() int {
+	return len(s.output)
+}
+
 func (s *internalSender) Send(m message.Composer) {
 	s.output <- &internalMessage{
 		Message:  m,

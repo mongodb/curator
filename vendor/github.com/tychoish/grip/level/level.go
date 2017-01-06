@@ -68,7 +68,7 @@ func FromString(l string) Priority {
 		return Emergency
 	case "alert":
 		return Alert
-	case "crtical":
+	case "critical":
 		return Critical
 	case "error":
 		return Error

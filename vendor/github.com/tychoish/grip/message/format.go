@@ -21,11 +21,13 @@ func NewFormattedMessage(p level.Priority, base string, args ...interface{}) Com
 		base: base,
 		args: args,
 	}
-	m.SetPriority(p)
+	_ = m.SetPriority(p)
 
 	return m
 }
 
+// NewFormatted returns a message.Composer roughly equivalent to an
+// fmt.Sprintf().
 func NewFormatted(base string, args ...interface{}) Composer {
 	return &formatMessenger{
 		base: base,

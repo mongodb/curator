@@ -12,8 +12,8 @@ func (s *GripSuite) TestSenderGetterReturnsExpectedJournaler() {
 	s.Equal(grip.GetSender().Type(), send.Bootstrap)
 
 	sender, err := send.NewNativeLogger(grip.Name(), grip.GetSender().Level())
-	grip.SetSender(sender)
 	s.NoError(err)
+	s.NoError(grip.SetSender(sender))
 
 	s.Equal(grip.Name(), "sender_swap")
 	s.NotEqual(grip.GetSender().Type(), send.Bootstrap)
@@ -22,7 +22,7 @@ func (s *GripSuite) TestSenderGetterReturnsExpectedJournaler() {
 	s.IsType(grip.GetSender(), ns)
 
 	sender, err = send.NewFileLogger(grip.Name(), "foo", grip.GetSender().Level())
-	grip.SetSender(sender)
+	s.NoError(grip.SetSender(sender))
 	s.NoError(err)
 
 	defer func() { std.CatchError(os.Remove("foo")) }()

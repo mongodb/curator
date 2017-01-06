@@ -36,12 +36,12 @@ type Composer interface {
 func ConvertToComposer(p level.Priority, message interface{}) Composer {
 	switch message := message.(type) {
 	case Composer:
-		message.SetPriority(p)
+		_ = message.SetPriority(p)
 		return message
 	case string:
 		return NewDefaultMessage(p, message)
-	case []interface{}:
-		return NewLinesMessage(p, message)
+	case []string, []interface{}:
+		return NewLineMessage(p, message)
 	case error:
 		return NewErrorMessage(p, message)
 	default:

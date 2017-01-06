@@ -2,6 +2,7 @@ package grip
 
 import (
 	"github.com/tychoish/grip/level"
+	"github.com/tychoish/grip/message"
 	"github.com/tychoish/grip/send"
 )
 
@@ -28,6 +29,7 @@ type Journaler interface {
 	Log(level.Priority, interface{})
 	Logf(level.Priority, string, ...interface{})
 	Logln(level.Priority, ...interface{})
+	LogMany(level.Priority, ...message.Composer)
 	LogWhen(bool, level.Priority, interface{})
 	LogWhenf(bool, level.Priority, string, ...interface{})
 	LogWhenln(bool, level.Priority, ...interface{})
@@ -37,6 +39,7 @@ type Journaler interface {
 	Default(interface{})
 	Defaultf(string, ...interface{})
 	Defaultln(...interface{})
+	DefaultMany(...message.Composer)
 	DefaultWhen(bool, interface{})
 	DefaultWhenf(bool, string, ...interface{})
 	DefaultWhenln(bool, ...interface{})
@@ -81,6 +84,7 @@ type Journaler interface {
 	Emergency(interface{})
 	Emergencyf(string, ...interface{})
 	Emergencyln(...interface{})
+	EmergencyMany(...message.Composer)
 	EmergencyWhen(bool, interface{})
 	EmergencyWhenf(bool, string, ...interface{})
 	EmergencyWhenln(bool, ...interface{})
@@ -88,6 +92,7 @@ type Journaler interface {
 	Alert(interface{})
 	Alertf(string, ...interface{})
 	Alertln(...interface{})
+	AlertMany(...message.Composer)
 	AlertWhen(bool, interface{})
 	AlertWhenf(bool, string, ...interface{})
 	AlertWhenln(bool, ...interface{})
@@ -95,6 +100,7 @@ type Journaler interface {
 	Critical(interface{})
 	Criticalf(string, ...interface{})
 	Criticalln(...interface{})
+	CriticalMany(...message.Composer)
 	CriticalWhen(bool, interface{})
 	CriticalWhenf(bool, string, ...interface{})
 	CriticalWhenln(bool, ...interface{})
@@ -102,6 +108,7 @@ type Journaler interface {
 	Error(interface{})
 	Errorf(string, ...interface{})
 	Errorln(...interface{})
+	ErrorMany(...message.Composer)
 	ErrorWhen(bool, interface{})
 	ErrorWhenf(bool, string, ...interface{})
 	ErrorWhenln(bool, ...interface{})
@@ -109,6 +116,7 @@ type Journaler interface {
 	Warning(interface{})
 	Warningf(string, ...interface{})
 	Warningln(...interface{})
+	WarningMany(...message.Composer)
 	WarningWhen(bool, interface{})
 	WarningWhenf(bool, string, ...interface{})
 	WarningWhenln(bool, ...interface{})
@@ -116,6 +124,7 @@ type Journaler interface {
 	Notice(interface{})
 	Noticef(string, ...interface{})
 	Noticeln(...interface{})
+	NoticeMany(...message.Composer)
 	NoticeWhen(bool, interface{})
 	NoticeWhenf(bool, string, ...interface{})
 	NoticeWhenln(bool, ...interface{})
@@ -123,6 +132,7 @@ type Journaler interface {
 	Info(interface{})
 	Infof(string, ...interface{})
 	Infoln(...interface{})
+	InfoMany(...message.Composer)
 	InfoWhen(bool, interface{})
 	InfoWhenf(bool, string, ...interface{})
 	InfoWhenln(bool, ...interface{})
@@ -130,6 +140,7 @@ type Journaler interface {
 	Debug(interface{})
 	Debugf(string, ...interface{})
 	Debugln(...interface{})
+	DebugMany(...message.Composer)
 	DebugWhen(bool, interface{})
 	DebugWhenf(bool, string, ...interface{})
 	DebugWhenln(bool, ...interface{})

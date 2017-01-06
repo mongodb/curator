@@ -19,7 +19,7 @@ type syslogger struct {
 	*base
 }
 
-// NewSyslogLogger creates a new Sender object taht writes all
+// NewSyslogLogger creates a new Sender object that writes all
 // loggable messages to a syslog instance on the specified
 // network. Uses the Go standard library syslog implementation that is
 // only available on Unix systems. Use this constructor to return a

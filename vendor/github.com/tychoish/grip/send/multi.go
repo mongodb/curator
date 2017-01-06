@@ -48,7 +48,7 @@ func NewMultiSender(name string, l LevelInfo, senders []Sender) (Sender, error) 
 // multi Sender implementations after construction.
 func NewConfiguredMultiSender(senders ...Sender) Sender {
 	s := &multiSender{senders: senders, base: newBase("")}
-	s.base.SetLevel(LevelInfo{Default: level.Invalid, Threshold: level.Invalid})
+	_ = s.base.SetLevel(LevelInfo{Default: level.Invalid, Threshold: level.Invalid})
 
 	return s
 }

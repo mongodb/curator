@@ -21,7 +21,7 @@ func NewErrorMessage(p level.Priority, err error) Composer {
 		err: err,
 	}
 
-	m.SetPriority(p)
+	_ = m.SetPriority(p)
 	return m
 }
 

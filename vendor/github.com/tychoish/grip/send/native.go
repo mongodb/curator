@@ -18,7 +18,7 @@ type nativeLogger struct {
 // loggable messages to a standard output logger that uses Go's
 // standard library logging system.
 func NewNativeLogger(name string, l LevelInfo) (Sender, error) {
-	s := NewNative()
+	s := MakeNative()
 	if err := s.SetLevel(l); err != nil {
 		return nil, err
 	}
@@ -28,10 +28,10 @@ func NewNativeLogger(name string, l LevelInfo) (Sender, error) {
 	return s, nil
 }
 
-// NewNative returns an unconfigured native standard-out logger. You
+// MakeNative returns an unconfigured native standard-out logger. You
 // *must* call SetName on this instance before using it. (Journaler's
 // SetSender will typically do this.)
-func NewNative() Sender {
+func MakeNative() Sender {
 	s := &nativeLogger{
 		base: newBase(""),
 	}

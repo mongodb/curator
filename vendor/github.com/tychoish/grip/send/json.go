@@ -15,6 +15,10 @@ type jsonLogger struct {
 	*base
 }
 
+// NewJSONConsoleLogger builds a Sender instance that prints log
+// messages in a JSON formatted to standard output. The JSON formated
+// message is taken by calling the Raw() method on the
+// message.Composer and Marshalling the results.
 func NewJSONConsoleLogger(name string, l LevelInfo) (Sender, error) {
 	s := MakeJSONConsoleLogger()
 	if err := s.SetLevel(l); err != nil {
@@ -26,6 +30,8 @@ func NewJSONConsoleLogger(name string, l LevelInfo) (Sender, error) {
 	return s, nil
 }
 
+// MakeJSONConsoleLogger returns an un-configured JSON console logging
+// instance.
 func MakeJSONConsoleLogger() Sender {
 	s := &jsonLogger{
 		base:   newBase(""),
@@ -39,8 +45,10 @@ func MakeJSONConsoleLogger() Sender {
 	return s
 }
 
-// Log-to-file constructors
-
+// NewJSONFileLogger builds a Sender instance that write JSON
+// formated log messages to a file, with one-line per message. The
+// JSON formated message is taken by calling the Raw() method on the
+// message.Composer and Marshalling the results.
 func NewJSONFileLogger(name, file string, l LevelInfo) (Sender, error) {
 	s, err := MakeJSONFileLogger(file)
 	if err != nil {
@@ -56,6 +64,8 @@ func NewJSONFileLogger(name, file string, l LevelInfo) (Sender, error) {
 	return s, nil
 }
 
+// MakeJSONFileLogger creates an un-configured JSON logger that writes
+// output to the specified file.
 func MakeJSONFileLogger(file string) (Sender, error) {
 	f, err := os.OpenFile(file, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
@@ -78,7 +88,7 @@ func MakeJSONFileLogger(file string) (Sender, error) {
 
 // Implementation of required methods not implemented in BASE
 
-func (s *jsonLogger) Type() SenderType { return Json }
+func (s *jsonLogger) Type() SenderType { return JSON }
 func (s *jsonLogger) Send(m message.Composer) {
 	if s.level.ShouldLog(m) {
 		out, err := json.Marshal(m.Raw())

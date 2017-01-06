@@ -29,8 +29,8 @@ func TestLogType(t *testing.T) {
 	assert.True(plog.Loggable())
 
 	// ensure that the resolve and the message handlers return different things.
-	assert.True(strings.HasSuffix(log.Resolve(), "hello world\n"))
-	assert.True(strings.HasSuffix(plog.Resolve(), "hello world\n"))
+	assert.True(strings.HasSuffix(log.Resolve(), "hello world"), log.Resolve())
+	assert.True(strings.HasSuffix(plog.Resolve(), "hello world"), log.Resolve())
 	assert.Equal("hello world", log.Message())
 	assert.Equal("hello world", plog.Message())
 	assert.NotEqual(log.Message(), log.Resolve())

@@ -1,20 +1,27 @@
 package send
 
+// SenderType provides an indicator of what kind of sender is
+// currently in use. In practice Sender constructors return an object
+// of the Sender interface, with the actual implementations private.
 type SenderType int
 
+// Sender types provide identifiers for the built-in sender
+// implementation provided by the send package. These values are
+// returned by the Sender's Type() method.
 const (
 	Custom SenderType = iota
 	Systemd
 	Native
-	Json
+	JSON
 	Syslog
 	Internal
 	Multi
 	File
 	Slack
-	Xmpp
+	XMPP
 	Stream
 	Bootstrap
+	Buildlogger
 )
 
 func (t SenderType) String() string {
@@ -31,13 +38,15 @@ func (t SenderType) String() string {
 		return "file"
 	case Bootstrap:
 		return "bootstrap"
+	case Buildlogger:
+		return "buildlogger"
 	case Custom:
 		return "custom"
 	case Slack:
 		return "slack"
-	case Xmpp:
+	case XMPP:
 		return "xmpp"
-	case Json:
+	case JSON:
 		return "json"
 	case Stream:
 		return "stream"

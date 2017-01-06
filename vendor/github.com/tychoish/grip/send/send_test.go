@@ -32,8 +32,8 @@ func (s *SenderSuite) SetupTest() {
 	s.senders = map[SenderType]Sender{
 		Slack:     &slackJournal{base: newBase("slack")},
 		File:      &fileLogger{base: newBase("file")},
-		Xmpp:      &xmppLogger{base: newBase("xmpp")},
-		Json:      &jsonLogger{base: newBase("json")},
+		XMPP:      &xmppLogger{base: newBase("xmpp")},
+		JSON:      &jsonLogger{base: newBase("json")},
 		Stream:    &streamLogger{base: newBase("stream")},
 		Bootstrap: &bootstrapLogger{},
 	}
@@ -47,9 +47,10 @@ func (s *SenderSuite) SetupTest() {
 	s.require.NoError(err)
 	s.senders[Native] = native
 
+	var sender Sender
 	multiSenders := []Sender{}
 	for i := 0; i < 4; i++ {
-		sender, err := NewNativeLogger(fmt.Sprintf("native-%d", i), l)
+		sender, err = NewNativeLogger(fmt.Sprintf("native-%d", i), l)
 		s.require.NoError(err)
 		multiSenders = append(multiSenders, sender)
 	}
@@ -63,9 +64,9 @@ func (s *SenderSuite) SetupTest() {
 func (s *SenderSuite) functionalMockSenders() map[SenderType]Sender {
 	out := map[SenderType]Sender{}
 	for t, sender := range s.senders {
-		if t == Slack || t == File || t == Stream || t == Internal || t == Xmpp {
+		if t == Slack || t == File || t == Stream || t == Internal || t == XMPP {
 			continue
-		} else if t == Json {
+		} else if t == JSON {
 			var err error
 			out[t], err = NewJSONConsoleLogger("json", LevelInfo{level.Info, level.Notice})
 			s.require.NoError(err)
@@ -77,7 +78,7 @@ func (s *SenderSuite) functionalMockSenders() map[SenderType]Sender {
 }
 
 func (s *SenderSuite) TeardownSuite() {
-	s.senders[Internal].Close()
+	s.NoError(s.senders[Internal].Close())
 }
 
 func (s *SenderSuite) TestSenderImplementsInterface() {
@@ -120,7 +121,7 @@ func (s *SenderSuite) TestLevelSetterRejectsInvalidSettings() {
 	}
 
 	for n, sender := range s.senders {
-		sender.SetLevel(LevelInfo{level.Debug, level.Alert})
+		s.NoError(sender.SetLevel(LevelInfo{level.Debug, level.Alert}))
 		for _, l := range levels {
 			s.True(sender.Level().Valid(), string(n))
 			s.False(l.Valid(), string(n))

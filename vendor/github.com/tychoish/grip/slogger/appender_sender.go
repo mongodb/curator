@@ -30,7 +30,7 @@ func NewAppenderSender(name string, a Appender) send.Sender {
 	return &appenderSender{
 		appender: a,
 		name:     name,
-		level:    send.LevelInfo{level.Debug, level.Debug},
+		level:    send.LevelInfo{Default: level.Debug, Threshold: level.Debug},
 	}
 }
 
@@ -41,7 +41,7 @@ func WrapAppender(a Appender) send.Sender {
 	return &appenderSender{
 		appender: a,
 		name:     os.Args[0],
-		level:    send.LevelInfo{level.Debug, level.Debug},
+		level:    send.LevelInfo{Default: level.Debug, Threshold: level.Debug},
 	}
 }
 

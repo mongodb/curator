@@ -8,23 +8,25 @@ import (
 )
 
 type lineMessenger struct {
-	Lines []interface{} `yaml:"lines" json:"lines" bson:"`
+	Lines []interface{} `yaml:"lines" json:"lines" bson:"lines"`
 	Base  `bson:"metadata" json:"metadata" yaml:"metadata"`
 }
 
-// NewLinesMessage is a basic constructor for a type that, given a
-// bunch of arguments, calls fmt.Sprintln() on the arguemnts passed to
+// NewLineMessage is a basic constructor for a type that, given a
+// bunch of arguments, calls fmt.Sprintln() on the arguments passed to
 // the constructor during the Resolve() operation. Use in combination
 // with Compose[*] logging methods.
-func NewLinesMessage(p level.Priority, args ...interface{}) Composer {
+func NewLineMessage(p level.Priority, args ...interface{}) Composer {
 	m := &lineMessenger{
 		Lines: args,
 	}
-	m.SetPriority(p)
+	_ = m.SetPriority(p)
 	return m
 }
 
-func NewLines(args ...interface{}) Composer {
+// NewLine returns a message Composer roughly equivalent to
+// fmt.Sprintln().
+func NewLine(args ...interface{}) Composer {
 	return &lineMessenger{
 		Lines: args,
 	}

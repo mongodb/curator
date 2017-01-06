@@ -45,7 +45,7 @@ func (l *Log) Resolve() string {
 		year, month, day := l.Timestamp.Date()
 		hour, min, sec := l.Timestamp.Clock()
 
-		l.Output = fmt.Sprintf("[%.4d/%.2d/%.2d %.2d:%.2d:%.2d] [%v.%v] [%v:%d] %v\n",
+		l.Output = fmt.Sprintf("[%.4d/%.2d/%.2d %.2d:%.2d:%.2d] [%v.%v] [%v:%d] %v",
 			year, month, day,
 			hour, min, sec,
 			l.Prefix, l.Level.String(),
@@ -56,10 +56,9 @@ func (l *Log) Resolve() string {
 	return l.Output
 }
 
-// TODO(tycho) have the public constructors call appendCallerInfo at
-// current-1 so they're usable generally, and then have one to use in
-// the loggers which is private and matches the current settings
-
+// NewLog takes a message.Composer object and returns a slogger.Log
+// instance (which also implements message.Composer). This method
+// records its callsite, so you ought to call this method directly.
 func NewLog(m message.Composer) *Log {
 	l := &Log{
 		Level:     convertFromPriority(m.Priority()),
@@ -80,6 +79,8 @@ func newLog(m message.Composer) *Log {
 	return l
 }
 
+// NewPrefixedLog allows you to construct a slogger.Log message from a
+// message composer, while specifying a prefix.
 func NewPrefixedLog(prefix string, m message.Composer) *Log {
 	l := NewLog(m)
 	l.Prefix = prefix
