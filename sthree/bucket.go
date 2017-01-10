@@ -594,7 +594,7 @@ func (b *Bucket) SyncTo(local, prefix string, withDelete bool) error {
 			return err
 		}
 
-		if info.IsDir() && !withDelete {
+		if info.IsDir() {
 			return nil
 		}
 
