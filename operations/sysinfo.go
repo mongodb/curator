@@ -11,6 +11,8 @@ import (
 	"github.com/urfave/cli"
 )
 
+// SystemInfo returns a command object with subcommands for specific
+// stats gathering operations.
 func SystemInfo() cli.Command {
 	return cli.Command{
 		Name:    "stat",
@@ -133,9 +135,11 @@ func getLogger(fn string) (grip.Journaler, error) {
 			return nil, errors.Wrap(err, "problem building logger")
 		}
 
-		logger.SetSender(sender)
-	} else {
-		logger.SetSender(send.MakeJSONConsoleLogger())
+		if err = logger.SetSender(sender); err != nil {
+			return nil, errors.Wrap(err, "problem configuring logger")
+		}
+	} else if err := logger.SetSender(send.MakeJSONConsoleLogger()); err != nil {
+		return nil, errors.Wrap(err, "problem configuring logger")
 	}
 
 	return logger, nil
