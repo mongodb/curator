@@ -31,7 +31,7 @@ imports:
 - name: github.com/stretchr/testify
   version: d77da356e56a7428ad25149ca77381849a6a5232
 - name: github.com/tychoish/grip
-  version: f9c61248c745c262d2a78d3a64c0832dc09ba65b
+  version: 69cb2482a9d23f549d3bc8c97e6b2c274ec7c1f0
   subpackages:
   - level
   - loggingg

@@ -1,7 +1,7 @@
 // +build linux
 // +build s390x
 // Created by cgo -godefs - DO NOT EDIT
-// cgo -godefs vendor/github.com/shirou/gopsutil/host/types_linux.go
+// cgo -godefs types_linux.go
 
 package host
 
