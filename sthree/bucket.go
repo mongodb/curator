@@ -590,8 +590,8 @@ func (b *Bucket) SyncTo(local, prefix string, withDelete bool) error {
 
 	catcher.Add(filepath.Walk(local, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			grip.Critical(err)
-			return err
+			grip.Critical(errors.Wrapf(err, "problem finding file %s", path))
+			return nil
 		}
 
 		if info.IsDir() {
@@ -613,10 +613,15 @@ func (b *Bucket) SyncTo(local, prefix string, withDelete bool) error {
 
 		job := newSyncToJob(b, path, remoteFile, withDelete)
 
+		err = errors.Wrap(b.queue.Put(job), "problem putting syncTo job into queue")
+		if err != nil {
+			catcher.Add(err)
+			return nil
+		}
+
 		counter++
 
-		return errors.Wrap(b.queue.Put(job),
-			"problem putting syncTo job into queue")
+		return nil
 	}))
 
 	b.queue.Wait()
