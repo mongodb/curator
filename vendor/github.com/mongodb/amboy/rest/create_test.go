@@ -33,7 +33,7 @@ func (s *CreateJobSuite) SetupSuite() {
 	ctx, cancel := context.WithCancel(context.Background())
 	s.closer = cancel
 
-	s.service.Open(ctx)
+	s.NoError(s.service.Open(ctx))
 
 	s.NoError(s.service.App().Resolve())
 }
@@ -117,6 +117,7 @@ func (s *CreateJobSuite) TestRequestToAddJobThatAlreadyExists() {
 	s.NoError(err)
 
 	rb, err := json.Marshal(payload)
+	s.NoError(err)
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest("POST", "http://example.com/v1/job/create", bytes.NewBuffer(rb))
@@ -143,6 +144,7 @@ func (s *CreateJobSuite) TestRequestToAddNewJobRegistersJob() {
 	s.NoError(err)
 
 	rb, err := json.Marshal(payload)
+	s.NoError(err)
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest("POST", "http://example.com/v1/job/create", bytes.NewBuffer(rb))

@@ -52,7 +52,7 @@ func FetchReleases(ctx context.Context, releases []string, path string, options 
 	}
 
 	grip.Infof("waiting for %d download jobs to complete", q.Stats().Total)
-	q.Wait()
+	amboy.Wait(q)
 	grip.Info("all download tasks complete, processing errors now")
 
 	if err := amboy.ResolveErrors(ctx, q); err != nil {

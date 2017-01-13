@@ -21,7 +21,6 @@ import (
 	"github.com/mongodb/amboy/pool"
 	"github.com/pkg/errors"
 	"github.com/tychoish/grip"
-	"github.com/tychoish/grip/sometimes"
 	"golang.org/x/net/context"
 )
 
@@ -105,12 +104,12 @@ func (q *LocalUnordered) Runner() amboy.Runner {
 // implementations at run time. This method fails if the runner has
 // started.
 func (q *LocalUnordered) SetRunner(r amboy.Runner) error {
-	if q.runner.Started() {
-		return errors.New("cannot change runners after starting")
+	if q.runner != nil && q.runner.Started() {
+		return errors.New("cannot set a runner, current runner is running")
 	}
 
 	q.runner = r
-	return nil
+	return r.SetQueue(q)
 }
 
 // Started returns true when the Queue has begun dispatching tasks to
@@ -210,16 +209,4 @@ func (q *LocalUnordered) Complete(ctx context.Context, j amboy.Job) {
 		defer q.tasks.Unlock()
 		q.numCompleted++
 	}()
-}
-
-// Wait blocks until all currently pending jobs jobs have completed.
-func (q *LocalUnordered) Wait() {
-	for {
-		stats := q.Stats()
-		grip.DebugWhenf(sometimes.Fifth(),
-			"waiting for %d pending jobs (total=%d)", stats.Pending, stats.Total)
-		if stats.Pending == 0 {
-			break
-		}
-	}
 }

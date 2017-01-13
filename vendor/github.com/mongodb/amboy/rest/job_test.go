@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/mongodb/amboy"
 	"github.com/mongodb/amboy/job"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -32,7 +33,7 @@ func (s *JobStatusSuite) SetupSuite() {
 	ctx, cancel := context.WithCancel(context.Background())
 	s.closer = cancel
 
-	s.service.Open(ctx)
+	s.NoError(s.service.Open(ctx))
 
 	j := job.NewShellJob("echo foo", "")
 	s.jobName = j.ID()
@@ -59,7 +60,7 @@ func (s *JobStatusSuite) TestIncorrectOrInvalidJobNamesReturnExpectedResults() {
 }
 
 func (s *JobStatusSuite) TestJobNameReturnsSuccessfulResponse() {
-	s.service.queue.Wait()
+	amboy.Wait(s.service.queue)
 
 	resp, err := s.service.getJobStatusResponse(s.jobName)
 	s.NoError(err)

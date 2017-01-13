@@ -3,7 +3,6 @@
 package rest
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -12,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/mongodb/amboy"
 	"github.com/mongodb/amboy/job"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -43,7 +43,7 @@ func (s *ClientSuite) SetupSuite() {
 	ctx, cancel := context.WithCancel(context.Background())
 	s.closer = cancel
 	s.service = NewService()
-	s.service.Open(ctx)
+	s.NoError(s.service.Open(ctx))
 
 	app := s.service.App()
 	s.NoError(app.Resolve())
@@ -324,7 +324,7 @@ func (s *ClientSuite) TestGetStatsHelperWithActualJob() {
 	j := job.NewShellJob("true", "")
 
 	s.NoError(s.service.queue.Put(j))
-	s.service.queue.Wait()
+	amboy.Wait(s.service.queue)
 
 	st, err := s.client.getStats(ctx)
 	s.NoError(err, fmt.Sprintf("%+v", st))
@@ -377,44 +377,13 @@ func (s *ClientSuite) TestJobStatusWithValidJob() {
 
 	j := job.NewShellJob("echo foo", "")
 	s.NoError(s.service.queue.Put(j))
-	s.service.queue.Wait()
+	amboy.Wait(s.service.queue)
 	st, err := s.client.jobStatus(ctx, j.ID())
 	s.NoError(err)
 	s.Equal(j.ID(), st.ID)
 	s.True(st.Exists)
 	s.True(st.Completed)
 	s.Equal(0, st.JobsPending)
-}
-
-func (s *ClientSuite) TestWaitForOutcomeWithCanceledContextReturnsFalseWhenOutcomeIsUnresolvable() {
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-	s.False(waitForOutcome(ctx, func() (bool, error) {
-		return false, errors.New("foo")
-	}))
-}
-
-func (s *ClientSuite) TestWaitForOutcomeReturnsTrueIfOutcomeOperationIsValid() {
-	ctx := context.Background()
-	s.True(waitForOutcome(ctx, func() (bool, error) {
-		return true, nil
-	}))
-}
-
-func (s *ClientSuite) TestWaitForOutcomeShouldReturnFalseIfOutcomeOperationHasErrors() {
-	// because we'll hit context timeout
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Millisecond)
-	s.False(waitForOutcome(ctx, func() (bool, error) {
-		return true, errors.New("foo")
-	}))
-}
-
-func (s *ClientSuite) TestWaitForOutcomeShouldReturnFalseIfOutcomeOperationIsFalse() {
-	// because we'll hit context timeout
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Millisecond)
-	s.False(waitForOutcome(ctx, func() (bool, error) {
-		return false, nil
-	}))
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -480,7 +449,7 @@ func (s *ClientSuite) TestPendingJobsWithCanceledContextReturnsError() {
 }
 
 func (s *ClientSuite) TestPendingJobsIsZeroAfterWaitingOnTheQueue() {
-	s.service.queue.Wait()
+	amboy.Wait(s.service.queue)
 	var err error
 	ctx := context.Background()
 	s.client, err = NewClient(s.info.host, s.info.port, "")
@@ -506,7 +475,7 @@ func (s *ClientSuite) TestJobCompleteWithCanceledContextReturnsError() {
 }
 
 func (s *ClientSuite) TestJobCompleteIsZeroAfterWaitingOnTheQueue() {
-	s.service.queue.Wait()
+	amboy.Wait(s.service.queue)
 	var err error
 	ctx := context.Background()
 	s.client, err = NewClient(s.info.host, s.info.port, "")
@@ -515,7 +484,7 @@ func (s *ClientSuite) TestJobCompleteIsZeroAfterWaitingOnTheQueue() {
 	j := job.NewShellJob("echo foo", "")
 	s.NoError(s.service.queue.Put(j))
 
-	s.service.queue.Wait()
+	amboy.Wait(s.service.queue)
 
 	isComplete, err := s.client.JobComplete(ctx, j.ID())
 	s.True(isComplete)
@@ -606,6 +575,32 @@ func (s *ClientSuite) TestWhenWaitAllMethodReturnsAllJobsAreComplete() {
 
 	qst = s.service.queue.Stats()
 	s.Equal(0, qst.Pending)
+}
+
+func (s *ClientSuite) TestFetchJobReturnsEquivalentJob() {
+	var err error
+
+	s.client, err = NewClient(s.info.host, s.info.port, "")
+	ctx := context.Background()
+	s.NoError(err)
+	jobs := []*job.ShellJob{}
+
+	for i := 0; i < 10; i++ {
+		j := job.NewShellJob(fmt.Sprintf("echo %d", i), "")
+		_, err = s.client.SubmitJob(ctx, j)
+		s.NoError(err)
+		jobs = append(jobs, j)
+	}
+
+	ok := s.client.WaitAll(ctx)
+	s.True(ok)
+
+	for _, j := range jobs {
+		rj, err := s.client.FetchJob(ctx, j.ID())
+		s.NoError(err)
+		s.Equal(j.ID(), rj.ID())
+		s.Equal(j.Command, rj.(*job.ShellJob).Command)
+	}
 }
 
 // TODO: wait
