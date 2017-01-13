@@ -251,6 +251,7 @@ func (b *Bucket) list(prefix string) <-chan s3.Key {
 	if prefix != "" && !strings.HasSuffix(prefix, "/") {
 		prefix += "/"
 	}
+
 	go func() {
 		var lastKey string
 		for {
@@ -624,24 +625,24 @@ func (b *Bucket) SyncTo(local, prefix string, withDelete bool) error {
 		return nil
 	}))
 
-	b.queue.Wait()
-
-	for job := range b.queue.Results() {
-		err := job.Error()
-		if err != nil {
-			catcher.Add(errors.Wrapf(err, "error in syncTo job %s", job.ID()))
-		}
-	}
+	amboy.WaitInterval(b.queue, 250*time.Millisecond)
 
 	if catcher.HasErrors() {
-		grip.Alertf("problem with sync push operation (%s -> %s/%s) [considered %d items]",
-			local, b.name, prefix, counter)
-	} else {
-		grip.Infof("completed push operation. upload items to %s/%s [considered %d items]",
-			b.name, prefix, counter)
+		grip.Alertf("encountered %d problems putting jobs into the syncTo queue", catcher.Len())
+		return catcher.Resolve()
 	}
 
-	return catcher.Resolve()
+	if err := amboy.ResolveErrors(context.TODO(), b.queue); err != nil {
+		m := fmt.Sprintf("problem with syncTo operation (%s -> %s/%s)",
+			local, b.name, prefix)
+		grip.Alert(m)
+		return errors.Wrap(err, m)
+	}
+
+	grip.Infof("completed push operation. upload items to %s/%s [considered %d items]",
+		b.name, prefix, counter)
+
+	return nil
 }
 
 // SyncFrom takes a local path and the prefix of a keyname in S3, and
@@ -651,32 +652,26 @@ func (b *Bucket) SyncTo(local, prefix string, withDelete bool) error {
 // All operations execute in the worker pool, and SyncTo waits for all
 // jobs to complete before returning an aggregated erro
 func (b *Bucket) SyncFrom(local, prefix string, withDelete bool) error {
-	catcher := grip.NewCatcher()
 	grip.Infof("sync pull %s/%s -> %s", b.name, prefix, local)
 
 	for remote := range b.list(prefix) {
 		job := newSyncFromJob(b, filepath.Join(local, remote.Key[len(prefix):]), remote, withDelete)
 
 		// add the job to the queue
-		catcher.Add(errors.Wrap(b.queue.Put(job),
-			"problem putting syncFrom job into worker queue"))
-	}
-
-	b.queue.Wait()
-
-	for job := range b.queue.Results() {
-		err := job.Error()
-		if err != nil {
-			catcher.Add(errors.Wrapf(err, "error with syncFrom job %s", job.ID()))
+		if err := b.queue.Put(job); err != nil {
+			return errors.Wrap(err, "problem putting syncFrom job into worker queue")
 		}
 	}
 
-	if catcher.HasErrors() {
-		grip.Alertf("problem with sync pull operation (%s/%s -> %s)",
+	amboy.WaitInterval(b.queue, 250*time.Millisecond)
+
+	if err := amboy.ResolveErrors(context.TODO(), b.queue); err != nil {
+		m := fmt.Sprintf("problem with syncFrom operation (%s/%s -> %s)",
 			b.name, prefix, local)
-	} else {
-		grip.Infof("completed pull operation from %s/%s -> %s", b.name, prefix, local)
+		grip.Alert(m)
+		return errors.Wrap(err, m)
 	}
 
-	return catcher.Resolve()
+	grip.Infof("completed pull operation from %s/%s -> %s", b.name, prefix, local)
+	return nil
 }

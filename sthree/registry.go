@@ -144,7 +144,7 @@ func (r *bucketRegistry) getBucketWithCredentials(name string, creds AWSConnecti
 		bucket:            client.Bucket(name),
 		credentials:       creds,
 		name:              name,
-		numJobs:           runtime.NumCPU() * 2,
+		numJobs:           runtime.NumCPU(),
 		numRetries:        20,
 	}
 
