@@ -56,13 +56,7 @@ func NewXMPPLogger(name, target string, info XMPPConnectionInfo, l LevelInfo) (S
 		return nil, err
 	}
 
-	if err := s.SetLevel(l); err != nil {
-		return nil, err
-	}
-
-	s.SetName(name)
-
-	return s, nil
+	return setup(s, name, l)
 }
 
 // MakeXMPP constructs an XMPP logging backend that reads the

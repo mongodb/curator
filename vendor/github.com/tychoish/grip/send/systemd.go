@@ -23,15 +23,7 @@ type systemdJournal struct {
 // error with the sending to the journald, messages fallback to
 // writing to standard output.
 func NewSystemdLogger(name string, l LevelInfo) (Sender, error) {
-	s := MakeSystemdLogger()
-
-	if err := s.SetLevel(l); err != nil {
-		return nil, err
-	}
-
-	s.SetName(name)
-
-	return s, nil
+	return setup(MakeSystemdLogger(), name, l)
 }
 
 // MakeSystemdLogger constructs an unconfigured systemd journald

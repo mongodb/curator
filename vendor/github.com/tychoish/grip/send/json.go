@@ -20,14 +20,7 @@ type jsonLogger struct {
 // message is taken by calling the Raw() method on the
 // message.Composer and Marshalling the results.
 func NewJSONConsoleLogger(name string, l LevelInfo) (Sender, error) {
-	s := MakeJSONConsoleLogger()
-	if err := s.SetLevel(l); err != nil {
-		return nil, err
-	}
-
-	s.SetName(name)
-
-	return s, nil
+	return setup(MakeJSONConsoleLogger(), name, l)
 }
 
 // MakeJSONConsoleLogger returns an un-configured JSON console logging
@@ -55,13 +48,7 @@ func NewJSONFileLogger(name, file string, l LevelInfo) (Sender, error) {
 		return nil, err
 	}
 
-	if err := s.SetLevel(l); err != nil {
-		return nil, err
-	}
-
-	s.SetName(name)
-
-	return s, nil
+	return setup(s, name, l)
 }
 
 // MakeJSONFileLogger creates an un-configured JSON logger that writes

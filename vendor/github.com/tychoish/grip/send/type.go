@@ -16,26 +16,26 @@ const (
 	Syslog
 	Internal
 	Multi
-	File
 	Slack
 	XMPP
 	Stream
 	Bootstrap
 	Buildlogger
+	CallSite
 )
 
 func (t SenderType) String() string {
 	switch t {
 	case Systemd:
 		return "systemd"
+	case CallSite:
+		return "callSite"
 	case Native:
 		return "native"
 	case Syslog:
 		return "syslog"
 	case Internal:
 		return "internal"
-	case File:
-		return "file"
 	case Bootstrap:
 		return "bootstrap"
 	case Buildlogger:

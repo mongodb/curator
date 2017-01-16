@@ -2,7 +2,9 @@ package send
 
 import (
 	"fmt"
+	"log"
 	"math/rand"
+	"os"
 	"testing"
 	"time"
 
@@ -31,7 +33,6 @@ func (s *SenderSuite) SetupTest() {
 	l := LevelInfo{level.Info, level.Notice}
 	s.senders = map[SenderType]Sender{
 		Slack:     &slackJournal{base: newBase("slack")},
-		File:      &fileLogger{base: newBase("file")},
 		XMPP:      &xmppLogger{base: newBase("xmpp")},
 		JSON:      &jsonLogger{base: newBase("json")},
 		Stream:    &streamLogger{base: newBase("stream")},
@@ -42,6 +43,10 @@ func (s *SenderSuite) SetupTest() {
 	internal.name = "internal"
 	internal.output = make(chan *internalMessage)
 	s.senders[Internal] = internal
+
+	callsite := &callSiteLogger{base: newBase("callsite"), depth: 1}
+	callsite.logger = log.New(os.Stdout, "callsite", log.LstdFlags)
+	s.senders[CallSite] = callsite
 
 	native, err := NewNativeLogger("native", l)
 	s.require.NoError(err)
@@ -64,7 +69,7 @@ func (s *SenderSuite) SetupTest() {
 func (s *SenderSuite) functionalMockSenders() map[SenderType]Sender {
 	out := map[SenderType]Sender{}
 	for t, sender := range s.senders {
-		if t == Slack || t == File || t == Stream || t == Internal || t == XMPP {
+		if t == Slack || t == Stream || t == Internal || t == XMPP {
 			continue
 		} else if t == JSON {
 			var err error

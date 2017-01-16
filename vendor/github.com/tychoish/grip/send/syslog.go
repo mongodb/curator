@@ -27,15 +27,7 @@ type syslogger struct {
 // to the local syslog interface before writing messages to standard
 // output.
 func NewSyslogLogger(name, network, raddr string, l LevelInfo) (Sender, error) {
-	s := MakeSysLogger(network, raddr)
-
-	if err := s.SetLevel(l); err != nil {
-		return nil, err
-	}
-
-	s.SetName(name)
-
-	return s, nil
+	return setup(MakeSysLogger(network, raddr), name, l)
 }
 
 // MakeSysLogger constructs a minimal and unconfigured logger that

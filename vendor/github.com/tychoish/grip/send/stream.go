@@ -22,15 +22,7 @@ type streamLogger struct {
 // NewStreamLogger produces a fully configured Sender that writes
 // un-formatted log messages to an io.Writer (or conforming subset).
 func NewStreamLogger(name string, ws WriteStringer, l LevelInfo) (Sender, error) {
-	s := MakeStreamLogger(ws)
-
-	if err := s.SetLevel(l); err != nil {
-		return nil, err
-	}
-
-	s.SetName(name)
-
-	return s, nil
+	return setup(MakeStreamLogger(ws), name, l)
 }
 
 // MakeStreamLogger constructs an unconfigured stream sender that

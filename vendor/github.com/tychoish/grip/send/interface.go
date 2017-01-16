@@ -64,3 +64,13 @@ func (l LevelInfo) ShouldLog(m message.Composer) bool {
 	// priorities are 0 = Emergency; 7 = debug
 	return m.Loggable() && (m.Priority() >= l.Threshold)
 }
+
+func setup(s Sender, name string, l LevelInfo) (Sender, error) {
+	if err := s.SetLevel(l); err != nil {
+		return nil, err
+	}
+
+	s.SetName(name)
+
+	return s, nil
+}

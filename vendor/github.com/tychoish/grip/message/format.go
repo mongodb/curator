@@ -43,9 +43,7 @@ func (f *formatMessenger) Resolve() string {
 	return f.Message
 }
 
-func (f *formatMessenger) Loggable() bool {
-	return f.base != ""
-}
+func (f *formatMessenger) Loggable() bool { return f.base != "" }
 
 func (f *formatMessenger) Raw() interface{} {
 	_ = f.Collect()
