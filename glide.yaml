@@ -27,3 +27,5 @@ import:
 - package: golang.org/x/net
 - package: github.com/tychoish/lru
 - package: github.com/tychoish/bond
+- package: github.com/anmitsu/go-shlex
+  

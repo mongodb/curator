@@ -35,6 +35,7 @@ func buildApp() *cli.App {
 		operations.PruneCache(),
 		operations.Artifacts(),
 		operations.SystemInfo(),
+		operations.BuildLogger(),
 	}
 
 	// These are global options. Use this to configure logging or
