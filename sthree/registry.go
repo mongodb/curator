@@ -4,6 +4,7 @@ import (
 	"os"
 	"runtime"
 	"sync"
+	"time"
 
 	"github.com/goamz/goamz/aws"
 	"github.com/goamz/goamz/s3"
@@ -138,6 +139,8 @@ func (r *bucketRegistry) getBucketWithCredentials(name string, creds AWSConnecti
 	}
 
 	client := s3.New(creds.Auth, creds.Region)
+	client.RequestTimeout = time.Minute
+	client.ConnectTimeout = 10 * time.Second
 	b = &Bucket{
 		NewFilePermission: s3.BucketOwnerFull,
 		s3:                client,
