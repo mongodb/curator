@@ -21,7 +21,7 @@ lintArgs += --skip="build" --skip="buildscripts"
 #   enable and configure additional linters
 lintArgs += --enable="goimports"
 lintArgs += --linter='misspell:misspell ./*.go:PATH:LINE:COL:MESSAGE' --enable=misspell
-lintArgs += --line-length=100 --dupl-threshold=100 --cyclo-over=15
+lintArgs += --line-length=100 --dupl-threshold=150 --cyclo-over=15
 #   the gotype linter has an imperfect compilation simulator and
 #   produces the following false postive errors:
 lintArgs += --exclude="error: could not import github.com/mongodb/curator"

@@ -17,6 +17,7 @@ import (
 	"github.com/urfave/cli"
 )
 
+// BuildLogger constructs the command object for all build logger client entry-points.
 func BuildLogger() cli.Command {
 	return cli.Command{
 		Name:  "buildlogger",
@@ -166,7 +167,7 @@ func setupBuildLogger(conf *send.BuildloggerConfig) (grip.Journaler, func(), err
 
 	closer := func() {
 		for _, sender := range toClose {
-			sender.Close()
+			grip.Warning(sender.Close())
 		}
 	}
 
@@ -176,7 +177,9 @@ func setupBuildLogger(conf *send.BuildloggerConfig) (grip.Journaler, func(), err
 		return nil, closer, errors.Wrap(err, "problem configuring global sender")
 	}
 	toClose = append(toClose, globalSender)
-	logger.SetSender(globalSender)
+	if err := logger.SetSender(globalSender); err != nil {
+		return nil, closer, errors.Wrap(err, "problem setting global sender")
+	}
 
 	if conf.Test != "" {
 		conf.CreateTest = true
@@ -185,7 +188,9 @@ func setupBuildLogger(conf *send.BuildloggerConfig) (grip.Journaler, func(), err
 			return nil, closer, errors.Wrap(err, "problem constructing test logger")
 		}
 		toClose = append(toClose, testSender)
-		logger.SetSender(testSender)
+		if err := logger.SetSender(testSender); err != nil {
+			return nil, closer, errors.Wrap(err, "problem setting test logger")
+		}
 	}
 
 	return logger, closer, nil
