@@ -100,9 +100,8 @@ func NewErrorLogger(name string, l LevelInfo) (Sender, error) {
 	return setup(MakeErrorLogger(), name, l)
 }
 
-func (s *nativeLogger) Type() SenderType { return Native }
 func (s *nativeLogger) Send(m message.Composer) {
 	if s.level.ShouldLog(m) {
-		s.logger.Printf("[p=%s]: %s", m.Priority(), m.Resolve())
+		s.logger.Printf("[p=%s]: %s", m.Priority(), m.String())
 	}
 }

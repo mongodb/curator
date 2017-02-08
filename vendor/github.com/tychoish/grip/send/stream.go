@@ -1,6 +1,9 @@
 package send
 
 import (
+	"fmt"
+	"log"
+	"os"
 	"strings"
 
 	"github.com/tychoish/grip/message"
@@ -29,21 +32,31 @@ func NewStreamLogger(name string, ws WriteStringer, l LevelInfo) (Sender, error)
 // writes un-formatted log messages to the specified io.Writer, or
 // instance that implements a conforming subset.
 func MakeStreamLogger(ws WriteStringer) Sender {
-	return &streamLogger{
+	s := &streamLogger{
 		fobj: ws,
 		base: newBase(""),
 	}
+
+	fallback := log.New(os.Stdout, "", log.LstdFlags)
+	_ = s.SetErrorHandler(ErrorHandlerFromLogger(fallback))
+
+	s.reset = func() {
+		fallback.SetPrefix(fmt.Sprintf("[%s]", s.Name()))
+	}
+
+	return s
 }
 
-func (s *streamLogger) Type() SenderType { return Stream }
 func (s *streamLogger) Send(m message.Composer) {
 	if s.level.ShouldLog(m) {
-		msg := m.Resolve()
+		msg := m.String()
 
 		if !strings.HasSuffix(msg, "\n") {
 			msg += "\n"
 		}
 
-		_, _ = s.fobj.WriteString(msg)
+		if _, err := s.fobj.WriteString(msg); err != nil {
+			s.errHandler(err, m)
+		}
 	}
 }

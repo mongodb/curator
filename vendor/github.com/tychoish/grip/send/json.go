@@ -11,7 +11,6 @@ import (
 
 type jsonLogger struct {
 	logger *log.Logger
-	closer func() error
 	*base
 }
 
@@ -27,13 +26,11 @@ func NewJSONConsoleLogger(name string, l LevelInfo) (Sender, error) {
 // instance.
 func MakeJSONConsoleLogger() Sender {
 	s := &jsonLogger{
-		base:   newBase(""),
-		closer: func() error { return nil },
+		base: newBase(""),
 	}
 
-	s.reset = func() {
-		s.logger = log.New(os.Stdout, "", 0)
-	}
+	s.logger = log.New(os.Stdout, "", 0)
+	_ = s.SetErrorHandler(ErrorHandlerFromLogger(s.logger))
 
 	return s
 }
@@ -61,33 +58,32 @@ func MakeJSONFileLogger(file string) (Sender, error) {
 
 	s := &jsonLogger{
 		base: newBase(""),
-		closer: func() error {
-			return f.Close()
-		},
+	}
+
+	s.closer = func() error {
+		return f.Close()
+	}
+
+	fallback := log.New(os.Stdout, "", 0)
+	if err = s.SetErrorHandler(ErrorHandlerFromLogger(fallback)); err != nil {
+		return nil, err
 	}
 
 	s.reset = func() {
 		s.logger = log.New(f, "", 0)
+		fallback.SetPrefix(fmt.Sprintf("[%s]", s.Name()))
 	}
 
 	return s, nil
 }
 
-// Implementation of required methods not implemented in BASE
+// Implementation of required methods not implemented in Base
 
-func (s *jsonLogger) Type() SenderType { return JSON }
 func (s *jsonLogger) Send(m message.Composer) {
 	if s.level.ShouldLog(m) {
 		out, err := json.Marshal(m.Raw())
 		if err != nil {
-			errMsg, _ := json.Marshal(message.NewError(err).Raw())
-			s.logger.Println(errMsg)
-
-			out, err = json.Marshal(message.NewDefaultMessage(m.Priority(), m.Resolve()).Raw())
-			if err == nil {
-				s.logger.Println(string(out))
-			}
-
+			s.errHandler(err, m)
 			return
 		}
 

@@ -35,13 +35,23 @@ type stackMessage struct {
 	message string
 	tagged  bool
 	args    []interface{}
-	trace   []*stackFrame
+	trace   []StackFrame
 	Base
 }
 
-type stackFrame struct {
-	File string `bson:"file" json:"file" yaml:"file"`
-	Line int    `bson:"line" json:"line" yaml:"line"`
+// StackFrame captures a single item in a stack trace, and is used
+// internally and in the StackTrace output.
+type StackFrame struct {
+	Function string `bson:"function" json:"function" yaml:"function"`
+	File     string `bson:"file" json:"file" yaml:"file"`
+	Line     int    `bson:"line" json:"line" yaml:"line"`
+}
+
+// StackTrace structs are returned by the Raw method of the stackMessage type
+type StackTrace struct {
+	Message string       `bson:"message" json:"message" yaml:"message"`
+	Frames  []StackFrame `bson:"frames" json:"frames" yaml:"frames"`
+	Time    time.Time    `bson:"time" json:"time" yaml:"time"`
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -88,7 +98,7 @@ func NewStackFormatted(skip int, message string, args ...interface{}) Composer {
 ////////////////////////////////////////////////////////////////////////
 
 func (m *stackMessage) Loggable() bool { return m.message != "" || len(m.args) > 0 }
-func (m *stackMessage) Resolve() string {
+func (m *stackMessage) String() string {
 	if len(m.args) > 0 && m.message == "" {
 		m.message = fmt.Sprintln(append([]interface{}{m.getTag()}, m.args...))
 		m.args = []interface{}{}
@@ -105,16 +115,10 @@ func (m *stackMessage) Resolve() string {
 func (m *stackMessage) Raw() interface{} {
 	_ = m.Collect()
 
-	return struct {
-		Message string        `bson:"message" json:"message" yaml:"message"`
-		Time    time.Time     `bson:"time" json:"time" yaml:"time"`
-		Name    string        `bson:"name" json:"name" yaml:"name"`
-		Trace   []*stackFrame `bson:"trace" json:"trace" yaml:"trace"`
-	}{
-		Message: m.Resolve(),
+	return StackTrace{
+		Message: m.String(),
+		Frames:  m.trace,
 		Time:    m.Time,
-		Name:    m.Logger,
-		Trace:   m.trace,
 	}
 }
 
@@ -124,7 +128,7 @@ func (m *stackMessage) Raw() interface{} {
 //
 ////////////////////////////////////////////////////////////////////////
 
-func captureStack(skip int) []*stackFrame {
+func captureStack(skip int) []StackFrame {
 	if skip <= 0 {
 		// don't recorded captureStack
 		skip++
@@ -134,15 +138,18 @@ func captureStack(skip int) []*stackFrame {
 	// to bump it again
 	skip++
 
-	trace := []*stackFrame{}
+	trace := []StackFrame{}
 
 	for {
-		_, file, line, ok := runtime.Caller(skip)
+		pc, file, line, ok := runtime.Caller(skip)
 		if !ok {
 			break
 		}
 
-		trace = append(trace, &stackFrame{File: file, Line: line})
+		trace = append(trace, StackFrame{
+			Function: runtime.FuncForPC(pc).Name(),
+			File:     file,
+			Line:     line})
 
 		skip++
 	}
@@ -151,7 +158,7 @@ func captureStack(skip int) []*stackFrame {
 }
 
 func (m *stackMessage) getTag() string {
-	if len(m.trace) >= 1 && m.trace[0] != nil {
+	if len(m.trace) >= 1 {
 		frame := m.trace[0]
 
 		// get the directory and filename

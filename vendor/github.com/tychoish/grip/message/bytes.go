@@ -1,3 +1,6 @@
+// Bytes Messages
+//
+// The bytes types make it possible to send a byte slice as a message.
 package message
 
 import "github.com/tychoish/grip/level"
@@ -24,7 +27,7 @@ func NewBytes(b []byte) Composer {
 	return &bytesMessage{data: b}
 }
 
-func (s *bytesMessage) Resolve() string {
+func (s *bytesMessage) String() string {
 	return string(s.data)
 }
 
