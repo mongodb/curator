@@ -338,28 +338,48 @@ func (b *Bucket) Put(fileName, path string) error {
 		return nil
 	}
 
-	// do put in a retry loop:
+	return errors.Wrap(b.Write(contents, path, mimeType), "problem writing data to s3")
+}
+
+// Write allows you to write a byte slice of data to a specified key
+// name (path) in s3 with the specified mimeType. The permissions on
+// the object use the value of the Bucket.NewFilePermission
+// property. Returns an error if the underlying Put operation returns
+// an error.
+//
+// If you do not specify a mime type, sthree attempts to use the name
+// of the key, and defaults to "text/plain".
+func (b *Bucket) Write(data []byte, keyName, mime string) error {
+	if b.dryRun {
+		grip.Noticef("dry-run: would have written %d bytes to %s/%s", len(data), b.name, keyName)
+		return nil
+	}
+
+	if mime == "" {
+		mime = getMimeType(keyName)
+	}
+
 	catcher := grip.NewCatcher()
 	backoff := getBackoff()
 	for i := 1; i <= b.numRetries; i++ {
-		err = b.bucket.Put(path, contents, mimeType, b.NewFilePermission, s3.Options{})
+		err := b.bucket.Put(keyName, data, mime, b.NewFilePermission, s3.Options{})
 		if err == nil {
-			grip.Debugf("uploaded %s -> %s/%s", fileName, b.name, path)
+			grip.Debugf("wrote %d bytes to %s/%s", len(data), b.name, keyName)
 			return nil
 		}
 
-		catcher.Add(errors.Wrapf(err, "error s3.PUT for %s/%s on attempt %d", path, b.name, i))
+		catcher.Add(errors.Wrapf(err, "s3.PUT for key=%s failed on attempt %d", keyName, i))
 
 		if i < b.numRetries {
 			grip.Warningln(err, "retrying...")
 			time.Sleep(backoff.Duration())
-			grip.Debugf("retrying s3.GET %d of %d, for %s", i, b.numRetries, path)
+			grip.Debugf("retrying s3.PUT %d of %d, for %s", i, b.numRetries, keyName)
 		}
 	}
 
 	if catcher.HasErrors() {
-		return errors.Errorf("could not upload %s/%s in %d attempts. Errors: %s",
-			b.name, path, b.numRetries, catcher.Resolve())
+		return errors.Errorf("could not write %d bytes to %s/%s in %d attempts. Errors: %s",
+			len(data), b.name, keyName, b.numRetries, catcher.Resolve())
 	}
 
 	return nil
@@ -384,35 +404,11 @@ func getMimeType(fileName string) string {
 // local file at the "fileName", creating enclosing directories as
 // needed.
 func (b *Bucket) Get(path, fileName string) error {
-	// do put in a retry loop:
-	catcher := grip.NewCatcher()
+	// do get in a retry loop:
 
-	var data []byte
-	var err error
-
-	backoff := getBackoff()
-	for i := 1; i <= b.numRetries; i++ {
-		data, err = b.bucket.Get(path)
-
-		if err == nil {
-			grip.Debugf("downloaded %s/%s -> %s", b.name, path, fileName)
-			catcher = grip.NewCatcher() // reset the error handler in the case of success
-			break
-		}
-
-		catcher.Add(errors.Wrap(err, "aws error from s3.Get"))
-
-		if i < b.numRetries {
-			grip.Warningln(err, "retrying...")
-			time.Sleep(backoff.Duration())
-			grip.Debugf("retrying s3.GET %d of %d, for %s", i, b.numRetries, path)
-		}
-	}
-
-	// return early if we encountered an error attempting to build
-	if catcher.HasErrors() {
-		return errors.Errorf("could not download %s/%s in %d attempts. Errors: %s",
-			b.name, path, b.numRetries, catcher.Resolve())
+	data, err := b.Read(path)
+	if err != nil {
+		return errors.Wrap(err, "problem reading data from s3")
 	}
 
 	dirName := filepath.Dir(fileName)
@@ -426,6 +422,41 @@ func (b *Bucket) Get(path, fileName string) error {
 
 	return errors.Wrapf(ioutil.WriteFile(fileName, data, 0644),
 		"writing file %s during s3 get", fileName)
+}
+
+// Read returns the contents of a key as a byte array.
+func (b *Bucket) Read(keyName string) ([]byte, error) {
+	catcher := grip.NewCatcher()
+
+	var data []byte
+	var err error
+
+	backoff := getBackoff()
+	for i := 1; i <= b.numRetries; i++ {
+		data, err = b.bucket.Get(keyName)
+
+		if err == nil {
+			grip.Debugf("downloaded %s/%s", b.name, keyName)
+			catcher = grip.NewCatcher() // reset the error handler in the case of success
+			break
+		}
+
+		catcher.Add(errors.Wrap(err, "aws error from s3.Get"))
+
+		if i < b.numRetries {
+			grip.Warningln(err, "retrying...")
+			time.Sleep(backoff.Duration())
+			grip.Debugf("retrying s3.GET %d of %d, for %s", i, b.numRetries, keyName)
+		}
+	}
+
+	// return early if we encountered an error attempting to read the data
+	if catcher.HasErrors() {
+		return []byte{}, errors.Errorf("could not download %s/%s in %d attempts. Errors: %s",
+			b.name, keyName, b.numRetries, catcher.Resolve())
+	}
+
+	return data, nil
 }
 
 // Delete removes a single object from an S3 bucket.
