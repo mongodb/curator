@@ -16,12 +16,13 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Cache provides tools to maintain an cache of file system
-// objects, maintained on a least-recently-used basis.
+// Cache provides tools to maintain an cache of file system objects,
+// maintained on a least-recently-used basis. Internally, files are
+// stored internally as a heap.
 type Cache struct {
 	size  int
 	heap  fileObjectHeap
-	mutex sync.Mutex
+	mutex sync.RWMutex
 	table map[string]*FileObject
 }
 
@@ -44,8 +45,8 @@ func (c *Cache) Size() int {
 
 // Count returns the total number of objects in the cache.
 func (c *Cache) Count() int {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
 
 	return len(c.heap)
 }
@@ -150,8 +151,8 @@ func (c *Cache) Pop() (*FileObject, error) {
 // Get returns an item from the cache by name. This does not impact
 // the item's position in the cache.
 func (c *Cache) Get(path string) (*FileObject, error) {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
 
 	f, ok := c.table[path]
 	if !ok {
@@ -159,4 +160,20 @@ func (c *Cache) Get(path string) (*FileObject, error) {
 	}
 
 	return f, nil
+}
+
+// Contents returns an iterator for
+func (c *Cache) Contents() <-chan string {
+	out := make(chan string)
+	go func() {
+		c.mutex.RLock()
+		defer c.mutex.RUnlock()
+
+		for fn := range c.table {
+			out <- fn
+		}
+
+		close(out)
+	}()
+	return out
 }

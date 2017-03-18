@@ -26,7 +26,7 @@ import (
 	"github.com/mongodb/amboy/dependency"
 	"github.com/mongodb/amboy/pool"
 	"github.com/pkg/errors"
-	"github.com/tychoish/grip"
+	"github.com/mongodb/grip"
 	"golang.org/x/net/context"
 )
 
@@ -86,7 +86,10 @@ func (q *LocalOrdered) Put(j amboy.Job) error {
 	}
 
 	if _, ok := q.tasks.m[name]; ok {
-		return fmt.Errorf("cannot add %s, because a job exists with that name", name)
+		id := q.tasks.ids[name]
+		q.tasks.m[name] = j
+		q.tasks.nodes[id] = j
+		return nil
 	}
 
 	id := q.tasks.graph.NewNodeID()
@@ -149,7 +152,7 @@ func (q *LocalOrdered) Results() <-chan amboy.Job {
 		q.mutex.RLock()
 		defer q.mutex.RUnlock()
 		for _, job := range q.tasks.m {
-			if job.Completed() {
+			if job.Status().Completed {
 				output <- job
 			}
 		}
@@ -299,7 +302,7 @@ func (q *LocalOrdered) jobDispatch(ctx context.Context, orderedJobs []graph.Node
 						continue
 					}
 
-					if q.tasks.completed[dep] || q.tasks.m[dep].Completed() {
+					if q.tasks.completed[dep] || q.tasks.m[dep].Status().Completed {
 						// we've not seen this task
 						// before, but we're not
 						// waiting for it. We'll do a

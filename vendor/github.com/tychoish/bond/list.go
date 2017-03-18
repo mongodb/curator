@@ -3,7 +3,7 @@ package bond
 import (
 	"encoding/json"
 
-	"github.com/tychoish/grip"
+	"github.com/mongodb/grip"
 )
 
 // BuildTypes represents all information about builds in a cache.

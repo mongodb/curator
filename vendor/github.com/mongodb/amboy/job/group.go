@@ -8,7 +8,7 @@ import (
 	"github.com/mongodb/amboy/dependency"
 	"github.com/mongodb/amboy/registry"
 	"github.com/pkg/errors"
-	"github.com/tychoish/grip"
+	"github.com/mongodb/grip"
 )
 
 // Group is a structure for running collections of Job objects at the
@@ -76,7 +76,7 @@ func (g *Group) Add(j amboy.Job) error {
 // run, or if any of the constituent Jobs produce an error *or* if
 // there are problems with the JobInterchange converters.
 func (g *Group) Run() {
-	if g.Completed() {
+	if g.Status().Completed {
 		g.AddError(errors.Errorf("Group '%s' has already executed", g.ID()))
 		return
 	}

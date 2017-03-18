@@ -15,7 +15,7 @@ import (
 	"sync"
 
 	"github.com/mongodb/amboy"
-	"github.com/tychoish/grip"
+	"github.com/mongodb/grip"
 	"golang.org/x/net/context"
 )
 
@@ -105,7 +105,7 @@ func (r *Group) startMerger(ctx context.Context) <-chan *workUnit {
 					continue
 				}
 
-				if job.Completed() {
+				if job.Status().Completed {
 					continue
 				}
 

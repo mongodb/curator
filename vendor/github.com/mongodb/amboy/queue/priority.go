@@ -7,7 +7,7 @@ import (
 	"github.com/mongodb/amboy"
 	"github.com/mongodb/amboy/pool"
 	"github.com/mongodb/amboy/queue/driver"
-	"github.com/tychoish/grip"
+	"github.com/mongodb/grip"
 	"golang.org/x/net/context"
 )
 
@@ -81,7 +81,7 @@ func (q *LocalPriorityQueue) Results() <-chan amboy.Job {
 
 	go func() {
 		for job := range q.storage.Contents() {
-			if job.Completed() {
+			if job.Status().Completed {
 				output <- job
 			}
 		}

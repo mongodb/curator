@@ -2,7 +2,11 @@ package queue
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -13,8 +17,9 @@ import (
 	"github.com/mongodb/amboy/queue/driver"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
-	"github.com/tychoish/grip"
-	"github.com/tychoish/grip/level"
+	"github.com/mongodb/grip"
+	"github.com/mongodb/grip/level"
+	"github.com/mongodb/grip/send"
 	"golang.org/x/net/context"
 	"gopkg.in/mgo.v2"
 )
@@ -22,6 +27,7 @@ import (
 func init() {
 	grip.SetThreshold(level.Info)
 	grip.SetName("amboy.queue.tests")
+	grip.CatchError(grip.SetSender(send.MakeCallSiteConsoleLogger(3)))
 	job.RegisterDefaultJobs()
 }
 
@@ -55,17 +61,17 @@ func runUnorderedSmokeTest(ctx context.Context, q amboy.Queue, size int, assert 
 	wg.Wait()
 
 	assert.Equal(numJobs, q.Stats().Total, fmt.Sprintf("with %d workers", size))
-	amboy.Wait(q)
+	amboy.WaitCtx(ctx, q)
 
 	grip.Infof("workers complete for %d worker smoke test", size)
 	assert.Equal(numJobs, q.Stats().Completed, fmt.Sprintf("%+v", q.Stats()))
 	for result := range q.Results() {
-		assert.True(result.Completed(), fmt.Sprintf("with %d workers", size))
+		assert.True(result.Status().Completed, fmt.Sprintf("with %d workers", size))
 	}
 	grip.Infof("completed results check for %d worker smoke test", size)
 }
 
-func runMultiQueueSingleBackEndSmokeTest(ctx context.Context, qOne, qTwo amboy.Queue, assert *assert.Assertions) {
+func runMultiQueueSingleBackEndSmokeTest(ctx context.Context, qOne, qTwo amboy.Queue, shared bool, assert *assert.Assertions) {
 	assert.NoError(qOne.Start(ctx))
 	assert.NoError(qTwo.Start(ctx))
 
@@ -91,15 +97,21 @@ func runMultiQueueSingleBackEndSmokeTest(ctx context.Context, qOne, qTwo amboy.Q
 	}
 	wg.Wait()
 
-	grip.Info("added jobs to queues")
-
 	num = num * adderProcs
+
+	grip.Info("added jobs to queues")
 
 	// check that both queues see all jobs
 	statsOne := qOne.Stats()
 	statsTwo := qTwo.Stats()
-	assert.Equal(statsOne.Total, num)
-	assert.Equal(statsTwo.Total, num)
+
+	if shared {
+		assert.Equal(statsOne.Total, num)
+		assert.Equal(statsTwo.Total, num)
+	} else {
+		assert.Equal(statsOne.Total+statsTwo.Total, num)
+	}
+
 	grip.Infof("before wait statsOne: %+v", statsOne)
 	grip.Infof("before wait statsTwo: %+v", statsTwo)
 
@@ -110,19 +122,72 @@ func runMultiQueueSingleBackEndSmokeTest(ctx context.Context, qOne, qTwo amboy.Q
 	grip.Infof("after wait statsOne: %+v", qOne.Stats())
 	grip.Infof("after wait statsTwo: %+v", qTwo.Stats())
 
-	// check that all the results in queue one are completed, and that
+	// check that all the results in the queues are are completed,
+	// and unique
+	firstCount := 0
 	results := make(map[string]struct{})
 	for result := range qOne.Results() {
-		assert.True(result.Completed())
+		firstCount++
+		assert.True(result.Status().Completed)
 		results[result.ID()] = struct{}{}
 	}
 
+	secondCount := 0
 	// make sure that all of the results in the second queue match
 	// the results in the first queue.
 	for result := range qTwo.Results() {
-		assert.True(result.Completed())
-		_, ok := results[result.ID()]
-		assert.True(ok)
+		secondCount++
+		assert.True(result.Status().Completed)
+		results[result.ID()] = struct{}{}
+	}
+
+	if !shared {
+		assert.Equal(firstCount+secondCount, len(results))
+	}
+}
+
+func runOrderedSmokeTest(ctx context.Context, q amboy.Queue, size int, startBefore bool, assert *assert.Assertions) {
+	var lastJobName string
+
+	testNames := []string{"amboy", "cusseta", "jasper", "sardis", "dublin"}
+
+	numJobs := size / 2 * len(testNames)
+
+	tempDir, err := ioutil.TempDir("", strings.Join([]string{"amboy-ordered-queue-smoke-test",
+		uuid.NewV4().String()}, "-"))
+	assert.NoError(err)
+	defer os.RemoveAll(tempDir)
+
+	if startBefore {
+		if err := q.Start(ctx); !assert.NoError(err) {
+			return
+		}
+	}
+	for i := 0; i < size/2; i++ {
+		for _, name := range testNames {
+			fn := filepath.Join(tempDir, fmt.Sprintf("%s.%d", name, i))
+			cmd := fmt.Sprintf("echo %s", fn)
+			j := job.NewShellJob(cmd, fn)
+			if lastJobName != "" {
+				assert.NoError(j.Dependency().AddEdge(lastJobName))
+			}
+			lastJobName = j.ID()
+
+			assert.NoError(q.Put(j))
+		}
+	}
+
+	if !startBefore {
+		if err := q.Start(ctx); !assert.NoError(err) {
+			return
+		}
+	}
+
+	assert.Equal(numJobs, q.Stats().Total, fmt.Sprintf("with %d workers", size))
+	amboy.WaitCtxInterval(ctx, q, 50*time.Millisecond)
+	assert.Equal(numJobs, q.Stats().Completed, fmt.Sprintf("%+v", q.Stats()))
+	for result := range q.Results() {
+		assert.True(result.Status().Completed, fmt.Sprintf("with %d workers", size))
 	}
 }
 
@@ -365,7 +430,7 @@ func TestSmokePriorityDriverWithRemoteQueueWithWorkerPools(t *testing.T) {
 	}
 }
 
-func TestSmokeMultipleMongoDBQueuesWithTheSameName(t *testing.T) {
+func TestSmokeMultipleMongoDBBackedRemoteUnorderedQueuesWithTheSameName(t *testing.T) {
 	assert := assert.New(t)
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -375,15 +440,15 @@ func TestSmokeMultipleMongoDBQueuesWithTheSameName(t *testing.T) {
 	// create queues with two runners, mongodb backed drivers, and
 	// configure injectors
 	qOne := NewRemoteUnordered(runtime.NumCPU() / 2)
-	dOne := driver.NewMongoDB(name, opts)
+	dOne := driver.NewMongoDB(name+"-one", opts)
 	qTwo := NewRemoteUnordered(runtime.NumCPU() / 2)
-	dTwo := driver.NewMongoDB(name, opts)
+	dTwo := driver.NewMongoDB(name+"-two", opts)
 	assert.NoError(dOne.Open(ctx))
 	assert.NoError(dTwo.Open(ctx))
 	assert.NoError(qOne.SetDriver(dOne))
 	assert.NoError(qTwo.SetDriver(dTwo))
 
-	runMultiQueueSingleBackEndSmokeTest(ctx, qOne, qTwo, assert)
+	runMultiQueueSingleBackEndSmokeTest(ctx, qOne, qTwo, false, assert)
 
 	// release runner/driver resources.
 	cancel()
@@ -392,7 +457,53 @@ func TestSmokeMultipleMongoDBQueuesWithTheSameName(t *testing.T) {
 	grip.CatchError(cleanupMongoDB(name, opts))
 }
 
-func TestSmokeMultipleLocalQueuesWithOneDriver(t *testing.T) {
+func TestSmokeMultipleLocalBackedRemoteOrderedQueuesWithOneDriver(t *testing.T) {
+	if runtime.Compiler == "gccgo" {
+		t.Skip("gccgo not supported.")
+	}
+
+	assert := assert.New(t)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+
+	qOne := NewSimpleRemoteOrdered(runtime.NumCPU() / 2)
+	qTwo := NewSimpleRemoteOrdered(runtime.NumCPU() / 2)
+	d := driver.NewInternal()
+	assert.NoError(qOne.SetDriver(d))
+	assert.NoError(qTwo.SetDriver(d))
+
+	runMultiQueueSingleBackEndSmokeTest(ctx, qOne, qTwo, true, assert)
+	defer cancel()
+	d.Close()
+}
+
+func TestSmokeMultipleMongoDBBackedRemoteOrderedQueuesWithTheSameName(t *testing.T) {
+	assert := assert.New(t)
+	ctx, cancel := context.WithCancel(context.Background())
+
+	name := uuid.NewV4().String()
+	opts := driver.DefaultMongoDBOptions()
+
+	// create queues with two runners, mongodb backed drivers, and
+	// configure injectors
+	qOne := NewSimpleRemoteOrdered(runtime.NumCPU() / 2)
+	dOne := driver.NewMongoDB(name+"-one", opts)
+	qTwo := NewSimpleRemoteOrdered(runtime.NumCPU() / 2)
+	dTwo := driver.NewMongoDB(name+"-two", opts)
+	assert.NoError(dOne.Open(ctx))
+	assert.NoError(dTwo.Open(ctx))
+	assert.NoError(qOne.SetDriver(dOne))
+	assert.NoError(qTwo.SetDriver(dTwo))
+
+	runMultiQueueSingleBackEndSmokeTest(ctx, qOne, qTwo, false, assert)
+
+	// release runner/driver resources.
+	cancel()
+
+	// do cleanup.
+	grip.CatchError(cleanupMongoDB(name, opts))
+}
+
+func TestSmokeMultipleLocalBackedRemoteUnorderedQueuesWithOneDriver(t *testing.T) {
 	if runtime.Compiler == "gccgo" {
 		t.Skip("gccgo not supported.")
 	}
@@ -407,7 +518,7 @@ func TestSmokeMultipleLocalQueuesWithOneDriver(t *testing.T) {
 	assert.NoError(qOne.SetDriver(d))
 	assert.NoError(qTwo.SetDriver(d))
 
-	runMultiQueueSingleBackEndSmokeTest(ctx, qOne, qTwo, assert)
+	runMultiQueueSingleBackEndSmokeTest(ctx, qOne, qTwo, true, assert)
 }
 
 func TestSmokeMultipleQueuesWithPriorityDriver(t *testing.T) {
@@ -425,7 +536,7 @@ func TestSmokeMultipleQueuesWithPriorityDriver(t *testing.T) {
 	assert.NoError(qOne.SetDriver(d))
 	assert.NoError(qTwo.SetDriver(d))
 
-	runMultiQueueSingleBackEndSmokeTest(ctx, qOne, qTwo, assert)
+	runMultiQueueSingleBackEndSmokeTest(ctx, qOne, qTwo, true, assert)
 }
 
 func TestSmokeLimitedSizeQueueWithSingleWorker(t *testing.T) {
@@ -495,6 +606,199 @@ func TestSmokeShuffledQueueWithWorkerPools(t *testing.T) {
 	}
 }
 
+func TestSmokeSimpleRemoteOrderedWorkerPoolsWithMongoDBDriver(t *testing.T) {
+	assert := assert.New(t)
+	opts := driver.DefaultMongoDBOptions()
+	baseCtx := context.Background()
+
+	for _, poolSize := range []int{2, 4, 8, 16, 32, 64} {
+		start := time.Now()
+		grip.Infof("running mongodb simple ordered queue smoke test with %d jobs", poolSize)
+		q := NewSimpleRemoteOrdered(poolSize)
+		name := uuid.NewV4().String()
+
+		ctx, cancel := context.WithCancel(baseCtx)
+		d := driver.NewMongoDB(name, opts)
+		assert.NoError(q.SetDriver(d))
+
+		runUnorderedSmokeTest(ctx, q, poolSize, assert)
+		cancel()
+		d.Close()
+
+		grip.Infof("test with %d jobs, duration = %s", poolSize, time.Since(start))
+		err := cleanupMongoDB(name, opts)
+		grip.AlertWhenf(err != nil,
+			"encountered error cleaning up %s: %+v", name, err)
+	}
+}
+
+func TestSmokeSimpleRemoteOrderedWorkerPoolsWithInternalDriver(t *testing.T) {
+	if runtime.Compiler == "gccgo" {
+		t.Skip("gccgo not supported.")
+	}
+
+	assert := assert.New(t)
+	baseCtx := context.Background()
+
+	for _, poolSize := range []int{2, 4, 8, 16, 32, 64} {
+		ctx, cancel := context.WithTimeout(baseCtx, time.Minute)
+
+		q := NewSimpleRemoteOrdered(poolSize)
+		d := driver.NewInternal()
+		assert.NoError(q.SetDriver(d))
+		runUnorderedSmokeTest(ctx, q, poolSize, assert)
+
+		cancel()
+		d.Close()
+	}
+}
+
+func TestSmokeSimpleRemoteOrderedWithSingleThreadedAndMongoDBDriver(t *testing.T) {
+	if runtime.Compiler == "gccgo" {
+		t.Skip("gccgo not supported.")
+	}
+
+	assert := assert.New(t)
+	name := uuid.NewV4().String()
+	opts := driver.DefaultMongoDBOptions()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	q := NewSimpleRemoteOrdered(1)
+	d := driver.NewMongoDB(name, opts)
+	assert.NoError(d.Open(ctx))
+
+	assert.NoError(q.SetDriver(d))
+
+	runUnorderedSmokeTest(ctx, q, 1, assert)
+	cancel()
+	d.Close()
+	grip.CatchError(cleanupMongoDB(name, opts))
+}
+
+func TestSmokeSimpleRemoteOrderedWithSingleRunnerAndMongoDBDriver(t *testing.T) {
+	if runtime.Compiler == "gccgo" {
+		t.Skip("gccgo not supported.")
+	}
+
+	assert := assert.New(t)
+	name := uuid.NewV4().String()
+	opts := driver.DefaultMongoDBOptions()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	q := NewSimpleRemoteOrdered(1)
+
+	runner := pool.NewSingleRunner()
+	assert.NoError(runner.SetQueue(q))
+	assert.NoError(q.SetRunner(runner))
+
+	d := driver.NewMongoDB(name, opts)
+	assert.NoError(d.Open(ctx))
+
+	assert.NoError(q.SetDriver(d))
+
+	runUnorderedSmokeTest(ctx, q, 1, assert)
+	cancel()
+	d.Close()
+	grip.CatchError(cleanupMongoDB(name, opts))
+}
+
+func TestSmokeSimpleRemoteOrderedWithSingleThreadedAndInternalDriver(t *testing.T) {
+	if runtime.Compiler == "gccgo" {
+		t.Skip("gccgo not supported.")
+	}
+
+	assert := assert.New(t)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	q := NewSimpleRemoteOrdered(1)
+	d := driver.NewInternal()
+	assert.NoError(d.Open(ctx))
+
+	assert.NoError(q.SetDriver(d))
+
+	runUnorderedSmokeTest(ctx, q, 1, assert)
+	cancel()
+	d.Close()
+}
+
+func TestSmokeSimpleRemoteOrderedWithSingleRunnerAndInternalDriver(t *testing.T) {
+	if runtime.Compiler == "gccgo" {
+		t.Skip("gccgo not supported.")
+	}
+
+	assert := assert.New(t)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	q := NewSimpleRemoteOrdered(1)
+	runner := pool.NewSingleRunner()
+	assert.NoError(runner.SetQueue(q))
+	assert.NoError(q.SetRunner(runner))
+
+	d := driver.NewInternal()
+	assert.NoError(d.Open(ctx))
+	assert.NoError(q.SetDriver(d))
+
+	runUnorderedSmokeTest(ctx, q, 1, assert)
+	cancel()
+	d.Close()
+}
+
+func TestSmokeLocalOrderedQueueWithWorkerPools(t *testing.T) {
+	assert := assert.New(t)
+
+	for _, poolSize := range []int{2, 4, 8, 16, 32, 64} {
+		ctx, cancel := context.WithCancel(context.Background())
+		q := NewLocalOrdered(poolSize)
+		runOrderedSmokeTest(ctx, q, poolSize, false, assert)
+		cancel()
+	}
+}
+
+func TestSmokeLocalOrderedQueueWithSingleWorker(t *testing.T) {
+	assert := assert.New(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	q := NewLocalOrdered(1)
+	runner := pool.NewSingleRunner()
+	assert.NoError(runner.SetQueue(q))
+	assert.NoError(q.SetRunner(runner))
+
+	runOrderedSmokeTest(ctx, q, 1, false, assert)
+}
+
+func TestSmokeRemoteOrderedWithWorkerPoolsAndMongoDB(t *testing.T) {
+	assert := assert.New(t)
+	opts := driver.DefaultMongoDBOptions()
+
+	for _, poolSize := range []int{2, 4, 8, 16, 32, 64} {
+		ctx, cancel := context.WithCancel(context.Background())
+		q := NewSimpleRemoteOrdered(poolSize)
+
+		name := uuid.NewV4().String()
+		driver := driver.NewMongoDB(name, opts)
+		assert.NoError(q.SetDriver(driver))
+
+		runOrderedSmokeTest(ctx, q, poolSize, true, assert)
+		cancel()
+	}
+}
+
+func TestSmokeRemoteOrderedWithWorkerPoolsAndLocalDriver(t *testing.T) {
+	assert := assert.New(t)
+
+	for _, poolSize := range []int{2, 4, 8, 16, 32, 64} {
+		ctx, cancel := context.WithCancel(context.Background())
+		q := NewSimpleRemoteOrdered(poolSize)
+
+		driver := driver.NewInternal()
+		assert.NoError(q.SetDriver(driver))
+
+		runOrderedSmokeTest(ctx, q, poolSize, true, assert)
+		cancel()
+	}
+}
+
 func cleanupMongoDB(name string, opt driver.MongoDBOptions) error {
 	start := time.Now()
 
@@ -505,10 +809,6 @@ func cleanupMongoDB(name string, opt driver.MongoDBOptions) error {
 	defer session.Close()
 
 	err = session.DB(opt.DB).C(name + ".jobs").DropCollection()
-	if err != nil {
-		return err
-	}
-	err = session.DB(opt.DB).C(name + ".locks").DropCollection()
 	if err != nil {
 		return err
 	}

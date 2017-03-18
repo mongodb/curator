@@ -65,28 +65,28 @@ func (s *ShellJobSuite) TestShellJobNameConstructedFromCommandNames() {
 	job := NewShellJob("foo", "bar")
 	s.Equal(job.ID(), job.Base.TaskID)
 
-	s.True(strings.HasPrefix(job.ID(), "foo"))
+	s.True(strings.HasSuffix(job.ID(), "foo"), job.ID())
 
 	job = NewShellJob("touch foo bar", "baz")
-	s.True(strings.HasPrefix(job.ID(), "touch"))
+	s.True(strings.HasSuffix(job.ID(), "touch"), job.ID())
 }
 
 func (s *ShellJobSuite) TestRunTrivialCommandReturnsWithoutError() {
 	s.job = NewShellJob("true", "")
 
-	s.False(s.job.Completed())
+	s.False(s.job.Status().Completed)
 	s.job.Run()
 	s.NoError(s.job.Error())
-	s.True(s.job.Completed())
+	s.True(s.job.Status().Completed)
 }
 
 func (s *ShellJobSuite) TestRunWithErroneousCommandReturnsError() {
 	s.job = NewShellJob("foo", "")
 
-	s.False(s.job.Completed())
+	s.False(s.job.Status().Completed)
 	s.job.Run()
 	s.Error(s.job.Error())
-	s.True(s.job.Completed())
+	s.True(s.job.Status().Completed)
 }
 
 func (s *ShellJobSuite) TestEnvironmentVariableIsPassedToCommand() {

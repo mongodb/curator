@@ -44,9 +44,11 @@ func WaitCtx(ctx context.Context, q Queue) bool {
 			return false
 		}
 
-		if q.Stats().isComplete() {
+		stat := q.Stats()
+		if stat.isComplete() {
 			return true
 		}
+
 	}
 }
 
@@ -97,7 +99,7 @@ func WaitJob(j Job, q Queue) bool {
 			return false
 		}
 
-		if j.Completed() {
+		if j.Status().Completed {
 			return true
 		}
 	}
@@ -124,7 +126,7 @@ func WaitJobCtx(ctx context.Context, j Job, q Queue) bool {
 			return false
 		}
 
-		if j.Completed() {
+		if j.Status().Completed {
 			return true
 		}
 	}
@@ -144,7 +146,7 @@ func WaitJobInterval(j Job, q Queue, interval time.Duration) bool {
 			return false
 		}
 
-		if j.Completed() {
+		if j.Status().Completed {
 			return true
 		}
 
@@ -171,7 +173,7 @@ func WaitJobCtxInterval(ctx context.Context, j Job, q Queue, interval time.Durat
 				return false
 			}
 
-			if j.Completed() {
+			if j.Status().Completed {
 				return true
 			}
 

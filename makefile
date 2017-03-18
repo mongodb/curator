@@ -115,10 +115,10 @@ vendor-deps:$(vendorDeps)
 #   new-style vendor directories. When this codebase can drop support
 #   for go1.4, we can delete most of this.
 -include $(buildDir)/makefile.vendor
-nestedVendored := vendor/github.com/tychoish/grip
+nestedVendored := vendor/github.com/mongodb/grip
+nestedVendored += vendor/github.com/mongodb/amboy
 nestedVendored += vendor/github.com/tychoish/bond
 nestedVendored += vendor/github.com/tychoish/lru
-nestedVendored += vendor/github.com/mongodb/amboy
 nestedVendored := $(foreach project,$(nestedVendored),$(project)/build/vendor)
 $(buildDir)/makefile.vendor:$(buildDir)/render-gopath makefile
 	@mkdir -p $(buildDir)
@@ -129,16 +129,20 @@ vendor-sync:$(vendorDeps)
 vendor-clean:
 	-git checkout vendor/github.com/tychoish/bond/makefile
 	rm -rf vendor/github.com/stretchr/testify/vendor/
-	rm -rf vendor/github.com/mongodb/amboy/vendor/github.com/tychoish/grip/
+	rm -rf vendor/github.com/mongodb/amboy/vendor/github.com/mongodb/grip/
 	rm -rf vendor/github.com/mongodb/amboy/vendor/github.com/golang.org/x/net/
 	rm -rf vendor/github.com/mongodb/amboy/vendor/golang.org/x/net/
+	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/stretchr
+	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/davecgh
+	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/pmezard/go-difflib/
+	rm -rf vendor/github.com/tychoish/lru/vendor/github.com/mongodb/grip/
+	rm -rf vendor/github.com/tychoish/lru/vendor/github.com/pkg/errors/
 	rm -rf vendor/github.com/tychoish/bond/vendor/github.com/tychoish/
+	rm -rf vendor/github.com/tychoish/bond/vendor/github.com/mongodb/grip/
 	rm -rf vendor/github.com/tychoish/bond/vendor/github.com/mongodb/amboy/
 	rm -rf vendor/github.com/tychoish/bond/vendor/golang.org/x/net/
-	rm -rf vendor/github.com/tychoish/lru/vendor/github.com/tychoish/grip/
-	rm -rf vendor/github.com/tychoish/lru/vendor/github.com/pkg/errors/
-	rm -rf vendor/github.com/tychoish/bond/vendor/github.com/davecgh/go-spew/
 	rm -rf vendor/github.com/tychoish/bond/vendor/github.com/pkg/errors/
+	rm -rf vendor/github.com/tychoish/bond/vendor/github.com/davecgh/go-spew/
 	rm -rf vendor/github.com/tychoish/bond/vendor/github.com/stretchr
 	rm -rf vendor/github.com/tychoish/bond/vendor/github.com/satori/
 	rm -rf vendor/github.com/tychoish/bond/vendor/github.com/pmezard/
@@ -148,8 +152,8 @@ change-go-version:
 	rm -rf $(buildDir)/make-vendor $(buildDir)/render-gopath
 	@$(MAKE) $(makeArgs) vendor > /dev/null 2>&1
 vendor:$(buildDir)/vendor/src
-	@$(MAKE) $(makeArgs) -C vendor/github.com/tychoish/grip $@
 	@$(MAKE) $(makeArgs) -C vendor/github.com/tychoish/bond $@
+	@$(MAKE) $(makeArgs) -C vendor/github.com/mongodb/grip $@
 	@$(MAKE) $(makeArgs) -C vendor/github.com/mongodb/amboy $@
 $(buildDir)/vendor/src:$(buildDir)/make-vendor $(buildDir)/render-gopath
 	@./$(buildDir)/make-vendor

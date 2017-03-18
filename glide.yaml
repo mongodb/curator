@@ -9,11 +9,7 @@ import:
   - aws
   - s3
 - package: github.com/mongodb/amboy
-  subpackages:
-  - dependency
-  - job
-  - queue
-- package: github.com/tychoish/grip
+- package: github.com/mongodb/grip
 - package: github.com/vaughan0/go-ini
 - package: github.com/stretchr/testify
 - package: github.com/stretchr/objx
@@ -28,4 +24,3 @@ import:
 - package: github.com/tychoish/lru
 - package: github.com/tychoish/bond
 - package: github.com/anmitsu/go-shlex
-  

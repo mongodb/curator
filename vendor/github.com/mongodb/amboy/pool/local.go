@@ -11,7 +11,7 @@ import (
 	"errors"
 
 	"github.com/mongodb/amboy"
-	"github.com/tychoish/grip"
+	"github.com/mongodb/grip"
 	"golang.org/x/net/context"
 )
 
@@ -72,7 +72,8 @@ func startWorkerServer(ctx context.Context, q amboy.Queue) <-chan amboy.Job {
 				if job == nil {
 					continue
 				}
-				if job.Completed() {
+
+				if job.Status().Completed {
 					grip.Debugf("job '%s' was dispatched from the queue but was completed",
 						job.ID())
 					continue

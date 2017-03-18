@@ -8,7 +8,7 @@ import (
 	"github.com/mongodb/amboy"
 	"github.com/pkg/errors"
 	"github.com/tychoish/gimlet"
-	"github.com/tychoish/grip"
+	"github.com/mongodb/grip"
 	"golang.org/x/net/context"
 )
 
@@ -49,7 +49,7 @@ func (s *Service) getJobStatusResponse(name string) (*jobStatusResponse, error) 
 	}
 
 	resp.Exists = true
-	resp.Completed = j.Completed()
+	resp.Completed = j.Status().Completed
 	resp.Job = j
 
 	return resp, nil

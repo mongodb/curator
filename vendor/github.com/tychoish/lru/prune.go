@@ -3,8 +3,8 @@ package lru
 import (
 	"strings"
 
+	"github.com/mongodb/grip"
 	"github.com/pkg/errors"
-	"github.com/tychoish/grip"
 )
 
 // Prune removes files (when dryRun is false), from the file system

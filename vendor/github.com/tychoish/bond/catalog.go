@@ -10,8 +10,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/mongodb/grip"
 	"github.com/pkg/errors"
-	"github.com/tychoish/grip"
 )
 
 // BuildCatalog is a structure that represents a group of MongoDB

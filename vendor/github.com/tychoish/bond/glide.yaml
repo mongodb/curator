@@ -1,12 +1,8 @@
 package: github.com/tychoish/bond
 import:
 - package: github.com/mongodb/amboy
-  subpackages:
-  - dependency
-  - queue
-  - registry
+- package: github.com/mongodb/grip
 - package: github.com/pkg/errors
-- package: github.com/tychoish/grip
 - package: golang.org/x/net
   subpackages:
   - context

@@ -13,7 +13,7 @@ projectPath := $(orgPath)/$(name)
 #   vendorize all of these dependencies.
 lintDeps := github.com/alecthomas/gometalinter
 #   include test files and give linters 40s to run to avoid timeouts
-lintArgs := --tests --deadline=1m --vendor
+lintArgs := --tests --deadline=10m --vendor --concurrency=4
 #   gotype produces false positives because it reads .a files which
 #   are rarely up to date.
 lintArgs += --disable="gotype" --disable="gas"
@@ -145,7 +145,7 @@ vendor-deps:$(vendorDeps)
 #   new-style vendor directories. When this codebase can drop support
 #   for go1.4, we can delete most of this.
 -include $(buildDir)/makefile.vendor
-nestedVendored := vendor/github.com/tychoish/grip vendor/github.com/tychoish/gimlet
+nestedVendored := vendor/github.com/mongodb/grip vendor/github.com/tychoish/gimlet
 nestedVendored := $(foreach project,$(nestedVendored),$(project)/build/vendor)
 $(buildDir)/makefile.vendor:$(buildDir)/render-gopath makefile
 	@mkdir -p $(buildDir)
@@ -159,8 +159,11 @@ vendor-clean:
 	rm -rf vendor/github.com/tychoish/gimlet/vendor/github.com/stretchr/
 	rm -rf vendor/github.com/tychoish/gimlet/vendor/github.com/davecgh/
 	rm -rf vendor/github.com/tychoish/gimlet/vendor/github.com/pmezard/
-	rm -rf vendor/github.com/tychoish/gimlet/vendor/github.com/tychoish/grip/
-	find vendor/ -name "*.gif" -o -name "*.gz" -o -name "*.png" -o -name "*.ico" -o -name "*.dat" -o -name "*testdata" | xargs rm -f
+	rm -rf vendor/github.com/tychoish/gimlet/vendor/github.com/mongodb/grip/
+	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/davecgh/
+	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/stretchr/
+	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/pmezard/
+	find vendor/ -name "*.gif" -o -name "*.gz" -o -name "*.png" -o -name "*.ico" -o -name "*.dat" -o -name "*testdata" | xargs rm -rf
 change-go-version:
 	rm -rf $(buildDir)/make-vendor $(buildDir)/render-gopath
 	@$(MAKE) $(makeArgs) vendor > /dev/null 2>&1

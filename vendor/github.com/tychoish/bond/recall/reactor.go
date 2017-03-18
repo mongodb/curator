@@ -5,9 +5,9 @@ import (
 
 	"github.com/mongodb/amboy"
 	"github.com/mongodb/amboy/queue"
+	"github.com/mongodb/grip"
 	"github.com/pkg/errors"
 	"github.com/tychoish/bond"
-	"github.com/tychoish/grip"
 	"golang.org/x/net/context"
 )
 

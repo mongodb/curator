@@ -8,7 +8,7 @@ import (
 	"github.com/mongodb/amboy/registry"
 	"github.com/pkg/errors"
 	"github.com/tychoish/gimlet"
-	"github.com/tychoish/grip"
+	"github.com/mongodb/grip"
 	"golang.org/x/net/context"
 )
 
@@ -138,9 +138,4 @@ func (s *Service) App() *gimlet.APIApp {
 	}
 
 	return s.app
-}
-
-// Run starts the REST service. All errors are logged.
-func (s *Service) Run() {
-	grip.CatchAlert(s.App().Run())
 }
