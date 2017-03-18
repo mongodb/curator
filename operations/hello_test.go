@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/suite"
-	"github.com/tychoish/grip"
+	"github.com/mongodb/grip"
 )
 
 func init() {

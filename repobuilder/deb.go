@@ -12,7 +12,7 @@ import (
 	"text/template"
 
 	"github.com/pkg/errors"
-	"github.com/tychoish/grip"
+	"github.com/mongodb/grip"
 )
 
 // BuildDEBRepoJob is an amboy.Job implementation that builds Debian

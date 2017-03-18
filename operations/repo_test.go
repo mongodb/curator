@@ -4,7 +4,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/tychoish/grip"
+	"github.com/mongodb/grip"
 	"github.com/urfave/cli"
 )
 

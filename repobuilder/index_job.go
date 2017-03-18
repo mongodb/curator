@@ -8,7 +8,7 @@ import (
 	"github.com/mongodb/amboy/registry"
 	"github.com/mongodb/curator/sthree"
 	"github.com/pkg/errors"
-	"github.com/tychoish/grip"
+	"github.com/mongodb/grip"
 )
 
 // IndexBuildJob implements the amboy.Job interface and provides a

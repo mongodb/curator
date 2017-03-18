@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/tychoish/grip"
+	"github.com/mongodb/grip"
 	"gopkg.in/yaml.v2"
 )
 

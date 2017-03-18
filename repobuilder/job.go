@@ -16,7 +16,7 @@ import (
 	"github.com/mongodb/curator"
 	"github.com/mongodb/curator/sthree"
 	"github.com/pkg/errors"
-	"github.com/tychoish/grip"
+	"github.com/mongodb/grip"
 )
 
 type jobImpl interface {

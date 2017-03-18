@@ -16,7 +16,7 @@ import (
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"github.com/tychoish/grip"
+	"github.com/mongodb/grip"
 )
 
 // BucketSuite contains tests of the base bucket interface for

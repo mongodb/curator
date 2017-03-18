@@ -9,11 +9,11 @@ import (
 	"time"
 
 	shlex "github.com/anmitsu/go-shlex"
+	"github.com/mongodb/grip"
+	"github.com/mongodb/grip/level"
+	"github.com/mongodb/grip/message"
+	"github.com/mongodb/grip/send"
 	"github.com/pkg/errors"
-	"github.com/tychoish/grip"
-	"github.com/tychoish/grip/level"
-	"github.com/tychoish/grip/message"
-	"github.com/tychoish/grip/send"
 	"github.com/urfave/cli"
 )
 
@@ -136,7 +136,8 @@ func logPipe() cli.Command {
 
 			input := bufio.NewScanner(os.Stdin)
 			for input.Scan() {
-				logger.Default(message.NewDefaultMessage(level.Info, input.Text()))
+				logger.Log(logger.DefaultLevel(),
+					message.NewDefaultMessage(level.Info, input.Text()))
 			}
 
 			return errors.Wrap(input.Err(), "problem reading from standard input")
@@ -260,7 +261,7 @@ func logLines(logger grip.Journaler, lines <-chan string, signal chan struct{}) 
 	l := logger.ThresholdLevel()
 
 	for line := range lines {
-		logger.Default(message.NewDefaultMessage(l, line))
+		logger.Log(l, message.NewDefaultMessage(l, line))
 	}
 
 	signal <- struct{}{}

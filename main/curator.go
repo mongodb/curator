@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"github.com/mongodb/curator/operations"
-	"github.com/tychoish/grip"
+	"github.com/mongodb/grip"
 	"github.com/urfave/cli"
 )
 

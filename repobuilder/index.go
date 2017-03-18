@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/tychoish/grip"
+	"github.com/mongodb/grip"
 )
 
 // TODO: in the future we may want to add an entry point or method for

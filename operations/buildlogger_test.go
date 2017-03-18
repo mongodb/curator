@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/tychoish/grip"
+	"github.com/mongodb/grip"
 )
 
 func TestBuildLoggerRunCommand(t *testing.T) {

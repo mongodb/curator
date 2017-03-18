@@ -9,7 +9,7 @@ import (
 	"github.com/mongodb/curator/repobuilder"
 	"github.com/pkg/errors"
 	"github.com/satori/go.uuid"
-	"github.com/tychoish/grip"
+	"github.com/mongodb/grip"
 	"github.com/urfave/cli"
 )
 

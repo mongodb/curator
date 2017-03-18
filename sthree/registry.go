@@ -8,7 +8,7 @@ import (
 
 	"github.com/goamz/goamz/aws"
 	"github.com/goamz/goamz/s3"
-	"github.com/tychoish/grip"
+	"github.com/mongodb/grip"
 )
 
 // buckets is the internal and global cache.
