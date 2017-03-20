@@ -85,19 +85,19 @@ func (s *BucketJobSuite) TestSyncJobsHaveWellFormedName() {
 
 func (s *BucketJobSuite) TestSyncJobsAreIncompleteByDefault() {
 	for _, job := range s.jobs {
-		s.False(job.Completed())
+		s.False(job.Status().Completed)
 	}
 }
 
 func (s *BucketJobSuite) TestMarkCompleteMethodChangesCompleteState() {
-	s.False(s.fromJob.Completed())
-	s.False(s.toJob.Completed())
+	s.False(s.fromJob.Status().Completed)
+	s.False(s.toJob.Status().Completed)
 
 	s.fromJob.MarkComplete()
 	s.toJob.MarkComplete()
 
-	s.True(s.fromJob.Completed())
-	s.True(s.toJob.Completed())
+	s.True(s.fromJob.Status().Completed)
+	s.True(s.toJob.Status().Completed)
 }
 
 func (s *BucketJobSuite) TestAddErrorDoesNotPersistNilErrors() {

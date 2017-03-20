@@ -36,10 +36,8 @@ func (s *RepoJobSuite) TestDEBCompletedSetter() {
 	s.False(s.j.DryRun)
 	s.j.DryRun = true
 
-	s.False(s.j.Completed())
-	s.Equal(s.j.IsComplete, s.j.Completed())
+	s.False(s.j.Status().Completed)
 
 	s.j.Run()
-	s.True(s.j.Completed())
-	s.Equal(s.j.IsComplete, s.j.Completed())
+	s.True(s.j.Status().Completed)
 }
