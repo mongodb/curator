@@ -15,8 +15,8 @@ import (
 	"github.com/mongodb/amboy/registry"
 	"github.com/mongodb/curator"
 	"github.com/mongodb/curator/sthree"
-	"github.com/pkg/errors"
 	"github.com/mongodb/grip"
+	"github.com/pkg/errors"
 )
 
 type jobImpl interface {
@@ -153,15 +153,19 @@ func (j *Job) linkPackages(dest string) error {
 }
 
 func (j *Job) injectNewPackages(local string) (string, error) {
+	return j.builder.injectPackage(local, j.getPackageLocation())
+}
+
+func (j *Job) getPackageLocation() string {
 	if j.release.IsDevelopmentBuild() {
 		// nightlies to the a "development" repo.
-		return j.builder.injectPackage(local, "development")
+		return "development"
 	} else if j.release.IsReleaseCandidate() {
 		// release candidates go into the testing repo:
-		return j.builder.injectPackage(local, "testing")
+		return "testing"
 	} else {
 		// there are repos for each series:
-		return j.builder.injectPackage(local, j.release.Series())
+		return j.release.Series()
 	}
 }
 
@@ -294,7 +298,7 @@ func (j *Job) Run() {
 			}
 
 			grip.Infof("downloading from %s to %s", remote, local)
-			if err = bucket.SyncFrom(local, remote, false); err != nil {
+			if err = bucket.SyncFrom(local, remote+"/"+j.getPackageLocation(), false); err != nil {
 				j.AddError(errors.Wrapf(err, "sync from %s to %s", remote, local))
 				return
 			}
