@@ -298,7 +298,8 @@ func (j *Job) Run() {
 			}
 
 			grip.Infof("downloading from %s to %s", remote, local)
-			if err = bucket.SyncFrom(local, remote+"/"+j.getPackageLocation(), false); err != nil {
+			pkgLocation := j.getPackageLocation()
+			if err = bucket.SyncFrom(filepath.Join(local, pkgLocation), filepath.Join(remote, pkgLocation), false); err != nil {
 				j.AddError(errors.Wrapf(err, "sync from %s to %s", remote, local))
 				return
 			}
