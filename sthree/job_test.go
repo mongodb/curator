@@ -79,8 +79,8 @@ func (s *BucketJobSuite) TestSyncJobsHaveExpectedJobTypes() {
 }
 
 func (s *BucketJobSuite) TestSyncJobsHaveWellFormedName() {
-	strings.HasSuffix(s.fromJob.ID(), "sync-from")
-	strings.HasSuffix(s.toJob.ID(), "sync-to")
+	s.True(strings.Contains(s.fromJob.ID(), "sync-from"))
+	s.True(strings.Contains(s.toJob.ID(), "sync-to"))
 }
 
 func (s *BucketJobSuite) TestSyncJobsAreIncompleteByDefault() {

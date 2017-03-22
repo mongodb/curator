@@ -52,9 +52,7 @@ func (s *RepoConfigSuite) TestFilesThatDoNotExistProduceError() {
 }
 
 func (s *RepoConfigSuite) TestExampleConfigHasNoInternalErrors() {
-	var err error
-
-	err = s.conf.read(s.file)
+	err := s.conf.read(s.file)
 	s.NoError(err)
 
 	err = s.conf.processRepos()

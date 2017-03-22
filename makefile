@@ -33,6 +33,7 @@ lintArgs += --exclude="warning: jobImpl is unused.*" # this interface is used fo
 lintArgs += --exclude="file is not goimported" # top-level mains aren't imported
 lintArgs += --exclude="duplicate of (rpm|deb)_test.go"  # these suites are very similar by design
 lintArgs += --exclude="unused struct field .*repobuilder.Job.mutex" # this is used by type that compose this type.
+lintArgs += --exclude="should check returned error before deferring.*Close()" 
 # end linting configuration
 
 
