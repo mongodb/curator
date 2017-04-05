@@ -235,9 +235,9 @@ func runCommand(logger grip.Journaler, cmd *exec.Cmd, bufferLen int) error {
 	go collectStream(lines, stdErr, stdErrDone)
 	go logLines(logger, lines, loggerDone)
 
-	err = cmd.Wait()
 	<-stdOutDone
 	<-stdErrDone
+	err = cmd.Wait()
 
 	close(lines)
 	<-loggerDone
