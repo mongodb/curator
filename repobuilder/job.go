@@ -282,9 +282,16 @@ func (j *Job) Run() {
 
 	// at the moment there is only multiple repos for RPM distros
 	for _, remote := range j.Distro.Repos {
+		clonedBucket, err := bucket.Clone()
+		if err != nil {
+			j.AddError(errors.Wrapf(err, "problem cloning bucket %s", bucket))
+			continue
+		}
+
 		wg.Add(1)
-		go func(remote string) {
-			grip.Infof("rebuilding %s.%s", bucket, remote)
+		go func(remote string, b *sthree.Bucket) {
+			defer b.Close()
+			grip.Infof("rebuilding %s.%s", b, remote)
 			defer wg.Done()
 
 			local := filepath.Join(j.WorkSpace, remote)
@@ -299,7 +306,7 @@ func (j *Job) Run() {
 
 			grip.Infof("downloading from %s to %s", remote, local)
 			pkgLocation := j.getPackageLocation()
-			if err = bucket.SyncFrom(filepath.Join(local, pkgLocation), filepath.Join(remote, pkgLocation), false); err != nil {
+			if err = b.SyncFrom(filepath.Join(local, pkgLocation), filepath.Join(remote, pkgLocation), false); err != nil {
 				j.AddError(errors.Wrapf(err, "sync from %s to %s", remote, local))
 				return
 			}
@@ -335,13 +342,13 @@ func (j *Job) Run() {
 			}
 
 			// do the sync. It's ok,
-			err = bucket.SyncTo(syncSource, filepath.Join(remote, changedComponent), false)
+			err = b.SyncTo(syncSource, filepath.Join(remote, changedComponent), false)
 			if err != nil {
 				j.AddError(errors.Wrapf(err, "problem uploading %s to %s/%s",
-					syncSource, bucket, changedComponent))
+					syncSource, b, changedComponent))
 				return
 			}
-		}(remote)
+		}(remote, clonedBucket)
 	}
 	wg.Wait()
 
