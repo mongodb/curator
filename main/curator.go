@@ -36,6 +36,7 @@ func buildApp() *cli.App {
 		operations.Artifacts(),
 		operations.SystemInfo(),
 		operations.BuildLogger(),
+		operations.Notify(),
 	}
 
 	// These are global options. Use this to configure logging or

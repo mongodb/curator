@@ -7,9 +7,9 @@ import (
 	"strings"
 
 	"github.com/mongodb/curator/repobuilder"
+	"github.com/mongodb/grip"
 	"github.com/pkg/errors"
 	"github.com/satori/go.uuid"
-	"github.com/mongodb/grip"
 	"github.com/urfave/cli"
 )
 
