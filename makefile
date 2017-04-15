@@ -43,10 +43,10 @@ gopath := $(shell go env GOPATH)
 lintDeps := $(addprefix $(gopath)/src/,$(lintDeps))
 srcFiles := makefile $(shell find . -name "*.go" -not -path "./$(buildDir)/*" -not -name "*_test.go" -not -path "./buildscripts/*" )
 testSrcFiles := makefile $(shell find . -name "*.go" -not -path "./$(buildDir)/*")
-testOutput := $(foreach target,$(packages),$(buildDir)/test.$(target).out)
-raceOutput := $(foreach target,$(packages),$(buildDir)/race.$(target).out)
-coverageOutput := $(foreach target,$(packages),$(buildDir)/coverage.$(target).out)
-coverageHtmlOutput := $(foreach target,$(packages),$(buildDir)/coverage.$(target).html)
+testOutput := $(foreach target,$(packages),$(buildDir)/output.$(target).test)
+raceOutput := $(foreach target,$(packages),$(buildDir)/output.$(target).race)
+coverageOutput := $(foreach target,$(packages),$(buildDir)/output.$(target).coverage)
+coverageHtmlOutput := $(foreach target,$(packages),$(buildDir)/output.$(target).coverage.html)
 $(gopath)/src/%:
 	@-[ ! -d $(gopath) ] && mkdir -p $(gopath) || true
 	go get $(subst $(gopath)/src/,,$@)
@@ -65,7 +65,7 @@ test:$(foreach target,$(packages),test-$(target))
 race:$(foreach target,$(packages),race-$(target))
 coverage:$(coverageOutput)
 coverage-html:$(coverageHtmlOutput)
-phony := lint lint-deps build build-race race test coverage coverage-html
+phony := lint build build-race race test coverage coverage-html
 .PRECIOUS:$(testOutput) $(raceOutput) $(coverageOutput) $(coverageHtmlOutput)
 .PRECIOUS:$(foreach target,$(packages),$(buildDir)/test.$(target))
 .PRECIOUS:$(foreach target,$(packages),$(buildDir)/race.$(target))
@@ -106,7 +106,6 @@ html-coverage-%:$(buildDir)/output.%.coverage $(buildDir)/output.%.coverage.html
 lint-%:$(buildDir)/output.%.lint
 	@grep -v -s -q "^--- FAIL" $<
 # end convienence targets
-
 
 
 # start vendoring configuration
