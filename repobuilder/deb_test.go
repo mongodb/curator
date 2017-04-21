@@ -1,7 +1,7 @@
 package repobuilder
 
 func (s *RepoJobSuite) TestDEBConstructedObjectHasExpectedValues() {
-	conf, err := GetConfig("config_test.yaml")
+	conf, err := GetConfig("repobuilder/config_test.yaml")
 	s.NoError(err)
 	repo, ok := conf.GetRepositoryDefinition("debian8", "enterprise")
 	s.True(ok)
@@ -15,7 +15,7 @@ func (s *RepoJobSuite) TestDEBConstructedObjectHasExpectedValues() {
 }
 
 func (s *RepoJobSuite) TestDEBConstructorReturnsErrorForInvalidVersion() {
-	conf, err := GetConfig("config_test.yaml")
+	conf, err := GetConfig("repobuilder/config_test.yaml")
 	s.NoError(err)
 	repo, ok := conf.GetRepositoryDefinition("debian8", "enterprise")
 	s.True(ok)
@@ -25,7 +25,7 @@ func (s *RepoJobSuite) TestDEBConstructorReturnsErrorForInvalidVersion() {
 }
 
 func (s *RepoJobSuite) TestDEBCompletedSetter() {
-	conf, err := GetConfig("config_test.yaml")
+	conf, err := GetConfig("repobuilder/config_test.yaml")
 	s.NoError(err)
 	repo, ok := conf.GetRepositoryDefinition("debian8", "enterprise")
 	repo.Bucket = "build-curator-testing"

@@ -188,14 +188,16 @@ coverDeps := golang.org/x/tools/cmd/cover
 coverDeps := $(addprefix $(gopath)/src/,$(coverDeps))
 #    implementation for package coverage and test running,mongodb to produce
 #    and save test output.
+$(buildDir)/test.operations:$(name)
 $(buildDir)/test.%:$(testSrcFiles) $(coverDeps)
 	$(vendorGopath) go test $(if $(DISABLE_COVERAGE),,-covermode=count) -c -o $@ ./$(subst -,/,$*)
+$(buildDir)/race.operations:$(name)
 $(buildDir)/race.%:$(testSrcFiles)
 	$(vendorGopath) go test -race -c -o $@ ./$(subst -,/,$*)
 #  targets to run any tests in the top-level package
-$(buildDir)/test.$(name):$(testSrcFiles) $(coverDeps)
+$(buildDir)/test.$(name):$(testSrcFiles) $(coverDeps) $(name)
 	$(vendorGopath) go test $(if $(DISABLE_COVERAGE),,-covermode=count) -c -o $@ ./
-$(buildDir)/race.$(name):$(testSrcFiles)
+$(buildDir)/race.$(name):$(testSrcFiles) $(name)
 	$(vendorGopath) go test -race -c -o $@ ./
 #  targets to run the tests and report the output
 $(buildDir)/output.%.test:$(buildDir)/test.% .FORCE

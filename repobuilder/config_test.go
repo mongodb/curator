@@ -24,7 +24,7 @@ func TestRepoConfigSuite(t *testing.T) {
 func (s *RepoConfigSuite) SetupSuite() {
 	s.require = s.Require()
 
-	fn, err := filepath.Abs("config_test.yaml")
+	fn, err := filepath.Abs("./repobuilder/config_test.yaml")
 	s.require.NoError(err)
 	s.file = fn
 
@@ -32,7 +32,7 @@ func (s *RepoConfigSuite) SetupSuite() {
 	s.require.NoError(err)
 	s.invalidFile = invalidFn
 
-	incorrectFn, err := filepath.Abs("config_incorrect_test.yaml")
+	incorrectFn, err := filepath.Abs("./repobuilder/config_incorrect_test.yaml")
 	s.require.NoError(err)
 	s.incorrectFile = incorrectFn
 }

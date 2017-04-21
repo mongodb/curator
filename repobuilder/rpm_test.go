@@ -1,7 +1,7 @@
 package repobuilder
 
 func (s *RepoJobSuite) TestRPMConstructedObjectHasExpectedValues() {
-	conf, err := GetConfig("config_test.yaml")
+	conf, err := GetConfig("repobuilder/config_test.yaml")
 	s.NoError(err)
 	repo, ok := conf.GetRepositoryDefinition("rhel5", "enterprise")
 	s.True(ok)
@@ -15,7 +15,7 @@ func (s *RepoJobSuite) TestRPMConstructedObjectHasExpectedValues() {
 }
 
 func (s *RepoJobSuite) TestRPMConstructorReturnsErrorForInvalidVersion() {
-	conf, err := GetConfig("config_test.yaml")
+	conf, err := GetConfig("repobuilder/config_test.yaml")
 	s.NoError(err)
 	repo, ok := conf.GetRepositoryDefinition("rhel5", "enterprise")
 	s.True(ok)
@@ -25,7 +25,7 @@ func (s *RepoJobSuite) TestRPMConstructorReturnsErrorForInvalidVersion() {
 }
 
 func (s *RepoJobSuite) TestRPMCompletedSetter() {
-	conf, err := GetConfig("config_test.yaml")
+	conf, err := GetConfig("repobuilder/config_test.yaml")
 	s.NoError(err)
 	repo, ok := conf.GetRepositoryDefinition("rhel5", "enterprise")
 	repo.Bucket = "build-curator-testing"
