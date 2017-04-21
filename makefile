@@ -195,9 +195,9 @@ $(buildDir)/race.operations:$(name)
 $(buildDir)/race.%:$(testSrcFiles)
 	$(vendorGopath) go test -race -c -o $@ ./$(subst -,/,$*)
 #  targets to run any tests in the top-level package
-$(buildDir)/test.$(name):$(testSrcFiles) $(coverDeps) $(name)
+$(buildDir)/test.$(name):$(testSrcFiles) $(coverDeps)
 	$(vendorGopath) go test $(if $(DISABLE_COVERAGE),,-covermode=count) -c -o $@ ./
-$(buildDir)/race.$(name):$(testSrcFiles) $(name)
+$(buildDir)/race.$(name):$(testSrcFiles)
 	$(vendorGopath) go test -race -c -o $@ ./
 #  targets to run the tests and report the output
 $(buildDir)/output.%.test:$(buildDir)/test.% .FORCE
