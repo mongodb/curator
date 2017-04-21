@@ -40,44 +40,39 @@ func (s *CommandsSuite) TestRebuildOperationOnProcess() {
 	s.NoError(err)
 	err = buildRepo(
 		"./", // packages
-		"../repobuilder/config_test.yaml", // repo config path
-		"../build/repo-build-test",        // workingdir
-		"rhel7",                           // distro
-		"enterprise",                      // edition
-		"2.8.0",                           // mongodbe version
-		"x86_64",                          // arch
-		"default",                         // aws profile
-		true,                              // dryrun
-		true)                              // rebuild
+		"repobuilder/config_test.yaml", // repo config path
+		"build/repo-build-test",        // workingdir
+		"rhel7",                        // distro
+		"enterprise",                   // edition
+		"2.8.0",                        // mongodbe version
+		"x86_64",                       // arch
+		"default",                      // aws profile
+		true,                           // dryrun
+		true)                           // rebuild
 
 	// TODO: we should be able to get a dry run that passes on
 	// tests machines, but at the moment this depends on the
 	// notary client and other configuration facts that aren't
 	// necessarily true in the test environment.
-	if s.Error(err) {
-		grip.Warning(err)
-		return
-	}
-	grip.Warningf("rebuild repo test failed: %+v", err)
+	s.Error(err)
+	grip.Warning(err)
 }
 
 func (s *CommandsSuite) TestDryRunOperationOnProcess() {
 	err := buildRepo(
 		"./", // packages
-		"../repobuilder/config_test.yaml", // repo config path
-		"../build/repo-build-test",        // workingdir
-		"rhel7",                           // distro
-		"enterprise",                      // edition
-		"2.8.0",                           // mongodbe version
-		"x86_64",                          // arch
-		"default",                         // aws profile
-		true,                              // dryrun
-		false)                             // rebuild
+		"repobuilder/config_test.yaml", // repo config path
+		"build/repo-build-test",        // workingdir
+		"rhel7",                        // distro
+		"enterprise",                   // edition
+		"2.8.0",                        // mongodbe version
+		"x86_64",                       // arch
+		"default",                      // aws profile
+		true,                           // dryrun
+		false)                          // rebuild
 
-	if !s.Equal(err.Error(), "problem finding packages: no '.rpm' packages found in path './'") {
-		grip.Error(err)
-	}
-	grip.CatchNotice(err)
+	s.Error(err)
+	grip.Warning(err)
 }
 
 func (s *CommandsSuite) TestGetPackagesFunction() {

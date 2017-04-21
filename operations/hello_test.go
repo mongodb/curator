@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/suite"
 	"github.com/mongodb/grip"
+	"github.com/stretchr/testify/suite"
 )
 
 func init() {
@@ -25,7 +25,7 @@ func TestCommandSuite(t *testing.T) {
 }
 
 func (s *CommandsSuite) TestHelloWorldOperationViaDirectCall() {
-	cmd := exec.Command("../curator", "hello")
+	cmd := exec.Command("./curator", "hello")
 	output, err := cmd.CombinedOutput()
 	s.NoError(err)
 

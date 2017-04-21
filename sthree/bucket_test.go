@@ -7,17 +7,24 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strconv"
 	"sync"
 	"testing"
 
 	"github.com/goamz/goamz/aws"
 	"github.com/goamz/goamz/s3"
+	"github.com/mongodb/grip"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"github.com/mongodb/grip"
 )
+
+func GetDirectoryOfFile() string {
+	_, file, _, _ := runtime.Caller(1)
+
+	return filepath.Dir(file)
+}
 
 // BucketSuite contains tests of the base bucket interface for
 // interacting with files and s3 objects, with a simple
@@ -218,7 +225,7 @@ func (s *BucketSuite) TestJobNumberIsNotConfigurableAfterBucketOpens() {
 }
 
 func (s *BucketSuite) TestPutOptionUploadsFile() {
-	local := "bucket.go"
+	local := "sthree/bucket.go"
 	remote := filepath.Join(s.uuid, local+".one")
 
 	s.NoError(s.b.Open())
@@ -231,7 +238,7 @@ func (s *BucketSuite) TestPutOptionUploadsFile() {
 }
 
 func (s *BucketSuite) TestGetRetrievesFileIsTheSameAsSourceData() {
-	local := "bucket.go"
+	local := "sthree/bucket.go"
 	remote := filepath.Join(s.uuid, local+".two")
 
 	s.NoError(s.b.Open())
@@ -258,7 +265,7 @@ func (s *BucketSuite) TestGetRetrievesFileIsTheSameAsSourceData() {
 }
 
 func (s *BucketSuite) TestGetMakesEnclosingDirectories() {
-	local := "bucket.go"
+	local := "sthree/bucket.go"
 	remote := filepath.Join(s.uuid, local+".three")
 
 	s.NoError(s.b.Open())
@@ -284,7 +291,7 @@ func (s *BucketSuite) TestPutReturnsErrorForFilesThatDoNotExist() {
 }
 
 func (s *BucketSuite) TestDeleteOperationRemovesPathFromBucket() {
-	local := "bucket.go"
+	local := "sthree/bucket.go"
 	remote := filepath.Join(s.uuid, local+".four")
 
 	s.NoError(s.b.Open())
@@ -304,7 +311,7 @@ func (s *BucketSuite) TestDeleteOperationRemovesPathFromBucket() {
 }
 
 func (s *BucketSuite) TestDryRunDeleteOperationDoesNotRemovePathsFromBucket() {
-	local := "bucket.go"
+	local := "sthree/bucket.go"
 	remote := filepath.Join(s.uuid, local+".four")
 
 	s.NoError(s.b.Open())
@@ -331,7 +338,7 @@ func (s *BucketSuite) TestDryRunDeleteOperationDoesNotRemovePathsFromBucket() {
 }
 
 func (s *BucketSuite) TestDeleteManyOperationRemovesManyPathsFromBucket() {
-	local := "bucket.go"
+	local := "sthree/bucket.go"
 	s.NoError(s.b.Open())
 	prefix := uuid.NewV4().String()
 
@@ -353,7 +360,7 @@ func (s *BucketSuite) TestDeleteManyOperationRemovesManyPathsFromBucket() {
 }
 
 func (s *BucketSuite) TestDeleteManySpecialCasesSingleOperation() {
-	local := "bucket.go"
+	local := "sthree/bucket.go"
 	s.NoError(s.b.Open())
 	prefix := uuid.NewV4().String()
 
@@ -367,7 +374,7 @@ func (s *BucketSuite) TestDeleteManySpecialCasesSingleOperation() {
 }
 
 func (s *BucketSuite) TestDeleteMatchingRemovesSomePaths() {
-	local := "bucket.go"
+	local := "sthree/bucket.go"
 	s.NoError(s.b.Open())
 	prefix := uuid.NewV4().String()
 
@@ -432,8 +439,7 @@ func numFilesInPath(path string, includeDirs bool) (int, error) {
 }
 
 func (s *BucketSuite) TestSyncToUploadsNewFilesWithoutError() {
-	pwd, err := os.Getwd()
-	s.NoError(err)
+	pwd := GetDirectoryOfFile()
 
 	remotePrefix := filepath.Join(s.uuid, "sync-to-one")
 
@@ -442,8 +448,7 @@ func (s *BucketSuite) TestSyncToUploadsNewFilesWithoutError() {
 	s.Len(s.b.contents(remotePrefix), 0)
 
 	for i := 0; i < 3; i++ {
-		err = s.b.SyncTo(pwd, remotePrefix, false)
-		s.NoError(err)
+		s.NoError(s.b.SyncTo(pwd, remotePrefix, false))
 
 		num, err := numFilesInPath(pwd, false)
 		s.NoError(err)
@@ -452,8 +457,7 @@ func (s *BucketSuite) TestSyncToUploadsNewFilesWithoutError() {
 }
 
 func (s *BucketSuite) TestSyncToDryRunDoesNotUploadFiles() {
-	pwd, err := os.Getwd()
-	s.NoError(err)
+	pwd := GetDirectoryOfFile()
 
 	remotePrefix := filepath.Join(s.uuid, "sync-to-none")
 
@@ -481,8 +485,7 @@ func (s *BucketSuite) TestCloneOpenBucketReturnsOpenBucket() {
 }
 
 func (s *BucketSuite) TestSyncFromDownloadsFiles() {
-	pwd, err := os.Getwd()
-	s.NoError(err)
+	pwd := GetDirectoryOfFile()
 	s.NoError(s.b.Open())
 
 	remotePrefix := filepath.Join(s.uuid, "sync-from-one")
@@ -490,8 +493,7 @@ func (s *BucketSuite) TestSyncFromDownloadsFiles() {
 	s.Len(s.b.contents(remotePrefix), 0)
 
 	// populate bucket.
-	err = s.b.SyncTo(pwd, remotePrefix, false)
-	s.NoError(err)
+	s.NoError(s.b.SyncTo(pwd, remotePrefix, false))
 	numFiles, err := numFilesInPath(pwd, false)
 	s.NoError(err)
 
@@ -514,8 +516,7 @@ func (s *BucketSuite) TestSyncFromDownloadsFiles() {
 }
 
 func (s *BucketSuite) TestSyncFromDryRunDoesNotUploadFiles() {
-	pwd, err := os.Getwd()
-	s.NoError(err)
+	pwd := GetDirectoryOfFile()
 
 	remotePrefix := filepath.Join(s.uuid, "sync-to-none")
 
@@ -534,19 +535,16 @@ func (s *BucketSuite) TestSyncFromDryRunDoesNotUploadFiles() {
 }
 
 func (s *BucketSuite) TestSyncFromTestWhenFilesHaveChanged() {
-	pwd, err := os.Getwd()
-	s.NoError(err)
+	pwd := GetDirectoryOfFile()
 	s.NoError(s.b.Open())
 
 	remotePrefix := filepath.Join(s.uuid, "sync-round-trip")
-	err = s.b.SyncTo(pwd, remotePrefix, false)
-	s.NoError(err)
+	s.NoError(s.b.SyncTo(pwd, remotePrefix, false))
 
 	local := filepath.Join(s.tempDir, "sync-round-trip")
-	err = s.b.SyncFrom(local, remotePrefix, false)
-	s.NoError(err)
+	s.NoError(s.b.SyncFrom(local, remotePrefix, false))
 
-	err = filepath.Walk(local, func(p string, info os.FileInfo, err error) error {
+	s.NoError(filepath.Walk(local, func(p string, info os.FileInfo, err error) error {
 		if err != nil || info.IsDir() {
 			return nil
 		}
@@ -554,13 +552,11 @@ func (s *BucketSuite) TestSyncFromTestWhenFilesHaveChanged() {
 		s.NoError(os.Truncate(p, 4))
 
 		return nil
-	})
-	s.NoError(err)
+	}))
 
-	err = s.b.SyncFrom(local, remotePrefix, false)
-	s.NoError(err)
+	s.NoError(s.b.SyncFrom(local, remotePrefix, false))
 
-	err = filepath.Walk(local, func(p string, info os.FileInfo, err error) error {
+	s.NoError(filepath.Walk(local, func(p string, info os.FileInfo, err error) error {
 		if err != nil || info.IsDir() {
 			return nil
 		}
@@ -574,7 +570,5 @@ func (s *BucketSuite) TestSyncFromTestWhenFilesHaveChanged() {
 		}
 
 		return nil
-	})
-
-	s.NoError(err)
+	}))
 }
