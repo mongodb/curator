@@ -17,8 +17,8 @@ import (
 	"github.com/jpillora/backoff"
 	"github.com/mongodb/amboy"
 	"github.com/mongodb/amboy/queue"
-	"github.com/pkg/errors"
 	"github.com/mongodb/grip"
+	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 )
 

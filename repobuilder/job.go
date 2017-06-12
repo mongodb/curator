@@ -288,6 +288,8 @@ func (j *Job) Run() {
 			continue
 		}
 
+		j.workingDirs = append(j.workingDirs, remote)
+
 		wg.Add(1)
 		go func(remote string, b *sthree.Bucket) {
 			defer b.Close()
@@ -297,7 +299,6 @@ func (j *Job) Run() {
 			local := filepath.Join(j.WorkSpace, remote)
 
 			var err error
-			j.workingDirs = append(j.workingDirs, local)
 
 			if err = os.MkdirAll(local, 0755); err != nil {
 				j.AddError(errors.Wrapf(err, "creating directory %s", local))
