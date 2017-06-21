@@ -3,11 +3,11 @@ package operations
 import (
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/mongodb/grip"
 	"github.com/mongodb/grip/level"
 	"github.com/mongodb/grip/message"
 	"github.com/mongodb/grip/send"
+	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
 
@@ -112,7 +112,7 @@ func processTree() cli.Command {
 			}
 
 			return doCollection(c.Int("count"), c.Duration("interval"), func() error {
-				logger.InfoMany(message.CollectProcessInfoWithChildren(pid)...)
+				logger.Info(message.CollectProcessInfoWithChildren(pid))
 				return nil
 			})
 		},

@@ -95,7 +95,7 @@ func logCommand() cli.Command {
 		},
 		Action: func(c *cli.Context) error {
 			conf := getBuildloggerConfig(c)
-			logger, closer, err := setupBuildLogger(conf)
+			logger, closer, err := setupBuildLogger(conf, c.Parent().Int("count"), c.Parent().Duration("interval"))
 			defer closer()
 			if err != nil {
 				return errors.Wrap(err, "problem configuring buildlogger")
@@ -116,7 +116,7 @@ func logCommand() cli.Command {
 				cmd = exec.Command(args[0], args[1:]...)
 			}
 
-			return errors.Wrap(runCommand(logger, cmd, c.Int("count")/2), "problem running command")
+			return errors.Wrap(runCommand(logger, cmd), "problem running command")
 		},
 	}
 }
@@ -127,8 +127,7 @@ func logPipe() cli.Command {
 		Usage: "send standard input to the buildlogger",
 		Action: func(c *cli.Context) error {
 			conf := getBuildloggerConfig(c)
-
-			logger, closer, err := setupBuildLogger(conf)
+			logger, closer, err := setupBuildLogger(conf, c.Parent().Int("count"), c.Parent().Duration("interval"))
 			defer closer()
 			if err != nil {
 				return errors.Wrap(err, "problem configuring buildlogger")
@@ -153,43 +152,53 @@ func logPipe() cli.Command {
 
 func getBuildloggerConfig(c *cli.Context) *send.BuildloggerConfig {
 	return &send.BuildloggerConfig{
-		URL:            c.Parent().String("url"),
-		Phase:          c.Parent().String("phase"),
-		Builder:        c.Parent().String("builder"),
-		Test:           c.Parent().String("test"),
-		BufferCount:    c.Parent().Int("count"),
-		BufferInterval: c.Parent().Duration("interval"),
-		Local:          grip.GetSender(),
+		URL:     c.Parent().String("url"),
+		Phase:   c.Parent().String("phase"),
+		Builder: c.Parent().String("builder"),
+		Test:    c.Parent().String("test"),
+		Local:   grip.GetSender(),
 	}
 }
 
-func setupBuildLogger(conf *send.BuildloggerConfig) (grip.Journaler, func(), error) {
+func setupBuildLogger(conf *send.BuildloggerConfig, count int, interval time.Duration) (grip.Journaler, func(), error) {
 	var toClose []send.Sender
 
 	closer := func() {
 		for _, sender := range toClose {
+			if sender == nil {
+				continue
+			}
+
 			grip.Warning(sender.Close())
 		}
 	}
 
 	logger := grip.NewJournaler("buildlogger")
+
 	globalSender, err := send.MakeBuildlogger("curator", conf)
+	toClose = append(toClose, globalSender)
 	if err != nil {
 		return nil, closer, errors.Wrap(err, "problem configuring global sender")
 	}
-	toClose = append(toClose, globalSender)
-	if err := logger.SetSender(globalSender); err != nil {
+
+	globalBuffered := send.NewBufferedSender(globalSender, interval, count)
+	toClose = append(toClose, globalBuffered)
+	if err := logger.SetSender(globalBuffered); err != nil {
 		return nil, closer, errors.Wrap(err, "problem setting global sender")
 	}
 
 	if conf.Test != "" {
 		conf.CreateTest = true
+
 		testSender, err := send.MakeBuildlogger(conf.Test, conf)
+		toClose = append(toClose, testSender)
 		if err != nil {
 			return nil, closer, errors.Wrap(err, "problem constructing test logger")
 		}
-		toClose = append(toClose, testSender)
-		if err := logger.SetSender(testSender); err != nil {
+
+		testBuffered := send.NewBufferedSender(globalSender, interval, count)
+		toClose = append(toClose, testBuffered)
+		if err := logger.SetSender(testBuffered); err != nil {
 			return nil, closer, errors.Wrap(err, "problem setting test logger")
 		}
 	}
@@ -197,12 +206,7 @@ func setupBuildLogger(conf *send.BuildloggerConfig) (grip.Journaler, func(), err
 	return logger, closer, nil
 }
 
-func runCommand(logger grip.Journaler, cmd *exec.Cmd, bufferLen int) error {
-	if bufferLen < 100 {
-		grip.Warningf("reset buffer to %d lines, from %d", 100, bufferLen)
-		bufferLen = 100
-	}
-
+func runCommand(logger grip.Journaler, cmd *exec.Cmd) error {
 	command := strings.Join(cmd.Args, " ")
 	grip.Debugf("prepping command %s, in %s, with %s", command, cmd.Dir,
 		strings.Join(cmd.Env, " "))
@@ -226,7 +230,7 @@ func runCommand(logger grip.Journaler, cmd *exec.Cmd, bufferLen int) error {
 	grip.Infoln("running command:", command)
 
 	// collect and merge lines into a single output stream in the logger
-	lines := make(chan string, bufferLen)
+	lines := make(chan string)
 	loggerDone := make(chan struct{})
 	stdOutDone := make(chan struct{})
 	stdErrDone := make(chan struct{})
@@ -243,7 +247,6 @@ func runCommand(logger grip.Journaler, cmd *exec.Cmd, bufferLen int) error {
 	<-loggerDone
 
 	grip.Infof("completed command in %s", time.Since(startedAt))
-
 	return errors.Wrap(err, "command returned an error")
 }
 
@@ -254,15 +257,16 @@ func collectStream(out chan<- string, input io.Reader, signal chan struct{}) {
 		out <- stream.Text()
 	}
 
-	signal <- struct{}{}
+	close(signal)
 }
 
 func logLines(logger grip.Journaler, lines <-chan string, signal chan struct{}) {
 	l := logger.ThresholdLevel()
 
 	for line := range lines {
+		grip.Notice(line)
 		logger.Log(l, message.NewDefaultMessage(l, line))
 	}
 
-	signal <- struct{}{}
+	close(signal)
 }
