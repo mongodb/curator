@@ -31,7 +31,7 @@ imports:
 - name: github.com/stretchr/testify
   version: d77da356e56a7428ad25149ca77381849a6a5232
 - name: github.com/mongodb/grip
-  version: 5225ff0b40e7a9500e76f101e7a1bdef741619a0
+  version: 3e264c124365694f4b33f14424746efb54ab1673
   subpackages:
   - level
   - loggingg

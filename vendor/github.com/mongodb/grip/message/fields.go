@@ -7,6 +7,10 @@ import (
 	"github.com/mongodb/grip/level"
 )
 
+// FieldsMsgName is the name of the default "message" field in the
+// fields structure.
+const FieldsMsgName = "msg"
+
 type fieldMessage struct {
 	message      string
 	fields       Fields
@@ -14,8 +18,9 @@ type fieldMessage struct {
 	Base
 }
 
-// A convince type that wraps map[string]interface{} and is used for
-// attaching structured metadata to a build request. For example:
+// Fields is a convince type that wraps map[string]interface{} and is
+// used for attaching structured metadata to a build request. For
+// example:
 //
 //     message.Fields{"key0", <value>, "key1", <value>}
 type Fields map[string]interface{}
@@ -40,7 +45,7 @@ func NewFields(p level.Priority, f Fields) Composer {
 	return m
 }
 
-// NewFields constructs a fields Composer from a message string and
+// MakeFieldsMessage constructs a fields Composer from a message string and
 // Fields object, without specifying the priority of the message.
 func MakeFieldsMessage(message string, f Fields) Composer {
 	return &fieldMessage{message: message, fields: f}
@@ -51,11 +56,15 @@ func MakeFields(f Fields) Composer { return &fieldMessage{fields: f} }
 
 func (m *fieldMessage) Loggable() bool { return m.message != "" || len(m.fields) > 0 }
 func (m *fieldMessage) String() string {
+	if !m.Loggable() {
+		return ""
+	}
+
 	if m.cachedOutput == "" {
 		const tmpl = "%s='%v'"
 		out := []string{}
 		if m.message != "" {
-			out = append(out, fmt.Sprintf(tmpl, "msg", m.message))
+			out = append(out, fmt.Sprintf(tmpl, FieldsMsgName, m.message))
 		}
 
 		for k, v := range m.fields {
