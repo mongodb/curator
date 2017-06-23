@@ -32,7 +32,7 @@ func (s *RepoJobSuite) SetupTest() {
 
 func (s *RepoJobSuite) TearDownTest() {
 	for _, path := range s.j.workingDirs {
-		grip.CatchError(os.RemoveAll(filepath.Join(j.WorkSpace, path)))
+		grip.CatchError(os.RemoveAll(filepath.Join(s.j.WorkSpace, path)))
 	}
 }
 
