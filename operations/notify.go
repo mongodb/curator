@@ -2,6 +2,7 @@ package operations
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/mongodb/grip"
@@ -22,16 +23,18 @@ func Notify() cli.Command {
 			cli.StringFlag{
 				Name: "output",
 				Usage: strings.Join([]string{
-					"specify output format, either 'email', 'slack' (default), 'xmpp', or 'print'.",
+					"specify output format, either 'email', 'slack' (default), 'xmpp', 'jira', 'github', or 'print'.",
 					"define the 'GRIP_SLACK_CLIENT_TOKEN' env", "\tvariable for slack credentials.",
+					"you can specify credentials for github and jira using arguments or envvars.",
 					"email defaults to contacting the MTA on localhost:25, but is configurable via", "\toptions on this command.",
-					"define the 'GRIP_XMPP_HOSTNAME', 'GRIP_XMPP_USERNAME',", "\tand 'GRIP_XMPP_PASSWORD' environment variables ", "\tto configure the xmpp output.",
+					"define the 'GRIP_XMPP_HOSTNAME', 'GRIP_XMPP_USERNAME',", "\tand 'GRIP_XMPP_PASSWORD' environment variables ",
+					"\tto configure the xmpp output.",
 				}, "\n\t"),
 				Value: "slack",
 			},
 			cli.StringFlag{
 				Name:  "message",
-				Usage: "define the message to send",
+				Usage: "specify the message to send",
 			},
 			cli.StringFlag{
 				Name:  "source",
@@ -39,8 +42,38 @@ func Notify() cli.Command {
 				Value: "curator",
 			},
 			cli.StringFlag{
-				Name:  "target",
-				Usage: "specify the recipient: the slack channel or the email/xmpp address.",
+				Name: "target",
+				Usage: strings.Join([]string{
+					"specify the recipient: the slack channel or the email/xmpp address.",
+					"for jira, specify the issue key; for github specify <account>/<repo>",
+				}, "\n\t"),
+			},
+
+			// options for creating alerts for specifc senders
+			cli.StringFlag{
+				Name:  "jiraURL",
+				Usage: "for the jira sender, specify the url (e.g. https://jira.example.net/) of the instance",
+			},
+			cli.StringFlag{
+				Name:  "issue",
+				Usage: "specify a github or jira issue ID to create a comment on an existing issue rather than create a new issue.",
+			},
+
+			// options used to specify authentication credentials.
+			cli.StringFlag{
+				Name:  "githubToken",
+				Usage: "specify a github api auth token",
+				EnVar: "CURATOR_GITHUB_API_TOKEN",
+			},
+			cli.StringFlag{
+				Name:   "username",
+				Usage:  "use to specify username for jira and email methods. Optional for email.",
+				EnvVar: "CURATOR_NOTIFY_USERNAME",
+			},
+			cli.StringFlag{
+				Name:   "password",
+				Usage:  "use to specify password for jira and email methods. Optional for email.",
+				EnvVar: "CURATOR_NOTIFY_PASSWORD",
 			},
 
 			// the remaining options are email only.
@@ -66,21 +99,11 @@ func Notify() cli.Command {
 				Name:  "emailSSL",
 				Usage: "if specified, connect to the smtp server via ssl",
 			},
-			cli.StringFlag{
-				Name:   "emailUsername",
-				Usage:  "if specified authenticate to the smtp server using this \n\tusername.",
-				EnvVar: "CURATOR_NOTIFY_SMTP_USERNAME",
-			},
-			cli.StringFlag{
-				Name:   "emailPassword",
-				Usage:  "set the password for authentication to the smtp \n\tserver.",
-				EnvVar: "CURATOR_NOTIFY_SMTP_PASSWORD",
-			},
 		},
 		Action: func(c *cli.Context) error {
 			var (
-				err    error
 				sender send.Sender
+				err    error
 			)
 			switch c.String("output") {
 			case "slack":
@@ -95,11 +118,13 @@ func Notify() cli.Command {
 				}
 			case "email":
 				opts := &send.SMTPOptions{
-					Name:   c.String("source"),
-					From:   c.String("emailFrom"),
-					Server: c.String("emailServer"),
-					Port:   c.Int("emailPort"),
-					UseSSL: c.Bool("emailSSL"),
+					Name:      c.String("source"),
+					From:      c.String("emailFrom"),
+					Server:    c.String("emailServer"),
+					Port:      c.Int("emailPort"),
+					UseSSL:    c.Bool("emailSSL"),
+					Username:  c.String("username"),
+					Passwword: c.String("password"),
 				}
 				recips := c.StringSlice("emailRecipient")
 				if err = opts.AddRecipients(recips...); err != nil {
@@ -115,6 +140,53 @@ func Notify() cli.Command {
 
 				if err != nil {
 					return errors.Wrap(err, "problem building jabber/xmpp logger")
+				}
+			case "github":
+				info := strings.SplitN(c.String("target"), "/", 2)
+				if len(info) != 2 {
+					return errors.Errorf("'%s' is not a valid <account>/<repo> specification",
+						c.String("target"))
+				}
+
+				opts := &send.GithubOptions{
+					Account: info[0],
+					Repo:    info[1],
+					Token:   c.String("ghToken"),
+				}
+
+				issue := c.String("issue")
+				if issue == "" {
+					sender, err = send.NewGithubIssuesLogger(c.String("source"), opts)
+				} else {
+					var id int
+					id, err = strconv.Atoi(issue)
+					if err != nil {
+						return errors.Errorf("%s is not a valid issue id", issue)
+					}
+					sender, err = send.NewGithubCommentLogger(c.String("source"),
+						id, opts)
+				}
+
+				if err != nil {
+					return errors.Wrap(err, "problem setting up github logger")
+				}
+			case "jira":
+				opts := &send.JiraOptions{
+					Name:     c.String("source"),
+					BaseURL:  c.String("jiraURL"),
+					Username: c.String("username"),
+					Password: c.String("password"),
+				}
+				issue := c.String("issue")
+
+				if issue == "" {
+					sender, err = send.MakeJiraLogger(opts)
+				} else {
+					sender, err = send.MakeJiraCommentLogger(issue, opts)
+				}
+
+				if err != nil {
+					return errors.Wrap(err, "problem setting up jira logger")
 				}
 			case "print":
 				sender = send.MakeNative()
