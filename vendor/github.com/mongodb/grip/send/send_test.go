@@ -56,6 +56,8 @@ func (s *SenderSuite) SetupTest() {
 	s.Require().NoError(err)
 	s.senders["native"] = native
 
+	s.senders["writer"] = NewWriterSender(native)
+
 	nativeErr, err := NewErrorLogger("error", l)
 	s.Require().NoError(err)
 	s.senders["error"] = nativeErr
@@ -118,19 +120,21 @@ func (s *SenderSuite) SetupTest() {
 	s.Require().NoError(err)
 	s.senders["buffered"] = NewBufferedSender(bufferedInternal, minBufferLength, 1)
 
-	s.senders["github"], err = NewGithubIssuesLogger("gh", GithubOptions{})
+	s.senders["github"], err = NewGithubIssuesLogger("gh", &GithubOptions{})
 	s.Require().NoError(err)
 
-	s.senders["github-comment"], err = NewGithubCommentLogger("ghcomment", 100, GithubOptions{})
+	s.senders["github-comment"], err = NewGithubCommentLogger("ghcomment", 100, &GithubOptions{})
 	s.Require().NoError(err)
 
 	s.senders["gh-mocked"] = &githubLogger{
 		Base: NewBase("gh-mocked"),
+		opts: &GithubOptions{},
 		gh:   &githubClientMock{},
 	}
 	s.NoError(s.senders["gh-mocked"].SetFormatter(MakeDefaultFormatter()))
 	s.senders["gh-comment-mocked"] = &githubCommentLogger{
 		Base:  NewBase("gh-mocked"),
+		opts:  &GithubOptions{},
 		gh:    &githubClientMock{},
 		issue: 200,
 	}
