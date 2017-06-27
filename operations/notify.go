@@ -61,9 +61,9 @@ func Notify() cli.Command {
 
 			// options used to specify authentication credentials.
 			cli.StringFlag{
-				Name:  "githubToken",
-				Usage: "specify a github api auth token",
-				EnVar: "CURATOR_GITHUB_API_TOKEN",
+				Name:   "githubToken",
+				Usage:  "specify a github api auth token",
+				EnvVar: "CURATOR_GITHUB_API_TOKEN",
 			},
 			cli.StringFlag{
 				Name:   "username",
@@ -118,13 +118,13 @@ func Notify() cli.Command {
 				}
 			case "email":
 				opts := &send.SMTPOptions{
-					Name:      c.String("source"),
-					From:      c.String("emailFrom"),
-					Server:    c.String("emailServer"),
-					Port:      c.Int("emailPort"),
-					UseSSL:    c.Bool("emailSSL"),
-					Username:  c.String("username"),
-					Passwword: c.String("password"),
+					Name:     c.String("source"),
+					From:     c.String("emailFrom"),
+					Server:   c.String("emailServer"),
+					Port:     c.Int("emailPort"),
+					UseSSL:   c.Bool("emailSSL"),
+					Username: c.String("username"),
+					Password: c.String("password"),
 				}
 				recips := c.StringSlice("emailRecipient")
 				if err = opts.AddRecipients(recips...); err != nil {
