@@ -169,7 +169,6 @@ tasks:
   - name: push
     patchable: false
     stepback: false
-    tags: ["dist"]
     depends_on:
     - name: "*"
     commands:
@@ -229,6 +228,7 @@ buildvariants:
     tasks:
       - ".dist"
       - ".test"
+      - name: "push"
 
   - name: race-detector
     display_name: Race Detector (Arch Linux)
@@ -238,6 +238,7 @@ buildvariants:
     tasks:
       - ".race"
       - ".report"
+      - name: "push"
 
   - name: rhel70
     display_name: RHEL 7.0
@@ -249,6 +250,7 @@ buildvariants:
     tasks:
       - ".dist"
       - ".test"
+      - name: "push"
 
   - name: rhel62-gccgo
     display_name: RHEL 6.2 (gccgo)
@@ -269,6 +271,7 @@ buildvariants:
     tasks:
       - ".dist"
       - ".test"
+      - name: "push"
 
   - name: macos
     display_name: macOS 10.12
@@ -279,6 +282,7 @@ buildvariants:
     tasks:
       - ".dist"
       - ".test"
+      - name: "push"
 
   # the following targets *just* cross compile the binary for different architectures.
   - name: solaris
@@ -289,7 +293,11 @@ buildvariants:
     run_on:
       *generic-linux-distros
     tasks:
-      - ".dist"
+      - name: "build"
+        depends_on:
+        - name: ".test"
+          variant: "rhel70"
+      - name: "push"
 
   - name: s390x
     display_name: "zLinux (cross-compile)"
@@ -299,7 +307,11 @@ buildvariants:
     run_on:
       *generic-linux-distros
     tasks:
-      - ".dist"
+      - name: "build"
+        depends_on:
+        - name: ".test"
+          variant: "rhel70"
+      - name: "push"
 
   - name: power
     display_name: "Linux POWER (cross-compile)"
@@ -309,7 +321,11 @@ buildvariants:
     run_on:
       *generic-linux-distros
     tasks:
-      - ".dist"
+      - name: "build"
+        depends_on:
+        - name: ".test"
+          variant: "rhel70"
+      - name: "push"
 
   - name: arm
     display_name: "Linux ARM64 (cross-compile)"
@@ -319,7 +335,11 @@ buildvariants:
     run_on:
       *generic-linux-distros
     tasks:
-      - ".dist"
+      - name: "build"
+        depends_on:
+        - name: ".test"
+          variant: "rhel70"
+      - name: "push"
 
   - name: linux-32
     display_name: "Linux 32-bit (cross-compile)"
@@ -329,7 +349,11 @@ buildvariants:
     run_on:
       *generic-linux-distros
     tasks:
-      - ".dist"
+      - name: "build"
+        depends_on:
+        - name: ".test"
+          variant: "rhel70"
+      - name: "push"
 
   - name: windows-64
     display_name: "Windows 64-bit (cross-compile)"
@@ -339,7 +363,11 @@ buildvariants:
     run_on:
       *generic-linux-distros
     tasks:
-      - ".dist"
+      - name: "build"
+        depends_on:
+        - name: ".test"
+          variant: "rhel70"
+      - name: "push"
 
   - name: windows-32
     display_name: "Windows 32-bit (cross-compile)"
@@ -349,4 +377,8 @@ buildvariants:
     run_on:
       *generic-linux-distros
     tasks:
-      - ".dist"
+      - name: "build"
+        depends_on:
+        - name: ".test"
+          variant: "rhel70"
+      - name: "push"
