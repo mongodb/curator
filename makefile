@@ -51,7 +51,7 @@ $(gopath)/src/%:
 	@-[ ! -d $(gopath) ] && mkdir -p $(gopath) || true
 	go get $(subst $(gopath)/src/,,$@)
 $(buildDir)/run-linter:buildscripts/run-linter.go $(buildDir)/.lintSetup
-	$(vendorGopath) go build -o $@ $<
+	go build -o $@ $<
 $(buildDir)/.lintSetup:$(lintDeps)
 	@-$(gopath)/bin/gometalinter --install >/dev/null && touch $@
 # end dependency installation tools
@@ -79,9 +79,9 @@ phony := lint build build-race race test coverage coverage-html
 $(name):$(buildDir)/$(name)
 	@[ -e $@ ] || ln -s $<
 $(buildDir)/$(name):$(srcFiles)
-	$(vendorGopath) go build -o $@ main/$(name).go
+	go build -o $@ main/$(name).go
 $(buildDir)/$(name).race:$(srcFiles)
-	$(vendorGopath) go build -race -o $@ main/$(name).go
+	go build -race -o $@ main/$(name).go
 phony += $(buildDir)/$(name)
 # end main build
 
@@ -109,26 +109,6 @@ lint-%:$(buildDir)/output.%.lint
 
 
 # start vendoring configuration
-#    begin with configuration of dependencies
-vendorDeps := github.com/Masterminds/glide
-vendorDeps := $(addprefix $(gopath)/src/,$(vendorDeps))
-vendor-deps:$(vendorDeps)
-#   this allows us to store our vendored code in vendor and use
-#   symlinks to support vendored code both in the legacy style and with
-#   new-style vendor directories. When this codebase can drop support
-#   for go1.4, we can delete most of this.
--include $(buildDir)/makefile.vendor
-nestedVendored := vendor/github.com/mongodb/grip
-nestedVendored += vendor/github.com/mongodb/amboy
-nestedVendored += vendor/github.com/tychoish/bond
-nestedVendored += vendor/github.com/tychoish/lru
-nestedVendored := $(foreach project,$(nestedVendored),$(project)/build/vendor)
-$(buildDir)/makefile.vendor:$(buildDir)/render-gopath makefile
-	@mkdir -p $(buildDir)
-	@echo "vendorGopath := \$$(shell \$$(buildDir)/render-gopath $(nestedVendored))" >| $@
-#   targets for the directory components and manipulating vendored files.
-vendor-sync:$(vendorDeps)
-	glide install -s
 vendor-clean:
 	-git checkout vendor/github.com/tychoish/bond/makefile
 	rm -rf vendor/github.com/stretchr/testify/vendor/
@@ -152,27 +132,8 @@ vendor-clean:
 	rm -rf vendor/github.com/tychoish/bond/vendor/github.com/pmezard/
 	rm -rf vendor/github.com/mongodb/amboy/vendor/golang.org/x/net/
 	find vendor/ -name "*.gif" -o -name "*.gz" -o -name "*.png" -o -name "*.ico" -o -name "*testdata*"| xargs rm -rf
-change-go-version:
-	rm -rf $(buildDir)/make-vendor $(buildDir)/render-gopath
-	@$(MAKE) $(makeArgs) vendor > /dev/null 2>&1
-vendor:$(buildDir)/vendor/src
-	@$(MAKE) $(makeArgs) -C vendor/github.com/tychoish/bond $@
-	@$(MAKE) $(makeArgs) -C vendor/github.com/mongodb/grip $@
-	@$(MAKE) $(makeArgs) -C vendor/github.com/mongodb/amboy $@
-$(buildDir)/vendor/src:$(buildDir)/make-vendor $(buildDir)/render-gopath
-	@./$(buildDir)/make-vendor
-#   targets to build the small programs used to support vendoring.
-$(buildDir)/make-vendor:buildscripts/make-vendor.go
-	@mkdir -p $(buildDir)
-	go build -o $@ $<
-$(buildDir)/render-gopath:buildscripts/render-gopath.go
-	@mkdir -p $(buildDir)
-	go build -o $@ $<
-#   define dependencies for buildscripts
-buildscripts/make-vendor.go:buildscripts/vendoring/vendoring.go
-buildscripts/render-gopath.go:buildscripts/vendoring/vendoring.go
 #   add phony targets
-phony += vendor vendor-deps vendor-clean vendor-sync change-go-version
+phony += vendor-clean
 # end vendoring tooling configuration
 
 
@@ -194,15 +155,15 @@ coverDeps := $(addprefix $(gopath)/src/,$(coverDeps))
 #    and save test output.
 $(buildDir)/test.operations:$(name)
 $(buildDir)/test.%:$(testSrcFiles) $(coverDeps)
-	$(vendorGopath) go test $(if $(DISABLE_COVERAGE),,-covermode=count) -c -o $@ ./$(subst -,/,$*)
+	go test $(if $(DISABLE_COVERAGE),,-covermode=count) -c -o $@ ./$(subst -,/,$*)
 $(buildDir)/race.operations:$(name)
 $(buildDir)/race.%:$(testSrcFiles)
-	$(vendorGopath) go test -race -c -o $@ ./$(subst -,/,$*)
+	go test -race -c -o $@ ./$(subst -,/,$*)
 #  targets to run any tests in the top-level package
 $(buildDir)/test.$(name):$(testSrcFiles) $(coverDeps)
-	$(vendorGopath) go test $(if $(DISABLE_COVERAGE),,-covermode=count) -c -o $@ ./
+	go test $(if $(DISABLE_COVERAGE),,-covermode=count) -c -o $@ ./
 $(buildDir)/race.$(name):$(testSrcFiles)
-	$(vendorGopath) go test -race -c -o $@ ./
+	go test -race -c -o $@ ./
 #  targets to run the tests and report the output
 $(buildDir)/output.%.test:$(buildDir)/test.% .FORCE
 	$(testRunEnv) ./$< $(testArgs) 2>&1 | tee $@
@@ -218,7 +179,7 @@ $(buildDir)/output.%.coverage:$(buildDir)/test.% .FORCE $(coverDeps)
 	$(testRunEnv) ./$< $(testArgs) -test.coverprofile=$@ | tee $(subst coverage,test,$@)
 	@-[ -f $@ ] && go tool cover -func=$@ | sed 's%$(projectPath)/%%' | column -t
 $(buildDir)/output.%.coverage.html:$(buildDir)/output.%.coverage $(coverDeps)
-	$(vendorGopath) go tool cover -html=$< -o $@
+	go tool cover -html=$< -o $@
 # end test and coverage artifacts
 
 

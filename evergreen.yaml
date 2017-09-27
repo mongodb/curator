@@ -75,7 +75,6 @@ functions:
 
          # Run make, called with proper environment variables set,
          # running the target.
-         ${build_env|} make vendor
          ${build_env|} ${xc_env|} make ${target}
 
 #######################################
@@ -251,16 +250,6 @@ buildvariants:
       - ".dist"
       - ".test"
       - name: "push"
-
-  - name: rhel62-gccgo
-    display_name: RHEL 6.2 (gccgo)
-    expansions:
-      build_env: "PATH=/opt/mongodbtoolchain/v2/bin:$PATH DISABLE_COVERAGE=yes"
-    run_on:
-      - rhel62-small
-    tasks:
-      - ".dist"
-      - ".test"
 
   - name: debian81
     display_name: Debian 8.1
