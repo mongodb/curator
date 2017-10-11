@@ -11,8 +11,8 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/pkg/errors"
 	"github.com/mongodb/grip"
+	"github.com/pkg/errors"
 )
 
 // BuildDEBRepoJob is an amboy.Job implementation that builds Debian

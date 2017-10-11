@@ -70,7 +70,7 @@ func (s *ReactorSuite) TestCreateJobsErrorsWithInvalidPath() {
 	urls <- "https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-2.8.10.tgz"
 	close(urls)
 	fn := filepath.Join(s.tempDir, "foo")
-	s.NoError(ioutil.WriteFile(fn, []byte("hello"), 644))
+	s.NoError(ioutil.WriteFile(fn, []byte("hello"), 0644))
 	_, errs := createJobs(fn, urls)
 
 	s.Error(aggregateErrors(errs))

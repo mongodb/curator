@@ -1,6 +1,7 @@
 package queue
 
 import (
+	"context"
 	"testing"
 
 	"github.com/mongodb/amboy"
@@ -8,7 +9,6 @@ import (
 	"github.com/mongodb/amboy/pool"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"golang.org/x/net/context"
 )
 
 // LocalLimitedSizeQueue suite tests the queue implementation that
@@ -70,7 +70,7 @@ func (s *LimitedSizeQueueSuite) TestCallingStartMultipleTimesDoesNotImpactState(
 }
 
 func (s *LimitedSizeQueueSuite) TestCannotSetRunnerAfterQueueIsOpened() {
-	secondRunner := pool.NewSingleRunner()
+	secondRunner := pool.NewSingle()
 	runner := s.queue.runner
 
 	s.False(s.queue.Started())

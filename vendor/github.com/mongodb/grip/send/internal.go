@@ -73,6 +73,15 @@ func (s *InternalSender) GetMessage() *InternalMessage {
 	return <-s.output
 }
 
+func (s *InternalSender) GetMessageSafe() (*InternalMessage, bool) {
+	select {
+	case m := <-s.output:
+		return m, true
+	default:
+		return nil, false
+	}
+}
+
 // HasMessage returns true if there is at least one message that has
 // not be removed.
 func (s *InternalSender) HasMessage() bool {
@@ -90,6 +99,6 @@ func (s *InternalSender) Send(m message.Composer) {
 		Message:  m,
 		Priority: m.Priority(),
 		Rendered: m.String(),
-		Logged:   s.level.ShouldLog(m),
+		Logged:   s.Level().ShouldLog(m),
 	}
 }

@@ -1,12 +1,12 @@
 package driver
 
 import (
+	"context"
 	"time"
 
 	"github.com/mongodb/amboy"
-	"github.com/pkg/errors"
 	"github.com/mongodb/grip"
-	"golang.org/x/net/context"
+	"github.com/pkg/errors"
 )
 
 type lockPings map[string]time.Time
@@ -137,11 +137,14 @@ func (l *LockManager) Lock(j amboy.Job) error {
 
 	stat := j.Status()
 
-	if stat.InProgress && stat.Owner != l.name {
-		if stat.ModificationTime.Add(lockTimeout).After(time.Now()) {
-			return errors.Errorf("cannot take lock, job locked at %s by %s, for job: '%s'",
-				stat.ModificationTime, stat.Owner, j.ID())
-		}
+	// previous versions of this allowed operation allowed one
+	// client to "take" the lock more than once. This covered a
+	// deadlock/bug in queue implementations in marking jobs
+	// complete, *and* allowed queues implementations with more
+	// than one worker, to potentially repeat work.
+	if stat.InProgress && stat.ModificationTime.Add(lockTimeout).After(time.Now()) {
+		return errors.Errorf("cannot take lock, job locked at %s by %s, for job: '%s'",
+			stat.ModificationTime, stat.Owner, j.ID())
 	}
 
 	stat.ModificationTime = time.Now()

@@ -1,6 +1,7 @@
 package sthree
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -19,7 +20,6 @@ import (
 	"github.com/mongodb/amboy/queue"
 	"github.com/mongodb/grip"
 	"github.com/pkg/errors"
-	"golang.org/x/net/context"
 )
 
 func init() {

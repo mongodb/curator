@@ -1,6 +1,7 @@
 package driver
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"sync"
@@ -11,7 +12,6 @@ import (
 	"github.com/mongodb/grip"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
-	"golang.org/x/net/context"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -39,8 +39,6 @@ type MongoDBOptions struct {
 	URI      string
 	DB       string
 	Priority bool
-
-	// TODO it might be good to set lock timeouts here.
 }
 
 // DefaultMongoDBOptions constructs a new options object with default
@@ -130,16 +128,6 @@ func (d *MongoDB) getJobsCollection() (*mgo.Session, *mgo.Collection) {
 	session := d.session.Copy()
 
 	return session, session.DB(d.dbName).C(d.name + ".jobs")
-}
-
-func (d *MongoDB) unsetSession() {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-
-	if d.session != nil {
-		d.session.Close()
-		d.session = nil
-	}
 }
 
 func (d *MongoDB) setupDB() error {

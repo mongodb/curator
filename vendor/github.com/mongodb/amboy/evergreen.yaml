@@ -72,11 +72,16 @@ functions:
          # Configure a local go path for this build.
          export GOPATH=`pwd`/gopath
 
+         # on windows we need to turn the slashes the other way
+         if [ "Windows_NT" == "$OS" ]; then
+            export GOPATH=$(cygpath -m $GOPATH)
+         fi
+
          cd gopath/src/github.com/mongodb/amboy
 
          # Run make, called with proper environment variables set,
          # running the target.
-         ${build_env} make vendor ${target}
+         ${build_env} make ${target}
   set-up-mongodb:
     # TODO replace this configuration with something more robust.
     # Current version is borrowed directly rom the Evergreen self tests.
@@ -84,13 +89,14 @@ functions:
       params:
         script: |
           set -o errexit
+          set -o verbose
 
           rm -rf mongodb
           mkdir mongodb
           cd mongodb
-          curl ${mongodb_url} -o mongodb.tgz
+          curl ${mongodb_url} -o mongodb${archiveExt|.tgz}
 
-          tar -zxvf mongodb.tgz
+          ${decompress} mongodb${archiveExt|.tgz}
           chmod +x ./mongodb-*/bin/*
           mv ./mongodb-*/bin/* .
           rm -rf db_files
@@ -245,16 +251,6 @@ post:
 #           Buildvariants             #
 #######################################
 buildvariants:
-  - name: archlinux
-    display_name: Arch Linux
-    expansions:
-      mongodb_url: https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-3.2.9.tgz
-    run_on:
-      - archlinux-test
-    tasks:
-      - ".dist"
-      - ".test"
-
   - name: race-detector
     display_name: Race Detector (Arch Linux)
     expansions:
@@ -265,46 +261,50 @@ buildvariants:
       - ".race"
       - ".report"
 
+  - name: ubuntu1604
+    display_name: Ubuntu 16.04
+    run_on:
+      - ubuntu1604-test
+    expansions:
+      build_env: "GOROOT=/opt/go DISABLE_COVERAGE=yes"
+      mongodb_url: https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu1604-3.4.7.tgz
+    tasks:
+      - name: ".dist"
+      - name: ".test"
+
   - name: rhel70
     display_name: RHEL 7.0
     expansions:
       mongodb_url: https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-rhel70-3.2.9.tgz
       build_env: "PATH=/opt/go/bin:$PATH"
     run_on:
-      - rhel70
+      - rhel70-small
     tasks:
       - ".dist"
       - ".test"
 
-  - name: rhel62-gccgo
-    display_name: RHEL 6.2 (gccgo)
-    expansions:
-      mongodb_url: https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-rhel62-3.2.9.tgz
-      build_env: "PATH=/opt/mongodbtoolchain/v2/bin:$PATH"
-    run_on:
-      - rhel62-test
-    tasks:
-      - ".dist"
-      - ".test"
-
-  - name: debian81
-    display_name: Debian 8.1
-    expansions:
-      mongodb_url: https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-debian81-3.2.9.tgz
-      build_env: "PATH=/opt/go/bin:$PATH GOROOT=/opt/go"
-    run_on:
-      - debian81-test
-    tasks:
-      - ".dist"
-      - ".test"
-
-  - name: osx
-    display_name: OS X 10.10
+  - name: macos
+    display_name: macOS 10.12
     expansions:
       mongodb_url: https://fastdl.mongodb.org/osx/mongodb-osx-ssl-x86_64-3.2.9.tgz
       build_env: "PATH=/usr/local/go/bin:$PATH"
     run_on:
-      - osx-1010
+      - macos-1012
+    tasks:
+      - ".dist"
+      - ".test"
+
+  - name: windows
+    display_name: Windows
+    run_on:
+      - windows-64-vs2015-small
+      - windows-64-vs2013-test
+      - windows-64-vs2010-test
+    expansions:
+      build_env: "GOROOT=c:/go DISABLE_COVERAGE=yes"
+      mongodb_url: https://fastdl.mongodb.org/win32/mongodb-win32-x86_64-2008plus-3.2.9.zip
+      extension: ".exe"
+      archiveExt: ".zip"
     tasks:
       - ".dist"
       - ".test"

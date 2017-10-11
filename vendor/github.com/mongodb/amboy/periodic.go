@@ -1,12 +1,12 @@
 package amboy
 
 import (
+	"context"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/mongodb/grip"
 	"github.com/mongodb/grip/message"
-	"golang.org/x/net/context"
+	"github.com/pkg/errors"
 )
 
 // QueueOperation is a named function literal for use in the
@@ -81,7 +81,7 @@ func GroupQueueOperationFactory(first QueueOperation, ops ...QueueOperation) Que
 // *not* interrupt the background process. Otherwise, the background
 // process will exit if a QueueOperation fails. Use the context to
 // terminate the background process.
-func PeriodicQueueOperation(ctx context.Context, q Queue, op QueueOperation, interval time.Duration, ignoreErrors bool) {
+func PeriodicQueueOperation(ctx context.Context, q Queue, interval time.Duration, ignoreErrors bool, op QueueOperation) {
 	go func() {
 		timer := time.NewTimer(0)
 		defer timer.Stop()
@@ -91,19 +91,13 @@ func PeriodicQueueOperation(ctx context.Context, q Queue, op QueueOperation, int
 			select {
 			case <-ctx.Done():
 				grip.Info(message.Fields{
-					"msg":        "exiting periodic job scheduler",
+					"message":    "exiting periodic job scheduler",
 					"numPeriods": count,
 				})
 				return
 			case <-timer.C:
-				err := errors.Wrap(op(q), "problem encountered by queue producer")
-				if err != nil {
-					if ignoreErrors {
-						grip.Warning(err)
-					} else {
-						grip.Critical(err)
-						return
-					}
+				if err := scheduleOp(q, op, ignoreErrors); err != nil {
+					return
 				}
 
 				count++
@@ -111,4 +105,54 @@ func PeriodicQueueOperation(ctx context.Context, q Queue, op QueueOperation, int
 			}
 		}
 	}()
+}
+
+// IntervalQueueOperation runs a queue scheduling operation on a
+// regular interval, starting at specific time. Use this method to
+// schedule jobs every hour, or similar use-cases.
+func IntervalQueueOperation(ctx context.Context, q Queue, interval time.Duration, startAt time.Time, ignoreErrors bool, op QueueOperation) {
+	go func() {
+		initialWait := time.Now().Sub(startAt)
+		if initialWait > time.Second {
+			grip.Infof("waiting %s to start scheduling an interval job", initialWait)
+			time.Sleep(initialWait)
+		}
+
+		if err := scheduleOp(q, op, ignoreErrors); err != nil {
+			return
+		}
+
+		count := 0
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				grip.Info(message.Fields{
+					"message":      "exiting interval job scheduler",
+					"numIntervals": count,
+				})
+				return
+			case <-ticker.C:
+				if err := scheduleOp(q, op, ignoreErrors); err != nil {
+					return
+				}
+
+				count++
+			}
+		}
+	}()
+}
+
+func scheduleOp(q Queue, op QueueOperation, ignoreErrors bool) error {
+	if err := errors.Wrap(op(q), "problem encountered during periodic job scheduling"); err != nil {
+		if ignoreErrors {
+			grip.Warning(err)
+		} else {
+			grip.Critical(err)
+			return err
+		}
+	}
+
+	return nil
 }

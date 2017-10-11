@@ -11,8 +11,8 @@ import (
 	"github.com/mongodb/amboy"
 	"github.com/mongodb/amboy/dependency"
 	"github.com/mongodb/amboy/job"
-	"github.com/pkg/errors"
 	"github.com/mongodb/grip"
+	"github.com/pkg/errors"
 )
 
 // Not making this job public or registering it with amboy because it

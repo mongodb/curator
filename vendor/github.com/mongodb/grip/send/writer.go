@@ -1,22 +1,25 @@
 package send
 
 import (
+	"bufio"
 	"bytes"
+	"io"
 	"sync"
+	"unicode"
 
 	"github.com/mongodb/grip/level"
 	"github.com/mongodb/grip/message"
 )
-
-var newLine = []byte{'\n'}
 
 // WriterSender wraps another sender and also provides an io.Writer.
 // (and because Sender is an io.Closer) the type also implements
 // io.WriteCloser.
 type WriterSender struct {
 	Sender
-	buffer []byte
-	mu     sync.Mutex
+	writer   *bufio.Writer
+	buffer   *bytes.Buffer
+	priority level.Priority
+	mu       sync.Mutex
 }
 
 // NewWriterSender wraps another sender and also provides an io.Writer.
@@ -33,56 +36,69 @@ type WriterSender struct {
 // buffered messages) is only whitespace, then it is not sent.
 //
 // If there are any bytes in the buffer when the Close method is
-// called, this sender flushes the buffer before closing the underlying sender.
-func NewWriterSender(s Sender) *WriterSender { return &WriterSender{Sender: s} }
+// called, this sender flushes the buffer.
+func NewWriterSender(s Sender) *WriterSender { return MakeWriterSender(s, s.Level().Default) }
+
+// MakeWriterSender returns an sender interface that also implements
+// io.Writer. Specify a priority used as the level for messages sent.
+func MakeWriterSender(s Sender, p level.Priority) *WriterSender {
+	buffer := new(bytes.Buffer)
+
+	return &WriterSender{
+		Sender:   s,
+		priority: p,
+		writer:   bufio.NewWriter(buffer),
+		buffer:   buffer,
+	}
+}
 
 // Write captures a sequence of bytes to the send interface. It never errors.
 func (s *WriterSender) Write(p []byte) (int, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-
-	// capture the number of bytes in the input so we can return
-	// the proper amount
-	n := len(p)
-
-	// if the logged message does *not* end in a new line, we
-	// should buffer it until we find one that does.
-	if !bytes.HasSuffix(p, newLine) {
-		s.buffer = append(s.buffer, p...)
-		return n, nil
+	n, err := s.writer.Write(p)
+	if err != nil {
+		return n, err
 	}
-	// we're ready to write the log message
+	_ = s.writer.Flush()
 
-	// if we had something in the buffer, we should prepend it to
-	// the current message, and clear the buffer.
-	if len(s.buffer) >= 1 {
-		p = append(s.buffer, p...)
-		s.buffer = []byte{}
+	if s.buffer.Len() > 80 {
+		err = s.doSend()
 	}
 
-	// Now send each log message:
-	s.doSend(s.Level().Default, p)
-	return n, nil
+	return n, err
 }
 
-func (s *WriterSender) doSend(l level.Priority, buf []byte) {
-	for _, val := range bytes.Split(buf, newLine) {
-		if len(bytes.Trim(val, " \t")) != 0 {
-			s.Send(message.NewBytesMessage(l, val))
+func (s *WriterSender) doSend() error {
+	for {
+		line, err := s.buffer.ReadBytes('\n')
+		if err == io.EOF {
+			s.buffer.Write(line)
+			return nil
 		}
+
+		if err == nil {
+			s.Send(message.NewBytesMessage(s.priority, bytes.TrimRightFunc(line, unicode.IsSpace)))
+			continue
+		}
+
+		s.Send(message.NewBytesMessage(s.priority, bytes.TrimRightFunc(line, unicode.IsSpace)))
+		return err
 	}
 }
 
-// Close writes any buffered messages to the underlying Sender before
-// closing that Sender.
+// Close writes any buffered messages to the underlying Sender. Does
+// not close the underlying sender.
 func (s *WriterSender) Close() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if len(s.buffer) >= 1 {
-		s.doSend(s.Level().Default, s.buffer)
-		s.buffer = []byte{}
+	if err := s.writer.Flush(); err != nil {
+		return err
 	}
 
-	return s.Sender.Close()
+	s.Send(message.NewBytesMessage(s.priority, bytes.TrimRightFunc(s.buffer.Bytes(), unicode.IsSpace)))
+	s.buffer.Reset()
+	s.writer.Reset(s.buffer)
+	return nil
 }

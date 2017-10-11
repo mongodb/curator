@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
-	"github.com/fuyufjh/splunk-hec-go"
+	hec "github.com/fuyufjh/splunk-hec-go"
 	"github.com/mongodb/grip/level"
 	"github.com/mongodb/grip/message"
 )
@@ -14,52 +15,67 @@ import (
 const (
 	splunkServerURL   = "GRIP_SPLUNK_SERVER_URL"
 	splunkClientToken = "GRIP_SPLUNK_CLIENT_TOKEN"
+	splunkChannel     = "GRIP_SPLUNK_CHANNEL"
 )
 
 type splunkLogger struct {
-	info   SplunkConnectionInfo
-	client splunkClient
+	info     SplunkConnectionInfo
+	client   splunkClient
+	hostname string
 	*Base
 }
 
 // SplunkConnectionInfo stores all information needed to connect
 // to a splunk server to send log messsages.
 type SplunkConnectionInfo struct {
-	ServerURL string
-	Token     string
-	Channel   string
+	ServerURL string `bson:"url" json:"url" yaml:"url"`
+	Token     string `bson:"token" json:"token" yaml:"token"`
+	Channel   string `bson:"channel" json:"channel" yaml:"channel"`
 }
 
 // GetSplunkConnectionInfo builds a SplunkConnectionInfo structure
 // reading default values from the following environment variables:
 //
-// 		GRIP_SPLUNK_SERVER_URL
+//		GRIP_SPLUNK_SERVER_URL
 //		GRIP_SPLUNK_CLIENT_TOKEN
+//		GRIP_SPLUNK_CHANNEL
 func GetSplunkConnectionInfo() SplunkConnectionInfo {
 	return SplunkConnectionInfo{
 		ServerURL: os.Getenv(splunkServerURL),
 		Token:     os.Getenv(splunkClientToken),
+		Channel:   os.Getenv(splunkChannel),
 	}
 }
 
+// Populated validates a SplunkConnectionInfo, and returns false if
+// there is missing data.
+func (info SplunkConnectionInfo) Populated() bool {
+	return info.ServerURL != "" && info.Token != ""
+}
+
 func (s *splunkLogger) Send(m message.Composer) {
-	if s.level.ShouldLog(m) {
+	if s.Level().ShouldLog(m) {
 		g, ok := m.(*message.GroupComposer)
 		if ok {
-			batch := make([]*hec.Event, 0)
+			batch := []*hec.Event{}
+			level := s.Level()
 			for _, c := range g.Messages() {
-				if s.level.ShouldLog(c) {
-					batch = append(batch, hec.NewEvent(c.Raw()))
+				if level.ShouldLog(c) {
+					e := hec.NewEvent(c.Raw())
+					e.SetHost(s.hostname)
+					batch = append(batch, e)
 				}
 			}
 			if err := s.client.WriteBatch(batch); err != nil {
-				s.errHandler(err, m)
+				s.ErrorHandler(err, m)
 			}
 			return
 		}
 
-		if err := s.client.WriteEvent(hec.NewEvent(m.Raw())); err != nil {
-			s.errHandler(err, m)
+		e := hec.NewEvent(m.Raw())
+		e.SetHost(s.hostname)
+		if err := s.client.WriteEvent(e); err != nil {
+			s.ErrorHandler(err, m)
 		}
 	}
 }
@@ -73,6 +89,12 @@ func NewSplunkLogger(name string, info SplunkConnectionInfo, l LevelInfo) (Sende
 		client: &splunkClientImpl{},
 		Base:   NewBase(name),
 	}
+
+	hostname, err := os.Hostname()
+	if err != nil {
+		return nil, err
+	}
+	s.hostname = hostname
 
 	if err := s.client.Create(info.ServerURL, info.Token, info.Channel); err != nil {
 		return nil, err
@@ -88,8 +110,9 @@ func NewSplunkLogger(name string, info SplunkConnectionInfo, l LevelInfo) (Sende
 // MakeSplunkLogger constructs a new Sender implementation that reads
 // the hostname, username, and password from environment variables:
 //
-// 		GRIP_SPLUNK_SERVER_URL
+//		GRIP_SPLUNK_SERVER_URL
 //		GRIP_SPLUNK_CLIENT_TOKEN
+//		GRIP_SPLUNK_CLIENT_CHANNEL
 func MakeSplunkLogger(name string) (Sender, error) {
 	info := GetSplunkConnectionInfo()
 	if info.ServerURL == "" {
@@ -121,11 +144,23 @@ type splunkClientImpl struct {
 
 func (c *splunkClientImpl) Create(serverURL string, token string, channel string) error {
 	c.HEC = hec.NewClient(serverURL, token)
-	c.HEC.SetHTTPClient(&http.Client{Transport: &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	}})
 	if channel != "" {
 		c.HEC.SetChannel(channel)
 	}
+
+	c.HEC.SetKeepAlive(false)
+	c.HEC.SetMaxRetry(0)
+	c.HEC.SetHTTPClient(&http.Client{
+		Transport: &http.Transport{
+			Proxy:               http.ProxyFromEnvironment,
+			DisableKeepAlives:   true,
+			TLSHandshakeTimeout: 5 * time.Second,
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		},
+		Timeout: 5 * time.Second,
+	})
+
 	return nil
 }

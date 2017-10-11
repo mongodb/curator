@@ -1,6 +1,7 @@
 package operations
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -11,7 +12,6 @@ import (
 	"github.com/tychoish/bond"
 	"github.com/tychoish/bond/recall"
 	"github.com/urfave/cli"
-	"golang.org/x/net/context"
 )
 
 // Artifacts returns a command object for the "archives" sub command

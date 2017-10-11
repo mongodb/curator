@@ -1,14 +1,15 @@
 package recall
 
 import (
+	"context"
 	"runtime"
+	"time"
 
 	"github.com/mongodb/amboy"
 	"github.com/mongodb/amboy/queue"
 	"github.com/mongodb/grip"
 	"github.com/pkg/errors"
 	"github.com/tychoish/bond"
-	"golang.org/x/net/context"
 )
 
 // DownloadReleases accesses the feed and, based on the arguments
@@ -52,7 +53,7 @@ func FetchReleases(ctx context.Context, releases []string, path string, options 
 	}
 
 	grip.Infof("waiting for %d download jobs to complete", q.Stats().Total)
-	amboy.Wait(q)
+	amboy.WaitCtxInterval(ctx, q, 100*time.Millisecond)
 	grip.Info("all download tasks complete, processing errors now")
 
 	if err := amboy.ResolveErrors(ctx, q); err != nil {

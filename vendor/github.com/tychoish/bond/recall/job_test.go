@@ -135,7 +135,7 @@ func (s *DownloadJobSuite) TestTarGzExtensionSpecialCase() {
 }
 
 func (s *DownloadJobSuite) TestSetDirectoryToFileReturnsError() {
-	path := "../makefile"
+	path := "makefile"
 	s.Error(s.job.setDirectory(path))
 	s.Equal("", s.job.Directory)
 

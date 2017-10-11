@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/mongodb/grip"
+	"github.com/pkg/errors"
 )
 
 // BuildRPMRepoJob contains specific implementation for building RPM

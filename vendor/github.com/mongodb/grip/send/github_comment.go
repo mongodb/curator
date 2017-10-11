@@ -1,13 +1,13 @@
 package send
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
 
 	"github.com/google/go-github/github"
 	"github.com/mongodb/grip/message"
-	"golang.org/x/net/context"
 )
 
 type githubCommentLogger struct {
@@ -54,10 +54,10 @@ func NewGithubCommentLogger(name string, issueID int, opts *GithubOptions) (Send
 }
 
 func (s *githubCommentLogger) Send(m message.Composer) {
-	if s.level.ShouldLog(m) {
+	if s.Level().ShouldLog(m) {
 		text, err := s.formatter(m)
 		if err != nil {
-			s.errHandler(err, m)
+			s.ErrorHandler(err, m)
 			return
 		}
 
@@ -66,7 +66,7 @@ func (s *githubCommentLogger) Send(m message.Composer) {
 		ctx := context.TODO()
 		_, _, err = s.gh.CreateComment(ctx, s.opts.Account, s.opts.Repo, s.issue, comment)
 		if err != nil {
-			s.errHandler(err, m)
+			s.ErrorHandler(err, m)
 		}
 	}
 }

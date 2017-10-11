@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 
 	"github.com/mongodb/curator/repobuilder"
-	"github.com/satori/go.uuid"
 	"github.com/mongodb/grip"
+	"github.com/satori/go.uuid"
 	"github.com/urfave/cli"
 )
 

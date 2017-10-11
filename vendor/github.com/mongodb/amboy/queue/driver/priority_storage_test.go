@@ -1,13 +1,13 @@
 package driver
 
 import (
+	"context"
 	"testing"
 
 	"github.com/mongodb/amboy"
 	"github.com/mongodb/amboy/job"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"golang.org/x/net/context"
 )
 
 type PriorityStorageSuite struct {
@@ -125,11 +125,9 @@ func (s *PriorityStorageSuite) TestGetReturnsNilWhenJobDoesNotExist() {
 }
 
 func (s *PriorityStorageSuite) TestJobServerPushesJobsInPriorityOrder() {
-	var jobs []*job.ShellJob
 	for i := 0; i < 25; i++ {
 		j := job.NewShellJob("echo ordered", "")
 		j.SetPriority(i + 1)
-		jobs = append(jobs, j)
 		s.ps.Push(j)
 	}
 

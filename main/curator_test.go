@@ -3,9 +3,9 @@ package main
 import (
 	"testing"
 
-	"github.com/stretchr/testify/suite"
 	"github.com/mongodb/grip"
 	"github.com/mongodb/grip/level"
+	"github.com/stretchr/testify/suite"
 )
 
 // MainSuite is a collection of tests that exercise the main() of the

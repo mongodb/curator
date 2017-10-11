@@ -6,9 +6,9 @@ import (
 
 	"github.com/goamz/goamz/aws"
 	"github.com/goamz/goamz/s3"
+	"github.com/mongodb/grip"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"github.com/mongodb/grip"
 )
 
 // RegistrySuite collects tests of the bucketRegistry, which provides

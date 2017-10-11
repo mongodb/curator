@@ -3,15 +3,6 @@ updated: 2016-10-20T16:48:42.872025812-04:00
 imports:
 - name: github.com/davecgh/go-spew
   version: 6d212800a42e8ab5c146b8ace3490ee17e5225f9
-- name: github.com/mongodb/amboy
-  version: fef06792a99996cdf558314a510b7c683b8f933a
-  subpackages:
-  - dependency
-  - queue
-  - registry
-  - priority
-  - pool
-  - queue/driver
 - name: github.com/pkg/errors
   version: 839d9e913e063e28dfd0e6c7b7512793e0a48be9
 - name: github.com/pmezard/go-difflib
@@ -22,12 +13,13 @@ imports:
   version: 1a9d0bb9f541897e62256577b352fdbc1fb4fd94
 - name: github.com/stretchr/testify
   version: 976c720a22c8eb4eb6a0b4348ad85ad12491a506
-- name: github.com/mongodb/grip
-  version: 07578aa100ecdf0d5a1611e2ef43742ff6c77240
-- name: golang.org/x/net
-  version: daba796358cd2742b75aae05761f1b898c9f6a5c
-  subpackages:
-  - context
 - name: github.com/mholt/archiver
   version: 4a8a092653655d29c8e091cf2ecf91cbe697f0de
+
+- name: github.com/mongodb/amboy
+  version: edabf653dd57e474a24698553113017d715e4518
+- name: github.com/mongodb/grip
+  version: 4beebb80a809873037c5d9b370a9235f33cd3096
+
+
 devImports: []
