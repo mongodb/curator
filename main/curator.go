@@ -59,5 +59,5 @@ func buildApp() *cli.App {
 
 func loggingSetup(name, level string) {
 	grip.SetName(name)
-	grip.SetThreshold(level)
+	_ = grip.SetThreshold(level)
 }
