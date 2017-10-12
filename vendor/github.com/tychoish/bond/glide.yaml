@@ -4,7 +4,4 @@ import:
 - package: github.com/mongodb/grip
 - package: github.com/pkg/errors
 - package: github.com/stretchr/testify
-- package: github.com/stretchr/objx
-- package: github.com/pmezard/go-difflib
-- package: github.com/davecgh/go-spew
 - package: github.com/mholt/archiver

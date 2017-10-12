@@ -110,29 +110,17 @@ lint-%:$(buildDir)/output.%.lint
 
 # start vendoring configuration
 vendor-clean:
-	-git checkout vendor/github.com/tychoish/bond/makefile
-	rm -rf vendor/github.com/stretchr/testify/vendor/
 	rm -rf vendor/github.com/mongodb/amboy/vendor/github.com/mongodb/grip/
-	rm -rf vendor/github.com/mongodb/amboy/vendor/github.com/golang.org/x/net/
-	rm -rf vendor/github.com/mongodb/amboy/vendor/golang.org/x/net/
-	rm -rf vendor/github.com/mongodb/amboy/vendor/github.com/davecgh/
-	rm -rf vendor/github.com/mongodb/amboy/vendor/github.com/stretchr/
-	rm -rf vendor/github.com/mongodb/grip/vendor/golang.org/x/net/
-	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/stretchr
-	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/davecgh
-	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/pmezard/go-difflib/
+	rm -rf vendor/github.com/mongodb/amboy/vendor/github.com/stretchr/testify/
+	rm -rf vendor/github.com/mongodb/amboy/vendor/github.com/pkg/errors/
+	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/stretchr/testify/
 	rm -rf vendor/github.com/tychoish/lru/vendor/github.com/mongodb/grip/
 	rm -rf vendor/github.com/tychoish/lru/vendor/github.com/pkg/errors/
-	rm -rf vendor/github.com/tychoish/bond/vendor/github.com/tychoish/
 	rm -rf vendor/github.com/tychoish/bond/vendor/github.com/mongodb/grip/
 	rm -rf vendor/github.com/tychoish/bond/vendor/github.com/mongodb/amboy/
-	rm -rf vendor/github.com/tychoish/bond/vendor/golang.org/x/net/
+	rm -rf vendor/github.com/tychoish/bond/vendor/github.com/stretchr/testify/
+	rm -rf vendor/github.com/tychoish/bond/vendor/github.com/satori/go.uuid/
 	rm -rf vendor/github.com/tychoish/bond/vendor/github.com/pkg/errors/
-	rm -rf vendor/github.com/tychoish/bond/vendor/github.com/davecgh/go-spew/
-	rm -rf vendor/github.com/tychoish/bond/vendor/github.com/stretchr
-	rm -rf vendor/github.com/tychoish/bond/vendor/github.com/satori/
-	rm -rf vendor/github.com/tychoish/bond/vendor/github.com/pmezard/
-	rm -rf vendor/github.com/mongodb/amboy/vendor/golang.org/x/net/
 	find vendor/ -name "*.gif" -o -name "*.gz" -o -name "*.png" -o -name "*.ico" -o -name "*testdata*"| xargs rm -rf
 #   add phony targets
 phony += vendor-clean
