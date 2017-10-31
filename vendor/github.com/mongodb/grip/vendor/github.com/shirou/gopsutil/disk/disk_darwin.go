@@ -88,7 +88,7 @@ func Partitions(all bool) ([]PartitionStat, error) {
 }
 
 func IOCounters() (map[string]IOCountersStat, error) {
-	return nil, common.ErrNotImplementedError
+	return getDiskMetrics()
 }
 
 func Getfsstat(buf []Statfs_t, flags int) (n int, err error) {
