@@ -36,6 +36,7 @@ func buildApp() *cli.App {
 		operations.Artifacts(),
 		operations.SystemInfo(),
 		operations.BuildLogger(),
+		operations.Splunk(),
 		operations.Notify(),
 	}
 

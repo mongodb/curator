@@ -2,6 +2,7 @@ package operations
 
 import (
 	"bufio"
+	"encoding/json"
 	"io"
 	"os"
 	"os/exec"
@@ -10,7 +11,6 @@ import (
 
 	shlex "github.com/anmitsu/go-shlex"
 	"github.com/mongodb/grip"
-	"github.com/mongodb/grip/level"
 	"github.com/mongodb/grip/message"
 	"github.com/mongodb/grip/send"
 	"github.com/pkg/errors"
@@ -69,10 +69,14 @@ func BuildLogger() cli.Command {
 				Usage:  "alternate credential specification method. Must specify username and password",
 				EnvVar: "BUILDLOGGER_PASSWORD",
 			},
+			cli.StringFlag{
+				Name:  "json",
+				Usage: "when specified, all input is parsed as new-line seperated json",
+			},
 		},
 		Subcommands: []cli.Command{
-			logCommand(),
-			logPipe(),
+			buildLogCommand(),
+			buildLogPipe(),
 		},
 	}
 }
@@ -83,7 +87,7 @@ func BuildLogger() cli.Command {
 //
 ///////////////////////////////////
 
-func logCommand() cli.Command {
+func buildLogCommand() cli.Command {
 	return cli.Command{
 		Name:  "command",
 		Usage: "run a command and write all standard input and error to the buildlogger",
@@ -94,52 +98,46 @@ func logCommand() cli.Command {
 			},
 		},
 		Action: func(c *cli.Context) error {
-			conf := getBuildloggerConfig(c)
-			logger, closer, err := setupBuildLogger(conf, c.Parent().Int("count"), c.Parent().Duration("interval"))
-			defer closer()
+			clogger, err := setupBuildLogger(
+				getBuildloggerConfig(c),
+				c.Parent().Bool("json"),
+				c.Parent().Int("count"),
+				c.Parent().Duration("interval"))
+			defer clogger.closer() // should close before checking error.
 			if err != nil {
 				return errors.Wrap(err, "problem configuring buildlogger")
 			}
 
-			command := c.String("exec")
-			args, err := shlex.Split(command, true)
+			cmd, err := getCmd(c.String("exec"))
 			if err != nil {
-				return errors.Wrapf(err, "problem parsing command: %s", command)
+				return errors.Wrap(err, "problem creating command object")
 			}
 
-			var cmd *exec.Cmd
-			if len(args) == 0 {
-				return errors.New("no command specified")
-			} else if len(args) == 1 {
-				cmd = exec.Command(args[0])
-			} else {
-				cmd = exec.Command(args[0], args[1:]...)
-			}
-
-			return errors.Wrap(runCommand(logger, cmd), "problem running command")
+			return errors.Wrap(clogger.runCommand(cmd), "problem running command")
 		},
 	}
 }
 
-func logPipe() cli.Command {
+func buildLogPipe() cli.Command {
 	return cli.Command{
 		Name:  "pipe",
 		Usage: "send standard input to the buildlogger",
 		Action: func(c *cli.Context) error {
-			conf := getBuildloggerConfig(c)
-			logger, closer, err := setupBuildLogger(conf, c.Parent().Int("count"), c.Parent().Duration("interval"))
-			defer closer()
+			clogger, err := setupBuildLogger(
+				getBuildloggerConfig(c),
+				c.Parent().Bool("json"),
+				c.Parent().Int("count"),
+				c.Parent().Duration("interval"))
+			defer clogger.closer()
 			if err != nil {
 				return errors.Wrap(err, "problem configuring buildlogger")
 			}
 
-			input := bufio.NewScanner(os.Stdin)
-			for input.Scan() {
-				logger.Log(logger.DefaultLevel(),
-					message.NewDefaultMessage(level.Info, input.Text()))
+			if err := clogger.readPipe(os.Stdin); err != nil {
+				return errors.Wrap(err, "problem reading from standard input")
 			}
 
-			return errors.Wrap(input.Err(), "problem reading from standard input")
+			return nil
 		},
 	}
 }
@@ -160,10 +158,38 @@ func getBuildloggerConfig(c *cli.Context) *send.BuildloggerConfig {
 	}
 }
 
-func setupBuildLogger(conf *send.BuildloggerConfig, count int, interval time.Duration) (grip.Journaler, func(), error) {
+func getCmd(command string) (*exec.Cmd, error) {
+	args, err := shlex.Split(command, true)
+	if err != nil {
+		return nil, errors.Wrapf(err, "problem parsing command: %s", command)
+	}
+
+	var cmd *exec.Cmd
+	if len(args) == 0 {
+		return nil, errors.New("no command specified")
+	} else if len(args) == 1 {
+		cmd = exec.Command(args[0])
+	} else {
+		cmd = exec.Command(args[0], args[1:]...)
+	}
+
+	return cmd, nil
+}
+
+type cmdLogger struct {
+	logger  grip.Journaler
+	logJSON bool
+	closer  func()
+}
+
+func setupBuildLogger(conf *send.BuildloggerConfig, logJSON bool, count int, interval time.Duration) (*cmdLogger, error) {
+	out := &cmdLogger{
+		logJSON: logJSON,
+	}
+
 	var toClose []send.Sender
 
-	closer := func() {
+	out.closer = func() {
 		for _, sender := range toClose {
 			if sender == nil {
 				continue
@@ -173,18 +199,18 @@ func setupBuildLogger(conf *send.BuildloggerConfig, count int, interval time.Dur
 		}
 	}
 
-	logger := grip.NewJournaler("buildlogger")
+	out.logger = grip.NewJournaler("buildlogger")
 
 	globalSender, err := send.MakeBuildlogger("curator", conf)
 	toClose = append(toClose, globalSender)
 	if err != nil {
-		return nil, closer, errors.Wrap(err, "problem configuring global sender")
+		return out, errors.Wrap(err, "problem configuring global sender")
 	}
 
 	globalBuffered := send.NewBufferedSender(globalSender, interval, count)
 	toClose = append(toClose, globalBuffered)
-	if err := logger.SetSender(globalBuffered); err != nil {
-		return nil, closer, errors.Wrap(err, "problem setting global sender")
+	if err := out.logger.SetSender(globalBuffered); err != nil {
+		return out, errors.Wrap(err, "problem setting global sender")
 	}
 
 	if conf.Test != "" {
@@ -193,20 +219,20 @@ func setupBuildLogger(conf *send.BuildloggerConfig, count int, interval time.Dur
 		testSender, err := send.MakeBuildlogger(conf.Test, conf)
 		toClose = append(toClose, testSender)
 		if err != nil {
-			return nil, closer, errors.Wrap(err, "problem constructing test logger")
+			return out, errors.Wrap(err, "problem constructing test logger")
 		}
 
 		testBuffered := send.NewBufferedSender(globalSender, interval, count)
 		toClose = append(toClose, testBuffered)
-		if err := logger.SetSender(testBuffered); err != nil {
-			return nil, closer, errors.Wrap(err, "problem setting test logger")
+		if err := out.logger.SetSender(testBuffered); err != nil {
+			return out, errors.Wrap(err, "problem setting test logger")
 		}
 	}
 
-	return logger, closer, nil
+	return out, nil
 }
 
-func runCommand(logger grip.Journaler, cmd *exec.Cmd) error {
+func (l *cmdLogger) runCommand(cmd *exec.Cmd) error {
 	command := strings.Join(cmd.Args, " ")
 	grip.Debugf("prepping command %s, in %s, with %s", command, cmd.Dir,
 		strings.Join(cmd.Env, " "))
@@ -230,14 +256,18 @@ func runCommand(logger grip.Journaler, cmd *exec.Cmd) error {
 	grip.Infoln("running command:", command)
 
 	// collect and merge lines into a single output stream in the logger
-	lines := make(chan string)
+	lines := make(chan []byte)
 	loggerDone := make(chan struct{})
 	stdOutDone := make(chan struct{})
 	stdErrDone := make(chan struct{})
 
 	go collectStream(lines, stdOut, stdOutDone)
 	go collectStream(lines, stdErr, stdErrDone)
-	go logLines(logger, lines, loggerDone)
+	if l.logJSON {
+		go l.logJSONLines(lines, loggerDone)
+	} else {
+		go l.logLines(lines, loggerDone)
+	}
 
 	<-stdOutDone
 	<-stdErrDone
@@ -250,22 +280,62 @@ func runCommand(logger grip.Journaler, cmd *exec.Cmd) error {
 	return errors.Wrap(err, "command returned an error")
 }
 
-func collectStream(out chan<- string, input io.Reader, signal chan struct{}) {
+func (l *cmdLogger) readPipe(pipe io.Reader) error {
+	lvl := l.logger.DefaultLevel()
+	input := bufio.NewScanner(pipe)
+	for input.Scan() {
+		switch {
+		case l.logJSON:
+			out := make(map[string]interface{})
+			line := input.Bytes()
+			if err := json.Unmarshal(line, out); err != nil {
+				grip.Error(err)
+				continue
+			}
+			l.logger.Log(lvl, out)
+		default:
+			l.logger.Log(lvl, message.NewDefaultMessage(lvl, input.Text()))
+		}
+
+	}
+
+	return errors.Wrap(input.Err(), "problem reading from pipe")
+}
+
+func collectStream(out chan<- []byte, input io.Reader, signal chan struct{}) {
 	stream := bufio.NewScanner(input)
 
 	for stream.Scan() {
-		out <- stream.Text()
+		cp := []byte{}
+		copy(cp, stream.Bytes())
+		out <- cp
 	}
 
 	close(signal)
 }
 
-func logLines(logger grip.Journaler, lines <-chan string, signal chan struct{}) {
-	l := logger.ThresholdLevel()
+func (l *cmdLogger) logLines(lines <-chan []byte, signal chan struct{}) {
+	logLevel := l.logger.ThresholdLevel()
 
 	for line := range lines {
 		grip.Notice(line)
-		logger.Log(l, message.NewDefaultMessage(l, line))
+		l.logger.Log(logLevel, message.NewBytesMessage(logLevel, line))
+	}
+
+	close(signal)
+}
+
+func (l *cmdLogger) logJSONLines(lines <-chan []byte, signal chan struct{}) {
+	logLevel := l.logger.ThresholdLevel()
+
+	for line := range lines {
+		grip.Notice(line)
+		out := make(map[string]interface{})
+		if err := json.Unmarshal(line, out); err != nil {
+			grip.Error(err)
+			continue
+		}
+		l.logger.Log(logLevel, out)
 	}
 
 	close(signal)
