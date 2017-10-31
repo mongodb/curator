@@ -21,7 +21,7 @@ imports:
   version: a83829b6f1293c91addabc89d0571c246397bbf4
 
 - name: github.com/mongodb/grip
-  version: f8bef40ebed8b6519af601ae1c9f9499d235c23d
+  version: e52243bcb5613f6c0659c57eed3b5c0fb2cb222a
 - name: github.com/mongodb/amboy
   version: 7eef45e6aa856826c152f988d7ee8cc608f260cf
 - name: github.com/tychoish/lru
