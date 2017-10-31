@@ -38,6 +38,10 @@ func Splunk() cli.Command {
 				Name:  "json",
 				Usage: "when specified, all input is parsed as new-line seperated json",
 			},
+			cli.StringFlag{
+				Name:  "addMeta",
+				Usage: "when sending json data, add logging meta data to each message",
+			},
 		},
 		Subcommands: []cli.Command{
 			splunkLogCommand(),
@@ -103,6 +107,7 @@ func splunkLogCommand() cli.Command {
 			if err != nil {
 				return errors.Wrap(err, "problem configuring splunk connection")
 			}
+			clogger.addMeta = c.Parent().Bool("addMeta")
 
 			cmd, err := getCmd(c.String("exec"))
 			if err != nil {

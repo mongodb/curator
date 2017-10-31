@@ -73,6 +73,10 @@ func BuildLogger() cli.Command {
 				Name:  "json",
 				Usage: "when specified, all input is parsed as new-line seperated json",
 			},
+			cli.BoolFlag{
+				Name:  "addMeta",
+				Usage: "when sending json data, add logging meta data to each message",
+			},
 		},
 		Subcommands: []cli.Command{
 			buildLogCommand(),
@@ -107,6 +111,7 @@ func buildLogCommand() cli.Command {
 			if err != nil {
 				return errors.Wrap(err, "problem configuring buildlogger")
 			}
+			clogger.addMeta = c.Parent().Bool("addMeta")
 
 			cmd, err := getCmd(c.String("exec"))
 			if err != nil {
@@ -179,6 +184,7 @@ func getCmd(command string) (*exec.Cmd, error) {
 type cmdLogger struct {
 	logger  grip.Journaler
 	logJSON bool
+	addMeta bool
 	closer  func()
 }
 
@@ -286,13 +292,18 @@ func (l *cmdLogger) readPipe(pipe io.Reader) error {
 	for input.Scan() {
 		switch {
 		case l.logJSON:
-			out := make(map[string]interface{})
+			out := message.Fields{}
 			line := input.Bytes()
 			if err := json.Unmarshal(line, out); err != nil {
 				grip.Error(err)
 				continue
 			}
-			l.logger.Log(lvl, out)
+			switch {
+			case l.addMeta:
+				l.logger.Log(lvl, message.MakeFields(out))
+			default:
+				l.logger.Log(lvl, message.MakeSimpleFields(out))
+			}
 		default:
 			l.logger.Log(lvl, message.NewDefaultMessage(lvl, input.Text()))
 		}
@@ -330,12 +341,19 @@ func (l *cmdLogger) logJSONLines(lines <-chan []byte, signal chan struct{}) {
 
 	for line := range lines {
 		grip.Notice(line)
-		out := make(map[string]interface{})
+		out := message.Fields{}
 		if err := json.Unmarshal(line, out); err != nil {
 			grip.Error(err)
 			continue
 		}
-		l.logger.Log(logLevel, out)
+
+		switch {
+		case l.addMeta:
+			l.logger.Log(logLevel, message.MakeFields(out))
+		default:
+			l.logger.Log(logLevel, message.MakeSimpleFields(out))
+		}
+
 	}
 
 	close(signal)
