@@ -287,7 +287,7 @@ func (l *cmdLogger) runCommand(cmd *exec.Cmd) error {
 }
 
 func (l *cmdLogger) readPipe(pipe io.Reader) error {
-	lvl := l.logger.DefaultLevel()
+	lvl := l.logger.GetSender().Level().Default
 	input := bufio.NewScanner(pipe)
 	for input.Scan() {
 		switch {
@@ -326,7 +326,7 @@ func collectStream(out chan<- []byte, input io.Reader, signal chan struct{}) {
 }
 
 func (l *cmdLogger) logLines(lines <-chan []byte, signal chan struct{}) {
-	logLevel := l.logger.ThresholdLevel()
+	logLevel := l.logger.GetSender().Level().Threshold
 
 	for line := range lines {
 		grip.Notice(line)
@@ -337,7 +337,7 @@ func (l *cmdLogger) logLines(lines <-chan []byte, signal chan struct{}) {
 }
 
 func (l *cmdLogger) logJSONLines(lines <-chan []byte, signal chan struct{}) {
-	logLevel := l.logger.ThresholdLevel()
+	logLevel := l.logger.GetSender().Level().Threshold
 
 	for line := range lines {
 		grip.Notice(line)

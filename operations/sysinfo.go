@@ -147,7 +147,11 @@ func processTree() cli.Command {
 
 func getLogger(fn string) (grip.Journaler, error) {
 	logger := grip.NewJournaler("curator.stats")
-	if err := logger.SetThreshold(level.Debug); err != nil {
+	sender := logger.GetSender()
+	lvl := sender.Level()
+	lvl.Threshold = level.Debug
+
+	if err := sender.SetLevel(lvl); err != nil {
 		return nil, errors.Wrap(err, "problem setting logging threshold")
 	}
 

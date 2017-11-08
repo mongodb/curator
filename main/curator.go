@@ -5,6 +5,7 @@ import (
 
 	"github.com/mongodb/curator/operations"
 	"github.com/mongodb/grip"
+	"github.com/mongodb/grip/level"
 	"github.com/mongodb/grip/send"
 	"github.com/urfave/cli"
 )
@@ -52,15 +53,19 @@ func buildApp() *cli.App {
 	}
 
 	app.Before = func(c *cli.Context) error {
-		loggingSetup(app.Name, c.String("level"))
-		return nil
+		return loggingSetup(app.Name, c.String("level"))
 	}
 
 	return app
 }
 
-func loggingSetup(name, level string) {
+func loggingSetup(name, l string) error {
 	grip.SetSender(send.MakeErrorLogger())
 	grip.SetName(name)
-	_ = grip.SetThreshold(level)
+
+	sender := grip.GetSender()
+	info := sender.Level()
+	info.Threshold = level.FromString(l)
+
+	return sender.SetLevel(info)
 }
