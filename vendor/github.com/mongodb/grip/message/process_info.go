@@ -80,6 +80,23 @@ func CollectProcessInfoWithChildren(pid int32) []Composer {
 	return results
 }
 
+func CollectAllProcesses() []Composer {
+	procs, err := process.Processes()
+	if err != nil {
+		return []Composer{}
+	}
+
+	results := make([]Composer, len(procs))
+	for idx, p := range procs {
+		cm := &ProcessInfo{}
+		cm.loggable = true
+		cm.populate(p)
+		results[idx] = cm
+	}
+
+	return results
+}
+
 func getChildrenRecursively(proc *process.Process) []*process.Process {
 	var out []*process.Process
 

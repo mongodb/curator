@@ -63,6 +63,26 @@ func systemInfo() cli.Command {
 	}
 }
 
+func processAll() cli.Command {
+	return cli.Command{
+		Name:  "process-all",
+		Usage: "collect process information for all processes on the system",
+		Flags: addSysInfoFlags(),
+		Action: func(c *cli.Context) error {
+			logger, err := getLogger(c.String("file"))
+			if err != nil {
+				return errors.Wrap(err, "problem building logger")
+			}
+
+			return doCollection(c.Int("count"), c.Duration("interval"), func() error {
+				logger.Info(message.CollectAllProcesses())
+				return nil
+			})
+		},
+	}
+
+}
+
 func processInfo() cli.Command {
 	return cli.Command{
 		Name:  "process",

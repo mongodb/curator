@@ -40,6 +40,7 @@ func TestPopulatedMessageComposerConstructors(t *testing.T) {
 		NewFields(level.Error, Fields{"test": testMsg}):                        fmt.Sprintf("[test='%s']", testMsg),
 		MakeFieldsMessage(testMsg, Fields{}):                                   fmt.Sprintf("[message='%s']", testMsg),
 		MakeFields(Fields{"test": testMsg}):                                    fmt.Sprintf("[test='%s']", testMsg),
+		NewErrorWrappedComposer(errors.New("hello"), NewString("world")):       "world: hello",
 	}
 
 	for msg, output := range cases {
@@ -121,6 +122,7 @@ func TestDataCollecterComposerConstructors(t *testing.T) {
 	multiCases := [][]Composer{
 		CollectProcessInfoSelfWithChildren(),
 		CollectProcessInfoWithChildren(int32(1)),
+		CollectAllProcesses(),
 	}
 
 	for _, group := range multiCases {
