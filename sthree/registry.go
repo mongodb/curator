@@ -44,7 +44,7 @@ func (r *bucketRegistry) init() {
 	grip.CatchDebug(err)
 	if err != nil {
 		auth, err = aws.SharedAuth()
-		grip.CatchWarning(err)
+		grip.CatchDebug(err)
 	}
 
 	r.l.Lock()
