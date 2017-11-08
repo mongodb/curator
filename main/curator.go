@@ -5,6 +5,7 @@ import (
 
 	"github.com/mongodb/curator/operations"
 	"github.com/mongodb/grip"
+	"github.com/mongodb/grip/send"
 	"github.com/urfave/cli"
 )
 
@@ -59,6 +60,7 @@ func buildApp() *cli.App {
 }
 
 func loggingSetup(name, level string) {
+	grip.SetSender(send.MakeErrorLogger())
 	grip.SetName(name)
 	_ = grip.SetThreshold(level)
 }
