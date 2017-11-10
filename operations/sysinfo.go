@@ -71,10 +71,11 @@ func processAll() cli.Command {
 		Usage: "collect process information for all processes on the system",
 		Flags: addSysInfoFlags(),
 		Action: func(c *cli.Context) error {
-			logger, err := getLogger(c.String("file"))
+			logger, closer, err := getLogger(c.String("file"))
 			if err != nil {
 				return errors.Wrap(err, "problem building logger")
 			}
+			defer closer()
 
 			return doCollection(c.Int("count"), c.Duration("interval"), func() error {
 				logger.Info(message.CollectAllProcesses())
@@ -154,31 +155,32 @@ type closer func()
 func getLogger(fn string) (grip.Journaler, closer, error) {
 	closer := func() {}
 	logger := grip.NewJournaler("curator.stats")
-	sender := logger.GetSender()
-	lvl := sender.Level()
-	lvl.Threshold = level.Debug
-
-	if err := sender.SetLevel(lvl); err != nil {
-		return nil, closer, errors.Wrap(err, "problem setting logging threshold")
+	lvl := send.LevelInfo{
+		Threshold: level.Debug,
+		Default:   level.Info,
 	}
 
-	if fn != "" {
-		var sender send.Sender
-		var err error
+	var sender send.Sender
+	var err error
 
+	if fn != "" {
 		if _, err = os.Stat(fn); os.IsNotExist(err) {
 			sender, err = send.MakeJSONFileLogger(fn)
 			if err != nil {
 				return nil, closer, errors.Wrap(err, "problem building logger")
 			}
+			closer = func() { grip.CatchCritical(sender.Close()) }
 		} else {
 			var file *os.File
 			file, err = os.OpenFile(fn, os.O_APPEND, 0)
 			if err != nil {
 				return nil, closer, errors.Wrap(err, "problem opening file")
 			}
-			closer = func() { grip.CatchCritical(file.Close()) }
 			sender = send.MakeStreamLogger(file)
+			closer = func() {
+				grip.CatchCritical(file.Close())
+				grip.CatchCritical(sender.Close())
+			}
 			if err := sender.SetFormatter(send.MakeJSONFormatter()); err != nil {
 				return nil, closer, err
 			}
@@ -187,8 +189,17 @@ func getLogger(fn string) (grip.Journaler, closer, error) {
 		if err = logger.SetSender(sender); err != nil {
 			return nil, closer, errors.Wrap(err, "problem configuring logger")
 		}
-	} else if err := logger.SetSender(send.MakeJSONConsoleLogger()); err != nil {
-		return nil, closer, errors.Wrap(err, "problem configuring logger")
+	} else {
+		sender = send.MakeJSONConsoleLogger()
+		closer = func() { grip.CatchCritical(sender.Close()) }
+
+		if err = logger.SetSender(sender); err != nil {
+			return nil, closer, errors.Wrap(err, "problem configuring logger")
+		}
+	}
+
+	if err := sender.SetLevel(lvl); err != nil {
+		return nil, closer, errors.Wrap(err, "problem setting logging threshold")
 	}
 
 	return logger, closer, nil
