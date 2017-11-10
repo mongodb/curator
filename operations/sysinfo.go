@@ -1,6 +1,7 @@
 package operations
 
 import (
+	"os"
 	"time"
 
 	"github.com/mongodb/grip"
@@ -50,7 +51,8 @@ func systemInfo() cli.Command {
 		Usage: "collects system level statistics",
 		Flags: addSysInfoFlags(),
 		Action: func(c *cli.Context) error {
-			logger, err := getLogger(c.String("file"))
+			logger, closer, err := getLogger(c.String("file"))
+			defer closer()
 			if err != nil {
 				return errors.Wrap(err, "problem building logger")
 			}
@@ -98,7 +100,8 @@ func processInfo() cli.Command {
 				return errors.New("must specify a pid")
 			}
 
-			logger, err := getLogger(c.String("file"))
+			logger, closer, err := getLogger(c.String("file"))
+			defer closer()
 			if err != nil {
 				return errors.Wrap(err, "problem building logger")
 			}
@@ -126,7 +129,8 @@ func processTree() cli.Command {
 				return errors.New("must specify a pid")
 			}
 
-			logger, err := getLogger(c.String("file"))
+			logger, closer, err := getLogger(c.String("file"))
+			defer closer()
 			if err != nil {
 				return errors.Wrap(err, "problem building logger")
 			}
@@ -145,30 +149,49 @@ func processTree() cli.Command {
 //
 ///////////////////////////////////////////////////////////////////////////
 
-func getLogger(fn string) (grip.Journaler, error) {
+type closer func()
+
+func getLogger(fn string) (grip.Journaler, closer, error) {
+	closer := func() {}
 	logger := grip.NewJournaler("curator.stats")
 	sender := logger.GetSender()
 	lvl := sender.Level()
 	lvl.Threshold = level.Debug
 
 	if err := sender.SetLevel(lvl); err != nil {
-		return nil, errors.Wrap(err, "problem setting logging threshold")
+		return nil, closer, errors.Wrap(err, "problem setting logging threshold")
 	}
 
 	if fn != "" {
-		sender, err := send.MakeJSONFileLogger(fn)
-		if err != nil {
-			return nil, errors.Wrap(err, "problem building logger")
+		var sender send.Sender
+		var err error
+
+		if _, err = os.Stat(fn); os.IsNotExist(err) {
+			sender, err = send.MakeJSONFileLogger(fn)
+			if err != nil {
+				return nil, closer, errors.Wrap(err, "problem building logger")
+			}
+		} else {
+			var file *os.File
+			file, err = os.OpenFile(fn, os.O_APPEND, 0)
+			if err != nil {
+				return nil, closer, errors.Wrap(err, "problem opening file")
+			}
+			closer = func() { grip.CatchCritical(file.Close()) }
+			sender = send.MakeStreamLogger(file)
+			if err := sender.SetFormatter(send.MakeJSONFormatter()); err != nil {
+				return nil, closer, err
+			}
 		}
 
 		if err = logger.SetSender(sender); err != nil {
-			return nil, errors.Wrap(err, "problem configuring logger")
+			return nil, closer, errors.Wrap(err, "problem configuring logger")
 		}
 	} else if err := logger.SetSender(send.MakeJSONConsoleLogger()); err != nil {
-		return nil, errors.Wrap(err, "problem configuring logger")
+		return nil, closer, errors.Wrap(err, "problem configuring logger")
 	}
 
-	return logger, nil
+	return logger, closer, nil
 }
 
 func doCollection(count int, interval time.Duration, op func() error) error {
