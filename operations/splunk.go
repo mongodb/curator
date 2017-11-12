@@ -10,6 +10,7 @@ import (
 	"github.com/urfave/cli"
 )
 
+// Splunk provides a command interface to log the output of commands (or standard input.)
 func Splunk() cli.Command {
 	return cli.Command{
 		Name:  "splunk",
@@ -79,7 +80,7 @@ func setupSplunkLogger(c *cli.Context) (*cmdLogger, error) {
 	}
 	out.logger = logging.MakeGrip(sender)
 	out.closer = func() {
-		sender.Close()
+		grip.CatchError(sender.Close())
 	}
 
 	return out, nil

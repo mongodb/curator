@@ -294,7 +294,7 @@ func (l *cmdLogger) readPipe(pipe io.Reader) error {
 		case l.logJSON:
 			out := message.Fields{}
 			line := input.Bytes()
-			if err := json.Unmarshal(line, out); err != nil {
+			if err := json.Unmarshal(line, &out); err != nil {
 				grip.Error(err)
 				continue
 			}
@@ -342,7 +342,7 @@ func (l *cmdLogger) logJSONLines(lines <-chan []byte, signal chan struct{}) {
 	for line := range lines {
 		grip.Notice(line)
 		out := message.Fields{}
-		if err := json.Unmarshal(line, out); err != nil {
+		if err := json.Unmarshal(line, &out); err != nil {
 			grip.Error(err)
 			continue
 		}

@@ -60,7 +60,9 @@ func buildApp() *cli.App {
 }
 
 func loggingSetup(name, l string) error {
-	grip.SetSender(send.MakeErrorLogger())
+	if err := grip.SetSender(send.MakeErrorLogger()); err != nil {
+		return err
+	}
 	grip.SetName(name)
 
 	sender := grip.GetSender()

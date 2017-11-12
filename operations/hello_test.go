@@ -30,7 +30,7 @@ func (s *CommandsSuite) TestHelloWorldOperationViaDirectCall() {
 	s.NoError(err)
 
 	// check the results.
-	s.Equal("hello world!", strings.Trim(string(output), "\n "))
+	s.Contains(strings.Trim(string(output), "\n "), "hello world!")
 }
 
 func (s *CommandsSuite) TestHelloCommandObjectAttributes() {

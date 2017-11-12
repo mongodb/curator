@@ -22,22 +22,27 @@ func (s *MainSuite) TestLoggingSetupUsingDefaultSender() {
 	grip.SetName("foo")
 	s.Equal(grip.Name(), "foo")
 
-	loggingSetup("test", "info")
+	s.NoError(loggingSetup("test", "info"))
 	s.Equal(grip.Name(), "test")
 }
 
 func (s *MainSuite) TestLogSetupWithInvalidLevelDoesNotChangeLevel() {
 	// when you specify an invalid level, grip shouldn't change
 	// the level.
-	s.Equal(grip.ThresholdLevel(), level.Info)
+	s.Equal(grip.GetSender().Level().Threshold, level.Trace)
+	s.NoError(loggingSetup("test", "info"))
+	s.Equal(grip.GetSender().Level().Threshold, level.Info)
 
-	loggingSetup("test", "QUIET")
-	s.Equal(grip.ThresholdLevel(), level.Info)
+	s.NoError(loggingSetup("test", "QUIET"))
+	s.Equal(grip.GetSender().Level().Threshold, level.Info)
 
 	// Following case is just to make sure that normal
 	// setting still works as expected.
-	loggingSetup("test", "debug")
-	s.Equal(grip.ThresholdLevel(), level.Debug)
+	s.NoError(loggingSetup("test", "debug"))
+	s.Equal(grip.GetSender().Level().Threshold, level.Debug)
+
+	s.NoError(loggingSetup("test", "QUIET"))
+	s.Equal(grip.GetSender().Level().Threshold, level.Debug)
 }
 
 func (s *MainSuite) TestAppBuilderFunctionSetsCorrectProperties() {

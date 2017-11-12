@@ -23,6 +23,7 @@ func SystemInfo() cli.Command {
 			systemInfo(),
 			processInfo(),
 			processTree(),
+			processAll(),
 		},
 	}
 }
