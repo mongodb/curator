@@ -33,7 +33,7 @@ func (s *MainSuite) TestLogSetupWithInvalidLevelDoesNotChangeLevel() {
 	s.NoError(loggingSetup("test", "info"))
 	s.Equal(grip.GetSender().Level().Threshold, level.Info)
 
-	s.NoError(loggingSetup("test", "QUIET"))
+	s.Error(loggingSetup("test", "QUIET"))
 	s.Equal(grip.GetSender().Level().Threshold, level.Info)
 
 	// Following case is just to make sure that normal
@@ -41,7 +41,7 @@ func (s *MainSuite) TestLogSetupWithInvalidLevelDoesNotChangeLevel() {
 	s.NoError(loggingSetup("test", "debug"))
 	s.Equal(grip.GetSender().Level().Threshold, level.Debug)
 
-	s.NoError(loggingSetup("test", "QUIET"))
+	s.Error(loggingSetup("test", "QUIET"))
 	s.Equal(grip.GetSender().Level().Threshold, level.Debug)
 }
 
