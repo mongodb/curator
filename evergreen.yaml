@@ -219,16 +219,6 @@ post:
 #           Buildvariants             #
 #######################################
 buildvariants:
-  - name: archlinux
-    display_name: Arch Linux
-    run_on:
-      - archlinux-test
-      - archlinux-build
-    tasks:
-      - ".dist"
-      - ".test"
-      - name: "push"
-
   - name: race-detector
     display_name: Race Detector (Arch Linux)
     run_on:
@@ -251,12 +241,12 @@ buildvariants:
       - ".test"
       - name: "push"
 
-  - name: debian81
-    display_name: Debian 8.1
+  - name: ubuntu1604
+    display_name: Ubuntu 16.04
+    run_on:
+      - ubuntu1604-test
     expansions:
       build_env: "PATH=/opt/go/bin:$PATH GOROOT=/opt/go"
-    run_on:
-      - debian81-test
     tasks:
       - ".dist"
       - ".test"
@@ -274,20 +264,6 @@ buildvariants:
       - name: "push"
 
   # the following targets *just* cross compile the binary for different architectures.
-  - name: solaris
-    display_name: "Solaris (cross-compile)"
-    expansions:
-      build_env: "PATH=/opt/go/bin:$PATH GOROOT=/opt/go"
-      xc_env: "GOARCH=amd64 GOOS=solaris"
-    run_on:
-      *generic-linux-distros
-    tasks:
-      - name: "build"
-        depends_on:
-        - name: ".test"
-          variant: "rhel70"
-      - name: "push"
-
   - name: s390x
     display_name: "zLinux (cross-compile)"
     expansions:
