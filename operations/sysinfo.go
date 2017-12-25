@@ -1,7 +1,6 @@
 package operations
 
 import (
-	"os"
 	"time"
 
 	"github.com/mongodb/grip"
@@ -165,27 +164,11 @@ func getLogger(fn string) (grip.Journaler, closer, error) {
 	var err error
 
 	if fn != "" {
-		if _, err = os.Stat(fn); os.IsNotExist(err) {
-			sender, err = send.MakeJSONFileLogger(fn)
-			if err != nil {
-				return nil, closer, errors.Wrap(err, "problem building logger")
-			}
-			closer = func() { grip.CatchCritical(sender.Close()) }
-		} else {
-			var file *os.File
-			file, err = os.OpenFile(fn, os.O_APPEND, 0)
-			if err != nil {
-				return nil, closer, errors.Wrap(err, "problem opening file")
-			}
-			sender = send.MakeStreamLogger(file)
-			closer = func() {
-				grip.CatchCritical(file.Close())
-				grip.CatchCritical(sender.Close())
-			}
-			if err := sender.SetFormatter(send.MakeJSONFormatter()); err != nil {
-				return nil, closer, err
-			}
+		sender, err = send.MakeJSONFileLogger(fn)
+		if err != nil {
+			return nil, closer, errors.Wrap(err, "problem building logger")
 		}
+		closer = func() { grip.CatchCritical(sender.Close()) }
 
 		if err = logger.SetSender(sender); err != nil {
 			return nil, closer, errors.Wrap(err, "problem configuring logger")
