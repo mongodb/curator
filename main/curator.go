@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 
+	"github.com/mongodb/curator"
 	"github.com/mongodb/curator/operations"
 	"github.com/mongodb/grip"
 	"github.com/mongodb/grip/level"
@@ -26,7 +27,7 @@ func buildApp() *cli.App {
 	app := cli.NewApp()
 	app.Name = "curator"
 	app.Usage = "build and release tool"
-	app.Version = "0.0.1-pre"
+	app.Version = curator.BuildRevision
 
 	// Register sub-commands here.
 	app.Commands = []cli.Command{
