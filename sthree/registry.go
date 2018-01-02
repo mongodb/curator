@@ -42,9 +42,8 @@ func newBucketRegistry() *bucketRegistry {
 func (r *bucketRegistry) init() {
 	auth, err := aws.EnvAuth()
 	if err != nil {
-		var err2 error
-		auth, err2 = aws.SharedAuth()
-		if err2 != nil {
+		auth, err = aws.SharedAuth()
+		if err != nil {
 			grip.Debug("current does not provide aws credentials")
 		}
 	}
