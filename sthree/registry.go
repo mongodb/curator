@@ -41,10 +41,11 @@ func newBucketRegistry() *bucketRegistry {
 
 func (r *bucketRegistry) init() {
 	auth, err := aws.EnvAuth()
-	grip.CatchDebug(err)
 	if err != nil {
 		auth, err = aws.SharedAuth()
-		grip.CatchDebug(err)
+		if err != nil {
+			grip.Debug("current does not provide aws credentials")
+		}
 	}
 
 	r.l.Lock()

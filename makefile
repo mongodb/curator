@@ -7,6 +7,12 @@ projectPath := $(orgPath)/$(name)
 # end project configuration
 
 
+# start build configuration 
+currentHash := $(shell git rev-parse HEAD)
+ldFlags := "$(if $(DEBUG_ENABLED),,-w -s )-X=github.com/mongodb/curator.BuildRevision=$(currentHash)"
+# end build configuration 
+
+
 # start linting configuration
 #   package, testing, and linter dependencies specified
 #   separately. This is a temporary solution: eventually we should
@@ -79,9 +85,9 @@ phony := lint build build-race race test coverage coverage-html
 $(name):$(buildDir)/$(name)
 	@[ -e $@ ] || ln -s $<
 $(buildDir)/$(name):$(srcFiles)
-	go build -o $@ main/$(name).go
+	go build -ldflags=$(ldFlags) -o $@ main/$(name).go
 $(buildDir)/$(name).race:$(srcFiles)
-	go build -race -o $@ main/$(name).go
+	go build -ldflags=$(ldFlags) -race -o $@ main/$(name).go
 phony += $(buildDir)/$(name)
 # end main build
 
