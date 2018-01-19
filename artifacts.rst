@@ -297,6 +297,32 @@ as in: ::
 
     ./curator artifacts get-path --version 3.2.17
 
-The result of this command is:
+The result of this command is: ::
 
     /home/evgdev/mdb/curator/artifacts/curator-artifact-cache/mongodb-linux-x86_64-3.2.17
+
+Cache Pruning
+-------------
+
+Presumably you don't want to maintain your own local cache of builds forever,
+and curator has a cache pruning tool available for your use, with the ``prune``
+sub-command. ``prune`` is a top-level sub-command, _not_ a sub-command of
+``artifacts``. The ``prune`` operation uses and respects the
+``CURATOR_ARTIFACTS_DIRECTORY`` environment variable.
+
+These examples assume that ``CURATOR_ARTIFACTS_DIRECTORY`` is set.
+
+``prune`` supports an LRU cache model. Having said that, it tracks *modified
+time* (mtime) of the file system objects, which means you should generally
+use the ``touch`` command to touch the enclosing directories when you use them,
+as in the following operation: ::
+
+    ./curator prune --max-size 1000
+
+The ``--max-size`` operation specifies a maximum size, and prune will delete
+the oldest directories until the total size of the cached files are. It ignores
+the ``full.json`` file, but does *not* skip any other files.
+
+If you specify the ``--recursive`` option it will look at *all* file objects
+recursively (cleaning up empty directories as needed,) but not removing a
+directory. For artifact caches, you almost never want this.
