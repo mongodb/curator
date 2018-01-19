@@ -68,7 +68,11 @@ The response format is, as follows: ::
 	 target='ubuntu1604', edition='enterprise', arch='x86_64'
 	 target='ubuntu1604', edition='targeted', arch='x86_64'
 
+<<<<<<< Updated upstream
 You can get the same information in a JSON format, using the following command:
+=======
+You can get the same information in a JSON format, using the following command: ::
+>>>>>>> Stashed changes
 
     ./curator artifacts list-variants --version 3.2.17
 
@@ -211,7 +215,22 @@ The ``latest`` feature does not work for development (i.e. odd release series)
 which are always built from master.
 
 The ``current`` (this is also alised to ``stable``) is useful for return the
-latest official build for a release series.
+latest official build for a release series, as in the following example: ::
+
+    ./curator artifacts download --version 3.7-current --version 3.2-current --version 3.4-current
+
+Consider the following output: ::
+
+    [curator] 2018/01/19 14:04:21 [p=info]: job server running
+    [curator] 2018/01/19 14:04:21 [p=info]: waiting for 3 download jobs to complete
+    [curator] 2018/01/19 14:04:21 [p=notice]: downloading: /home/evgdev/mdb/curator/artifacts/curator-artifact-cache/mongodb-linux-x86_64-3.4.10.tgz
+    [curator] 2018/01/19 14:04:21 [p=notice]: file /home/evgdev/mdb/curator/artifacts/curator-artifact-cache/mongodb-linux-x86_64-3.7.1.tgz is already downloaded
+    [curator] 2018/01/19 14:04:21 [p=notice]: downloading: /home/evgdev/mdb/curator/artifacts/curator-artifact-cache/mongodb-linux-x86_64-3.2.18.tgz
+    [curator] 2018/01/19 14:04:23 [p=notice]: downloaded /home/evgdev/mdb/curator/artifacts/curator-artifact-cache/mongodb-linux-x86_64-3.4.10.tgz file
+    [curator] 2018/01/19 14:04:25 [p=notice]: downloaded /home/evgdev/mdb/curator/artifacts/curator-artifact-cache/mongodb-linux-x86_64-3.2.18.tgz file
+    [curator] 2018/01/19 14:04:27 [p=notice]: extracted archive: /home/evgdev/mdb/curator/artifacts/curator-artifact-cache/mongodb-linux-x86_64-3.4.10.tgz
+    [curator] 2018/01/19 14:04:29 [p=notice]: extracted archive: /home/evgdev/mdb/curator/artifacts/curator-artifact-cache/mongodb-linux-x86_64-3.2.18.tgz
+    [curator] 2018/01/19 14:04:29 [p=info]: all download tasks complete, processing errors now
 
 Local Discovery
 ---------------
