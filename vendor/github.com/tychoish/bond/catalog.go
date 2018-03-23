@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/mongodb/grip"
+	"github.com/mongodb/grip/message"
 	"github.com/pkg/errors"
 )
 
@@ -158,6 +159,22 @@ func (c *BuildCatalog) Get(version, edition, target, arch string, debug bool) (s
 		version = v.Version
 	} else if strings.Contains(version, "latest") {
 		version = fmt.Sprintf("%s-latest", coerceSeries(version))
+	}
+
+	if strings.Contains(target, "auto") {
+		t, err := getDistro()
+		if err != nil {
+
+			if runtime.GOOS == "darwin" {
+				target = "osx"
+			} else {
+				target = runtime.GOOS
+			}
+
+			grip.Warning(message.WrapError(err, message.NewFormatted("could not determine distro, falling back to %s", target)))
+		} else {
+			target = t
+		}
 	}
 
 	info := BuildInfo{

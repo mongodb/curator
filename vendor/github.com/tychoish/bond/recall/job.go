@@ -42,7 +42,6 @@ func newDownloadJob() *DownloadFileJob {
 			JobType: amboy.JobType{
 				Name:    "bond-recall-download-file",
 				Version: 0,
-				Format:  amboy.JSON,
 			},
 		},
 	}

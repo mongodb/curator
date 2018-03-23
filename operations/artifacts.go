@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -49,8 +50,13 @@ func Artifacts() cli.Command {
 						defer cancel()
 					}
 
+					target := c.String("target")
+					if strings.Contains(target, "auto") {
+						target = bond.GetTargetDistro()
+					}
+
 					opts := bond.BuildOptions{
-						Target:  c.String("target"),
+						Target:  target,
 						Arch:    bond.MongoDBArch(c.String("arch")),
 						Edition: bond.MongoDBEdition(c.String("edition")),
 						Debug:   c.Bool("debug"),
