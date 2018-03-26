@@ -12,7 +12,7 @@ variables:
     name: test
     commands:
       - command: git.get_project
-        type: setup
+        type: system
         params:
           directory: gopath/src/github.com/mongodb/curator
       - func: run-make
@@ -27,7 +27,7 @@ variables:
       - name: build
     commands:
       - command: git.get_project
-        type: setup
+        type: system
         params:
           directory: gopath/src/github.com/mongodb/curator
       - func: setup-credentials
@@ -88,7 +88,7 @@ tasks:
     tags: ["dist"]
     commands:
       - command: git.get_project
-        type: setup
+        type: system
         params:
           directory: gopath/src/github.com/mongodb/curator
       - func: run-make
@@ -117,7 +117,7 @@ tasks:
     tags: [ "report" ]
     commands:
       - command: git.get_project
-        type: setup
+        type: system
         params:
           directory: gopath/src/github.com/mongodb/curator
       - func: setup-credentials
@@ -200,7 +200,7 @@ post:
         rm -rf curator
         rm -rf ~/.aws
   - command: s3.put
-    type: setup
+    type: system
     params:
       aws_key: ${aws_key}
       aws_secret: ${aws_secret}
@@ -211,7 +211,7 @@ post:
       permissions: public-read
       display_name: "(html) coverage:"
   - command: s3.put
-    type: setup
+    type: system
     params:
       aws_key: ${aws_key}
       aws_secret: ${aws_secret}
