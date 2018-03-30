@@ -2,12 +2,14 @@ package pool
 
 import (
 	"context"
+	"math/rand"
 	"testing"
 	"time"
 
 	"github.com/VividCortex/ewma"
 	"github.com/mongodb/amboy"
 	"github.com/mongodb/amboy/job"
+	"github.com/mongodb/grip"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -41,12 +43,13 @@ func TestSimpleRateLimitingConstructor(t *testing.T) {
 }
 
 func TestAverageRateLimitingConstructor(t *testing.T) {
+	assert := assert.New(t) // nolint
+
 	var (
 		runner amboy.Runner
 		err    error
 	)
 
-	assert := assert.New(t)
 	queue := &QueueTester{
 		toProcess: make(chan amboy.Job),
 		storage:   make(map[string]amboy.Job),
@@ -71,7 +74,7 @@ func TestAverageRateLimitingConstructor(t *testing.T) {
 }
 
 func TestAvergeTimeCalculator(t *testing.T) {
-	assert := assert.New(t)
+	assert := assert.New(t) // nolint
 
 	p := ewmaRateLimiting{
 		ewma:   ewma.NewMovingAverage(),
@@ -82,9 +85,11 @@ func TestAvergeTimeCalculator(t *testing.T) {
 	// average is uninitialized by default
 	assert.Equal(p.ewma.Value(), float64(0))
 
-	// some initial setup, guesses at actual values
-	assert.True(5*time.Second-p.getNextTime(time.Millisecond) < 100*time.Millisecond)
-	assert.True(4*time.Second-p.getNextTime(time.Minute) < 100*time.Millisecond)
+	// some initial setup, sanity check an actual value
+	result := p.getNextTime(time.Millisecond)
+	assert.InDelta(10*time.Second, result, float64(2*time.Second), "actual:%s", result)
+	result = p.getNextTime(time.Minute)
+	assert.Equal(result, time.Duration(0))
 
 	// priming the average and watching the return value of the
 	// function increase:
@@ -96,9 +101,9 @@ func TestAvergeTimeCalculator(t *testing.T) {
 	// means the values are going up in this function.
 	var last time.Duration
 	for i := 0; i < 100; i++ {
-		result := p.getNextTime(time.Second)
+		result = p.getNextTime(time.Second)
 
-		assert.True(last < result)
+		assert.True(last <= result, "%d:%s<=%s", i, last, result)
 		last = result
 	}
 
@@ -126,4 +131,180 @@ func TestAvergeTimeCalculator(t *testing.T) {
 	// duration is larger than period, returns zero
 	assert.Equal(p.getNextTime(time.Hour), time.Duration(0))
 
+}
+
+func TestSimpleRateLimitingWorkerHandlesPanicingJobs(t *testing.T) {
+	assert := assert.New(t) // nolint
+	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	defer cancel()
+
+	p := &simpleRateLimited{}
+	p.queue = &QueueTester{
+		toProcess: make(chan amboy.Job),
+		storage:   make(map[string]amboy.Job),
+	}
+	assert.NotPanics(func() { p.worker(ctx, jobsChanWithPanicingJobs(ctx, 10)) })
+}
+
+func TestEWMARateLimitingWorkerHandlesPanicingJobs(t *testing.T) {
+	assert := assert.New(t) // nolint
+	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	defer cancel()
+
+	p := &ewmaRateLimiting{}
+	p.queue = &QueueTester{
+		toProcess: make(chan amboy.Job),
+		storage:   make(map[string]amboy.Job),
+	}
+	assert.NotPanics(func() { p.worker(ctx, jobsChanWithPanicingJobs(ctx, 10)) })
+}
+
+func TestMultipleWorkers(t *testing.T) {
+	assert := assert.New(t) // nolint
+	for workers := time.Duration(1); workers <= 10; workers++ {
+		ema := ewmaRateLimiting{
+			period: time.Minute,
+			target: 60,
+			size:   int(workers),
+			queue:  nil,
+			ewma:   ewma.NewMovingAverage(),
+		}
+		for i := 0; i < 100; i++ {
+			next := ema.getNextTime(time.Millisecond)
+			if !assert.True(next*workers > 750*time.Millisecond) || !assert.True(next < workers*time.Second) {
+				grip.Errorf("workers=%d, iter=%d, next=%s", workers, i, next)
+			}
+
+			// sam's test
+			assert.InDelta(time.Duration(workers)*time.Second, float64(next), float64(workers*10*time.Millisecond),
+				"next=%s, workers=%d, iter=%d", next, workers, i)
+
+			// brian's test:
+			assert.InDelta(time.Duration(workers)*time.Second, next, float64(100*time.Millisecond),
+				"next=%s, workers=%d, iter=%d", next, workers, i)
+		}
+	}
+}
+
+func TestWeightedAverageGrowthLargeSample(t *testing.T) {
+	assert := assert.New(t) // nolint
+
+	queue := &QueueTester{
+		toProcess: make(chan amboy.Job),
+		storage:   make(map[string]amboy.Job),
+	}
+
+	pool, err := NewMovingAverageRateLimitedWorkers(2, 10, 20*time.Hour, queue)
+	assert.NoError(err)
+	impl := pool.(*ewmaRateLimiting)
+
+	var last time.Duration
+	for i := time.Duration(1); i <= 500; i++ {
+		dur := i * 5 * time.Second
+
+		out := impl.getNextTime(dur)
+		if i <= 11 {
+			last = out
+			continue
+		}
+
+		assert.True(out < last, "%d: %s < %s", i, out, last)
+		assert.True(out > dur, "%d: %s > %s", i, out, dur)
+
+		assert.True(out < 5*time.Hour, "%d: %s", i, out)
+		assert.True(out > 15*time.Minute, "%d: %s", i, out)
+
+		last = out
+	}
+}
+
+type smokeResults struct {
+	total   int
+	zero    int
+	nonZero int
+	last    time.Duration
+	sum     time.Duration
+}
+
+func runSmokeTest(impl *ewmaRateLimiting, total int, cap time.Duration) smokeResults {
+	results := smokeResults{
+		total: total,
+	}
+
+	for i := 0; i < total; i++ {
+		randTime := rand.Int63n(int64(cap))
+		dur := time.Duration(randTime)
+
+		out := impl.getNextTime(dur)
+
+		if out == 0 {
+			results.zero++
+			continue
+		}
+
+		results.nonZero++
+		results.last = out
+		results.sum += out
+	}
+
+	return results
+}
+
+func TestWeightedAverageSmallSample(t *testing.T) {
+	rand.Seed(time.Now().Unix())
+
+	assert := assert.New(t) // nolint
+
+	queue := &QueueTester{
+		toProcess: make(chan amboy.Job),
+		storage:   make(map[string]amboy.Job),
+	}
+
+	pool, err := NewMovingAverageRateLimitedWorkers(2, 10, time.Minute, queue)
+	assert.NoError(err)
+	impl := pool.(*ewmaRateLimiting)
+
+	results := runSmokeTest(impl, 500, 5*time.Second)
+
+	assert.InDelta(6*time.Second, results.sum/time.Duration(results.total), float64(3*time.Second))
+	assert.True(results.total/2 > results.zero)
+	grip.Infof("after %d iterations, %d were 0s. last value=%s", results.total, results.zero, results.last)
+}
+
+func TestWeightedAverageLargeWorkerPoolLongDuration(t *testing.T) {
+	assert := assert.New(t) // nolint
+
+	queue := &QueueTester{
+		toProcess: make(chan amboy.Job),
+		storage:   make(map[string]amboy.Job),
+	}
+
+	pool, err := NewMovingAverageRateLimitedWorkers(256, 10, time.Minute, queue)
+	assert.NoError(err)
+	impl := pool.(*ewmaRateLimiting)
+
+	results := runSmokeTest(impl, 750, 10*time.Millisecond)
+
+	assert.InDelta(30*time.Second, results.sum/time.Duration(results.total), float64(30*time.Minute))
+	assert.True(results.total/3 > results.zero, "zero:%s", results.zero)
+	grip.Infof("after %d iterations, %d were 0s. last value=%s", results.total, results.zero, results.last)
+}
+
+func TestWeightedAverageLargeWorkerPoolShortDuration(t *testing.T) {
+	assert := assert.New(t) // nolint
+
+	queue := &QueueTester{
+		toProcess: make(chan amboy.Job),
+		storage:   make(map[string]amboy.Job),
+	}
+
+	pool, err := NewMovingAverageRateLimitedWorkers(256, 60, time.Minute, queue)
+	assert.NoError(err)
+	impl := pool.(*ewmaRateLimiting)
+
+	results := runSmokeTest(impl, 750, 10*time.Millisecond)
+
+	assert.InDelta(30*time.Second, results.sum/time.Duration(results.total), float64(10*time.Minute))
+	assert.True(float64(results.total)/1.5 > float64(results.zero), "zero:%s", results.zero)
+	grip.Infof("after %d iterations, %d were 0s. last value=%s", results.total, results.zero, results.last)
 }

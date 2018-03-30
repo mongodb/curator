@@ -1,6 +1,7 @@
 package queue
 
 import (
+	"context"
 	"sync"
 
 	"github.com/mongodb/amboy"
@@ -47,7 +48,6 @@ func newMockJob() *mockJob {
 			JobType: amboy.JobType{
 				Name:    "mock",
 				Version: 1,
-				Format:  amboy.BSON,
 			},
 		},
 	}
@@ -55,7 +55,7 @@ func newMockJob() *mockJob {
 	return j
 }
 
-func (j *mockJob) Run() {
+func (j *mockJob) Run(_ context.Context) {
 	defer j.MarkComplete()
 
 	mockJobCounters.Inc()

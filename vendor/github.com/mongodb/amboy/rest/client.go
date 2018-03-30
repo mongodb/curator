@@ -3,6 +3,7 @@ package rest
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -214,12 +215,12 @@ func (c *Client) PendingJobs(ctx context.Context) (int, error) {
 
 // SubmitJob adds a job to a remote queue connected to the rest interface.
 func (c *Client) SubmitJob(ctx context.Context, j amboy.Job) (string, error) {
-	ji, err := registry.MakeJobInterchange(j)
+	ji, err := registry.MakeJobInterchange(j, amboy.JSON)
 	if err != nil {
 		return "", err
 	}
 
-	b, err := amboy.ConvertTo(amboy.JSON, ji)
+	b, err := json.Marshal(ji)
 	if err != nil {
 		return "", err
 	}
@@ -266,11 +267,11 @@ func (c *Client) FetchJob(ctx context.Context, name string) (amboy.Job, error) {
 	defer resp.Body.Close()
 
 	ji := &registry.JobInterchange{}
-	if err = gimlet.GetJSON(resp.Body, &ji); err != nil {
+	if err = gimlet.GetJSON(resp.Body, ji); err != nil {
 		return nil, err
 	}
 
-	j, err := registry.ConvertToJob(ji)
+	j, err := ji.Resolve(amboy.JSON)
 	if err != nil {
 		return nil, err
 	}

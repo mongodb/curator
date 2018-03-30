@@ -8,7 +8,6 @@ import (
 
 	"github.com/mongodb/amboy"
 	"github.com/mongodb/amboy/job"
-	"github.com/mongodb/amboy/queue/driver"
 	"github.com/mongodb/grip"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -16,13 +15,13 @@ import (
 
 // the cases in this file attempt to test the behavior of the remote tasks.
 
-func TestRemoteQueueRunsJobsOnlyOnceWithMultipleWorkers(t *testing.T) {
+func TestSmokeRemoteQueueRunsJobsOnlyOnceWithMultipleWorkers(t *testing.T) {
 	assert := assert.New(t)
-	opts := driver.DefaultMongoDBOptions()
+	opts := DefaultMongoDBOptions()
 	name := uuid.NewV4().String()
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	d := driver.NewMongoDB(name, opts)
-	q := NewRemoteUnordered(3)
+	d := NewMongoDBDriver(name, opts)
+	q := NewRemoteUnordered(3).(*remoteUnordered)
 
 	defer cleanupMongoDB(name, opts)
 	defer cancel()
@@ -38,9 +37,8 @@ func TestRemoteQueueRunsJobsOnlyOnceWithMultipleWorkers(t *testing.T) {
 		assert.NoError(q.Put(j))
 	}
 
-	amboy.WaitCtxInterval(ctx, q, 500*time.Millisecond)
+	amboy.WaitCtxInterval(ctx, q, 5*time.Second)
 
 	grip.Notice(q.Stats())
 	assert.Equal(atStart+40, mockJobCounters.Count())
-	fmt.Println(atStart+40, mockJobCounters.Count())
 }

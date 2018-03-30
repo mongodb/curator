@@ -1,6 +1,8 @@
 package repobuilder
 
 import (
+	"context"
+
 	"github.com/goamz/goamz/s3"
 	"github.com/mongodb/amboy"
 	"github.com/mongodb/amboy/dependency"
@@ -52,7 +54,7 @@ func NewIndexBuildJob(conf *RepositoryConfig, workSpace, repoName, bucket string
 
 // Run downloads the repository, and generates index pages at all
 // levels of the repo.
-func (j *IndexBuildJob) Run() {
+func (j *IndexBuildJob) Run(_ context.Context) {
 	bucket := sthree.GetBucketWithProfile(j.Bucket, j.Profile)
 
 	err := bucket.Open()

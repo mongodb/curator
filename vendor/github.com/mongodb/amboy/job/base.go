@@ -22,7 +22,6 @@ package job
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 	"sync"
 
@@ -34,15 +33,15 @@ import (
 // an implementation of most common Job methods which most jobs
 // need not implement themselves.
 type Base struct {
-	TaskID        string        `bson:"name" json:"name" yaml:"name"`
-	JobType       amboy.JobType `bson:"job_type" json:"job_type" yaml:"job_type"`
-	Errors        []string      `bson:"errors" json:"errors" yaml:"errors"`
-	PriorityValue int           `bson:"priority" json:"priority" yaml:"priority"`
+	TaskID        string            `bson:"name" json:"name" yaml:"name"`
+	JobType       amboy.JobType     `bson:"job_type" json:"job_type" yaml:"job_type"`
+	Errors        []string          `bson:"errors" json:"errors" yaml:"errors"`
+	PriorityValue int               `bson:"priority" json:"priority" yaml:"priority"`
+	TaskTimeInfo  amboy.JobTimeInfo `bson:"time_info" json:"time_info" yaml:"time_info"`
 
 	status amboy.JobStatusInfo
 	dep    dependency.Manager
 	mutex  sync.RWMutex
-	// adds common priority tracking.
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -68,7 +67,7 @@ func (b *Base) AddError(err error) {
 		b.mutex.Lock()
 		defer b.mutex.Unlock()
 
-		b.Errors = append(b.Errors, fmt.Sprintf("%+v", err))
+		b.Errors = append(b.Errors, err.Error())
 	}
 }
 
@@ -178,4 +177,36 @@ func (b *Base) SetStatus(s amboy.JobStatusInfo) {
 
 	b.status = s
 
+}
+
+// TimeInfo returns the job's TimeInfo object. The runner
+// implementations are responsible for updating these values.
+func (b *Base) TimeInfo() amboy.JobTimeInfo {
+	b.mutex.RLock()
+	defer b.mutex.RUnlock()
+
+	return b.TaskTimeInfo
+}
+
+// UpdateTimeInfo updates the stored value of time in the job, but
+// does *not* modify fields that are unset in the input document.
+func (b *Base) UpdateTimeInfo(i amboy.JobTimeInfo) {
+	b.mutex.Lock()
+	defer b.mutex.Unlock()
+
+	if !i.Start.IsZero() {
+		b.TaskTimeInfo.Start = i.Start
+	}
+
+	if !i.End.IsZero() {
+		b.TaskTimeInfo.End = i.End
+	}
+
+	if !i.WaitUntil.IsZero() {
+		b.TaskTimeInfo.WaitUntil = i.WaitUntil
+	}
+
+	if i.MaxTime == 0 {
+		b.TaskTimeInfo.MaxTime = i.MaxTime
+	}
 }

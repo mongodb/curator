@@ -1,7 +1,7 @@
 # start project configuration
 name := amboy
 buildDir := build
-packages := dependency job registry pool queue queue-driver rest
+packages := $(name) dependency job registry pool queue rest logger
 orgPath := github.com/mongodb
 projectPath := $(orgPath)/$(name)
 # end project configuration
@@ -173,6 +173,19 @@ vendor-clean:
 	rm -rf vendor/github.com/tychoish/gimlet/vendor/github.com/stretchr/testify/
 	rm -rf vendor/github.com/tychoish/gimlet/vendor/github.com/mongodb/grip/
 	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/stretchr/testify/
+	rm -rf vendor/gopkg.in/mgo.v2/harness/
+	rm -rf vendor/gopkg.in/mgo.v2/testdb/
+	rm -rf vendor/gopkg.in/mgo.v2/testserver/
+	rm -rf vendor/gopkg.in/mgo.v2/internal/json/testdata
+	rm -rf vendor/gopkg.in/mgo.v2/.git/
+	rm -rf vendor/gopkg.in/mgo.v2/txn/
+	rm -rf vendor/github.com/mongodb/mongo-go-driver/vendor/gopkg.in/yaml.v2
+	rm -rf vendor/github.com/mongodb/mongo-go-driver/vendor/github.com/davecgh/
+	rm -rf vendor/github.com/mongodb/mongo-go-driver/vendor/github.com/stretchr/testify/
+	rm -rf vendor/github.com/mongodb/mongo-go-driver/data/
+	rm -rf vendor/github.com/mongodb/mongo-go-driver/vendor/github.com/pmezard/
+	rm -rf vendor/github.com/mongodb/mongo-go-driver/vendor/github.com/google/go-cmp/
+	rm -rf vendor/github.com/mongodb/mongo-go-driver/vendor/github.com/kr/
 	find vendor/ -name "*.gif" -o -name "*.gz" -o -name "*.png" -o -name "*.ico" -o -name "*.dat" -o -name "*testdata" | xargs rm -rf
 #   define dependencies for buildscripts
 phony += vendor-deps vendor-clean

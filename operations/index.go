@@ -1,6 +1,7 @@
 package operations
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -94,7 +95,7 @@ func rebuildIndexPages(configPath, dir, name, distro, edition string, dryRun boo
 
 	j := repobuilder.NewIndexBuildJob(conf, dir, name, repo.Bucket, dryRun)
 
-	j.Run()
+	j.Run(context.TODO())
 
 	return j.Error()
 }

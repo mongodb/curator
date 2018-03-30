@@ -15,7 +15,6 @@ package queue
 
 import (
 	"context"
-	"fmt"
 	"sync"
 
 	"github.com/mongodb/amboy"
@@ -27,7 +26,7 @@ import (
 // LocalUnordered implements a local-only, channel based, queue
 // interface, and it is a good prototype for testing, in addition to
 // non-distributed workloads.
-type LocalUnordered struct {
+type unorderedLocal struct {
 	started      bool
 	numCompleted int
 	numStarted   int
@@ -40,12 +39,13 @@ type LocalUnordered struct {
 	runner amboy.Runner
 }
 
-// NewLocalUnordered is a constructor for the LocalUnordered
-// implementation of the Queue interface. The constructor takes a
-// single argument, for the number of workers the Runner instance
-// should have. The channels have a buffer of at least 8 or 2 times
-// the number of workers up a total of 64.
-func NewLocalUnordered(workers int) *LocalUnordered {
+// NewLocalUnordered is a constructor for a local queue that does not
+// respect dependency information in dispatching queue jobs.
+//
+// All jobs are stored in memory and while there is a buffer of
+// pending work, in general the number of buffered jobs is equal to
+// twice the size of the worker pool, up to 64 jobs.
+func NewLocalUnordered(workers int) amboy.Queue {
 	bufferSize := workers * 2
 
 	if bufferSize > 64 {
@@ -56,7 +56,7 @@ func NewLocalUnordered(workers int) *LocalUnordered {
 		bufferSize = 8
 	}
 
-	q := &LocalUnordered{
+	q := &unorderedLocal{
 		channel: make(chan amboy.Job, bufferSize),
 	}
 
@@ -73,18 +73,18 @@ func NewLocalUnordered(workers int) *LocalUnordered {
 // Put adds a job to the amboy.Job Queue. Returns an error if the
 // Queue has not yet started or if an amboy.Job with the
 // same name (i.e. amboy.Job.ID()) exists.
-func (q *LocalUnordered) Put(j amboy.Job) error {
+func (q *unorderedLocal) Put(j amboy.Job) error {
 	name := j.ID()
 
 	if !q.started {
-		return fmt.Errorf("cannot add %s because queue has not started", name)
+		return errors.Errorf("cannot add %s because queue has not started", name)
 	}
 
 	q.tasks.Lock()
 	defer q.tasks.Unlock()
 
 	if _, ok := q.tasks.m[name]; ok {
-		return fmt.Errorf("cannot add %s, because a job exists with that name", name)
+		return errors.Errorf("cannot add %s, because a job exists with that name", name)
 	}
 
 	q.tasks.m[name] = j
@@ -96,14 +96,14 @@ func (q *LocalUnordered) Put(j amboy.Job) error {
 }
 
 // Runner returns the embedded task runner.
-func (q *LocalUnordered) Runner() amboy.Runner {
+func (q *unorderedLocal) Runner() amboy.Runner {
 	return q.runner
 }
 
 // SetRunner allows users to substitute alternate Runner
 // implementations at run time. This method fails if the runner has
 // started.
-func (q *LocalUnordered) SetRunner(r amboy.Runner) error {
+func (q *unorderedLocal) SetRunner(r amboy.Runner) error {
 	if q.runner != nil && q.runner.Started() {
 		return errors.New("cannot set a runner, current runner is running")
 	}
@@ -114,7 +114,7 @@ func (q *LocalUnordered) SetRunner(r amboy.Runner) error {
 
 // Started returns true when the Queue has begun dispatching tasks to
 // runners.
-func (q *LocalUnordered) Started() bool {
+func (q *unorderedLocal) Started() bool {
 	return q.started
 }
 
@@ -123,7 +123,7 @@ func (q *LocalUnordered) Started() bool {
 // handle all errors from this method as fatal errors. If you call
 // start on a queue that has been started, subsequent calls to Start()
 // are a noop, and do not return an error.
-func (q *LocalUnordered) Start(ctx context.Context) error {
+func (q *unorderedLocal) Start(ctx context.Context) error {
 	if q.started {
 		return nil
 	}
@@ -142,7 +142,7 @@ func (q *LocalUnordered) Start(ctx context.Context) error {
 // Next returns a job from the Queue. This call is non-blocking. If
 // there are no pending jobs at the moment, then Next returns an
 // error. If all jobs are complete, then Next also returns an error.
-func (q *LocalUnordered) Next(ctx context.Context) amboy.Job {
+func (q *unorderedLocal) Next(ctx context.Context) amboy.Job {
 	for {
 		select {
 		case <-ctx.Done():
@@ -158,25 +158,54 @@ func (q *LocalUnordered) Next(ctx context.Context) amboy.Job {
 // closed when all results have been exhausted, even if there are more
 // results pending. Other implementations may have different semantics
 // for this method.
-func (q *LocalUnordered) Results() <-chan amboy.Job {
+func (q *unorderedLocal) Results(ctx context.Context) <-chan amboy.Job {
 	output := make(chan amboy.Job, q.numCompleted)
 
 	go func() {
 		q.tasks.RLock()
 		defer q.tasks.RUnlock()
+		defer close(output)
 		for _, job := range q.tasks.m {
+			if ctx.Err() != nil {
+				return
+			}
+
 			if job.Status().Completed {
 				output <- job
 			}
 		}
-		close(output)
 	}()
 
 	return output
 }
 
+// JobStats returns JobStatusInfo objects for all jobs tracked by the
+// queue, in no particular order.
+func (q *unorderedLocal) JobStats(ctx context.Context) <-chan amboy.JobStatusInfo {
+	out := make(chan amboy.JobStatusInfo)
+
+	go func() {
+		q.tasks.RLock()
+		defer q.tasks.RUnlock()
+		defer close(out)
+
+		for _, job := range q.tasks.m {
+			if ctx.Err() != nil {
+				return
+			}
+
+			stat := job.Status()
+			stat.ID = job.ID()
+			out <- stat
+		}
+
+	}()
+
+	return out
+}
+
 // Get takes a name and returns a completed job.
-func (q *LocalUnordered) Get(name string) (amboy.Job, bool) {
+func (q *unorderedLocal) Get(name string) (amboy.Job, bool) {
 	q.tasks.RLock()
 	defer q.tasks.RUnlock()
 
@@ -187,7 +216,7 @@ func (q *LocalUnordered) Get(name string) (amboy.Job, bool) {
 
 // Stats returns a statistics object with data about the total number
 // of jobs tracked by the queue.
-func (q *LocalUnordered) Stats() amboy.QueueStats {
+func (q *unorderedLocal) Stats() amboy.QueueStats {
 	s := amboy.QueueStats{}
 
 	q.tasks.RLock()
@@ -202,7 +231,7 @@ func (q *LocalUnordered) Stats() amboy.QueueStats {
 
 // Complete marks a job as complete, moving it from the in progress
 // state to the completed state. This operation is asynchronous and non-blocking.
-func (q *LocalUnordered) Complete(ctx context.Context, j amboy.Job) {
+func (q *unorderedLocal) Complete(ctx context.Context, j amboy.Job) {
 	go func() {
 		grip.Debugf("marking job (%s) as complete", j.ID())
 		q.tasks.Lock()

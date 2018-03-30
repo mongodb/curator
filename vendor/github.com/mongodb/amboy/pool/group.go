@@ -14,9 +14,12 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/mongodb/amboy"
 	"github.com/mongodb/grip"
+	"github.com/mongodb/grip/message"
+	"github.com/mongodb/grip/recovery"
 )
 
 // Group is a Runner implementation that can, potentially, run
@@ -71,10 +74,10 @@ func (r *Group) Started() bool {
 	return r.started
 }
 
-func (r *Group) startMerger(ctx context.Context) <-chan *workUnit {
+func (r *Group) startMerger(ctx context.Context) <-chan workUnit {
 	// making this non-buffered so we don't have to wait as long for jobs to drain from the
 	// channel in the event of a cancellation.
-	work := make(chan *workUnit)
+	work := make(chan workUnit)
 
 	go func() {
 		// Make sure all queues are started...
@@ -109,7 +112,7 @@ func (r *Group) startMerger(ctx context.Context) <-chan *workUnit {
 					continue
 				}
 
-				task := &workUnit{
+				task := workUnit{
 					j: job,
 					q: queue,
 				}
@@ -171,24 +174,64 @@ func (r *Group) Start(ctx context.Context) error {
 		r.wg.Add(1)
 		name := fmt.Sprintf("worker-%d", w)
 
-		go func(name string) {
-			grip.Debugf("worker (%s) waiting for jobs", name)
-		workLoop:
-			for unit := range work {
-				select {
-				case <-ctx.Done():
-					break workLoop
-				default:
-					unit.j.Run()
-					unit.q.Complete(ctx, unit.j)
-				}
-			}
-			grip.Debugf("worker (%s) exiting", name)
-			r.wg.Done()
-		}(name)
+		go groupWorker(ctx, &r.wg, name, work)
 	}
 
 	return nil
+}
+
+func groupWorker(ctx context.Context, wg *sync.WaitGroup, name string, work <-chan workUnit) {
+	var (
+		err  error
+		unit workUnit
+	)
+
+	defer wg.Done()
+	defer func() {
+		// if we hit a panic we want to add an error to the job;
+		err = recovery.HandlePanicWithError(recover(), nil, "worker process encountered error")
+		if err != nil {
+			if unit.j != nil {
+				unit.j.AddError(err)
+				unit.q.Complete(ctx, unit.j)
+			}
+			// start a replacement worker.
+			wg.Add(1)
+			go groupWorker(ctx, wg, name, work)
+		}
+	}()
+
+	grip.Debugf("worker (%s) waiting for jobs", name)
+	for unit := range work {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			ti := amboy.JobTimeInfo{
+				Start: time.Now(),
+			}
+
+			runJob(ctx, unit.j)
+
+			unit.j.UpdateTimeInfo(ti)
+			unit.q.Complete(ctx, unit.j)
+			ti.End = time.Now()
+			unit.j.UpdateTimeInfo(ti)
+			r := message.Fields{
+				"job_type":      unit.j.Type().Name,
+				"job":           unit.j.ID(),
+				"duration_secs": ti.Duration().Seconds(),
+				"pool":          "group",
+				"queue_type":    fmt.Sprintf("%T", unit.q),
+			}
+			if err := unit.j.Error(); err != nil {
+				r["error"] = err.Error()
+			}
+			grip.Debug(r)
+		}
+
+	}
+	grip.Debugf("worker (%s) exiting", name)
 }
 
 // Close cancels all pending workers and waits for the running

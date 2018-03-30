@@ -1,6 +1,7 @@
 package operations
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -162,7 +163,7 @@ func buildRepo(packages, configPath, workingDir, distro, edition, version, arch,
 	job.WorkSpace = workingDir
 	job.DryRun = dryRun
 
-	job.Run()
+	job.Run(context.TODO())
 	err = job.Error()
 	if err != nil {
 		return errors.Wrap(err, "encountered error rebuilding repository")

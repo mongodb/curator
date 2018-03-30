@@ -17,7 +17,7 @@ import (
 
 type ShuffledQueueSuite struct {
 	require *require.Assertions
-	queue   *LocalShuffled
+	queue   *shuffledLocal
 	suite.Suite
 }
 
@@ -30,7 +30,7 @@ func (s *ShuffledQueueSuite) SetupSuite() {
 }
 
 func (s *ShuffledQueueSuite) SetupTest() {
-	s.queue = &LocalShuffled{}
+	s.queue = &shuffledLocal{}
 }
 
 func (s *ShuffledQueueSuite) TestCannotStartQueueWithNilRunner() {
@@ -134,7 +134,10 @@ func (s *ShuffledQueueSuite) TestResultsOperationReturnsEmptyChannelIfQueueIsNot
 	s.False(s.queue.Started())
 	count := 0
 
-	for range s.queue.Results() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	for range s.queue.Results(ctx) {
 		count++
 	}
 

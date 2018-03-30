@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"archive/zip"
 	"compress/gzip"
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -80,7 +81,7 @@ func NewDownloadJob(url, path string, force bool) (*DownloadFileJob, error) {
 // checks the job directly and returns early if the downloaded file
 // exists. This behavior may be redundant in the case that the queue
 // skips jobs with "passed" jobs.
-func (j *DownloadFileJob) Run() {
+func (j *DownloadFileJob) Run(_ context.Context) {
 	defer j.MarkComplete()
 
 	fn := j.getFileName()

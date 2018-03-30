@@ -3,6 +3,7 @@ package pool
 import (
 	"context"
 	"fmt"
+	"sync"
 	"testing"
 
 	"github.com/mongodb/amboy"
@@ -42,6 +43,14 @@ func TestLocalWorkersSuiteSizeOneHundred(t *testing.T) {
 func (s *LocalWorkersSuite) SetupTest() {
 	s.pool = NewLocalWorkers(s.size, nil).(*localWorkers)
 	s.queue = NewQueueTester(s.pool)
+}
+
+func (s *LocalWorkersSuite) TestPanicJobsDoNotPanicHarness() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	wg := &sync.WaitGroup{}
+
+	s.NotPanics(func() { worker(ctx, jobsChanWithPanicingJobs(ctx, s.size), s.queue, wg) })
 }
 
 func (s *LocalWorkersSuite) TestConstructedInstanceImplementsInterface() {
@@ -90,7 +99,7 @@ func (s *LocalWorkersSuite) TestPoolStartsAndProcessesJobs() {
 	amboy.Wait(s.queue)
 
 	counter := 0
-	for j := range s.queue.Results() {
+	for j := range s.queue.Results(ctx) {
 		s.True(j.Status().Completed)
 		counter++
 	}
@@ -142,4 +151,15 @@ func TestLocalWorkerPoolConstructorDoesNotAllowSizeValuesLessThanOne(t *testing.
 
 		assert.Equal(1, pool.size)
 	}
+}
+
+func TestPanicJobPanics(t *testing.T) {
+	assert := assert.New(t) // nolint
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	for j := range jobsChanWithPanicingJobs(ctx, 8) {
+		assert.Panics(func() { j.Run(ctx) })
+	}
+
 }

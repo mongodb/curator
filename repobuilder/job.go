@@ -1,6 +1,7 @@
 package repobuilder
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -248,7 +249,7 @@ func (j *Job) signFile(fileName, archiveExtension string, overwrite bool) error 
 }
 
 // Run is the main execution entry point into repository building, and is a component
-func (j *Job) Run() {
+func (j *Job) Run(_ context.Context) {
 	bucket := sthree.GetBucketWithProfile(j.Distro.Bucket, j.Profile)
 	err := bucket.Open()
 	if err != nil {

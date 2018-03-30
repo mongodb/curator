@@ -1,7 +1,7 @@
 package job
 
 import (
-	"fmt"
+	"context"
 	"sync"
 
 	"github.com/mongodb/amboy"
@@ -39,7 +39,6 @@ func newGroupInstance() *Group {
 			JobType: amboy.JobType{
 				Name:    "group",
 				Version: 1,
-				Format:  amboy.BSON,
 			},
 		},
 	}
@@ -58,11 +57,11 @@ func (g *Group) Add(j amboy.Job) error {
 	defer g.mutex.Unlock()
 	_, exists := g.Jobs[name]
 	if exists {
-		return fmt.Errorf("job named '%s', already exists in Group %s",
+		return errors.Errorf("job named '%s', already exists in Group %s",
 			name, g.ID())
 	}
 
-	job, err := registry.MakeJobInterchange(j)
+	job, err := registry.MakeJobInterchange(j, amboy.JSON)
 	if err != nil {
 		return err
 	}
@@ -75,7 +74,9 @@ func (g *Group) Add(j amboy.Job) error {
 // Jobs in the Group. Returns an error if: the Group has already
 // run, or if any of the constituent Jobs produce an error *or* if
 // there are problems with the JobInterchange converters.
-func (g *Group) Run() {
+func (g *Group) Run(ctx context.Context) {
+	defer g.MarkComplete()
+
 	if g.Status().Completed {
 		g.AddError(errors.Errorf("Group '%s' has already executed", g.ID()))
 		return
@@ -85,9 +86,15 @@ func (g *Group) Run() {
 
 	g.mutex.RLock()
 	for _, job := range g.Jobs {
-		runnableJob, err := registry.ConvertToJob(job)
+		if err := ctx.Err(); err != nil {
+			g.AddError(err)
+			break
+		}
+
+		runnableJob, err := job.Resolve(amboy.JSON)
 		if err != nil {
 			g.AddError(err)
+			continue
 		}
 
 		depState := runnableJob.Dependency().State()
@@ -102,7 +109,14 @@ func (g *Group) Run() {
 		go func(j amboy.Job, group *Group) {
 			defer wg.Done()
 
-			j.Run()
+			maxTime := j.TimeInfo().MaxTime
+			if maxTime > 0 {
+				var cancel context.CancelFunc
+				ctx, cancel = context.WithTimeout(ctx, maxTime)
+				defer cancel()
+			}
+
+			j.Run(ctx)
 
 			// after the task completes, add the issue
 			// back to Jobs map so that we preserve errors
@@ -110,7 +124,7 @@ func (g *Group) Run() {
 			jobErr := j.Error()
 			g.AddError(jobErr)
 
-			job, err := registry.MakeJobInterchange(j)
+			job, err := registry.MakeJobInterchange(j, amboy.JSON)
 			if err != nil {
 				g.AddError(err)
 				return

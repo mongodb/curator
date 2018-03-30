@@ -1,5 +1,7 @@
 package message
 
+import "fmt"
+
 type jiraMessage struct {
 	issue JiraIssue
 	Base
@@ -11,15 +13,16 @@ type jiraMessage struct {
 // To see whether you have the right permissions to create an issue with certain
 // fields, check your JIRA interface on the web.
 type JiraIssue struct {
-	Project     string
-	Summary     string
-	Description string
-	Reporter    string
-	Assignee    string
-	Type        string
-	Labels      []string
+	Project     string   `bson:"project" json:"project" yaml:"project"`
+	Summary     string   `bson:"summary" json:"summary" yaml:"summary"`
+	Description string   `bson:"description" json:"description" yaml:"description"`
+	Reporter    string   `bson:"reporter" json:"reporter" yaml:"reporter"`
+	Assignee    string   `bson:"assignee" json:"assignee" yaml:"assignee"`
+	Type        string   `bson:"type" json:"type" yaml:"type"`
+	Components  []string `bson:"components" json:"components" yaml:"components"`
+	Labels      []string `bson:"labels" json:"labels" yaml:"labels"`
 	// ... other fields
-	Fields map[string]string
+	Fields map[string]string `bson:"fields" json:"fields" yaml:"fields"`
 }
 
 // JiraField is a struct composed of a key-value pair.
@@ -59,6 +62,8 @@ func NewJiraMessage(project, summary string, fields ...JiraField) Composer {
 			issue.Type = f.Value.(string)
 		case "labels", "Labels":
 			issue.Labels = f.Value.([]string)
+		case "component", "Component":
+			issue.Components = f.Value.([]string)
 		default:
 			issue.Fields[f.Key] = f.Value.(string)
 		}
@@ -75,3 +80,22 @@ func NewJiraMessage(project, summary string, fields ...JiraField) Composer {
 func (m *jiraMessage) String() string   { return m.issue.Summary }
 func (m *jiraMessage) Raw() interface{} { return m.issue }
 func (m *jiraMessage) Loggable() bool   { return m.issue.Summary != "" }
+func (m *jiraMessage) Annotate(k string, v interface{}) error {
+	if m.issue.Fields == nil {
+		m.issue.Fields = map[string]string{}
+	}
+
+	value, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("value %+v for key %s is not a string, which is required for jira fields",
+			k, v)
+	}
+
+	if _, ok := m.issue.Fields[k]; ok {
+		return fmt.Errorf("value %s already exists", k)
+	}
+
+	m.issue.Fields[k] = value
+
+	return nil
+}

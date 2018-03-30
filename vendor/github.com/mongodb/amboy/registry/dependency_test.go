@@ -4,25 +4,16 @@ import (
 	"testing"
 
 	"github.com/mongodb/amboy/dependency"
-	"github.com/mongodb/grip"
-	"github.com/mongodb/grip/level"
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
 type AmboyDependencyRegistrySuite struct {
-	require  *require.Assertions
 	registry *typeRegistry
 	suite.Suite
 }
 
 func TestAmboyDependencyRegistrySuite(t *testing.T) {
 	suite.Run(t, new(AmboyDependencyRegistrySuite))
-}
-
-func (s *AmboyDependencyRegistrySuite) SetupSuite() {
-	s.require = s.Require()
-	grip.SetThreshold(level.Emergency)
 }
 
 func (s *AmboyDependencyRegistrySuite) SetupTest() {
