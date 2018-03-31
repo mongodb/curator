@@ -1,5 +1,7 @@
 package repobuilder
 
+import "context"
+
 func (s *RepoJobSuite) TestRPMConstructedObjectHasExpectedValues() {
 	conf, err := GetConfig("repobuilder/config_test.yaml")
 	s.NoError(err)
@@ -38,6 +40,6 @@ func (s *RepoJobSuite) TestRPMCompletedSetter() {
 
 	s.False(s.j.Status().Completed)
 
-	s.j.Run()
+	s.j.Run(context.Background())
 	s.True(s.j.Status().Completed)
 }
