@@ -612,7 +612,7 @@ func (b *Bucket) deleteGroup(items <-chan s3.Key) error {
 // not exist or if the local file has different content from the
 // remote file. All operations execute in the worker pool, and SyncTo
 // waits for all jobs to complete before returning an aggregated error.
-func (b *Bucket) SyncTo(local, prefix string, withDelete bool) error {
+func (b *Bucket) SyncTo(local, prefix string, opts SyncOptions) error {
 	grip.Infof("sync push %s -> %s/%s", local, b.name, prefix)
 
 	remote := b.contents(prefix)
@@ -643,7 +643,7 @@ func (b *Bucket) SyncTo(local, prefix string, withDelete bool) error {
 			remoteFile = s3.Key{Key: keyName}
 		}
 
-		job := newSyncToJob(b, path, remoteFile, withDelete)
+		job := newSyncToJob(b, path, remoteFile, opts.WithDelete)
 
 		err = errors.Wrap(b.queue.Put(job), "problem putting syncTo job into queue")
 		if err != nil {
@@ -656,14 +656,17 @@ func (b *Bucket) SyncTo(local, prefix string, withDelete bool) error {
 		return nil
 	}))
 
-	amboy.WaitInterval(b.queue, 250*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.TODO(), opts.Timeout)
+	defer cancel()
+
+	amboy.WaitCtxInterval(ctx, b.queue, 250*time.Millisecond)
 
 	if catcher.HasErrors() {
 		grip.Alertf("encountered %d problems putting jobs into the syncTo queue", catcher.Len())
 		return catcher.Resolve()
 	}
 
-	if err := amboy.ResolveErrors(context.TODO(), b.queue); err != nil {
+	if err := amboy.ResolveErrors(ctx, b.queue); err != nil {
 		m := fmt.Sprintf("problem with syncTo operation (%s -> %s/%s)",
 			local, b.name, prefix)
 		grip.Alert(m)
@@ -676,17 +679,33 @@ func (b *Bucket) SyncTo(local, prefix string, withDelete bool) error {
 	return nil
 }
 
+// SyncOptions controls the behavior of the sync-to and sync-from operations.
+type SyncOptions struct {
+	WithDelete         bool
+	Timeout            time.Duration
+	QueueCheckInterval time.Duration
+}
+
+// NewDefaultSyncOptions populates a SyncOptions object with reasonable defaults.
+func NewDefaultSyncOptions() SyncOptions {
+	return SyncOptions{
+		Timeout:            10 * time.Minute,
+		WithDelete:         false,
+		QueueCheckInterval: 100 * time.Millisecond,
+	}
+}
+
 // SyncFrom takes a local path and the prefix of a keyname in S3, and
 // and downloads all objects in the bucket that have that prefix to
 // the local system at the path specified by "local". Will *not*
 // download files if the content of the local file have *not* changed.
 // All operations execute in the worker pool, and SyncTo waits for all
 // jobs to complete before returning an aggregated erro
-func (b *Bucket) SyncFrom(local, prefix string, withDelete bool) error {
+func (b *Bucket) SyncFrom(local, prefix string, opts SyncOptions) error {
 	grip.Infof("sync pull %s/%s -> %s", b.name, prefix, local)
 
 	for remote := range b.list(prefix) {
-		job := newSyncFromJob(b, filepath.Join(local, remote.Key[len(prefix):]), remote, withDelete)
+		job := newSyncFromJob(b, filepath.Join(local, remote.Key[len(prefix):]), remote, opts.WithDelete)
 
 		// add the job to the queue
 		if err := b.queue.Put(job); err != nil {
@@ -694,9 +713,12 @@ func (b *Bucket) SyncFrom(local, prefix string, withDelete bool) error {
 		}
 	}
 
-	amboy.WaitInterval(b.queue, 250*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.TODO(), opts.Timeout)
+	defer cancel()
 
-	if err := amboy.ResolveErrors(context.TODO(), b.queue); err != nil {
+	amboy.WaitCtxInterval(ctx, b.queue, opts.QueueCheckInterval)
+
+	if err := amboy.ResolveErrors(ctx, b.queue); err != nil {
 		m := fmt.Sprintf("problem with syncFrom operation (%s/%s -> %s)",
 			b.name, prefix, local)
 		grip.Alert(m)

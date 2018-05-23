@@ -85,8 +85,9 @@ func (j *IndexBuildJob) Run(_ context.Context) {
 
 	defer j.MarkComplete()
 
+	syncOpts := sthree.NewDefaultSyncOptions()
 	grip.Infof("downloading from %s to %s", bucket, j.WorkSpace)
-	err = bucket.SyncFrom(j.WorkSpace, "", false)
+	err = bucket.SyncFrom(j.WorkSpace, "", syncOpts)
 	if err != nil {
 		j.AddError(errors.Wrapf(err, "sync from %s to %s", bucket, j.WorkSpace))
 		return
@@ -102,7 +103,7 @@ func (j *IndexBuildJob) Run(_ context.Context) {
 		return
 	}
 
-	err = bucket.SyncTo(j.WorkSpace, "", false)
+	err = bucket.SyncTo(j.WorkSpace, "", syncOpts)
 	if err != nil {
 		j.AddError(errors.Wrapf(err, "problem uploading %s to %s",
 			j.WorkSpace, bucket))

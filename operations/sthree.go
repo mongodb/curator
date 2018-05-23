@@ -300,7 +300,9 @@ func s3SyncTo(bucket, profile, local, prefix string, withDelete, dryRun bool) er
 		}
 	}
 
-	return b.SyncTo(local, prefix, withDelete)
+	opts := sthree.NewDefaultSyncOptions()
+	opts.WithDelete = withDelete
+	return b.SyncTo(local, prefix, opts)
 }
 
 func s3SyncFrom(bucket, profile, local, prefix string, withDelete, dryRun bool) error {
@@ -320,7 +322,10 @@ func s3SyncFrom(bucket, profile, local, prefix string, withDelete, dryRun bool) 
 		}
 	}
 
-	return b.SyncFrom(local, prefix, withDelete)
+	opts := sthree.NewDefaultSyncOptions()
+	opts.WithDelete = withDelete
+
+	return b.SyncFrom(local, prefix, opts)
 }
 
 /////////////////////////
