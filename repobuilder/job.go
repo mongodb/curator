@@ -281,6 +281,7 @@ func (j *Job) Run(_ context.Context) {
 	defer j.MarkComplete()
 	wg := &sync.WaitGroup{}
 
+	syncOpts := sthree.NewDefaultSyncOptions()
 	// at the moment there is only multiple repos for RPM distros
 	for _, remote := range j.Distro.Repos {
 		clonedBucket, err := bucket.Clone()
@@ -308,7 +309,7 @@ func (j *Job) Run(_ context.Context) {
 
 			grip.Infof("downloading from %s to %s", remote, local)
 			pkgLocation := j.getPackageLocation()
-			if err = b.SyncFrom(filepath.Join(local, pkgLocation), filepath.Join(remote, pkgLocation), false); err != nil {
+			if err = b.SyncFrom(filepath.Join(local, pkgLocation), filepath.Join(remote, pkgLocation), syncOpts); err != nil {
 				j.AddError(errors.Wrapf(err, "sync from %s to %s", remote, local))
 				return
 			}
@@ -344,7 +345,7 @@ func (j *Job) Run(_ context.Context) {
 			}
 
 			// do the sync. It's ok,
-			err = b.SyncTo(syncSource, filepath.Join(remote, changedComponent), false)
+			err = b.SyncTo(syncSource, filepath.Join(remote, changedComponent), syncOpts)
 			if err != nil {
 				j.AddError(errors.Wrapf(err, "problem uploading %s to %s/%s",
 					syncSource, b, changedComponent))
