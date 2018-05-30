@@ -123,6 +123,9 @@ endif
 ifneq (,$(RUN_CASE))
 testArgs += -testify.m='$(RUN_CASE)'
 endif
+ifneq (,$(RUN_COUNT))
+testArgs += -test.count='$(RUN_COUNT)'
+endif
 #    to avoid vendoring the coverage tool, install it as needed
 coverDeps := $(if $(DISABLE_COVERAGE),,golang.org/x/tools/cmd/cover)
 coverDeps := $(addprefix $(gopath)/src/,$(coverDeps))
@@ -170,8 +173,8 @@ vendor-sync:$(vendorDeps)
 	glide install -s
 vendor-clean:
 	rm -rf vendor/gopkg.in/mgo.v2/harness/
-	rm -rf vendor/github.com/tychoish/gimlet/vendor/github.com/stretchr/testify/
-	rm -rf vendor/github.com/tychoish/gimlet/vendor/github.com/mongodb/grip/
+	rm -rf vendor/github.com/evergreen-ci/gimlet/vendor/github.com/stretchr/testify/
+	rm -rf vendor/github.com/evergreen-ci/gimlet/vendor/github.com/mongodb/grip/
 	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/stretchr/testify/
 	rm -rf vendor/gopkg.in/mgo.v2/harness/
 	rm -rf vendor/gopkg.in/mgo.v2/testdb/
