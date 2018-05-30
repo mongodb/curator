@@ -1,0 +1,7 @@
+tests:
+  - name: gzip_installed
+    suites:
+      - all
+    type: shell-operation
+    args:
+      command: "gzip --version"

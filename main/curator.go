@@ -41,6 +41,7 @@ func buildApp() *cli.App {
 		operations.BuildLogger(),
 		operations.Splunk(),
 		operations.Notify(),
+		operations.Greenbay(),
 	}
 
 	// These are global options. Use this to configure logging or

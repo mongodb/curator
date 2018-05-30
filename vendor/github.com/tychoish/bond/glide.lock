@@ -10,9 +10,9 @@ imports:
 - name: github.com/mholt/archiver
   version: 4a8a092653655d29c8e091cf2ecf91cbe697f0de
 
-- name: github.com/mongodb/amboy
-  version: 6ab543863b5fcd8c12fafb773f5532da70f836a2
 - name: github.com/mongodb/grip
-  version: 3568ece3546276b170764c0ea70f6e7ea900c90f
+  version: 7ec499c3201dc7726da08f3f51e90386ec26a3d7
+- name: github.com/mongodb/amboy
+  version: d1e174d349e86cfe074824d06cc3d58018a27257
 
 devImports: []

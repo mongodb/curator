@@ -8,7 +8,7 @@ variables:
     name: test
     commands:
       - command: git.get_project
-        type: setup
+        type: system
         params:
           directory: gopath/src/github.com/mongodb/grip
       - func: run-make
@@ -54,7 +54,7 @@ post:
         - "gopath/src/github.com/mongodb/grip/build/test.*.out"
         - "gopath/src/github.com/mongodb/grip/build/race.*.out"
   - command: s3.put
-    type: setup
+    type: system
     params:
       aws_key: ${aws_key}
       aws_secret: ${aws_secret}
@@ -65,7 +65,7 @@ post:
       permissions: public-read
       display_name: "(html) coverage:"
   - command: s3.put
-    type: setup
+    type: system
     params:
       aws_key: ${aws_key}
       aws_secret: ${aws_secret}
@@ -83,7 +83,7 @@ tasks:
     tags: ["report"]
     commands:
       - command: git.get_project
-        type: setup
+        type: system
         params:
           directory: gopath/src/github.com/mongodb/grip
       - func: run-make
@@ -93,7 +93,7 @@ tasks:
     tags: [ "report" ]
     commands:
       - command: git.get_project
-        type: setup
+        type: system
         params:
           directory: gopath/src/github.com/mongodb/grip
       - func: run-make

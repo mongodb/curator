@@ -1,0 +1,25 @@
+{
+    "configuration": {
+        "continue_on_error": false,
+        "report_format": "gotest",
+        "jobs": 2
+    },
+    "tests": [
+        {
+            "name": "test-one",
+            "suites": ["all"],
+            "type": "pacman-installed",
+            "args": {
+                "package": "emacs-lucid"
+            }
+        },
+        {
+            "name": "test-two",
+            "suites": ["all"],
+            "type": "pacman-installed",
+            "args": {
+                "package": "emacs-lucid"
+            }
+        }
+    ]
+}

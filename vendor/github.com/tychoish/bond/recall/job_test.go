@@ -1,6 +1,7 @@
 package recall
 
 import (
+	"context"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -190,7 +191,7 @@ func (s *DownloadJobSuite) TestJobSmokeTests() {
 		j, err := NewDownloadJob(url, s.tempDir, false)
 		s.NoError(err)
 
-		j.Run()
+		j.Run(context.TODO())
 		s.NoError(j.Error())
 
 		_, err = os.Stat(filepath.Join(s.tempDir, fn))
@@ -209,7 +210,7 @@ func (s *DownloadJobSuite) TestJobWithFileThatDoesNotExistReportsError() {
 		j, err := NewDownloadJob(url, s.tempDir, true)
 		s.NoError(err)
 
-		j.Run()
+		j.Run(context.TODO())
 		s.Error(j.Error())
 	}
 }
@@ -222,7 +223,7 @@ func (s *DownloadJobSuite) TestInvalidExtensionsReturnErrors() {
 		j, err := NewDownloadJob(url, s.tempDir, true)
 		s.NoError(err)
 
-		j.Run()
+		j.Run(context.TODO())
 		s.Error(j.Error())
 	}
 }
@@ -236,7 +237,7 @@ func (s *DownloadJobSuite) TestNoopCaseIfDependencyIsSatisfiedAndForceIsNotSet()
 
 	j.SetDependency(dependency.NewCreatesFile("/etc"))
 	s.Equal(j.Dependency().State(), dependency.Passed)
-	j.Run()
+	j.Run(context.TODO())
 	s.NoError(j.Error())
 
 	_, err = os.Stat(fn)
@@ -252,7 +253,7 @@ func (s *DownloadJobSuite) TestIfDependencyIsSatisfiedAndForceIsSetThereIsNoNoop
 
 	j.SetDependency(dependency.NewCreatesFile(s.tempDir))
 	s.Equal(j.Dependency().State(), dependency.Passed)
-	j.Run()
+	j.Run(context.TODO())
 	s.NoError(j.Error())
 
 	_, err = os.Stat(fn)

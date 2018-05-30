@@ -448,7 +448,7 @@ func (s *BucketSuite) TestSyncToUploadsNewFilesWithoutError() {
 	s.Len(s.b.contents(remotePrefix), 0)
 
 	for i := 0; i < 3; i++ {
-		s.NoError(s.b.SyncTo(pwd, remotePrefix, false))
+		s.NoError(s.b.SyncTo(pwd, remotePrefix, NewDefaultSyncOptions()))
 
 		num, err := numFilesInPath(pwd, false)
 		s.NoError(err)
@@ -468,7 +468,7 @@ func (s *BucketSuite) TestSyncToDryRunDoesNotUploadFiles() {
 
 	s.Len(bucket.contents(remotePrefix), 0)
 
-	err = bucket.SyncTo(pwd, remotePrefix, false)
+	err = bucket.SyncTo(pwd, remotePrefix, NewDefaultSyncOptions())
 	s.NoError(err)
 
 	s.Len(s.b.contents(remotePrefix), 0)
@@ -493,7 +493,7 @@ func (s *BucketSuite) TestSyncFromDownloadsFiles() {
 	s.Len(s.b.contents(remotePrefix), 0)
 
 	// populate bucket.
-	s.NoError(s.b.SyncTo(pwd, remotePrefix, false))
+	s.NoError(s.b.SyncTo(pwd, remotePrefix, NewDefaultSyncOptions()))
 	numFiles, err := numFilesInPath(pwd, false)
 	s.NoError(err)
 
@@ -504,7 +504,7 @@ func (s *BucketSuite) TestSyncFromDownloadsFiles() {
 	// do this in a loop to make sure it's idempotent.
 	for i := 0; i < 3; i++ {
 		local := filepath.Join(s.tempDir, "sync-from-one")
-		err = s.b.SyncFrom(local, remotePrefix, false)
+		err = s.b.SyncFrom(local, remotePrefix, NewDefaultSyncOptions())
 		s.NoError(err)
 
 		// make sure we pulled the right number of files out of the
@@ -527,7 +527,7 @@ func (s *BucketSuite) TestSyncFromDryRunDoesNotUploadFiles() {
 
 	s.Len(bucket.contents(remotePrefix), 0)
 
-	err = bucket.SyncFrom(pwd, remotePrefix, false)
+	err = bucket.SyncFrom(pwd, remotePrefix, NewDefaultSyncOptions())
 	s.NoError(err)
 
 	s.Len(s.b.contents(remotePrefix), 0)
@@ -539,10 +539,10 @@ func (s *BucketSuite) TestSyncFromTestWhenFilesHaveChanged() {
 	s.NoError(s.b.Open())
 
 	remotePrefix := filepath.Join(s.uuid, "sync-round-trip")
-	s.NoError(s.b.SyncTo(pwd, remotePrefix, false))
+	s.NoError(s.b.SyncTo(pwd, remotePrefix, NewDefaultSyncOptions()))
 
 	local := filepath.Join(s.tempDir, "sync-round-trip")
-	s.NoError(s.b.SyncFrom(local, remotePrefix, false))
+	s.NoError(s.b.SyncFrom(local, remotePrefix, NewDefaultSyncOptions()))
 
 	s.NoError(filepath.Walk(local, func(p string, info os.FileInfo, err error) error {
 		if err != nil || info.IsDir() {
@@ -554,7 +554,7 @@ func (s *BucketSuite) TestSyncFromTestWhenFilesHaveChanged() {
 		return nil
 	}))
 
-	s.NoError(s.b.SyncFrom(local, remotePrefix, false))
+	s.NoError(s.b.SyncFrom(local, remotePrefix, NewDefaultSyncOptions()))
 
 	s.NoError(filepath.Walk(local, func(p string, info os.FileInfo, err error) error {
 		if err != nil || info.IsDir() {
