@@ -1,6 +1,7 @@
 package sthree
 
 import (
+	"context"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -60,7 +61,7 @@ func (s *SyncFromSuite) TestSyncIsNoopWithoutDeleteIfNoRemoteFile() {
 	s.job.withDelete = false
 	s.job.remoteFile = s3.Key{Key: "NO-EXISTS"}
 	s.False(s.bucket.dryRun)
-	s.job.Run()
+	s.job.Run(context.TODO())
 	s.NoError(s.job.Error())
 }
 
@@ -69,7 +70,7 @@ func (s *SyncFromSuite) TestSyncIsNoopInDryRunWithDeleteIfNoRemoteFile() {
 	s.job.withDelete = true
 	s.job.remoteFile = s3.Key{Key: "NO-EXISTS"}
 	s.True(s.bucket.dryRun)
-	s.job.Run()
+	s.job.Run(context.TODO())
 	s.NoError(s.job.Error())
 }
 
@@ -94,7 +95,7 @@ func (s *SyncFromSuite) TestSyncWithDeleteRemovesFile() {
 	s.job.remoteFile = s3.Key{Key: "NO-EXISTS"}
 
 	s.False(s.bucket.dryRun)
-	s.job.Run()
+	s.job.Run(context.TODO())
 	s.NoError(s.job.Error())
 
 	_, err := os.Stat(s.job.localPath)
@@ -111,7 +112,7 @@ func (s *SyncFromSuite) TestSyncWithoutDeleteDoesNotRemoveFile() {
 	s.False(exists)
 
 	s.False(s.bucket.dryRun)
-	s.job.Run()
+	s.job.Run(context.TODO())
 	s.NoError(s.job.Error())
 
 	exists, err = s.bucket.Exists(s.job.remoteFile.Key)

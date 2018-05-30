@@ -1,6 +1,7 @@
 package sthree
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -90,7 +91,7 @@ func (s *SyncToSuite) TestSyncWithoutDeleteLeavesRemoteFile() {
 
 	s.False(s.job.withDelete)
 	s.False(s.job.b.dryRun)
-	s.job.Run()
+	s.job.Run(context.TODO())
 	s.NoError(s.job.Error())
 
 	exists, err := s.bucket.Exists(key)
@@ -111,7 +112,7 @@ func (s *SyncToSuite) TestSyncWithDeleteRemovesRemoteFile() {
 
 	s.True(s.job.withDelete)
 	s.False(s.job.b.dryRun)
-	s.job.Run()
+	s.job.Run(context.TODO())
 	s.NoError(s.job.Error())
 
 	exists, err := s.bucket.Exists(key)
@@ -132,7 +133,7 @@ func (s *SyncToSuite) TestSyncWithDeleteAndDryRunDoesNotRemovesRemoteFile() {
 
 	s.True(s.job.withDelete)
 	s.True(s.job.b.dryRun)
-	s.job.Run()
+	s.job.Run(context.TODO())
 	s.NoError(s.job.Error())
 
 	exists, err := s.bucket.Exists(key)
@@ -153,7 +154,7 @@ func (s *SyncToSuite) TestSyncWithoutDeleteAndDryRunDoesNotRemovesRemoteFile() {
 	s.job.b.dryRun = true
 	s.False(s.job.withDelete)
 	s.True(s.job.b.dryRun)
-	s.job.Run()
+	s.job.Run(context.TODO())
 	s.NoError(s.job.Error())
 
 	exists, err := s.bucket.Exists(key)
@@ -172,7 +173,7 @@ func (s *SyncToSuite) TestSyncPutsNewFileIntoBucket() {
 	for i := 0; i < 2; i++ {
 		s.False(s.job.b.dryRun)
 		s.NoError(s.job.Error())
-		s.job.Run()
+		s.job.Run(context.TODO())
 		s.NoError(s.job.Error())
 	}
 
@@ -201,7 +202,7 @@ func (s *SyncToSuite) TestSyncUploadsNewFileOverWrites() {
 		if !s.NoError(err) {
 			fmt.Println(err)
 		}
-		s.job.Run()
+		s.job.Run(context.TODO())
 		err = s.job.Error()
 		if !s.NoError(err) {
 			fmt.Println(err)

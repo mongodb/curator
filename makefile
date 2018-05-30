@@ -2,7 +2,7 @@
 name := curator
 buildDir := build
 packages := $(name) operations main sthree repobuilder
-packages += greenbay greenbay-check greenbay-output
+packages += greenbay greenbay-check
 orgPath := github.com/mongodb
 projectPath := $(orgPath)/$(name)
 # end project configuration
