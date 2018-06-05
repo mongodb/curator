@@ -77,6 +77,12 @@ func BuildLogger() cli.Command {
 				Name:  "addMeta",
 				Usage: "when sending json data, add logging meta data to each message",
 			},
+			cli.StringSliceFlag{
+				Name: "annotation",
+				Usage: "Optional. Specify key pairs in the form of <key>:<value>. " +
+					"You may specify this command more than once. " +
+					"Keys must not contain the : character.",
+			},
 		},
 		Subcommands: []cli.Command{
 			buildLogCommand(),
@@ -104,6 +110,7 @@ func buildLogCommand() cli.Command {
 		Action: func(c *cli.Context) error {
 			clogger, err := setupBuildLogger(
 				getBuildloggerConfig(c),
+				getAnnotations(c.Parent().StringSlice("annotation")),
 				c.Parent().Bool("json"),
 				c.Parent().Int("count"),
 				c.Parent().Duration("interval"))
@@ -130,9 +137,11 @@ func buildLogPipe() cli.Command {
 		Action: func(c *cli.Context) error {
 			clogger, err := setupBuildLogger(
 				getBuildloggerConfig(c),
+				getAnnotations(c.Parent().StringSlice("annotation")),
 				c.Parent().Bool("json"),
 				c.Parent().Int("count"),
 				c.Parent().Duration("interval"))
+
 			defer clogger.closer()
 			if err != nil {
 				return errors.Wrap(err, "problem configuring buildlogger")
@@ -182,15 +191,17 @@ func getCmd(command string) (*exec.Cmd, error) {
 }
 
 type cmdLogger struct {
-	logger  grip.Journaler
-	logJSON bool
-	addMeta bool
-	closer  func()
+	logger      grip.Journaler
+	annotations map[string]string
+	logJSON     bool
+	addMeta     bool
+	closer      func()
 }
 
-func setupBuildLogger(conf *send.BuildloggerConfig, logJSON bool, count int, interval time.Duration) (*cmdLogger, error) {
+func setupBuildLogger(conf *send.BuildloggerConfig, data map[string]string, logJSON bool, count int, interval time.Duration) (*cmdLogger, error) {
 	out := &cmdLogger{
-		logJSON: logJSON,
+		logJSON:     logJSON,
+		annotations: data,
 	}
 
 	var toClose []send.Sender
@@ -325,12 +336,25 @@ func collectStream(out chan<- []byte, input io.Reader, signal chan struct{}) {
 	close(signal)
 }
 
+func (l *cmdLogger) addAnnotations(m message.Composer) {
+	if len(l.annotations) == 0 {
+		return
+	}
+
+	for k, v := range l.annotations {
+		m.Annotate(k, v)
+	}
+}
+
 func (l *cmdLogger) logLines(lines <-chan []byte, signal chan struct{}) {
 	logLevel := l.logger.GetSender().Level().Threshold
 
 	for line := range lines {
 		grip.Notice(line)
-		l.logger.Log(logLevel, message.NewBytesMessage(logLevel, line))
+		m := message.NewBytesMessage(logLevel, line)
+		l.addAnnotations(m)
+
+		l.logger.Log(logLevel, m)
 	}
 
 	close(signal)
@@ -346,14 +370,17 @@ func (l *cmdLogger) logJSONLines(lines <-chan []byte, signal chan struct{}) {
 			grip.Error(err)
 			continue
 		}
+		var m message.Composer
 
 		switch {
 		case l.addMeta:
-			l.logger.Log(logLevel, message.MakeFields(out))
+			m = message.MakeFields(out)
+			l.addAnnotations(m)
 		default:
-			l.logger.Log(logLevel, message.MakeSimpleFields(out))
+			m = message.MakeSimpleFields(out)
+			l.addAnnotations(m)
 		}
-
+		l.logger.Log(logLevel, m)
 	}
 
 	close(signal)

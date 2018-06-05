@@ -13,8 +13,6 @@ import (
 	"github.com/mongodb/amboy/rest"
 	"github.com/mongodb/curator/greenbay"
 	"github.com/mongodb/grip"
-	"github.com/mongodb/grip/level"
-	"github.com/mongodb/grip/send"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 
@@ -33,20 +31,6 @@ func Greenbay() cli.Command {
 			client(),
 		},
 	}
-}
-
-// logging setup is separate to make it unit testable
-func loggingSetup(name, l string) error {
-	if err := grip.SetSender(send.MakeErrorLogger()); err != nil {
-		return err
-	}
-	grip.SetName(name)
-
-	sender := grip.GetSender()
-	info := sender.Level()
-	info.Threshold = level.FromString(l)
-
-	return sender.SetLevel(info)
 }
 
 func addConfArg(a ...cli.Flag) []cli.Flag {
