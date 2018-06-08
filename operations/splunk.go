@@ -2,6 +2,7 @@ package operations
 
 import (
 	"os"
+	"strings"
 
 	"github.com/mongodb/grip"
 	"github.com/mongodb/grip/logging"
@@ -43,6 +44,12 @@ func Splunk() cli.Command {
 				Name:  "addMeta",
 				Usage: "when sending json data, add logging meta data to each message",
 			},
+			cli.StringSliceFlag{
+				Name: "annotation",
+				Usage: "Optional. Specify key pairs in the form of <key>:<value>. " +
+					"You may specify this command more than once. " +
+					"Keys must not contain the : character.",
+			},
 		},
 		Subcommands: []cli.Command{
 			splunkLogCommand(),
@@ -67,7 +74,8 @@ func setupSplunkLogger(c *cli.Context) (*cmdLogger, error) {
 	}
 
 	out := &cmdLogger{
-		logJSON: c.Parent().Bool("json"),
+		logJSON:     c.Parent().Bool("json"),
+		annotations: getAnnotations(c.Parent().StringSlice("annotation")),
 	}
 
 	if !info.Populated() {
@@ -84,6 +92,23 @@ func setupSplunkLogger(c *cli.Context) (*cmdLogger, error) {
 	}
 
 	return out, nil
+}
+
+func getAnnotations(data []string) map[string]string {
+	if len(data) == 0 {
+		return nil
+	}
+
+	out := make(map[string]string)
+	for _, n := range data {
+		parts := strings.SplitN(n, ":", 2)
+		if len(parts) != 2 {
+			continue
+		}
+		out[parts[0]] = parts[1]
+	}
+
+	return out
 }
 
 ///////////////////////////////////

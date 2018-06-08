@@ -14,11 +14,25 @@ import (
 
 	"github.com/goamz/goamz/aws"
 	"github.com/goamz/goamz/s3"
+	"github.com/mongodb/amboy/job"
 	"github.com/mongodb/grip"
+	"github.com/mongodb/grip/level"
+	"github.com/mongodb/grip/send"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
+
+func init() {
+	grip.SetName("curator.sthree.tests")
+	grip.CatchError(grip.SetSender(send.MakeNative()))
+
+	lvl := grip.GetSender().Level()
+	lvl.Threshold = level.Error
+	_ = grip.GetSender().SetLevel(lvl)
+
+	job.RegisterDefaultJobs()
+}
 
 func GetDirectoryOfFile() string {
 	_, file, _, _ := runtime.Caller(1)
@@ -34,6 +48,7 @@ func GetDirectoryOfFile() string {
 // run this suite.
 type BucketSuite struct {
 	b          *Bucket
+	registry   *bucketRegistry
 	bucketName string
 	require    *require.Assertions
 	uuid       string
@@ -64,6 +79,8 @@ func (s *BucketSuite) SetupSuite() {
 }
 
 func (s *BucketSuite) SetupTest() {
+	s.registry = newBucketRegistry()
+	s.registry.init()
 	s.b = GetBucket(s.bucketName)
 }
 
