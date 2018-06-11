@@ -336,14 +336,15 @@ func collectStream(out chan<- []byte, input io.Reader, signal chan struct{}) {
 	close(signal)
 }
 
-func (l *cmdLogger) addAnnotations(m message.Composer) {
+func (l *cmdLogger) addAnnotations(m message.Composer) error {
 	if len(l.annotations) == 0 {
 		return
 	}
-
+	catcher := grip.NewBasicCatcher()
 	for k, v := range l.annotations {
-		m.Annotate(k, v)
+		catcher.Add(m.Annotate(k, v))
 	}
+	return catcher.Resolve()
 }
 
 func (l *cmdLogger) logLines(lines <-chan []byte, signal chan struct{}) {
@@ -352,7 +353,7 @@ func (l *cmdLogger) logLines(lines <-chan []byte, signal chan struct{}) {
 	for line := range lines {
 		grip.Notice(line)
 		m := message.NewBytesMessage(logLevel, line)
-		l.addAnnotations(m)
+		grip.Error(l.addAnnotations(m))
 
 		l.logger.Log(logLevel, m)
 	}
@@ -375,7 +376,7 @@ func (l *cmdLogger) logJSONLines(lines <-chan []byte, signal chan struct{}) {
 		switch {
 		case l.addMeta:
 			m = message.MakeFields(out)
-			l.addAnnotations(m)
+			grip.Error(l.addAnnotations(m))
 		default:
 			m = message.MakeSimpleFields(out)
 			l.addAnnotations(m)
