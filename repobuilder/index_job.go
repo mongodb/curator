@@ -2,6 +2,7 @@ package repobuilder
 
 import (
 	"context"
+	"time"
 
 	"github.com/goamz/goamz/s3"
 	"github.com/mongodb/amboy"
@@ -86,7 +87,12 @@ func (j *IndexBuildJob) Run(ctx context.Context) {
 	defer j.MarkComplete()
 
 	syncOpts := sthree.NewDefaultSyncOptions()
-	grip.Infof("downloading from %s to %s", bucket, j.WorkSpace)
+	deadline, ok := ctx.Deadline()
+	if ok {
+		syncOpts.Timeout = time.Until(deadline)
+	}
+
+	grip.Infof("downloading from %s to %s [timeout=%s]", bucket, j.WorkSpace, syncOpts.Timeout)
 	err = bucket.SyncFrom(ctx, j.WorkSpace, "", syncOpts)
 	if err != nil {
 		j.AddError(errors.Wrapf(err, "sync from %s to %s", bucket, j.WorkSpace))

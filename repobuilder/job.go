@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/goamz/goamz/s3"
 	"github.com/mongodb/amboy"
@@ -282,6 +283,10 @@ func (j *Job) Run(ctx context.Context) {
 	wg := &sync.WaitGroup{}
 
 	syncOpts := sthree.NewDefaultSyncOptions()
+	deadline, ok := ctx.Deadline()
+	if ok {
+		syncOpts.Timeout = time.Until(deadline)
+	}
 	// at the moment there is only multiple repos for RPM distros
 	for _, remote := range j.Distro.Repos {
 		clonedBucket, err := bucket.Clone()

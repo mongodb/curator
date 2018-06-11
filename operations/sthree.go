@@ -317,6 +317,11 @@ func s3SyncTo(ctx context.Context, bucket, profile, local, prefix string, withDe
 
 	opts := sthree.NewDefaultSyncOptions()
 	opts.WithDelete = withDelete
+	deadline, ok := ctx.Deadline()
+	if ok {
+		opts.Timeout = time.Until(deadline)
+	}
+
 	return b.SyncTo(ctx, local, prefix, opts)
 }
 
@@ -339,6 +344,10 @@ func s3SyncFrom(ctx context.Context, bucket, profile, local, prefix string, with
 
 	opts := sthree.NewDefaultSyncOptions()
 	opts.WithDelete = withDelete
+	deadline, ok := ctx.Deadline()
+	if ok {
+		opts.Timeout = time.Until(deadline)
+	}
 
 	return b.SyncFrom(ctx, local, prefix, opts)
 }
