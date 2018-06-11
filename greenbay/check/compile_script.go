@@ -72,8 +72,7 @@ func (c compileScript) Compile(testBody string, _ ...string) error {
 	if err != nil {
 		return errors.Wrap(err, "problem writing test")
 	}
-
-	defer os.Remove(sourceName)
+	defer func() { grip.Error(os.Remove(sourceName)) }()
 
 	cmd := exec.Command(c.bin, sourceName)
 	grip.Infof("running script script with command: %s", strings.Join(cmd.Args, " "))
@@ -92,8 +91,7 @@ func (c compileScript) CompileAndRun(testBody string, _ ...string) (string, erro
 	if err != nil {
 		return "", errors.Wrap(err, "problem writing test")
 	}
-
-	defer os.Remove(sourceName)
+	defer func() { grip.Error(os.Remove(sourceName)) }()
 
 	cmd := exec.Command(c.bin, sourceName)
 	grip.Infof("running script script with command: %s", strings.Join(cmd.Args, " "))

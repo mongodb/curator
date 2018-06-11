@@ -36,16 +36,19 @@ func (s *CommandsSuite) TestSyncFlagsFactory() {
 			s.Equal(pwd, f.Value)
 		} else if flagName == "dry-run" || flagName == "delete" {
 			s.IsType(cli.BoolFlag{}, flag)
+		} else if flagName == "timeout" {
+			s.IsType(cli.DurationFlag{}, flag)
 		} else {
 			s.IsType(cli.StringFlag{}, flag)
 		}
 	}
 
-	s.Len(names, 3)
-	s.Len(flags, 3)
+	s.Len(names, 4)
+	s.Len(flags, 4)
 	s.True(names["local"])
 	s.True(names["prefix"])
 	s.True(names["delete"])
+	s.True(names["timeout"])
 }
 
 func (s *CommandsSuite) TestS3ParentCommandHasExpectedProperties() {

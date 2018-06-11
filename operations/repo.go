@@ -22,7 +22,10 @@ func Repo() cli.Command {
 		Usage: "build repository",
 		Flags: repoFlags(),
 		Action: func(c *cli.Context) error {
-			return buildRepo(
+			ctx, cancel := ctxWithTimeout(c.Duration("timeout"))
+			defer cancel()
+
+			return buildRepo(ctx,
 				c.String("packages"),
 				c.String("config"),
 				c.String("dir"),
@@ -94,6 +97,10 @@ func repoFlags() []cli.Flag {
 			Name:  "rebuild",
 			Usage: "rebuild a repository without adding any new packages",
 		},
+		cli.DurationFlag{
+			Name:  "timeout",
+			Usage: "specify a timeout for operations. Defaults to unlimited timeout if not specified",
+		},
 	}
 }
 
@@ -123,7 +130,7 @@ func getPackages(rootPath, suffix string) ([]string, error) {
 	return output, err
 }
 
-func buildRepo(packages, configPath, workingDir, distro, edition, version, arch, profile string, dryRun, rebuild bool) error {
+func buildRepo(ctx context.Context, packages, configPath, workingDir, distro, edition, version, arch, profile string, dryRun, rebuild bool) error {
 	// validate inputs
 	if edition == "community" {
 		edition = "org"
@@ -163,9 +170,8 @@ func buildRepo(packages, configPath, workingDir, distro, edition, version, arch,
 	job.WorkSpace = workingDir
 	job.DryRun = dryRun
 
-	job.Run(context.TODO())
-	err = job.Error()
-	if err != nil {
+	job.Run(ctx)
+	if err = job.Error(); err != nil {
 		return errors.Wrap(err, "encountered error rebuilding repository")
 	}
 

@@ -24,7 +24,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Applicationqr encapsulates the execution of a greenbay run. You can
+// Application encapsulates the execution of a greenbay run. You can
 // construct the object, either with NewApplication(), or by building a
 // Application structure yourself.
 type Application struct {

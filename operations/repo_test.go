@@ -1,6 +1,7 @@
 package operations
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 
@@ -18,17 +19,20 @@ func (s *CommandsSuite) TestRepoFlags() {
 		name := flag.GetName()
 		if name == "dry-run" || name == "rebuild" {
 			s.IsType(cli.BoolFlag{}, flag)
+		} else if name == "timeout" {
+			s.IsType(cli.DurationFlag{}, flag)
 		} else {
 			s.IsType(cli.StringFlag{}, flag)
 		}
 	}
 
-	s.Len(names, 10)
-	s.Len(flags, 10)
+	s.Len(names, 11)
+	s.Len(flags, 11)
 	s.True(names["config"])
 	s.True(names["distro"])
 	s.True(names["version"])
 	s.True(names["edition"])
+	s.True(names["timeout"])
 	s.True(names["arch"])
 	s.True(names["packages"])
 	s.True(names["profile"])
@@ -38,7 +42,7 @@ func (s *CommandsSuite) TestRepoFlags() {
 func (s *CommandsSuite) TestRebuildOperationOnProcess() {
 	err := os.Setenv("NOTARY_TOKEN", "foo")
 	s.NoError(err)
-	err = buildRepo(
+	err = buildRepo(context.Background(),
 		"./", // packages
 		"repobuilder/config_test.yaml", // repo config path
 		"build/repo-build-test",        // workingdir
@@ -59,7 +63,7 @@ func (s *CommandsSuite) TestRebuildOperationOnProcess() {
 }
 
 func (s *CommandsSuite) TestDryRunOperationOnProcess() {
-	err := buildRepo(
+	err := buildRepo(context.Background(),
 		"./", // packages
 		"repobuilder/config_test.yaml", // repo config path
 		"build/repo-build-test",        // workingdir

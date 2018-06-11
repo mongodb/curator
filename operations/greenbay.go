@@ -20,6 +20,8 @@ import (
 	_ "github.com/mongodb/curator/greenbay/check"
 )
 
+// Greenbay returns the sub-command object for Greenbay, a system
+// integration and acceptance testing platform.
 func Greenbay() cli.Command {
 	return cli.Command{
 		Name:  "greenbay",
