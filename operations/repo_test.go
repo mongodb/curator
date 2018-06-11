@@ -1,6 +1,7 @@
 package operations
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 
@@ -38,7 +39,7 @@ func (s *CommandsSuite) TestRepoFlags() {
 func (s *CommandsSuite) TestRebuildOperationOnProcess() {
 	err := os.Setenv("NOTARY_TOKEN", "foo")
 	s.NoError(err)
-	err = buildRepo(
+	err = buildRepo(context.Background(),
 		"./", // packages
 		"repobuilder/config_test.yaml", // repo config path
 		"build/repo-build-test",        // workingdir
@@ -59,7 +60,7 @@ func (s *CommandsSuite) TestRebuildOperationOnProcess() {
 }
 
 func (s *CommandsSuite) TestDryRunOperationOnProcess() {
-	err := buildRepo(
+	err := buildRepo(context.Background()
 		"./", // packages
 		"repobuilder/config_test.yaml", // repo config path
 		"build/repo-build-test",        // workingdir

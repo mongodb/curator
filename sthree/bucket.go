@@ -612,7 +612,7 @@ func (b *Bucket) deleteGroup(items <-chan s3.Key) error {
 // not exist or if the local file has different content from the
 // remote file. All operations execute in the worker pool, and SyncTo
 // waits for all jobs to complete before returning an aggregated error.
-func (b *Bucket) SyncTo(local, prefix string, opts SyncOptions) error {
+func (b *Bucket) SyncTo(ctx context.Context, local, prefix string, opts SyncOptions) error {
 	grip.Infof("sync push %s -> %s/%s", local, b.name, prefix)
 
 	remote := b.contents(prefix)
@@ -623,6 +623,10 @@ func (b *Bucket) SyncTo(local, prefix string, opts SyncOptions) error {
 	catcher.Add(filepath.Walk(local, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			grip.Critical(errors.Wrapf(err, "problem finding file %s", path))
+			return nil
+		}
+
+		if ctx.Err() != nil {
 			return nil
 		}
 
@@ -656,7 +660,8 @@ func (b *Bucket) SyncTo(local, prefix string, opts SyncOptions) error {
 		return nil
 	}))
 
-	ctx, cancel := context.WithTimeout(context.TODO(), opts.Timeout)
+	var cancel context.CancelFunc
+	ctx, cancel = context.WithTimeout(ctx, opts.Timeout)
 	defer cancel()
 
 	amboy.WaitCtxInterval(ctx, b.queue, 250*time.Millisecond)
@@ -701,7 +706,7 @@ func NewDefaultSyncOptions() SyncOptions {
 // download files if the content of the local file have *not* changed.
 // All operations execute in the worker pool, and SyncTo waits for all
 // jobs to complete before returning an aggregated erro
-func (b *Bucket) SyncFrom(local, prefix string, opts SyncOptions) error {
+func (b *Bucket) SyncFrom(ctx context.Context, local, prefix string, opts SyncOptions) error {
 	grip.Infof("sync pull %s/%s -> %s", b.name, prefix, local)
 
 	for remote := range b.list(prefix) {
@@ -713,7 +718,8 @@ func (b *Bucket) SyncFrom(local, prefix string, opts SyncOptions) error {
 		}
 	}
 
-	ctx, cancel := context.WithTimeout(context.TODO(), opts.Timeout)
+	var cancel context.CancelFunc
+	ctx, cancel = context.WithTimeout(ctx, opts.Timeout)
 	defer cancel()
 
 	amboy.WaitCtxInterval(ctx, b.queue, opts.QueueCheckInterval)

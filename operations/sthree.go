@@ -41,8 +41,10 @@ variable.
 package operations
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/mongodb/curator/sthree"
 	"github.com/urfave/cli"
@@ -150,7 +152,10 @@ func s3SyncToCmd() cli.Command {
 		Usage:   "sync changes from the local system to s3",
 		Flags:   baseS3Flags(s3syncFlags()...),
 		Action: func(c *cli.Context) error {
-			return s3SyncTo(
+			ctx, cancel := ctxWithTimeout(c.Duration("timeout"))
+			defer cancel()
+
+			return s3SyncTo(ctx,
 				c.String("bucket"),
 				c.String("profile"),
 				c.String("local"),
@@ -168,7 +173,9 @@ func s3SyncFromCmd() cli.Command {
 		Usage:   "sync changes from s3 to the local system",
 		Flags:   baseS3Flags(s3syncFlags()...),
 		Action: func(c *cli.Context) error {
-			return s3SyncFrom(
+			ctx, cancel := ctxWithTimeout(c.Duration("timeout"))
+			defer cancel()
+			return s3SyncFrom(ctx,
 				c.String("bucket"),
 				c.String("profile"),
 				c.String("local"),
@@ -184,6 +191,14 @@ func s3SyncFromCmd() cli.Command {
 // Implementations of Command Entry Points
 //
 /////////////////////////////////////////////
+
+func ctxWithTimeout(timeout time.Duration) (context.Context, context.CancelFunc) {
+	ctx := context.Background()
+	if timeout > 0 {
+		return context.WithTimeout(ctx, timeout)
+	}
+	return context.WithCancel(ctx)
+}
 
 func resolveBucket(name, profile string) *sthree.Bucket {
 	if profile == "" {
@@ -283,7 +298,7 @@ func s3DeleteMatching(bucket, profile string, dryRun bool, prefix string, expres
 	return b.DeleteMatching(prefix, expression)
 }
 
-func s3SyncTo(bucket, profile, local, prefix string, withDelete, dryRun bool) error {
+func s3SyncTo(ctx context.Context, bucket, profile, local, prefix string, withDelete, dryRun bool) error {
 	b := resolveBucket(bucket, profile)
 
 	err := b.Open()
@@ -302,10 +317,10 @@ func s3SyncTo(bucket, profile, local, prefix string, withDelete, dryRun bool) er
 
 	opts := sthree.NewDefaultSyncOptions()
 	opts.WithDelete = withDelete
-	return b.SyncTo(local, prefix, opts)
+	return b.SyncTo(ctx, local, prefix, opts)
 }
 
-func s3SyncFrom(bucket, profile, local, prefix string, withDelete, dryRun bool) error {
+func s3SyncFrom(ctx context.Context, bucket, profile, local, prefix string, withDelete, dryRun bool) error {
 	b := resolveBucket(bucket, profile)
 
 	err := b.Open()
@@ -325,7 +340,7 @@ func s3SyncFrom(bucket, profile, local, prefix string, withDelete, dryRun bool) 
 	opts := sthree.NewDefaultSyncOptions()
 	opts.WithDelete = withDelete
 
-	return b.SyncFrom(local, prefix, opts)
+	return b.SyncFrom(ctx, local, prefix, opts)
 }
 
 /////////////////////////
@@ -371,6 +386,10 @@ func s3syncFlags(args ...cli.Flag) []cli.Flag {
 		cli.BoolFlag{
 			Name:  "delete",
 			Usage: "delete items from the target that do not exist in the source",
+		},
+		cli.DurationFlag{
+			Name:  "timeout",
+			Usage: "specify a timeout for operations. Defaults to unlimited timeout if not specified",
 		},
 	}
 

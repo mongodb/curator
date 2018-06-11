@@ -249,7 +249,7 @@ func (j *Job) signFile(fileName, archiveExtension string, overwrite bool) error 
 }
 
 // Run is the main execution entry point into repository building, and is a component
-func (j *Job) Run(_ context.Context) {
+func (j *Job) Run(ctx context.Context) {
 	bucket := sthree.GetBucketWithProfile(j.Distro.Bucket, j.Profile)
 	err := bucket.Open()
 	if err != nil {
@@ -309,7 +309,7 @@ func (j *Job) Run(_ context.Context) {
 
 			grip.Infof("downloading from %s to %s", remote, local)
 			pkgLocation := j.getPackageLocation()
-			if err = b.SyncFrom(filepath.Join(local, pkgLocation), filepath.Join(remote, pkgLocation), syncOpts); err != nil {
+			if err = b.SyncFrom(ctx, filepath.Join(local, pkgLocation), filepath.Join(remote, pkgLocation), syncOpts); err != nil {
 				j.AddError(errors.Wrapf(err, "sync from %s to %s", remote, local))
 				return
 			}
@@ -345,7 +345,7 @@ func (j *Job) Run(_ context.Context) {
 			}
 
 			// do the sync. It's ok,
-			err = b.SyncTo(syncSource, filepath.Join(remote, changedComponent), syncOpts)
+			err = b.SyncTo(ctx, syncSource, filepath.Join(remote, changedComponent), syncOpts)
 			if err != nil {
 				j.AddError(errors.Wrapf(err, "problem uploading %s to %s/%s",
 					syncSource, b, changedComponent))
