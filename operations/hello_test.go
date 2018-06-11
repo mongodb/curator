@@ -15,8 +15,8 @@ func init() {
 
 	sender := grip.GetSender()
 	lvl := sender.Level()
-	lvl.Threshold = level.Error
-	sender.SetLevel(lvl)
+	lvl.Threshold = level.Warning
+	grip.Alert(sender.SetLevel(lvl))
 }
 
 // CommandsSuite provide a group of tests of the entry points and

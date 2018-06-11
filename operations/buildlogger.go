@@ -379,7 +379,7 @@ func (l *cmdLogger) logJSONLines(lines <-chan []byte, signal chan struct{}) {
 			grip.Error(l.addAnnotations(m))
 		default:
 			m = message.MakeSimpleFields(out)
-			l.addAnnotations(m)
+			grip.Error(l.addAnnotations(m))
 		}
 		l.logger.Log(logLevel, m)
 	}
