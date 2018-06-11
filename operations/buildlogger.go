@@ -338,7 +338,7 @@ func collectStream(out chan<- []byte, input io.Reader, signal chan struct{}) {
 
 func (l *cmdLogger) addAnnotations(m message.Composer) error {
 	if len(l.annotations) == 0 {
-		return
+		return nil
 	}
 	catcher := grip.NewBasicCatcher()
 	for k, v := range l.annotations {

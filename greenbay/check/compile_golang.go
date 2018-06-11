@@ -107,7 +107,7 @@ func (c compileGolang) CompileAndRun(testBody string, _ ...string) (string, erro
 	if err != nil {
 		return "", errors.Wrap(err, "problem writing test to temporary file")
 	}
-	defer func() { grip.Error(os.source(source)) }()
+	defer func() { grip.Error(os.Remove(source)) }()
 
 	cmd := exec.Command(c.bin, "run", source)
 	grip.Infof("running script: %s", cmd.Args)

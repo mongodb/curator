@@ -6,12 +6,17 @@ import (
 	"testing"
 
 	"github.com/mongodb/grip"
+	"github.com/mongodb/grip/level"
 	"github.com/stretchr/testify/suite"
 )
 
 func init() {
 	grip.SetName("curator.operations.test")
 
+	sender := grip.GetSender()
+	lvl := sender.Level()
+	lvl.Threshold = level.Error
+	sender.SetLevel(lvl)
 }
 
 // CommandsSuite provide a group of tests of the entry points and
