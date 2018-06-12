@@ -87,8 +87,7 @@ func (j *IndexBuildJob) Run(ctx context.Context) {
 	defer j.MarkComplete()
 
 	syncOpts := sthree.NewDefaultSyncOptions()
-	deadline, ok := ctx.Deadline()
-	if ok {
+	if deadline, ok := ctx.Deadline(); ok {
 		syncOpts.Timeout = time.Until(deadline)
 	}
 

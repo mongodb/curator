@@ -283,8 +283,7 @@ func (j *Job) Run(ctx context.Context) {
 	wg := &sync.WaitGroup{}
 
 	syncOpts := sthree.NewDefaultSyncOptions()
-	deadline, ok := ctx.Deadline()
-	if ok {
+	if deadline, ok := ctx.Deadline(); ok {
 		syncOpts.Timeout = time.Until(deadline)
 	}
 	// at the moment there is only multiple repos for RPM distros
