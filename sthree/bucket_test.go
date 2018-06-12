@@ -174,6 +174,7 @@ func (s *BucketSuite) TestOpenMethodStartsQueueAndConnections() {
 	s.Equal(*bucketFirst, *s.b.bucket)
 
 	// cleanup at the end
+	s.b.queue = nil // avoid closing the queue
 	s.b.Close()
 	s.False(s.b.IsOpen())
 }
@@ -208,6 +209,7 @@ func (s *BucketSuite) TestJobNumberIsConfigurableBeforeBucketOpens() {
 		s.NoError(s.b.Open())
 		s.True(s.b.IsOpen())
 		s.True(s.b.queue.Started())
+		s.b.queue = nil
 		s.b.Close()
 	}
 }
