@@ -150,11 +150,14 @@ func (s *RegistrySuite) TestBucketCreationFromExistingBucket() {
 	s.Exactly(second, two)
 	s.NotEqual(b, second)
 	s.NotEqual(b, two)
+	b.queue = nil
+	two.queue = nil
 }
 
 func (s *RegistrySuite) TestRemoveBucketFromRegistryOnClose() {
 	b := buckets.getBucket("test")
 
+	b.queue = nil
 	s.Len(buckets.m, 1)
 	s.NoError(b.Open())
 	b.Close()
