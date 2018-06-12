@@ -177,6 +177,10 @@ func buildRepo(ctx context.Context, packages, configPath, workingDir, distro, ed
 	job.WorkSpace = workingDir
 	job.DryRun = dryRun
 
+	if retries < 1 {
+		retries = 1
+	}
+
 	catcher := grip.NewCatcher()
 	for i := 0; i < retries; i++ {
 		job.Run(ctx)
