@@ -21,14 +21,17 @@ func (s *CommandsSuite) TestRepoFlags() {
 			s.IsType(cli.BoolFlag{}, flag)
 		} else if name == "timeout" {
 			s.IsType(cli.DurationFlag{}, flag)
+		} else if name == "retries" {
+			s.IsType(cli.IntFlag{}, flag)
 		} else {
 			s.IsType(cli.StringFlag{}, flag)
 		}
 	}
 
-	s.Len(names, 11)
-	s.Len(flags, 11)
+	s.Len(names, 12)
+	s.Len(flags, 12)
 	s.True(names["config"])
+	s.True(names["retries"])
 	s.True(names["distro"])
 	s.True(names["version"])
 	s.True(names["edition"])
@@ -52,7 +55,8 @@ func (s *CommandsSuite) TestRebuildOperationOnProcess() {
 		"x86_64",                       // arch
 		"default",                      // aws profile
 		true,                           // dryrun
-		true)                           // rebuild
+		true,                           // rebuild
+		1)                              // retries
 
 	// TODO: we should be able to get a dry run that passes on
 	// tests machines, but at the moment this depends on the
@@ -73,7 +77,8 @@ func (s *CommandsSuite) TestDryRunOperationOnProcess() {
 		"x86_64",                       // arch
 		"default",                      // aws profile
 		true,                           // dryrun
-		false)                          // rebuild
+		false,                          // rebuild
+		1)                              // retries
 
 	s.Error(err)
 	grip.Warning(err)
