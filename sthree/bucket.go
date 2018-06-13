@@ -39,8 +39,8 @@ func init() {
 
 func getBackoff() *backoff.Backoff {
 	return &backoff.Backoff{
-		Min:    100 * time.Millisecond,
-		Max:    5 * time.Second,
+		Min:    50 * time.Millisecond,
+		Max:    2 * time.Second,
 		Factor: 2,
 		Jitter: true,
 	}
@@ -86,7 +86,7 @@ func (b *Bucket) NewBucket(name string) *Bucket {
 		NewFilePermission: b.NewFilePermission,
 		credentials:       b.credentials,
 		numJobs:           b.numJobs,
-		numRetries:        20,
+		numRetries:        10,
 	}
 
 	buckets.registerBucket(new)
