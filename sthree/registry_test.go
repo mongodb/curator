@@ -1,6 +1,7 @@
 package sthree
 
 import (
+	"context"
 	"os"
 	"testing"
 
@@ -125,6 +126,9 @@ func (s *RegistrySuite) TestRegistryShouldFunctionAsBucketFactory() {
 
 func (s *RegistrySuite) TestBucketCreationFromExistingBucket() {
 	name := "test-recreation"
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	s.Len(buckets.m, 0)
 	b := buckets.getBucket(name)
 	defer b.Close()
@@ -139,7 +143,7 @@ func (s *RegistrySuite) TestBucketCreationFromExistingBucket() {
 	second := b.NewBucket(name + "two")
 	defer second.Close()
 
-	s.NoError(second.Open())
+	s.NoError(second.Open(ctx))
 
 	s.Len(buckets.m, 2)
 	s.Equal(b.NewFilePermission, second.NewFilePermission)
@@ -156,10 +160,12 @@ func (s *RegistrySuite) TestBucketCreationFromExistingBucket() {
 
 func (s *RegistrySuite) TestRemoveBucketFromRegistryOnClose() {
 	b := buckets.getBucket("test")
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	b.queue = nil
 	s.Len(buckets.m, 1)
-	s.NoError(b.Open())
+	s.NoError(b.Open(ctx))
+	b.queue = nil
 	b.Close()
 	s.require.Len(s.registry.m, 0)
 }

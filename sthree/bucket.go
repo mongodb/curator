@@ -97,8 +97,8 @@ func (b *Bucket) NewBucket(name string) *Bucket {
 // resource, that runs with dry-run mode. In this mode, all PUT
 // and DELETE operations are no-ops, with more logging, but all other
 // operations (including "GET" operations) are as normal.
-func (b *Bucket) DryRunClone() (*Bucket, error) {
-	clone, err := b.Clone()
+func (b *Bucket) DryRunClone(ctx context.Context) (*Bucket, error) {
+	clone, err := b.Clone(ctx)
 
 	if err != nil {
 		return nil, err
@@ -106,7 +106,7 @@ func (b *Bucket) DryRunClone() (*Bucket, error) {
 	clone.dryRun = true
 
 	if b.queue != nil {
-		err = clone.Open()
+		err = clone.Open(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -117,7 +117,7 @@ func (b *Bucket) DryRunClone() (*Bucket, error) {
 
 // Clone returns a copy of the existing bucket, which is not a shared
 // resource.
-func (b *Bucket) Clone() (*Bucket, error) {
+func (b *Bucket) Clone(ctx context.Context) (*Bucket, error) {
 	clone := &Bucket{
 		name:              b.name,
 		NewFilePermission: b.NewFilePermission,
@@ -127,7 +127,7 @@ func (b *Bucket) Clone() (*Bucket, error) {
 	}
 
 	if b.queue != nil {
-		err := clone.Open()
+		err := clone.Open(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -187,7 +187,7 @@ func (b *Bucket) SetNumRetries(n int) error {
 // process sync to/from jobs. Returns an error if there are issues
 // creating creating the worker queue. Does *not* return an error if
 // the Bucket has been opened, and is a noop in this case.
-func (b *Bucket) Open() error {
+func (b *Bucket) Open(ctx context.Context) error {
 	if b.s3 == nil {
 		b.s3 = s3.New(b.credentials.Auth, b.credentials.Region)
 	}
@@ -200,8 +200,7 @@ func (b *Bucket) Open() error {
 	defer b.mutex.Unlock()
 
 	if b.queue == nil {
-		ctx, cancel := context.WithCancel(context.TODO())
-		b.closer = cancel
+		ctx, b.closer = context.WithCancel(ctx)
 
 		b.queue = queue.NewLocalUnordered(b.numJobs)
 		return errors.Wrap(b.queue.Start(ctx), "starting worker queue for sync jobs")

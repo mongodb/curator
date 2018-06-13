@@ -58,7 +58,7 @@ func NewIndexBuildJob(conf *RepositoryConfig, workSpace, repoName, bucket string
 func (j *IndexBuildJob) Run(ctx context.Context) {
 	bucket := sthree.GetBucketWithProfile(j.Bucket, j.Profile)
 
-	err := bucket.Open()
+	err := bucket.Open(ctx)
 	if err != nil {
 		j.AddError(errors.Wrapf(err, "opening bucket %s", bucket))
 		return
@@ -68,14 +68,14 @@ func (j *IndexBuildJob) Run(ctx context.Context) {
 	if j.DryRun {
 		// the error (second argument) will be caught (when we
 		// run open below)
-		bucket, err = bucket.DryRunClone()
+		bucket, err = bucket.DryRunClone(ctx)
 		if err != nil {
 			j.AddError(errors.Wrapf(err,
 				"problem getting bucket '%s' in dry-mode", bucket))
 			return
 		}
 
-		err = bucket.Open()
+		err = bucket.Open(ctx)
 		if err != nil {
 			j.AddError(errors.Wrapf(err, "opening bucket %s [dry-run]", bucket))
 			return

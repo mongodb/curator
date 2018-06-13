@@ -1,6 +1,7 @@
 package sthree
 
 import (
+	"context"
 	"errors"
 	"strings"
 	"testing"
@@ -37,8 +38,11 @@ func TestBucketJobSuiteWithDelete(t *testing.T) {
 }
 
 func (s *BucketJobSuite) SetupSuite() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	s.bucket = GetBucket("build-test-curator")
-	s.NoError(s.bucket.Open())
+	s.NoError(s.bucket.Open(ctx))
 }
 
 func (s *BucketJobSuite) SetupTest() {

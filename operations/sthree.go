@@ -82,7 +82,14 @@ func s3PutCmd() cli.Command {
 		Usage: "put a local file object into s3",
 		Flags: baseS3Flags(s3opFlags()...),
 		Action: func(c *cli.Context) error {
-			return s3Put(c.String("bucket"), c.String("profile"), c.String("file"), c.String("name"))
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			return s3Put(ctx,
+				c.String("bucket"),
+				c.String("profile"),
+				c.String("file"),
+				c.String("name"))
 		},
 	}
 }
@@ -93,7 +100,14 @@ func s3GetCmd() cli.Command {
 		Usage: "download a local file object from s3",
 		Flags: baseS3Flags(s3opFlags()...),
 		Action: func(c *cli.Context) error {
-			return s3Get(c.String("bucket"), c.String("profile"), c.String("name"), c.String("file"))
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			return s3Get(ctx,
+				c.String("bucket"),
+				c.String("profile"),
+				c.String("name"),
+				c.String("file"))
 		},
 	}
 }
@@ -104,7 +118,14 @@ func s3DeleteCmd() cli.Command {
 		Aliases: []string{"del", "rm"},
 		Flags:   baseS3Flags(s3deleteFlags()...),
 		Action: func(c *cli.Context) error {
-			return s3Delete(c.String("bucket"), c.String("profile"), c.Bool("dry-run"), c.StringSlice("name")...)
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			return s3Delete(ctx,
+				c.String("bucket"),
+				c.String("profile"),
+				c.Bool("dry-run"),
+				c.StringSlice("name")...)
 		},
 	}
 }
@@ -115,7 +136,10 @@ func s3DeletePrefixCmd() cli.Command {
 		Aliases: []string{"del-prefix", "rm-prefix"},
 		Flags:   s3deleteFlags(s3syncFlags()...),
 		Action: func(c *cli.Context) error {
-			return s3DeletePrefix(
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			return s3DeletePrefix(ctx,
 				c.String("bucket"),
 				c.String("profile"),
 				c.Bool("dry-run"),
@@ -135,7 +159,10 @@ func s3DeleteMatchingCmd() cli.Command {
 					Usage: "a regular expression definition",
 				})...)...),
 		Action: func(c *cli.Context) error {
-			return s3DeleteMatching(
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			return s3DeleteMatching(ctx,
 				c.String("bucket"),
 				c.String("profile"),
 				c.Bool("dry-run"),
@@ -210,10 +237,10 @@ func resolveBucket(name, profile string) *sthree.Bucket {
 
 // these helpers exist to facilitate easier unittesting
 
-func s3Put(bucket, profile, file, remoteFile string) error {
+func s3Put(ctx context.Context, bucket, profile, file, remoteFile string) error {
 	b := resolveBucket(bucket, profile)
 
-	err := b.Open()
+	err := b.Open(ctx)
 	defer b.Close()
 
 	if err != nil {
@@ -223,10 +250,10 @@ func s3Put(bucket, profile, file, remoteFile string) error {
 	return b.Put(file, remoteFile)
 }
 
-func s3Get(bucket, profile, remoteFile, file string) error {
+func s3Get(ctx context.Context, bucket, profile, remoteFile, file string) error {
 	b := resolveBucket(bucket, profile)
 
-	err := b.Open()
+	err := b.Open(ctx)
 	defer b.Close()
 
 	if err != nil {
@@ -236,17 +263,17 @@ func s3Get(bucket, profile, remoteFile, file string) error {
 	return b.Get(remoteFile, file)
 }
 
-func s3Delete(bucket, profile string, dryRun bool, file ...string) error {
+func s3Delete(ctx context.Context, bucket, profile string, dryRun bool, file ...string) error {
 	b := resolveBucket(bucket, profile)
 
-	err := b.Open()
+	err := b.Open(ctx)
 	defer b.Close()
 	if err != nil {
 		return err
 	}
 
 	if dryRun {
-		b, err = b.DryRunClone()
+		b, err = b.DryRunClone(ctx)
 		defer b.Close()
 		if err != nil {
 			return err
@@ -258,17 +285,17 @@ func s3Delete(bucket, profile string, dryRun bool, file ...string) error {
 	return b.DeleteMany(file...)
 }
 
-func s3DeletePrefix(bucket, profile string, dryRun bool, prefix string) error {
+func s3DeletePrefix(ctx context.Context, bucket, profile string, dryRun bool, prefix string) error {
 	b := resolveBucket(bucket, profile)
 
-	err := b.Open()
+	err := b.Open(ctx)
 	defer b.Close()
 	if err != nil {
 		return err
 	}
 
 	if dryRun {
-		b, err = b.DryRunClone()
+		b, err = b.DryRunClone(ctx)
 		defer b.Close()
 		if err != nil {
 			return err
@@ -278,17 +305,17 @@ func s3DeletePrefix(bucket, profile string, dryRun bool, prefix string) error {
 	return b.DeletePrefix(prefix)
 }
 
-func s3DeleteMatching(bucket, profile string, dryRun bool, prefix string, expression string) error {
+func s3DeleteMatching(ctx context.Context, bucket, profile string, dryRun bool, prefix string, expression string) error {
 	b := resolveBucket(bucket, profile)
 
-	err := b.Open()
+	err := b.Open(ctx)
 	defer b.Close()
 	if err != nil {
 		return err
 	}
 
 	if dryRun {
-		b, err = b.DryRunClone()
+		b, err = b.DryRunClone(ctx)
 		defer b.Close()
 		if err != nil {
 			return err
@@ -301,14 +328,14 @@ func s3DeleteMatching(bucket, profile string, dryRun bool, prefix string, expres
 func s3SyncTo(ctx context.Context, bucket, profile, local, prefix string, withDelete, dryRun bool) error {
 	b := resolveBucket(bucket, profile)
 
-	err := b.Open()
+	err := b.Open(ctx)
 	defer b.Close()
 	if err != nil {
 		return err
 	}
 
 	if dryRun {
-		b, err = b.DryRunClone()
+		b, err = b.DryRunClone(ctx)
 		defer b.Close()
 		if err != nil {
 			return err
@@ -327,14 +354,14 @@ func s3SyncTo(ctx context.Context, bucket, profile, local, prefix string, withDe
 func s3SyncFrom(ctx context.Context, bucket, profile, local, prefix string, withDelete, dryRun bool) error {
 	b := resolveBucket(bucket, profile)
 
-	err := b.Open()
+	err := b.Open(ctx)
 	defer b.Close()
 	if err != nil {
 		return err
 	}
 
 	if dryRun {
-		b, err = b.DryRunClone()
+		b, err = b.DryRunClone(ctx)
 		defer b.Close()
 		if err != nil {
 			return err

@@ -252,7 +252,7 @@ func (j *Job) signFile(fileName, archiveExtension string, overwrite bool) error 
 // Run is the main execution entry point into repository building, and is a component
 func (j *Job) Run(ctx context.Context) {
 	bucket := sthree.GetBucketWithProfile(j.Distro.Bucket, j.Profile)
-	err := bucket.Open()
+	err := bucket.Open(ctx)
 	if err != nil {
 		j.AddError(errors.Wrapf(err, "opening bucket %s", bucket))
 		return
@@ -262,14 +262,14 @@ func (j *Job) Run(ctx context.Context) {
 	if j.DryRun {
 		// the error (second argument) will be caught (when we
 		// run open below)
-		bucket, err = bucket.DryRunClone()
+		bucket, err = bucket.DryRunClone(ctx)
 		if err != nil {
 			j.AddError(errors.Wrapf(err,
 				"problem getting bucket '%s' in dry-mode", bucket))
 			return
 		}
 
-		err := bucket.Open()
+		err := bucket.Open(ctx)
 		if err != nil {
 			j.AddError(errors.Wrapf(err, "opening bucket %s [dry-run]", bucket))
 			return
@@ -288,7 +288,7 @@ func (j *Job) Run(ctx context.Context) {
 	}
 	// at the moment there is only multiple repos for RPM distros
 	for _, remote := range j.Distro.Repos {
-		clonedBucket, err := bucket.Clone()
+		clonedBucket, err := bucket.Clone(ctx)
 		if err != nil {
 			j.AddError(errors.Wrapf(err, "problem cloning bucket %s", bucket))
 			continue
