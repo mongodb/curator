@@ -186,12 +186,15 @@ func (j *Job) signFile(fileName, archiveExtension string, overwrite bool) error 
 	var keyName string
 	var token string
 
-	if j.Distro.Type == DEB && (j.release.Series() == "3.0" || j.release.Series() == "2.6") {
-		keyName = "richard"
-		token = os.Getenv("NOTARY_TOKEN_DEB_LEGACY")
-	} else {
-		keyName = "server-" + j.release.StableReleaseSeries()
-		token = os.Getenv("NOTARY_TOKEN")
+	keyName = os.Getenv("NOTARY_KEY_NAME")
+	token = os.Getenv("NOTARY_TOKEN")
+	if keyName == "" {
+		if j.Distro.Type == DEB && (j.release.Series() == "3.0" || j.release.Series() == "2.6") {
+			keyName = "richard"
+			token = os.Getenv("NOTARY_TOKEN_DEB_LEGACY")
+		} else {
+			keyName = "server-" + j.release.StableReleaseSeries()
+		}
 	}
 
 	if token == "" {
