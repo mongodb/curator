@@ -130,6 +130,9 @@ vendor-clean:
 	rm -rf vendor/github.com/tychoish/bond/vendor/github.com/stretchr/testify/
 	rm -rf vendor/github.com/tychoish/bond/vendor/github.com/satori/go.uuid/
 	rm -rf vendor/github.com/tychoish/bond/vendor/github.com/pkg/errors/
+	rm -rf vendor/github.com/papertrail/go-tail/main.go
+	rm -rf vendor/github.com/papertrail/go-tail/vendor/github.com/spf13/pflag/
+	rm -rf vendor/github.com/papertrail/go-tail/vendor/golang.org/x/sys/
 	find vendor/ -name "*.gif" -o -name "*.gz" -o -name "*.png" -o -name "*.ico" -o -name "*testdata*"| xargs rm -rf
 #   add phony targets
 phony += vendor-clean

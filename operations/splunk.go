@@ -54,6 +54,7 @@ func Splunk() cli.Command {
 		Subcommands: []cli.Command{
 			splunkLogCommand(),
 			splunkLogPipe(),
+			splunkLogFollowFile(),
 		},
 	}
 }
@@ -163,4 +164,32 @@ func splunkLogPipe() cli.Command {
 			return nil
 		},
 	}
+}
+
+func splunkLogFollowFile() cli.Command {
+	return cli.Command{
+		Name:  "follow",
+		Usage: "tail a (single) file and log changes to splunk",
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:  "file",
+				Usage: "specify a file to watch for changes to log",
+			},
+		},
+		Action: func(c *cli.Context) error {
+			clogger, err := setupSplunkLogger(c)
+			defer clogger.closer()
+			if err != nil {
+				return errors.Wrap(err, "problem configuring buildlogger")
+			}
+
+			fn := c.String("file")
+
+			if err := clogger.followFile(fn); err != nil {
+				return errors.Wrapf(err, "problem following file %s", fn)
+			}
+			return nil
+		},
+	}
+
 }
