@@ -13,6 +13,7 @@ import (
 	"github.com/mongodb/grip"
 	"github.com/mongodb/grip/message"
 	"github.com/mongodb/grip/send"
+	"github.com/papertrail/go-tail/follower"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -87,6 +88,7 @@ func BuildLogger() cli.Command {
 		Subcommands: []cli.Command{
 			buildLogCommand(),
 			buildLogPipe(),
+			buildLogFollowFile(),
 		},
 	}
 }
@@ -151,6 +153,39 @@ func buildLogPipe() cli.Command {
 				return errors.Wrap(err, "problem reading from standard input")
 			}
 
+			return nil
+		},
+	}
+}
+
+func buildLogFollowFile() cli.Command {
+	return cli.Command{
+		Name:  "follow",
+		Usage: "tail a (single) file and log changes to buildlogger",
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:  "file",
+				Usage: "specify a file to watch for changes to log",
+			},
+		},
+		Action: func(c *cli.Context) error {
+			clogger, err := setupBuildLogger(
+				getBuildloggerConfig(c),
+				getAnnotations(c.Parent().StringSlice("annotation")),
+				c.Parent().Bool("json"),
+				c.Parent().Int("count"),
+				c.Parent().Duration("interval"))
+
+			defer clogger.closer()
+			if err != nil {
+				return errors.Wrap(err, "problem configuring buildlogger")
+			}
+
+			fn := c.String("file")
+
+			if err := clogger.followFile(fn); err != nil {
+				return errors.Wrapf(err, "problem following file %s", fn)
+			}
 			return nil
 		},
 	}
@@ -311,17 +346,81 @@ func (l *cmdLogger) readPipe(pipe io.Reader) error {
 			}
 			switch {
 			case l.addMeta:
+				m := message.MakeFields(out)
+				if err := l.addAnnotations(m); err != nil {
+					grip.Error(err)
+				}
+
+				l.logger.Log(lvl, m)
+			default:
+				l.logger.Log(lvl, message.MakeSimpleFields(out))
+			}
+		default:
+			m := message.NewDefaultMessage(lvl, input.Text())
+
+			if l.addMeta {
+				if err := l.addAnnotations(m); err != nil {
+					grip.Error(err)
+				}
+			}
+
+			l.logger.Log(lvl, m)
+		}
+	}
+
+	return errors.Wrap(input.Err(), "problem reading from pipe")
+}
+
+func (l *cmdLogger) followFile(fn string) error {
+	lvl := l.logger.GetSender().Level().Default
+	tail, err := follower.New(fn, follower.Config{
+		Reopen: true,
+	})
+	if err != nil {
+		return errors.Wrapf(err, "problem setting up file follower of '%s'", fn)
+	}
+	defer tail.Close()
+
+	if err = tail.Err(); err != nil {
+		return errors.Wrapf(err, "problem starting up file follower of '%s'", fn)
+	}
+
+	for line := range tail.Lines() {
+		switch {
+		case l.logJSON:
+			out := message.Fields{}
+			if err := json.Unmarshal(line.Bytes(), &out); err != nil {
+				grip.Error(err)
+				continue
+			}
+			switch {
+			case l.addMeta:
+				m := message.MakeFields(out)
+				if err := l.addAnnotations(m); err != nil {
+					grip.Error(err)
+				}
+
 				l.logger.Log(lvl, message.MakeFields(out))
 			default:
 				l.logger.Log(lvl, message.MakeSimpleFields(out))
 			}
 		default:
-			l.logger.Log(lvl, message.NewDefaultMessage(lvl, input.Text()))
-		}
+			m := message.NewDefaultMessage(lvl, line.String())
 
+			if l.addMeta {
+				if err := l.addAnnotations(m); err != nil {
+					grip.Error(err)
+				}
+			}
+
+			l.logger.Log(lvl, m)
+		}
 	}
 
-	return errors.Wrap(input.Err(), "problem reading from pipe")
+	if err = tail.Err(); err != nil {
+		return errors.Wrapf(err, "problem finishing file following of '%s'", fn)
+	}
+	return nil
 }
 
 func collectStream(out chan<- []byte, input io.Reader, signal chan struct{}) {
