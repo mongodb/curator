@@ -26,7 +26,7 @@ imports:
 - name: github.com/ghodss/yaml
   version: bea76d6a4713e18b7f5321a2b020738552def3ea
 - name: golang.org/x/sys
-  version: 16e60ce6821cc44d9dc924a9f4866ad6ca076ebf
+  version: 0ffbfd41fbef8ffcf9b62b0b0aa3a5873ed7a4fe
 
 - name: github.com/mongodb/grip
   version: 7ec499c3201dc7726da08f3f51e90386ec26a3d7
