@@ -126,6 +126,13 @@ func (j *Job) linkPackages(dest string) error {
 		}
 
 		mirror := filepath.Join(dest, filepath.Base(pkg))
+		if j.release.IsDevelopmentBuild() {
+			if _, err := os.Stat(mirror); os.IsNotExist(err) {
+				err = errors.Wrap(os.Remove(mirror), "problem removing previous development build")
+				catcher.Add(err)
+				grip.Notice(err)
+			}
+		}
 
 		if _, err := os.Stat(mirror); os.IsNotExist(err) {
 			grip.Infof("copying package %s to local staging %s", pkg, dest)
@@ -281,9 +288,7 @@ func (j *Job) Run(ctx context.Context) {
 	}
 
 	bucket.NewFilePermission = s3.PublicRead
-
 	defer j.MarkComplete()
-	wg := &sync.WaitGroup{}
 
 	syncOpts := sthree.NewDefaultSyncOptions()
 	if deadline, ok := ctx.Deadline(); ok {
@@ -291,76 +296,63 @@ func (j *Job) Run(ctx context.Context) {
 	}
 	// at the moment there is only multiple repos for RPM distros
 	for _, remote := range j.Distro.Repos {
-		clonedBucket, err := bucket.Clone(ctx)
-		if err != nil {
-			j.AddError(errors.Wrapf(err, "problem cloning bucket %s", bucket))
-			continue
+		j.workingDirs = append(j.workingDirs, remote)
+		grip.Infof("rebuilding %s.%s", bucket, remote)
+
+		local := filepath.Join(j.WorkSpace, remote)
+
+		var err error
+
+		if err = os.MkdirAll(local, 0755); err != nil {
+			j.AddError(errors.Wrapf(err, "creating directory %s", local))
+			return
 		}
 
-		j.workingDirs = append(j.workingDirs, remote)
+		grip.Infof("downloading from %s to %s", remote, local)
+		pkgLocation := j.getPackageLocation()
+		if err = bucket.SyncFrom(ctx, filepath.Join(local, pkgLocation), filepath.Join(remote, pkgLocation), syncOpts); err != nil {
+			j.AddError(errors.Wrapf(err, "sync from %s to %s", remote, local))
+			return
+		}
 
-		wg.Add(1)
-		go func(remote string, b *sthree.Bucket) {
-			defer b.Close()
-			grip.Infof("rebuilding %s.%s", b, remote)
-			defer wg.Done()
+		grip.Info("copying new packages into local staging area")
+		changed, err := j.injectNewPackages(local)
+		if err != nil {
+			j.AddError(errors.Wrap(err, "copying packages into staging repos"))
+			return
+		}
 
-			local := filepath.Join(j.WorkSpace, remote)
+		// rebuildRepo may hold the lock (and does for
+		// the bulk of the operation with RPM
+		// distros.)
+		if err = j.builder.rebuildRepo(changed); err != nil {
+			j.AddError(errors.Wrapf(err, "problem building repo in '%s'", changed))
+			return
+		}
 
-			var err error
+		var syncSource string
+		var changedComponent string
 
-			if err = os.MkdirAll(local, 0755); err != nil {
-				j.AddError(errors.Wrapf(err, "creating directory %s", local))
-				return
-			}
+		if j.Distro.Type == DEB {
+			changedComponent = filepath.Dir(changed[len(local)+1:])
+			syncSource = filepath.Dir(changed)
+		} else if j.Distro.Type == RPM {
+			changedComponent = changed[len(local)+1:]
+			syncSource = changed
+		} else {
+			j.AddError(errors.Errorf("curator does not support uploading '%s' repos",
+				j.Distro.Type))
+			return
+		}
 
-			grip.Infof("downloading from %s to %s", remote, local)
-			pkgLocation := j.getPackageLocation()
-			if err = b.SyncFrom(ctx, filepath.Join(local, pkgLocation), filepath.Join(remote, pkgLocation), syncOpts); err != nil {
-				j.AddError(errors.Wrapf(err, "sync from %s to %s", remote, local))
-				return
-			}
-
-			grip.Info("copying new packages into local staging area")
-			changed, err := j.injectNewPackages(local)
-			if err != nil {
-				j.AddError(errors.Wrap(err, "copying packages into staging repos"))
-				return
-			}
-
-			// rebuildRepo may hold the lock (and does for
-			// the bulk of the operation with RPM
-			// distros.)
-			if err = j.builder.rebuildRepo(changed); err != nil {
-				j.AddError(errors.Wrapf(err, "problem building repo in '%s'", changed))
-				return
-			}
-
-			var syncSource string
-			var changedComponent string
-
-			if j.Distro.Type == DEB {
-				changedComponent = filepath.Dir(changed[len(local)+1:])
-				syncSource = filepath.Dir(changed)
-			} else if j.Distro.Type == RPM {
-				changedComponent = changed[len(local)+1:]
-				syncSource = changed
-			} else {
-				j.AddError(errors.Errorf("curator does not support uploading '%s' repos",
-					j.Distro.Type))
-				return
-			}
-
-			// do the sync. It's ok,
-			err = b.SyncTo(ctx, syncSource, filepath.Join(remote, changedComponent), syncOpts)
-			if err != nil {
-				j.AddError(errors.Wrapf(err, "problem uploading %s to %s/%s",
-					syncSource, b, changedComponent))
-				return
-			}
-		}(remote, clonedBucket)
+		// do the sync. It's ok,
+		err = bucket.SyncTo(ctx, syncSource, filepath.Join(remote, changedComponent), syncOpts)
+		if err != nil {
+			j.AddError(errors.Wrapf(err, "problem uploading %s to %s/%s",
+				syncSource, bucket, changedComponent))
+			return
+		}
 	}
-	wg.Wait()
 
 	grip.WarningWhen(j.HasErrors(), "encountered error rebuilding and uploading repositories. operation complete.")
 	grip.NoticeWhen(!j.HasErrors(), "completed rebuilding all repositories")
