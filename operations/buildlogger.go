@@ -389,14 +389,14 @@ func (l *cmdLogger) followFile(fn string) error {
 		switch {
 		case l.logJSON:
 			out := message.Fields{}
-			if err := json.Unmarshal(line.Bytes(), &out); err != nil {
+			if err = json.Unmarshal(line.Bytes(), &out); err != nil {
 				grip.Error(err)
 				continue
 			}
 			switch {
 			case l.addMeta:
 				m := message.MakeFields(out)
-				if err := l.addAnnotations(m); err != nil {
+				if err = l.addAnnotations(m); err != nil {
 					grip.Error(err)
 				}
 
@@ -408,7 +408,7 @@ func (l *cmdLogger) followFile(fn string) error {
 			m := message.NewDefaultMessage(lvl, line.String())
 
 			if l.addMeta {
-				if err := l.addAnnotations(m); err != nil {
+				if err = l.addAnnotations(m); err != nil {
 					grip.Error(err)
 				}
 			}
