@@ -1,7 +1,7 @@
 # start project configuration
 name := curator
 buildDir := build
-packages := $(name) operations main sthree repobuilder
+packages := $(name) operations cmd-curator sthree repobuilder
 packages += greenbay greenbay-check
 orgPath := github.com/mongodb
 projectPath := $(orgPath)/$(name)
@@ -24,7 +24,7 @@ lintArgs := --tests --deadline=3m --vendor
 #   gotype produces false positives because it reads .a files which
 #   are rarely up to date.
 lintArgs += --disable="gotype" --disable="gosec"
-lintArgs += --skip="build" --skip="buildscripts"
+lintArgs += --skip="build"
 #   enable and configure additional linters
 lintArgs += --enable="goimports"
 lintArgs += --line-length=100 --dupl-threshold=150 --cyclo-over=25
@@ -48,7 +48,7 @@ lintArgs += --exclude="should check returned error before deferring.*Close()"
 .DEFAULT_GOAL := $(name)
 gopath := $(shell go env GOPATH)
 lintDeps := $(addprefix $(gopath)/src/,$(lintDeps))
-srcFiles := makefile $(shell find . -name "*.go" -not -path "./$(buildDir)/*" -not -name "*_test.go" -not -path "./buildscripts/*" )
+srcFiles := makefile $(shell find . -name "*.go" -not -path "./$(buildDir)/*" -not -name "*_test.go" )
 testSrcFiles := makefile $(shell find . -name "*.go" -not -path "./$(buildDir)/*")
 testOutput := $(foreach target,$(packages),$(buildDir)/output.$(target).test)
 raceOutput := $(foreach target,$(packages),$(buildDir)/output.$(target).race)
@@ -57,7 +57,7 @@ coverageHtmlOutput := $(foreach target,$(packages),$(buildDir)/output.$(target).
 $(gopath)/src/%:
 	@-[ ! -d $(gopath) ] && mkdir -p $(gopath) || true
 	go get $(subst $(gopath)/src/,,$@)
-$(buildDir)/run-linter:buildscripts/run-linter.go $(buildDir)/.lintSetup
+$(buildDir)/run-linter:cmd/run-linter/run-linter.go $(buildDir)/.lintSetup
 	go build -o $@ $<
 $(buildDir)/.lintSetup:$(lintDeps)
 	@-$(gopath)/bin/gometalinter --install >/dev/null && touch $@
@@ -86,9 +86,9 @@ phony := lint build build-race race test coverage coverage-html
 $(name):$(buildDir)/$(name)
 	@[ -e $@ ] || ln -s $<
 $(buildDir)/$(name):$(srcFiles)
-	go build -ldflags=$(ldFlags) -o $@ main/$(name).go
+	go build -ldflags=$(ldFlags) -o $@ cmd/$(name)/$(name).go
 $(buildDir)/$(name).race:$(srcFiles)
-	go build -ldflags=$(ldFlags) -race -o $@ main/$(name).go
+	go build -ldflags=$(ldFlags) -race -o $@ cmd/$(name)/$(name).go
 phony += $(buildDir)/$(name)
 # end main build
 
@@ -130,7 +130,7 @@ vendor-clean:
 	rm -rf vendor/github.com/tychoish/bond/vendor/github.com/stretchr/testify/
 	rm -rf vendor/github.com/tychoish/bond/vendor/github.com/satori/go.uuid/
 	rm -rf vendor/github.com/tychoish/bond/vendor/github.com/pkg/errors/
-	rm -rf vendor/github.com/papertrail/go-tail/main.go
+	rm -rf vendor/github.com/papertrail/go-tai.go
 	rm -rf vendor/github.com/papertrail/go-tail/vendor/github.com/spf13/pflag/
 	rm -rf vendor/github.com/papertrail/go-tail/vendor/golang.org/x/sys/
 	find vendor/ -name "*.gif" -o -name "*.gz" -o -name "*.png" -o -name "*.ico" -o -name "*testdata*"| xargs rm -rf

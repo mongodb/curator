@@ -132,7 +132,7 @@ tasks:
     name: test-operations
   - <<: *run-go-test-suite
     tags: ["test"]
-    name: test-main
+    name: test-cmd-curator
   - <<: *run-go-test-suite
     tags: ["test"]
     name: test-curator
@@ -155,7 +155,7 @@ tasks:
     depends_on:
       - name: build-race
   - <<: *run-go-test-suite
-    name: race-main
+    name: race-cmd-curator
     tags: ["race"]
     depends_on:
       - name: build-race
