@@ -73,7 +73,7 @@ func (c *shellOperation) Run(_ context.Context) {
 
 		if !c.shouldFail {
 			c.setState(false)
-			c.AddError(errors.Wrapf(err, "command failed",
+			c.AddError(errors.Wrapf(err, "command failed [id=%s, cmd=%s]",
 				c.ID(), c.Command))
 		} else {
 			c.setState(true)

@@ -25,7 +25,9 @@ func Repo() cli.Command {
 		Action: func(c *cli.Context) error {
 			ctx, cancel := ctxWithTimeout(c.Duration("timeout"))
 			defer cancel()
+
 			grip.Infof("curator version: %s", curator.BuildRevision)
+
 			return buildRepo(ctx,
 				c.String("packages"),
 				c.String("config"),
