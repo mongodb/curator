@@ -129,7 +129,6 @@ func (j *Job) linkPackages(dest string) error {
 		if j.release.IsDevelopmentBuild() {
 			if _, err := os.Stat(mirror); os.IsNotExist(err) {
 				err = errors.Wrap(os.Remove(mirror), "problem removing previous development build")
-				catcher.Add(err)
 				grip.Notice(err)
 			}
 		}
