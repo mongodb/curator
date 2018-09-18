@@ -88,21 +88,21 @@ func produceResults(w io.Writer, checks <-chan workUnit) (int, error) {
 }
 
 func printTestResult(w io.Writer, check CheckOutput) bool {
-	_ = fmt.Fprintln(w, "=== RUN", check.Name)
+	_, _ = fmt.Fprintln(w, "=== RUN", check.Name)
 	if check.Message != "" {
-		_ = fmt.Fprintln(w, "    message:", check.Message)
+		_, _ = fmt.Fprintln(w, "    message:", check.Message)
 	}
 
 	if check.Error != "" {
-		_ = fmt.Fprintln(w, "    error:", check.Error)
+		_, _ = fmt.Fprintln(w, "    error:", check.Error)
 	}
 
 	dur := check.Timing.End.Sub(check.Timing.Start)
 
 	if check.Passed {
-		_ = fmt.Fprintf(w, "--- PASS: %s (%s)\n", check.Name, dur)
+		_, _ = fmt.Fprintf(w, "--- PASS: %s (%s)\n", check.Name, dur)
 	} else {
-		_ = fmt.Fprintf(w, "--- FAIL: %s (%s)\n", check.Name, dur)
+		_, _ = fmt.Fprintf(w, "--- FAIL: %s (%s)\n", check.Name, dur)
 	}
 
 	return check.Passed
