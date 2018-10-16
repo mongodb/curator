@@ -1,11 +1,10 @@
 package gimlet
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
 // Responder is an interface for constructing a response from a
@@ -50,9 +49,33 @@ type Responder interface {
 	SetPages(*ResponsePages) error
 }
 
+func WriteResponse(rw http.ResponseWriter, resp Responder) {
+	// Write the response, based on the format specified.
+	switch resp.Format() {
+	case JSON:
+		WriteJSONResponse(rw, resp.Status(), resp.Data())
+	case TEXT:
+		WriteTextResponse(rw, resp.Status(), resp.Data())
+	case HTML:
+		WriteHTMLResponse(rw, resp.Status(), resp.Data())
+	case YAML:
+		WriteYAMLResponse(rw, resp.Status(), resp.Data())
+	case BINARY:
+		WriteBinaryResponse(rw, resp.Status(), resp.Data())
+	}
+}
+
 // NewResponseBuilder constructs a Responder implementation that can
-// be used to incrementally build a with successive calls to AddData().
-func NewResponseBuilder() Responder { return &responseBuilder{} }
+// be used to incrementally build a with successive calls to
+// AddData().
+//
+// The builder defaults to JSON ouptut format and a 200 response code.
+func NewResponseBuilder() Responder {
+	return &responseBuilder{
+		status: http.StatusOK,
+		format: JSON,
+	}
+}
 
 type responseBuilder struct {
 	data   []interface{}
@@ -61,18 +84,26 @@ type responseBuilder struct {
 	pages  *ResponsePages
 }
 
-func (r *responseBuilder) Data() interface{} {
-	switch len(r.data) {
-	case 1:
-		return r.data[0]
-	case 0:
-		return struct{}{}
-	default:
-		return r.data
+func (r *responseBuilder) Data() interface{} { return r.data }
+
+func (r *responseBuilder) Validate() error {
+	if !r.Format().IsValid() {
+		return errors.New("format is not valid")
 	}
+
+	if http.StatusText(r.status) == "" {
+		return errors.New("must specify a valid http status")
+	}
+
+	if r.pages != nil {
+		if err := r.pages.Validate(); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
-func (r *responseBuilder) Validate() error       { return nil }
 func (r *responseBuilder) Format() OutputFormat  { return r.format }
 func (r *responseBuilder) Status() int           { return r.status }
 func (r *responseBuilder) Pages() *ResponsePages { return r.pages }
@@ -106,7 +137,7 @@ func (r *responseBuilder) SetStatus(s int) error {
 
 func (r *responseBuilder) SetPages(p *ResponsePages) error {
 	if err := p.Validate(); err != nil {
-		return errors.Wrap(err, "cannot set an invalid page definition")
+		return fmt.Errorf("cannot set an invalid page definition: %s", err.Error())
 	}
 
 	r.pages = p
@@ -187,7 +218,7 @@ func (r *responderImpl) SetStatus(s int) error {
 
 func (r *responderImpl) SetPages(p *ResponsePages) error {
 	if err := p.Validate(); err != nil {
-		return errors.Wrap(err, "cannot set an invalid page definition")
+		return fmt.Errorf("cannot set an invalid page definition: %s", err.Error())
 	}
 
 	r.pages = p

@@ -133,6 +133,16 @@ vendor-clean:
 	rm -rf vendor/github.com/papertrail/go-tai.go
 	rm -rf vendor/github.com/papertrail/go-tail/vendor/github.com/spf13/pflag/
 	rm -rf vendor/github.com/papertrail/go-tail/vendor/golang.org/x/sys/
+	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/evergreen-ci/gimlet
+	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/mongodb/amboy
+	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/mongodb/grip
+	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/stretchr/testify
+	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/tychoish/bond
+	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/tychoish/lru
+	rm -rf vendor/github.com/mongodb/jasper/vendor/golang.org/x/net
+	rm -rf vendor/github.com/mongodb/jasper/vendor/golang.org/x/sys
+	rm -rf vendor/github.com/mongodb/jasper/vendor/google.golang.org/genproto
+	rm -rf vendor/github.com/mongodb/jasper/vendor/google.golang.org/grpc
 	find vendor/ -name "*.gif" -o -name "*.gz" -o -name "*.png" -o -name "*.ico" -o -name "*testdata*"| xargs rm -rf
 #   add phony targets
 phony += vendor-clean

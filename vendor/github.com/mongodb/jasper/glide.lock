@@ -1,0 +1,42 @@
+hash: ""
+updated: 2016-10-20T16:48:42.872025812-04:00
+imports:
+  - name: github.com/satori/go.uuid
+    version: 36e9d2ebbde5e3f13ab2e25625fd453271d6522e
+  - name: github.com/pkg/errors
+    version: 2b3a18b5f0fb6b4f9190549597d3f962c02bc5eb
+  - name: github.com/stretchr/testify
+    version: 890a5c3458b43e6104ff5da8dfa139d013d77544
+  - name: github.com/mongodb/grip
+    version: 12c3fdeb2dbd5bc0b124a884f8f5bb3418c49cca
+  - name: github.com/evergreen-ci/gimlet
+    version: 713b8d22b5e93a0c25a9f71ca944c86d7ecefe84
+  - name: github.com/tychoish/bond
+    version: e11d1b1098c8423f8ce0140bf597b58c5fc77709
+  - name: github.com/tychoish/lru
+    version: dd72368210970b1ae1a1922245f67d7f5c4f8440
+  - name: github.com/mholt/archiver
+    version: de0d89e255e17c8d75a40122055763e743ab0593
+  - name: github.com/montanaflynn/stats
+    version: db72e6cae808b936b0c01fd330ff1fcd2c86c95e
+  - name: github.com/mongodb/amboy
+    version: f897c05396072269b4140b3179fc2d190ebc29dc
+
+  - name: google.golang.org/grpc
+    version: e00d24941bcee35dd163f4377d5371349f14baaf
+
+  - name: golang.org/x/net
+    version: 922f4815f713f213882e8ef45e0d315b164d705c
+
+  - name: github.com/golang/protobuf
+    version: b27b920f9e71b439b873b17bf99f56467623814a
+
+  - name: github.com/google/shlex
+    version: 6f45313302b9c56850fc17f99e40caebce98c716
+
+  - name: golang.org/x/sys
+    version: 3b58ed4ad3395d483fc92d5d14123ce2c3581fec
+  - name: golang.org/x/text
+    version: 6e3c4e7365ddcc329f090f96e4348398f6310088
+  - name: google.golang.org/genproto
+    version: c66870c02cf823ceb633bcd05be3c7cda29976f4
