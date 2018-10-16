@@ -24,3 +24,9 @@ import:
 - package: github.com/anmitsu/go-shlex
 - package: github.com/satori/go.uuid
 - package: github.com/papertrail/go-tail
+- package: github.com/mongodb/jasper
+- package: google.golang.org/grpc
+- package: golang.org/x/net
+- package: github.com/golang/protobuf
+- package: google.golang.org/genproto
+- package: golang.org/x/text

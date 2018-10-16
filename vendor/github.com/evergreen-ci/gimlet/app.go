@@ -21,15 +21,15 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/mongodb/grip"
 	"github.com/mongodb/grip/recovery"
-	"github.com/urfave/negroni"
 )
 
 // APIApp is a structure representing a single API service.
 type APIApp struct {
 	StrictSlash    bool
+	SimpleVersions bool
+	NoVersions     bool
 	isResolved     bool
 	prefix         string
-	defaultVersion int
 	port           int
 	router         *mux.Router
 	address        string
@@ -45,25 +45,11 @@ type APIApp struct {
 // for new methods.
 func NewApp() *APIApp {
 	a := &APIApp{
-		defaultVersion: -1, // this is the same as having no version prepended to the path.
-		port:           3000,
+		port:        3000,
+		StrictSlash: true,
 	}
-
-	a.AddMiddleware(negroni.NewRecovery())
-	a.AddMiddleware(NewAppLogger())
 
 	return a
-}
-
-// SetDefaultVersion allows you to specify a default version for the
-// application. Default versions must be 0 (no version,) or larger.
-func (a *APIApp) SetDefaultVersion(version int) {
-	if version < 0 {
-		grip.Warningf("%d is not a valid version", version)
-	} else {
-		a.defaultVersion = version
-		grip.Noticef("Set default api version to /v%d/", version)
-	}
 }
 
 // Router is the getter for an APIApp's router object. If thetr
@@ -100,7 +86,7 @@ func (a *APIApp) ResetMiddleware() {
 	a.middleware = []Middleware{}
 }
 
-// ResetWrappers removes all route-specific middleware from the
+// RestWrappers removes all route-specific middleware from the
 // current application.
 func (a *APIApp) RestWrappers() {
 	a.wrappers = []Middleware{}
@@ -123,24 +109,23 @@ func (a *APIApp) Run(ctx context.Context) error {
 		WriteTimeout:      time.Minute,
 	}
 
-	catcher := grip.NewBasicCatcher()
 	serviceWait := make(chan struct{})
 	go func() {
 		defer recovery.LogStackTraceAndContinue("app service")
-
-		grip.Noticef("starting app on: %s:$d", a.address, a.port)
-		catcher.Add(srv.ListenAndServe())
+		grip.Noticef("starting app on: %s:%d", a.address, a.port)
+		srv.ListenAndServe()
+		close(serviceWait)
 	}()
 
 	go func() {
 		defer recovery.LogStackTraceAndContinue("server shutdown")
-		catcher.Add(srv.Shutdown(ctx))
-		close(serviceWait)
+		<-ctx.Done()
+		grip.Debug(srv.Shutdown(ctx))
 	}()
 
 	<-serviceWait
 
-	return catcher.Resolve()
+	return nil
 }
 
 // SetPort allows users to configure a default port for the API

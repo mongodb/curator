@@ -25,16 +25,18 @@ func TestAppSuite(t *testing.T) {
 
 func (s *AppSuite) SetupTest() {
 	s.app = NewApp()
-	grip.GetSender().SetLevel(send.LevelInfo{Threshold: level.Info})
+	s.app.AddMiddleware(MakeRecoveryLogger())
+	err := grip.GetSender().SetLevel(send.LevelInfo{Default: level.Debug, Threshold: level.Info})
+	s.NoError(err)
 }
 
 func (s *AppSuite) TestDefaultValuesAreSet() {
-	s.Len(s.app.middleware, 2)
+	s.app = NewApp()
+	s.Len(s.app.middleware, 0)
 	s.Len(s.app.routes, 0)
 	s.Equal(s.app.port, 3000)
-	s.False(s.app.StrictSlash)
+	s.True(s.app.StrictSlash)
 	s.False(s.app.isResolved)
-	s.Equal(s.app.defaultVersion, -1)
 }
 
 func (s *AppSuite) TestRouterGetterReturnsErrorWhenUnresovled() {
@@ -44,33 +46,12 @@ func (s *AppSuite) TestRouterGetterReturnsErrorWhenUnresovled() {
 	s.Error(err)
 }
 
-func (s *AppSuite) TestDefaultVersionSetter() {
-	s.Equal(s.app.defaultVersion, -1)
-	s.app.SetDefaultVersion(-2)
-	s.Equal(s.app.defaultVersion, -1)
-
-	s.app.SetDefaultVersion(0)
-	s.Equal(s.app.defaultVersion, 0)
-
-	s.app.SetDefaultVersion(1)
-	s.Equal(s.app.defaultVersion, 1)
-
-	for idx := range [100]int{} {
-		s.app.SetDefaultVersion(idx)
-		s.Equal(s.app.defaultVersion, idx)
-	}
-}
-
 func (s *AppSuite) TestMiddleWearResetEmptiesList() {
-	s.Len(s.app.middleware, 2)
+	s.app.AddMiddleware(NewAppLogger())
+	s.app.AddMiddleware(NewStatic("", http.Dir("")))
+	s.Len(s.app.middleware, 3)
 	s.app.ResetMiddleware()
 	s.Len(s.app.middleware, 0)
-}
-
-func (s *AppSuite) TestMiddleWearAdderAddsItemToList() {
-	s.Len(s.app.middleware, 2)
-	s.app.AddMiddleware(NewAppLogger())
-	s.Len(s.app.middleware, 3)
 }
 
 func (s *AppSuite) TestPortSetterDoesNotAllowImpermisableValues() {
@@ -118,7 +99,7 @@ func (s *AppSuite) TestResolveEncountersErrorsWithAnInvalidRoot() {
 	s.Equal(err1, err2)
 
 	// also to run
-	err2 = s.app.Run(nil)
+	err2 = s.app.Run(context.TODO())
 	s.Equal(err1, err2)
 }
 
@@ -148,10 +129,10 @@ func (s *AppSuite) TestResolveValidRoute() {
 }
 
 func (s *AppSuite) TestResolveAppWithDefaultVersion() {
+	s.app.NoVersions = true
 	s.False(s.app.isResolved)
-	s.app.defaultVersion = 1
 	route := &APIRoute{
-		version: 1,
+		version: -1,
 		methods: []httpMethod{get},
 		handler: func(_ http.ResponseWriter, _ *http.Request) { grip.Info("hello") },
 		route:   "/foo",
@@ -160,6 +141,21 @@ func (s *AppSuite) TestResolveAppWithDefaultVersion() {
 	s.app.routes = append(s.app.routes, route)
 	s.NoError(s.app.Resolve())
 	s.True(s.app.isResolved)
+}
+
+func (s *AppSuite) TestResolveAppWithInvaldVersion() {
+	s.app.NoVersions = false
+	s.False(s.app.isResolved)
+	route := &APIRoute{
+		version: -1,
+		methods: []httpMethod{get},
+		handler: func(_ http.ResponseWriter, _ *http.Request) { grip.Info("hello") },
+		route:   "/foo",
+	}
+	s.True(route.IsValid())
+	s.app.routes = append(s.app.routes, route)
+	s.Error(s.app.Resolve())
+	s.False(s.app.isResolved)
 }
 
 func (s *AppSuite) TestSetHostOperations() {
@@ -181,46 +177,6 @@ func (s *AppSuite) TestSetPrefix() {
 	s.Equal("/foo", s.app.prefix)
 	s.app.SetPrefix("/bar")
 	s.Equal("/bar", s.app.prefix)
-}
-
-func (s *AppSuite) TestGetDefaultRoute() {
-	cases := map[string][]string{
-		"/foo":      []string{"", "/foo"},
-		"/rest/foo": []string{"", "/rest/foo"},
-		"/rest/bar": []string{"/rest", "/rest/bar"},
-		"/rest/baz": []string{"/rest", "/baz"},
-	}
-
-	for output, inputs := range cases {
-		if !s.Len(inputs, 2) {
-			continue
-		}
-
-		prefix := inputs[0]
-		route := inputs[1]
-
-		s.Equal(output, getDefaultRoute(true, prefix, route))
-	}
-}
-
-func (s *AppSuite) TestGetVersionRoute() {
-	cases := map[string][]interface{}{
-		"/v1/foo":      []interface{}{"", 1, "/foo"},
-		"/v1/rest/foo": []interface{}{"", 1, "/rest/foo"},
-		"/rest/v2/foo": []interface{}{"/rest", 2, "/foo"},
-		"/rest/v2/bar": []interface{}{"/rest", 2, "/rest/bar"},
-	}
-	for output, inputs := range cases {
-		if !s.Len(inputs, 3) {
-			continue
-		}
-
-		prefix := inputs[0].(string)
-		version := inputs[1].(int)
-		route := inputs[2].(string)
-
-		s.Equal(output, getVersionedRoute(true, prefix, version, route))
-	}
 }
 
 func (s *AppSuite) TestHandlerGetter() {
@@ -246,7 +202,7 @@ func (s *AppSuite) TestAppRun() {
 
 func (s *AppSuite) TestWrapperAccessors() {
 	s.Len(s.app.wrappers, 0)
-	s.app.AddWrapper(NewRecoveryLogger())
+	s.app.AddWrapper(MakeRecoveryLogger())
 	s.Len(s.app.wrappers, 1)
 	s.app.RestWrappers()
 	s.Len(s.app.wrappers, 0)
