@@ -42,6 +42,7 @@ func buildApp() *cli.App {
 		operations.Splunk(),
 		operations.Notify(),
 		operations.Greenbay(),
+		operations.Jasper(),
 	}
 
 	// These are global options. Use this to configure logging or
