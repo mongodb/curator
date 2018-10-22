@@ -43,6 +43,7 @@ func buildApp() *cli.App {
 		operations.Notify(),
 		operations.Greenbay(),
 		operations.Jasper(),
+		operations.FTDC(),
 	}
 
 	// These are global options. Use this to configure logging or
