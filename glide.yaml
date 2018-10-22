@@ -30,3 +30,4 @@ import:
 - package: github.com/golang/protobuf
 - package: google.golang.org/genproto
 - package: golang.org/x/text
+- package: github.com/mongodb/ftdc

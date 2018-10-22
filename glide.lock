@@ -59,4 +59,7 @@ imports:
 - name: golang.org/x/text
   version: 6e3c4e7365ddcc329f090f96e4348398f6310088
 
+- name: github.com/mongodb/ftdc
+  version: 2af5b3afb834c42490ad7891879bc2dfcec8b5cc
+
 devImports: []
