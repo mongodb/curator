@@ -135,6 +135,7 @@ vendor-clean:
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/golang/
 	rm -rf vendor/github.com/papertrail/go-tail/main.go
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/evergreen-ci/gimlet
+	rm -rf vendor/github.com/mongodb/ftdc/vendor/github.com/mongodb/mongo-go-driver/vendor/gopkg.in/yaml.v2/
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/mongodb/amboy
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/mongodb/grip
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/stretchr/testify
