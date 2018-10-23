@@ -30,6 +30,10 @@ func ftdcDump() cli.Command {
 				Name:  "path",
 				Usage: "dump FTDC data from this file",
 			},
+			cli.BoolFlag{
+				Name:  "structured",
+				Usage: "dump FTDC data in a structured format",
+			},
 		},
 		Action: func(c *cli.Context) error {
 			ctx, cancel := context.WithCancel(context.Background())
@@ -46,7 +50,12 @@ func ftdcDump() cli.Command {
 			}
 			defer f.Close()
 
-			iter := ftdc.ReadMetrics(ctx, f)
+			var iter ftdc.Iterator
+			if c.Bool("structured") {
+				iter = ftdc.ReadStructuredMetrics(ctx, f)
+			} else {
+				iter = ftdc.ReadMetrics(ctx, f)
+			}
 
 			for iter.Next(ctx) {
 				fmt.Println(iter.Document().ToExtJSON(false))
