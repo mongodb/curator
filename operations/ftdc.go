@@ -3,6 +3,8 @@ package operations
 import (
 	"context"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"math"
 	"os"
 	"os/signal"
@@ -239,13 +241,15 @@ func bsontoftdc() cli.Command {
 			}
 			defer bsonFile.Close()
 
-			var bsonDoc *bson.Document
+			bsonDoc := bson.NewDocument()
 			collector := ftdc.NewDynamicCollector(maxChunkSize)
 			for {
-				_, err = bsonDoc.ReadFrom(bsonFile)
+				_, err := bsonDoc.ReadFrom(bsonFile)
 				if err != nil {
-					fmt.Println(err)
-					break
+					if err == io.EOF {
+						break
+					}
+					return errors.Wrap(err, "failed to write FTDC from BSON")
 				}
 				err = collector.Add(bsonDoc)
 				if err != nil {
@@ -258,14 +262,7 @@ func bsontoftdc() cli.Command {
 				return errors.Wrap(err, "failed to write FTDC from BSON")
 			}
 
-			ftdcFile, err := os.Create(ftdcPrefix)
-			if err != nil {
-				return errors.Wrapf(err, "problem opening file '%s'", ftdcPrefix)
-			}
-			defer ftdcFile.Close()
-
-			_, err = ftdcFile.Write(output)
-			if err != nil {
+			if err = ioutil.WriteFile(ftdcPrefix, output, 0600); err != nil {
 				return errors.Wrap(err, "failed to write FTDC from BSON")
 			}
 			return nil
