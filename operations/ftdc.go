@@ -93,7 +93,6 @@ func ftdctojson() cli.Command {
 	}
 }
 
-// add maxChunkSize flag
 func jsontoftdc() cli.Command {
 	return cli.Command{
 		Name:  "jsontoftdc",
@@ -107,21 +106,28 @@ func jsontoftdc() cli.Command {
 				Name:  "ftdcPrefix",
 				Usage: "prefix for FTDC filenames",
 			},
+			cli.IntFlag{
+				Name:  "maxChunkSize",
+				Usage: "maximum chunk size",
+				Value: 1000,
+			},
 		},
 		Action: func(c *cli.Context) error {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			jsonPath := c.String("jsonPath")
-			if jsonPath == "" {
+			if c.String("jsonPath") == "" {
 				return errors.New("jsonPath is not specified")
 			}
-			ftdcPrefix := c.String("ftdcPrefix")
-			if ftdcPrefix == "" {
+			if c.String("ftdcPrefix") == "" {
 				return errors.New("ftdcPrefix is not specified")
 			}
 
-			opts := ftdc.CollectJSONOptions{FileName: jsonPath, OutputFilePrefix: ftdcPrefix}
+			opts := ftdc.CollectJSONOptions{
+				FileName:         c.String("jsonPath"),
+				OutputFilePrefix: c.String("ftdcPrefix"),
+				ChunkSizeBytes:   c.Int("maxChunkSize"),
+			}
 			if err := ftdc.CollectJSONStream(ctx, opts); err != nil {
 				return errors.Wrap(err, "Failed to write FTDC from JSON")
 			}
