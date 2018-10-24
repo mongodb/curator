@@ -60,6 +60,9 @@ imports:
   version: 6e3c4e7365ddcc329f090f96e4348398f6310088
 
 - name: github.com/mongodb/ftdc
-  version: 2af5b3afb834c42490ad7891879bc2dfcec8b5cc
+  version: 45be06c2d03f76aa9f7c5990661b463597c42bcf
+
+- name: github.com/mongodb/mongo-go-driver
+  version: 44d349d1886bcc181046312daee15bb2533a2d10
 
 devImports: []
