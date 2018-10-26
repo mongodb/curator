@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/mongodb/ftdc"
+	"github.com/mongodb/grip"
 	"github.com/mongodb/grip/recovery"
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/pkg/errors"
@@ -113,6 +114,11 @@ func jsontoftdc() cli.Command {
 				Usage: "maximum chunk size",
 				Value: 1000,
 			},
+			cli.StringFlag{
+				Name:  "flushInterval",
+				Usage: "flush interval in ms",
+				Value: "20",
+			},
 		},
 		Action: func(c *cli.Context) error {
 			ctx, cancel := context.WithCancel(context.Background())
@@ -125,10 +131,16 @@ func jsontoftdc() cli.Command {
 				return errors.New("ftdcPrefix is not specified")
 			}
 
+			flushInterval, err := time.ParseDuration(c.String("flushInterval") + "ms")
+			if err != nil {
+				return errors.Wrapf(err, "failed to parse duration '%s'", c.String("flushInterval"))
+			}
+
 			opts := ftdc.CollectJSONOptions{
 				FileName:         c.String("jsonPath"),
 				OutputFilePrefix: c.String("ftdcPrefix"),
 				ChunkSizeBytes:   c.Int("maxChunkSize"),
+				FlushInterval:    flushInterval,
 			}
 			if err := ftdc.CollectJSONStream(ctx, opts); err != nil {
 				return errors.Wrap(err, "Failed to write FTDC from JSON")
@@ -180,7 +192,6 @@ func ftdctobson() cli.Command {
 				if err != nil {
 					return errors.Wrapf(err, "problem opening flie '%s'", bsonPath)
 				}
-				defer bsonFile.Close()
 			}
 
 			var iter ftdc.Iterator
@@ -193,11 +204,14 @@ func ftdctobson() cli.Command {
 			for iter.Next(ctx) {
 				bytes, err := iter.Document().MarshalBSON()
 				if err != nil {
+					grip.Warning(bsonFile.Close())
 					return errors.Wrap(err, "problem marshaling BSON")
 				}
 				bsonFile.Write(bytes)
 			}
-			return iter.Err()
+
+			grip.Warning(bsonFile.Close())
+			return errors.Wrap(err, "problem iterating ftdc file")
 		},
 	}
 }
