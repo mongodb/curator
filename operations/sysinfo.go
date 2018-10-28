@@ -1,11 +1,19 @@
 package operations
 
 import (
+	"context"
+	"fmt"
+	"math"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
+	"github.com/mongodb/ftdc"
 	"github.com/mongodb/grip"
 	"github.com/mongodb/grip/level"
 	"github.com/mongodb/grip/message"
+	"github.com/mongodb/grip/recovery"
 	"github.com/mongodb/grip/send"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
@@ -20,6 +28,7 @@ func SystemInfo() cli.Command {
 		Usage:   "collectors for system and process information",
 		Subcommands: []cli.Command{
 			systemInfo(),
+			systemFtdc(),
 			processInfo(),
 			processTree(),
 			processAll(),
@@ -63,6 +72,52 @@ func systemInfo() cli.Command {
 			})
 		},
 	}
+}
+
+func systemFtdc() cli.Command {
+	return cli.Command{
+		Name:  "system-ftdc",
+		Usage: "collects system level statistics and writes the results to an FTDC compressed format",
+		Flags: []cli.Flag{
+			cli.DurationFlag{
+				Name:  "interval, i",
+				Usage: "specify an interval for stats collection",
+				Value: time.Second,
+			},
+			cli.DurationFlag{
+				Name:  "flush, f",
+				Usage: "specify an interval to flush data to a chunk",
+				Value: 5 * time.Minute,
+			},
+			cli.StringFlag{
+				Name:  "prefix, p",
+				Usage: "specify a prefix for ftdc file names",
+				Value: fmt.Sprintf("sysinfo.%s", time.Now().Format("2006-01-02.15-04-05")),
+			},
+		},
+		Action: func(c *cli.Context) error {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			opts := ftdc.CollectSysInfoOptions{
+				ChunkSizeBytes:     math.MaxInt32,
+				OutputFilePrefix:   c.String("prefix"),
+				CollectionInterval: c.Duration("interval"),
+				FlushInterval:      c.Duration("flush"),
+			}
+			go signalListener(ctx, cancel)
+			return ftdc.CollectSysInfo(ctx, opts)
+		},
+	}
+}
+
+func signalListener(ctx context.Context, trigger context.CancelFunc) {
+	defer recovery.LogStackTraceAndContinue("graceful shutdown")
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGTERM)
+
+	<-sigChan
+	trigger()
 }
 
 func processAll() cli.Command {
