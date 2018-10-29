@@ -39,21 +39,22 @@ func toJSON() cli.Command {
 			},
 			cli.StringFlag{
 				Name:  "output",
-				Usage: "write FTDC data in JSON format to this file, defaults to stdout",
+				Usage: "write FTDC data in JSON format to this file (default: stdout)",
 			},
 			cli.BoolFlag{
 				Name:  "flattened",
 				Usage: "flatten FTDC data",
 			},
 		},
+		Before: mergeBeforeFuncs(
+			requireFileExists("input", false),
+			requireFileExists("output", true),
+		),
 		Action: func(c *cli.Context) error {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
 			ftdcPath := c.String("input")
-			if ftdcPath == "" {
-				return errors.New("input is not specified")
-			}
 			jsonPath := c.String("output")
 
 			ftdcFile, err := os.Open(ftdcPath)
@@ -97,7 +98,7 @@ func fromJSON() cli.Command {
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:  "input",
-				Usage: "write JSON data from this file, defaults to stdin",
+				Usage: "write JSON data from this file (default: stdin)",
 			},
 			cli.StringFlag{
 				Name:  "prefix",
@@ -114,6 +115,10 @@ func fromJSON() cli.Command {
 				Value: "20",
 			},
 		},
+		Before: mergeBeforeFuncs(
+			requireFileExists("input", true),
+			requireStringFlag("prefix"),
+		),
 		Action: func(c *cli.Context) error {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
@@ -127,12 +132,7 @@ func fromJSON() cli.Command {
 				opts.FileName = jsonPath
 			}
 
-			ftdcPrefix := c.String("prefix")
-			if ftdcPrefix == "" {
-				return errors.New("prefix is not specified")
-			} else {
-				opts.OutputFilePrefix = ftdcPrefix
-			}
+			opts.OutputFilePrefix = c.String("prefix")
 
 			flushInterval, err := time.ParseDuration(c.String("flushInterval") + "ms")
 			if err != nil {
@@ -162,21 +162,22 @@ func toBSON() cli.Command {
 			},
 			cli.StringFlag{
 				Name:  "output",
-				Usage: "write FTDC data in BSON format to this file; defaults to stdout",
+				Usage: "write FTDC data in BSON format to this file (default: stdout)",
 			},
 			cli.BoolFlag{
 				Name:  "flattened",
 				Usage: "flatten FTDC data",
 			},
 		},
+		Before: mergeBeforeFuncs(
+			requireFileExists("input", false),
+			requireFileExists("output", true),
+		),
 		Action: func(c *cli.Context) error {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
 			ftdcPath := c.String("input")
-			if ftdcPath == "" {
-				return errors.New("input is not specified")
-			}
 			bsonPath := c.String("output")
 
 			ftdcFile, err := os.Open(ftdcPath)
@@ -236,18 +237,16 @@ func fromBSON() cli.Command {
 				Value: 1000,
 			},
 		},
+		Before: mergeBeforeFuncs(
+			requireFileExists("input", false),
+			requireFileExists("output", false),
+		),
 		Action: func(c *cli.Context) error {
 			_, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
 			bsonPath := c.String("input")
-			if bsonPath == "" {
-				return errors.New("input is not specified")
-			}
 			ftdcPrefix := c.String("output")
-			if ftdcPrefix == "" {
-				return errors.New("output is not specified")
-			}
 			maxChunkSize := c.Int("maxChunkSize")
 
 			bsonFile, err := os.Open(bsonPath)
