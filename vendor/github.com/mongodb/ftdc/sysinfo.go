@@ -51,13 +51,13 @@ func CollectSysInfo(ctx context.Context, opts CollectSysInfoOptions) error {
 		}
 
 		grip.Debug(message.Fields{
-			"op":          "writing systeminfo",
-			"samples":     info.SampleCount,
-			"metrics":     info.MetricsCount,
-			"payload":     info.PayloadSize,
-			"output_size": len(output),
-			"file":        fn,
-			"duration":    time.Since(startAt).Round(time.Millisecond),
+			"op":            "writing systeminfo",
+			"samples":       info.SampleCount,
+			"metrics":       info.MetricsCount,
+			"payload":       info.PayloadSize,
+			"output_size":   len(output),
+			"file":          fn,
+			"duration_secs": time.Since(startAt).Seconds(),
 		})
 
 		collector.Reset()
@@ -75,7 +75,7 @@ func CollectSysInfo(ctx context.Context, opts CollectSysInfoOptions) error {
 			return flusher()
 		case <-collectTimer.C:
 			info := message.CollectSystemInfo().(*message.SystemInfo)
-			info.Base = message.Base{} // avoid collecting data from the base package.
+			info.Base.Time = time.Now()
 			infobytes, err := bson.Marshal(info)
 			if err != nil {
 				return errors.Wrap(err, "problem converting sysinfo to bson (reflect)")

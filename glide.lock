@@ -54,6 +54,8 @@ imports:
 - name: github.com/papertrail/go-tail
   version: 1b77c8dfcc6baca12dedfab119135396782b68a1
 
+- name: github.com/mongodb/ftdc
+  version: 6475437784887820069689c4ec627cb4658225a6
 - name: github.com/mongodb/jasper
   version: 88c5640b91e2d328120eeb1995cb93c559a11f83
 - name: golang.org/x/text
