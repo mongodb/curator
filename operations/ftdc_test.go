@@ -112,6 +112,7 @@ func TestJSONRoundtrip(t *testing.T) {
 	defer func() {
 		os.Remove(jsonFileName)
 		os.RemoveAll(tempDir)
+		os.Remove(jsonRoundtripFileName)
 	}()
 
 	cmd := exec.Command("../curator", "ftdc", "ftdctojson", "--input", ftdcFileName, "--output", jsonFileName)
