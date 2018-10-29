@@ -2,18 +2,13 @@ package operations
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"io/ioutil"
-	"math"
 	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/mongodb/ftdc"
 	"github.com/mongodb/grip"
-	"github.com/mongodb/grip/recovery"
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
@@ -29,7 +24,6 @@ func FTDC() cli.Command {
 			jsontoftdc(),
 			ftdctobson(),
 			bsontoftdc(),
-			sysInfoCollector(),
 		},
 	}
 }
@@ -40,12 +34,12 @@ func ftdctojson() cli.Command {
 		Usage: "write FTDC data to a JSON file",
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name:  "ftdcPath",
+				Name:  "input",
 				Usage: "write FTDC data from this file",
 			},
 			cli.StringFlag{
-				Name:  "jsonPath",
-				Usage: "write FTDC data in JSON format to this file; if no file is specified, defaults to standard out",
+				Name:  "output",
+				Usage: "write FTDC data in JSON format to this file, defaults to stdout",
 			},
 			cli.BoolFlag{
 				Name:  "flattened",
@@ -56,11 +50,11 @@ func ftdctojson() cli.Command {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			ftdcPath := c.String("ftdcPath")
+			ftdcPath := c.String("input")
 			if ftdcPath == "" {
-				return errors.New("ftdcPath is not specified")
+				return errors.New("input is not specified")
 			}
-			jsonPath := c.String("jsonPath")
+			jsonPath := c.String("output")
 
 			ftdcFile, err := os.Open(ftdcPath)
 			if err != nil {
@@ -102,11 +96,11 @@ func jsontoftdc() cli.Command {
 		Usage: "write FTDC data from a JSON file",
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name:  "jsonPath",
-				Usage: "JSON filepath",
+				Name:  "input",
+				Usage: "write JSON data from this file, defaults to stdin",
 			},
 			cli.StringFlag{
-				Name:  "ftdcPrefix",
+				Name:  "prefix",
 				Usage: "prefix for FTDC filenames",
 			},
 			cli.IntFlag{
@@ -124,24 +118,31 @@ func jsontoftdc() cli.Command {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			if c.String("jsonPath") == "" {
-				return errors.New("jsonPath is not specified")
+			opts := ftdc.CollectJSONOptions{}
+
+			jsonPath := c.String("input")
+			if jsonPath == "" {
+				opts.InputSource = os.Stdin
+			} else {
+				opts.FileName = jsonPath
 			}
-			if c.String("ftdcPrefix") == "" {
-				return errors.New("ftdcPrefix is not specified")
+
+			ftdcPrefix := c.String("prefix")
+			if ftdcPrefix == "" {
+				return errors.New("prefix is not specified")
+			} else {
+				opts.OutputFilePrefix = ftdcPrefix
 			}
 
 			flushInterval, err := time.ParseDuration(c.String("flushInterval") + "ms")
 			if err != nil {
 				return errors.Wrapf(err, "failed to parse duration '%s'", c.String("flushInterval"))
+			} else {
+				opts.FlushInterval = flushInterval
 			}
 
-			opts := ftdc.CollectJSONOptions{
-				FileName:         c.String("jsonPath"),
-				OutputFilePrefix: c.String("ftdcPrefix"),
-				ChunkSizeBytes:   c.Int("maxChunkSize"),
-				FlushInterval:    flushInterval,
-			}
+			opts.ChunkSizeBytes = c.Int("maxChunkSize")
+
 			if err := ftdc.CollectJSONStream(ctx, opts); err != nil {
 				return errors.Wrap(err, "Failed to write FTDC from JSON")
 			}
@@ -156,12 +157,12 @@ func ftdctobson() cli.Command {
 		Usage: "write FTDC data to a BSON file",
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name:  "ftdcPath",
+				Name:  "input",
 				Usage: "write FTDC data from this file",
 			},
 			cli.StringFlag{
-				Name:  "bsonPath",
-				Usage: "write FTDC data in BSON format to this file; if no file is specified, defaults to standard out",
+				Name:  "output",
+				Usage: "write FTDC data in BSON format to this file; defaults to stdout",
 			},
 			cli.BoolFlag{
 				Name:  "flattened",
@@ -172,11 +173,11 @@ func ftdctobson() cli.Command {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			ftdcPath := c.String("ftdcPath")
+			ftdcPath := c.String("input")
 			if ftdcPath == "" {
-				return errors.New("ftdcPath is not specified")
+				return errors.New("input is not specified")
 			}
-			bsonPath := c.String("bsonPath")
+			bsonPath := c.String("output")
 
 			ftdcFile, err := os.Open(ftdcPath)
 			if err != nil {
@@ -222,12 +223,12 @@ func bsontoftdc() cli.Command {
 		Usage: "write FTDC data from a BSON file",
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name:  "bsonPath",
-				Usage: "BSON filepath",
+				Name:  "input",
+				Usage: "write BSON data from this file",
 			},
 			cli.StringFlag{
-				Name:  "ftdcPrefix",
-				Usage: "prefix for FTDC filenames",
+				Name:  "output",
+				Usage: "write BSON data in FTDC format to this file",
 			},
 			cli.IntFlag{
 				Name:  "maxChunkSize",
@@ -239,13 +240,13 @@ func bsontoftdc() cli.Command {
 			_, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			bsonPath := c.String("bsonPath")
+			bsonPath := c.String("input")
 			if bsonPath == "" {
-				return errors.New("bsonPath is not specified")
+				return errors.New("input is not specified")
 			}
-			ftdcPrefix := c.String("ftdcPrefix")
+			ftdcPrefix := c.String("output")
 			if ftdcPrefix == "" {
-				return errors.New("ftdcPrefix is not specified")
+				return errors.New("output is not specified")
 			}
 			maxChunkSize := c.Int("maxChunkSize")
 
@@ -282,55 +283,4 @@ func bsontoftdc() cli.Command {
 			return nil
 		},
 	}
-}
-
-func sysInfoCollector() cli.Command {
-	return cli.Command{
-		Name:  "sysinfo-collector",
-		Usage: "collect system info metrics",
-		Flags: []cli.Flag{
-			cli.DurationFlag{
-				Name:  "interval",
-				Usage: "interval to collect system info metrics",
-				Value: time.Second,
-			},
-			cli.DurationFlag{
-				Name:  "flush",
-				Usage: "interval to flush data to file",
-				Value: 4 * time.Hour,
-			},
-			cli.StringFlag{
-				Name:  "prefix",
-				Usage: "prefix for FTDC filenames",
-				Value: fmt.Sprintf("sysinfo.%s", time.Now().Format("2006-01-02.15-04-05")),
-			},
-		},
-		Action: func(c *cli.Context) error {
-			ctx, cancel := context.WithCancel(context.Background())
-			defer cancel()
-
-			interval := c.Duration("interval")
-			flush := c.Duration("flush")
-			prefix := c.String("prefix")
-
-			opts := ftdc.CollectSysInfoOptions{
-				ChunkSizeBytes:     math.MaxInt32,
-				OutputFilePrefix:   prefix,
-				FlushInterval:      flush,
-				CollectionInterval: interval,
-			}
-
-			go signalListenner(ctx, cancel)
-			return ftdc.CollectSysInfo(ctx, opts)
-		},
-	}
-}
-
-func signalListenner(ctx context.Context, trigger context.CancelFunc) {
-	defer recovery.LogStackTraceAndContinue("graceful shutdown")
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGTERM)
-
-	<-sigChan
-	trigger()
 }
