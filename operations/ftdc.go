@@ -5,7 +5,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"time"
 
 	"github.com/mongodb/ftdc"
 	"github.com/mongodb/grip"
@@ -109,10 +108,10 @@ func fromJSON() cli.Command {
 				Usage: "maximum chunk size",
 				Value: 1000,
 			},
-			cli.StringFlag{
-				Name:  "flushInterval",
-				Usage: "flush interval in ms",
-				Value: "20",
+			cli.DurationFlag{
+				Name:  "flush",
+				Usage: "flush interval",
+				Value: 20000000,
 			},
 		},
 		Before: mergeBeforeFuncs(
@@ -131,16 +130,8 @@ func fromJSON() cli.Command {
 			} else {
 				opts.FileName = jsonPath
 			}
-
 			opts.OutputFilePrefix = c.String("prefix")
-
-			flushInterval, err := time.ParseDuration(c.String("flushInterval") + "ms")
-			if err != nil {
-				return errors.Wrapf(err, "failed to parse duration '%s'", c.String("flushInterval"))
-			} else {
-				opts.FlushInterval = flushInterval
-			}
-
+			opts.FlushInterval = c.Duration("flush")
 			opts.ChunkSizeBytes = c.Int("maxChunkSize")
 
 			if err := ftdc.CollectJSONStream(ctx, opts); err != nil {
