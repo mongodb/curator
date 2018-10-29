@@ -47,7 +47,6 @@ func toJSON() cli.Command {
 		},
 		Before: mergeBeforeFuncs(
 			requireFileExists("input", false),
-			requireFileExists("output", true),
 		),
 		Action: func(c *cli.Context) error {
 			ctx, cancel := context.WithCancel(context.Background())
@@ -162,7 +161,6 @@ func toBSON() cli.Command {
 		},
 		Before: mergeBeforeFuncs(
 			requireFileExists("input", false),
-			requireFileExists("output", true),
 		),
 		Action: func(c *cli.Context) error {
 			ctx, cancel := context.WithCancel(context.Background())
@@ -185,6 +183,7 @@ func toBSON() cli.Command {
 				if err != nil {
 					return errors.Wrapf(err, "problem opening flie '%s'", bsonPath)
 				}
+				defer func() { grip.Warning(bsonFile.Close()) }()
 			}
 
 			var iter ftdc.Iterator
@@ -197,13 +196,11 @@ func toBSON() cli.Command {
 			for iter.Next(ctx) {
 				bytes, err := iter.Document().MarshalBSON()
 				if err != nil {
-					grip.Warning(bsonFile.Close())
 					return errors.Wrap(err, "problem marshaling BSON")
 				}
 				bsonFile.Write(bytes)
 			}
 
-			grip.Warning(bsonFile.Close())
 			return errors.Wrap(err, "problem iterating ftdc file")
 		},
 	}
@@ -230,7 +227,7 @@ func fromBSON() cli.Command {
 		},
 		Before: mergeBeforeFuncs(
 			requireFileExists("input", false),
-			requireFileExists("output", false),
+			requireStringFlag("output"),
 		),
 		Action: func(c *cli.Context) error {
 			_, cancel := context.WithCancel(context.Background())
