@@ -67,10 +67,10 @@ func TestFTDCParentCommandHasExpectedProperties(t *testing.T) {
 	assert.Len(t, cmd.Subcommands, 4)
 	assert.Equal(t, cmd.Name, "ftdc")
 
-	assert.True(t, names["ftdctojson"])
-	assert.True(t, names["jsontoftdc"])
-	assert.True(t, names["ftdctobson"])
-	assert.True(t, names["bsontoftdc"])
+	assert.True(t, names["tojson"])
+	assert.True(t, names["fromjson"])
+	assert.True(t, names["tobson"])
+	assert.True(t, names["frombson"])
 }
 
 func TestBSONRoundtrip(t *testing.T) {
@@ -84,15 +84,15 @@ func TestBSONRoundtrip(t *testing.T) {
 		os.Remove(bsonRoundtripFilename)
 	}()
 
-	cmd := exec.Command("../curator", "ftdc", "ftdctobson", "--input", ftdcFileName, "--output", bsonFileName)
+	cmd := exec.Command("../curator", "ftdc", "tobson", "--input", ftdcFileName, "--output", bsonFileName)
 	_, err := cmd.CombinedOutput()
 	require.NoError(t, err)
 
-	cmd = exec.Command("../curator", "ftdc", "bsontoftdc", "--input", bsonFileName, "--output", ftdcCopyFileName)
+	cmd = exec.Command("../curator", "ftdc", "frombson", "--input", bsonFileName, "--output", ftdcCopyFileName)
 	_, err = cmd.CombinedOutput()
 	require.NoError(t, err)
 
-	cmd = exec.Command("../curator", "ftdc", "ftdctobson", "--input", ftdcCopyFileName, "--output", bsonRoundtripFilename)
+	cmd = exec.Command("../curator", "ftdc", "tobson", "--input", ftdcCopyFileName, "--output", bsonRoundtripFilename)
 	_, err = cmd.CombinedOutput()
 	require.NoError(t, err)
 
@@ -115,11 +115,11 @@ func TestJSONRoundtrip(t *testing.T) {
 		os.Remove(jsonRoundtripFileName)
 	}()
 
-	cmd := exec.Command("../curator", "ftdc", "ftdctojson", "--input", ftdcFileName, "--output", jsonFileName)
+	cmd := exec.Command("../curator", "ftdc", "tojson", "--input", ftdcFileName, "--output", jsonFileName)
 	_, err = cmd.CombinedOutput()
 	require.NoError(t, err)
 
-	cmd = exec.Command("../curator", "ftdc", "jsontoftdc", "--input", jsonFileName, "--prefix", path.Join(tempDir, prefix))
+	cmd = exec.Command("../curator", "ftdc", "fromjson", "--input", jsonFileName, "--prefix", path.Join(tempDir, prefix))
 	_, err = cmd.CombinedOutput()
 	require.NoError(t, err)
 
@@ -128,7 +128,7 @@ func TestJSONRoundtrip(t *testing.T) {
 	require.Equal(t, len(output), 1)
 	ftdcCopyFileName := path.Join(tempDir, output[0].Name())
 
-	cmd = exec.Command("../curator", "ftdc", "ftdctojson", "--input", ftdcCopyFileName, "--output", jsonRoundtripFileName)
+	cmd = exec.Command("../curator", "ftdc", "tojson", "--input", ftdcCopyFileName, "--output", jsonRoundtripFileName)
 	_, err = cmd.CombinedOutput()
 	require.NoError(t, err)
 

@@ -20,17 +20,17 @@ func FTDC() cli.Command {
 		Usage: "tools for running FTDC parsing and generating tools",
 		Flags: []cli.Flag{},
 		Subcommands: []cli.Command{
-			ftdctojson(),
-			jsontoftdc(),
-			ftdctobson(),
-			bsontoftdc(),
+			toJSON(),
+			fromJSON(),
+			toBSON(),
+			fromBSON(),
 		},
 	}
 }
 
-func ftdctojson() cli.Command {
+func toJSON() cli.Command {
 	return cli.Command{
-		Name:  "ftdctojson",
+		Name:  "tojson",
 		Usage: "write FTDC data to a JSON file",
 		Flags: []cli.Flag{
 			cli.StringFlag{
@@ -90,9 +90,9 @@ func ftdctojson() cli.Command {
 	}
 }
 
-func jsontoftdc() cli.Command {
+func fromJSON() cli.Command {
 	return cli.Command{
-		Name:  "jsontoftdc",
+		Name:  "fromjson",
 		Usage: "write FTDC data from a JSON file",
 		Flags: []cli.Flag{
 			cli.StringFlag{
@@ -151,9 +151,9 @@ func jsontoftdc() cli.Command {
 	}
 }
 
-func ftdctobson() cli.Command {
+func toBSON() cli.Command {
 	return cli.Command{
-		Name:  "ftdctobson",
+		Name:  "tobson",
 		Usage: "write FTDC data to a BSON file",
 		Flags: []cli.Flag{
 			cli.StringFlag{
@@ -217,9 +217,9 @@ func ftdctobson() cli.Command {
 	}
 }
 
-func bsontoftdc() cli.Command {
+func fromBSON() cli.Command {
 	return cli.Command{
-		Name:  "bsontoftdc",
+		Name:  "frombson",
 		Usage: "write FTDC data from a BSON file",
 		Flags: []cli.Flag{
 			cli.StringFlag{
