@@ -314,10 +314,12 @@ func (opts LogOptions) Export() jasper.LogOptions {
 		FileName:      opts.FileName,
 		Format:        jasper.LogFormat(opts.Format),
 		InMemoryCap:   int(opts.InMemoryCap),
-		SplunkOptions: opts.SplunkOptions.Export(),
 		SumoEndpoint:  opts.SumoEndpoint,
 	}
 
+	if opts.SplunkOptions != nil {
+		out.SplunkOptions = opts.SplunkOptions.Export()
+	}
 	if opts.BufferOptions != nil {
 		out.BufferOptions = opts.BufferOptions.Export()
 	}
