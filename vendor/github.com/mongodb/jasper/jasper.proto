@@ -118,12 +118,12 @@ message SignalProcess {
 
 enum Signals {
   UNKNOWN = 0;
-  SIGTERM = 1;
-  SIGKILL = 2;
-  SIGHUP = 3;
-  SIGINT = 4;
-  SIGUSR1 = 5;
-  SIGUSR2 = 6;
+  TERMINATE = 1;
+  KILL = 2;
+  HANGUP = 3;
+  INIT = 4;
+  USER1 = 5;
+  USER2 = 6;
 }
 
 
