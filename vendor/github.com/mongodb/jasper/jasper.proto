@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package jasper; 
+package jasper;
 option go_package = "internal";
 
 import "google/protobuf/empty.proto";
@@ -42,7 +42,7 @@ message LogOptions {
     BuildloggerOptions buildlogger_options = 2;
     string default_prefix = 3;
     string file_name = 4;
-    string format = 5;
+    LogFormat format = 5;
     int64 in_memory_cap = 6;
     SplunkOptions splunk_options = 7;
     string sumo_endpoint = 8;
@@ -71,32 +71,32 @@ message SplunkOptions {
 }
 
 message CreateOptions {
-  repeated string args = 1; 
-  string working_directory = 2; 
-  map<string, string> environment = 3; 
+  repeated string args = 1;
+  string working_directory = 2;
+  map<string, string> environment = 3;
   bool override_environ = 4;
   int64 timeout_seconds = 5;
   repeated string tags = 6;
-  repeated CreateOptions on_success = 7; 
-  repeated CreateOptions on_failure = 8; 
-  repeated CreateOptions on_timeout = 9; 
+  repeated CreateOptions on_success = 7;
+  repeated CreateOptions on_failure = 8;
+  repeated CreateOptions on_timeout = 9;
   OutputOptions output = 10;
 }
 
 message ProcessInfo {
-  string id = 1; 
+  string id = 1;
   int64 pid = 2;
   string host_id = 3;
   bool running = 4;
-  bool successful = 5; 
+  bool successful = 5;
   bool complete = 6;
-  bool timedout = 7; 
+  bool timedout = 7;
   CreateOptions options = 8;
 }
 
 message StatusResponse {
-  string host_id = 1; 
-  bool active = 2;  
+  string host_id = 1;
+  bool active = 2;
 }
 
 message Filter {
@@ -138,7 +138,7 @@ message ProcessTags {
 
 message JasperProcessID {
   string value = 1;
-  
+
 }
 
 message OperationOutcome {
@@ -189,8 +189,8 @@ message BuildloggerURLs {
 }
 
 service JasperProcessManager {
-  rpc Status(google.protobuf.Empty) returns  (StatusResponse); 
-  rpc Create(CreateOptions) returns (ProcessInfo); 
+  rpc Status(google.protobuf.Empty) returns  (StatusResponse);
+  rpc Create(CreateOptions) returns (ProcessInfo);
   rpc List(Filter) returns (stream ProcessInfo);
   rpc Group(TagName) returns (stream ProcessInfo);
   rpc Get(JasperProcessID) returns (ProcessInfo);

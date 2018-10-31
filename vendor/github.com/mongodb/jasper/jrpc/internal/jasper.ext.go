@@ -210,7 +210,7 @@ func ConvertLogOptions(opts jasper.LogOptions) *LogOptions {
 		BuildloggerOptions: ConvertBuildloggerOptions(opts.BuildloggerOptions),
 		DefaultPrefix:      opts.DefaultPrefix,
 		FileName:           opts.FileName,
-		Format:             string(opts.Format),
+		Format:             ConvertLogFormat(opts.Format),
 		InMemoryCap:        int64(opts.InMemoryCap),
 		SplunkOptions:      ConvertSplunkOptions(opts.SplunkOptions),
 		SumoEndpoint:       opts.SumoEndpoint,
@@ -312,7 +312,7 @@ func (opts LogOptions) Export() jasper.LogOptions {
 	out := jasper.LogOptions{
 		DefaultPrefix: opts.DefaultPrefix,
 		FileName:      opts.FileName,
-		Format:        jasper.LogFormat(opts.Format),
+		Format:        opts.Format.Export(),
 		InMemoryCap:   int(opts.InMemoryCap),
 		SumoEndpoint:  opts.SumoEndpoint,
 	}

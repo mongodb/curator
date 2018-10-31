@@ -160,8 +160,9 @@ func TestJRPCService(t *testing.T) {
 				},
 				"GetBuildloggerURLsFailsWithoutBuildlogger": func(ctx context.Context, t *testing.T, opts jasper.CreateOptions, client internal.JasperProcessManagerClient, output string, buildDir string) {
 					opts.Output.Loggers = []jasper.Logger{jasper.Logger{Type: jasper.LogDefault, Options: jasper.LogOptions{Format: jasper.LogFormatPlain}}}
+
 					info, err := client.Create(ctx, internal.ConvertCreateOptions(&opts))
-					assert.NoError(t, err)
+					require.NoError(t, err)
 
 					urls, err := client.GetBuildloggerURLs(ctx, &internal.JasperProcessID{Value: info.Id})
 					assert.Error(t, err)
