@@ -16,6 +16,8 @@ import (
 	"google.golang.org/grpc"
 )
 
+// Jasper is a process-management service provided as a component of
+// curator.
 func Jasper() cli.Command {
 	return cli.Command{
 		Name:  "jasper",
@@ -55,15 +57,17 @@ func jasperGRPC() cli.Command {
 			grip.Infof("starting jasper gRPC service at '%s'", addr)
 			rpcSrv := grpc.NewServer()
 
-			jrpc.AttachService(mngr, rpcSrv)
-			go rpcSrv.Serve(lis)
-			grip.Info("jasper service starting")
+			if err = jrpc.AttachService(mngr, rpcSrv); err != nil {
+				return errors.WithStack(err)
+			}
+
+			go grip.Debug(rpcSrv.Serve(lis))
 
 			wait := make(chan struct{})
 
 			go func() {
 				defer close(wait)
-				sigChan := make(chan os.Signal)
+				sigChan := make(chan os.Signal, 2)
 				signal.Notify(sigChan, syscall.SIGTERM)
 
 				select {
