@@ -2,13 +2,18 @@ package operations
 
 import (
 	"bytes"
+	"encoding/hex"
+	"fmt"
 	"io"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"os/exec"
 	"path"
 	"testing"
 
+	"github.com/mongodb/ftdc"
+	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -77,11 +82,11 @@ func TestBSONRoundtrip(t *testing.T) {
 	ftdcFileName := "test_files/ftdc_example"
 	bsonFileName := "test_files/bson_from_ftdc.bson"
 	ftdcCopyFileName := "test_files/ftdc_from_bson"
-	bsonRoundtripFilename := "test_files/bson_roundtrip"
+	bsonRoundtripFileName := "test_files/bson_roundtrip"
 	defer func() {
 		os.Remove(bsonFileName)
 		os.Remove(ftdcCopyFileName)
-		os.Remove(bsonRoundtripFilename)
+		os.Remove(bsonRoundtripFileName)
 	}()
 
 	cmd := exec.Command("../curator", "ftdc", "tobson", "--input", ftdcFileName, "--output", bsonFileName)
@@ -89,16 +94,46 @@ func TestBSONRoundtrip(t *testing.T) {
 	require.NoError(t, err)
 
 	cmd = exec.Command("../curator", "ftdc", "frombson", "--input", bsonFileName, "--output", ftdcCopyFileName)
+	output, err := cmd.CombinedOutput()
+	fmt.Println(string(output))
+	require.NoError(t, err)
+
+	cmd = exec.Command("../curator", "ftdc", "tobson", "--input", ftdcCopyFileName, "--output", bsonRoundtripFileName)
 	_, err = cmd.CombinedOutput()
 	require.NoError(t, err)
 
-	cmd = exec.Command("../curator", "ftdc", "tobson", "--input", ftdcCopyFileName, "--output", bsonRoundtripFilename)
-	_, err = cmd.CombinedOutput()
+	f1, err := os.Open(bsonFileName)
 	require.NoError(t, err)
+	defer f1.Close()
+	f2, err := os.Open(bsonRoundtripFileName)
+	require.NoError(t, err)
+	defer f2.Close()
 
-	equal, err := compareFiles(bsonFileName, bsonRoundtripFilename)
-	require.NoError(t, err)
-	assert.True(t, equal)
+	bsonDocOriginal := bson.NewDocument()
+	for {
+		_, err := bsonDocOriginal.ReadFrom(f1)
+		if err == io.EOF {
+			break
+		}
+		require.NoError(t, err)
+	}
+	bsonDocRoundtrip := bson.NewDocument()
+	for {
+		_, err := bsonDocRoundtrip.ReadFrom(f2)
+		if err == io.EOF {
+			break
+		}
+		require.NoError(t, err)
+	}
+
+	fmt.Println(bsonDocOriginal)
+	assert.True(t, bsonDocOriginal.Equal(bsonDocRoundtrip))
+
+	/*
+		equal, err := compareFiles(bsonFileName, bsonRoundtripFileName)
+		require.NoError(t, err)
+		assert.True(t, equal)
+	*/
 }
 
 func TestJSONRoundtrip(t *testing.T) {
@@ -135,4 +170,50 @@ func TestJSONRoundtrip(t *testing.T) {
 	equal, err := compareFiles(jsonFileName, jsonRoundtripFileName)
 	require.NoError(t, err)
 	assert.True(t, equal)
+}
+
+func TestBSONOutput(t *testing.T) {
+	fileName := "bsonTestFTDC"
+	collector := ftdc.NewDynamicCollector(100)
+	docs := make([]*bson.Document, 4)
+	for i := 0; i < len(docs); i++ {
+		docs[i] = randFlatDocument(4)
+		collector.Add(docs[i])
+	}
+	output, err := collector.Resolve()
+	require.NoError(t, err)
+	require.NoError(t, ioutil.WriteFile(fileName, output, 0777))
+
+	cmd := exec.Command("../curator", "ftdc", "tobson", "--input", fileName)
+	output, err = cmd.CombinedOutput()
+	require.NoError(t, err)
+
+	docNum := 0
+	reader := bytes.NewBuffer(output)
+	for {
+		bsonDoc := bson.NewDocument()
+		_, err = bsonDoc.ReadFrom(reader)
+		if err == io.EOF {
+			break
+		}
+		require.NoError(t, err)
+		require.True(t, docNum < len(docs))
+		assert.True(t, bsonDoc.Equal(docs[docNum]))
+		docNum++
+	}
+}
+
+func randFlatDocument(numKeys int) *bson.Document {
+	doc := bson.NewDocument()
+	for i := 0; i < numKeys; i++ {
+		doc.Append(bson.EC.Int64(randStr(), rand.Int63n(int64(numKeys)*1)))
+	}
+
+	return doc
+}
+
+func randStr() string {
+	b := make([]byte, 16)
+	_, _ = rand.Read(b)
+	return hex.EncodeToString(b)
 }

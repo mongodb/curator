@@ -2,13 +2,11 @@ package operations
 
 import (
 	"context"
-	"io"
 	"io/ioutil"
 	"os"
 
 	"github.com/mongodb/ftdc"
 	"github.com/mongodb/grip"
-	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -103,8 +101,8 @@ func fromJSON() cli.Command {
 				Usage: "prefix for FTDC filenames",
 			},
 			cli.IntFlag{
-				Name:  "maxChunkSize",
-				Usage: "maximum chunk size",
+				Name:  "maxCount",
+				Usage: "maximum number of samples per chunk",
 				Value: 1000,
 			},
 			cli.DurationFlag{
@@ -131,7 +129,7 @@ func fromJSON() cli.Command {
 			}
 			opts.OutputFilePrefix = c.String("prefix")
 			opts.FlushInterval = c.Duration("flush")
-			opts.ChunkSizeBytes = c.Int("maxChunkSize")
+			opts.ChunkSizeBytes = c.Int("maxCount")
 
 			if err := ftdc.CollectJSONStream(ctx, opts); err != nil {
 				return errors.Wrap(err, "Failed to write FTDC from JSON")
@@ -198,7 +196,10 @@ func toBSON() cli.Command {
 				if err != nil {
 					return errors.Wrap(err, "problem marshaling BSON")
 				}
-				bsonFile.Write(bytes)
+				_, err = bsonFile.Write(bytes)
+				if err != nil {
+					return errors.Wrap(err, "problem writing data to file")
+				}
 			}
 
 			return errors.Wrap(err, "problem iterating ftdc file")
@@ -230,7 +231,7 @@ func fromBSON() cli.Command {
 			requireStringFlag("output"),
 		),
 		Action: func(c *cli.Context) error {
-			_, cancel := context.WithCancel(context.Background())
+			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
 			bsonPath := c.String("input")
@@ -243,21 +244,30 @@ func fromBSON() cli.Command {
 			}
 			defer bsonFile.Close()
 
-			bsonDoc := bson.NewDocument()
 			collector := ftdc.NewDynamicCollector(maxChunkSize)
-			for {
-				_, err := bsonDoc.ReadFrom(bsonFile)
-				if err != nil {
-					if err == io.EOF {
-						break
-					}
-					return errors.Wrap(err, "failed to write FTDC from BSON")
-				}
-				err = collector.Add(bsonDoc)
+			iter := ftdc.ReadStructuredMetrics(ctx, bsonFile)
+			for iter.Next(ctx) {
+				err = collector.Add(iter.Document())
 				if err != nil {
 					return errors.Wrap(err, "failed to write FTDC from BSON")
 				}
 			}
+			/*
+				for {
+					bsonDoc := bson.NewDocument()
+					_, err := bsonDoc.ReadFrom(bsonFile)
+					if err != nil {
+						if err == io.EOF {
+							break
+						}
+						return errors.Wrap(err, "failed to write FTDC from BSON")
+					}
+					err = collector.Add(bsonDoc)
+					if err != nil {
+						return errors.Wrap(err, "failed to write FTDC from BSON")
+					}
+				}
+			*/
 
 			output, err := collector.Resolve()
 			if err != nil {
