@@ -57,7 +57,7 @@ imports:
 - name: github.com/mongodb/ftdc
   version: 6475437784887820069689c4ec627cb4658225a6
 - name: github.com/mongodb/jasper
-  version: 88c5640b91e2d328120eeb1995cb93c559a11f83
+  version: 40556a43d546edf37d240e59339e94ac97f8ad90
 - name: golang.org/x/text
   version: 6e3c4e7365ddcc329f090f96e4348398f6310088
 

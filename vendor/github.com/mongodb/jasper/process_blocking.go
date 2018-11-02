@@ -49,18 +49,17 @@ func newBlockingProcess(ctx context.Context, opts *CreateOptions) (Process, erro
 	}
 
 	p.host, _ = os.Hostname()
-
 	p.RegisterTrigger(ctx, makeOptionsCloseTrigger())
 
-	// don't check the error here, becaues we need to call Start to
-	// populate the process state, and we'll race to calls to
-	// methods with the reactor starting up if we skip it here.
-	_ = cmd.Start()
+	if err = cmd.Start(); err != nil {
+		return nil, errors.Wrap(err, "problem starting command")
+	}
 
 	p.opts.started = true
 	opts.started = true
 
 	go p.reactor(ctx, cmd)
+
 	return p, nil
 }
 
@@ -107,12 +106,17 @@ func (p *blockingProcess) reactor(ctx context.Context, cmd *exec.Cmd) {
 				defer p.mu.RUnlock()
 
 				info = ProcessInfo{
-					ID:         p.id,
-					Options:    p.opts,
-					Host:       p.host,
-					Complete:   true,
-					IsRunning:  false,
-					Successful: cmd.ProcessState.Success(),
+					ID:        p.id,
+					Options:   p.opts,
+					Host:      p.host,
+					Complete:  true,
+					IsRunning: false,
+				}
+
+				if cmd.ProcessState != nil {
+					info.Successful = cmd.ProcessState.Success()
+				} else {
+					info.Successful = (err == nil)
 				}
 
 				grip.Debug(message.WrapError(err, message.Fields{
@@ -147,7 +151,6 @@ func (p *blockingProcess) reactor(ctx context.Context, cmd *exec.Cmd) {
 			}
 		}
 	}
-
 }
 
 func (p *blockingProcess) ID() string { return p.id }

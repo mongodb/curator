@@ -18,13 +18,15 @@ func (opts *CreateOptions) Export() *jasper.CreateOptions {
 		TimeoutSecs:      int(opts.TimeoutSeconds),
 		OverrideEnviron:  opts.OverrideEnviron,
 		Tags:             opts.Tags,
-		Output:           opts.Output.Export(),
+	}
+
+	if opts.Output != nil {
+		out.Output = opts.Output.Export()
 	}
 
 	for _, opt := range opts.OnSuccess {
 		out.OnSuccess = append(out.OnSuccess, opt.Export())
 	}
-
 	for _, opt := range opts.OnFailure {
 		out.OnFailure = append(out.OnFailure, opt.Export())
 	}
@@ -54,7 +56,6 @@ func ConvertCreateOptions(opts *jasper.CreateOptions) *CreateOptions {
 	for _, opt := range opts.OnSuccess {
 		co.OnSuccess = append(co.OnSuccess, ConvertCreateOptions(opt))
 	}
-
 	for _, opt := range opts.OnFailure {
 		co.OnFailure = append(co.OnFailure, ConvertCreateOptions(opt))
 	}
@@ -91,13 +92,13 @@ func ConvertProcessInfo(info jasper.ProcessInfo) *ProcessInfo {
 
 func (s Signals) Export() syscall.Signal {
 	switch s {
-	case Signals_SIGHUP:
+	case Signals_HANGUP:
 		return syscall.SIGHUP
-	case Signals_SIGINT:
+	case Signals_INIT:
 		return syscall.SIGINT
-	case Signals_SIGTERM:
+	case Signals_TERMINATE:
 		return syscall.SIGTERM
-	case Signals_SIGKILL:
+	case Signals_KILL:
 		return syscall.SIGKILL
 	default:
 		return syscall.Signal(0)
@@ -107,13 +108,13 @@ func (s Signals) Export() syscall.Signal {
 func ConvertSignal(s syscall.Signal) Signals {
 	switch s {
 	case syscall.SIGHUP:
-		return Signals_SIGHUP
+		return Signals_HANGUP
 	case syscall.SIGINT:
-		return Signals_SIGINT
+		return Signals_INIT
 	case syscall.SIGTERM:
-		return Signals_SIGTERM
+		return Signals_TERMINATE
 	case syscall.SIGKILL:
-		return Signals_SIGKILL
+		return Signals_KILL
 	default:
 		return Signals_UNKNOWN
 	}
@@ -209,7 +210,7 @@ func ConvertLogOptions(opts jasper.LogOptions) *LogOptions {
 		BuildloggerOptions: ConvertBuildloggerOptions(opts.BuildloggerOptions),
 		DefaultPrefix:      opts.DefaultPrefix,
 		FileName:           opts.FileName,
-		Format:             string(opts.Format),
+		Format:             ConvertLogFormat(opts.Format),
 		InMemoryCap:        int64(opts.InMemoryCap),
 		SplunkOptions:      ConvertSplunkOptions(opts.SplunkOptions),
 		SumoEndpoint:       opts.SumoEndpoint,
@@ -308,16 +309,25 @@ func (logger Logger) Export() jasper.Logger {
 }
 
 func (opts LogOptions) Export() jasper.LogOptions {
-	return jasper.LogOptions{
-		BufferOptions:      opts.BufferOptions.Export(),
-		BuildloggerOptions: opts.BuildloggerOptions.Export(),
-		DefaultPrefix:      opts.DefaultPrefix,
-		FileName:           opts.FileName,
-		Format:             jasper.LogFormat(opts.Format),
-		InMemoryCap:        int(opts.InMemoryCap),
-		SplunkOptions:      opts.SplunkOptions.Export(),
-		SumoEndpoint:       opts.SumoEndpoint,
+	out := jasper.LogOptions{
+		DefaultPrefix: opts.DefaultPrefix,
+		FileName:      opts.FileName,
+		Format:        opts.Format.Export(),
+		InMemoryCap:   int(opts.InMemoryCap),
+		SumoEndpoint:  opts.SumoEndpoint,
 	}
+
+	if opts.SplunkOptions != nil {
+		out.SplunkOptions = opts.SplunkOptions.Export()
+	}
+	if opts.BufferOptions != nil {
+		out.BufferOptions = opts.BufferOptions.Export()
+	}
+	if opts.BuildloggerOptions != nil {
+		out.BuildloggerOptions = opts.BuildloggerOptions.Export()
+	}
+
+	return out
 }
 
 func (opts *BufferOptions) Export() jasper.BufferOptions {

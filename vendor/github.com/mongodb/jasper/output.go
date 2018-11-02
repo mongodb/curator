@@ -102,6 +102,8 @@ func (f LogFormat) Validate() error {
 	switch f {
 	case LogFormatDefault, LogFormatJSON, LogFormatPlain:
 		return nil
+	case LogFormatInvalid:
+		return errors.New("invalid log format")
 	default:
 		return errors.New("unknown log format")
 	}
@@ -115,6 +117,8 @@ func (f LogFormat) MakeFormatter() (send.MessageFormatter, error) {
 		return send.MakePlainFormatter(), nil
 	case LogFormatJSON:
 		return send.MakeJSONFormatter(), nil
+	case LogFormatInvalid:
+		return nil, errors.New("cannot make log format for invalid format")
 	default:
 		return nil, errors.New("unknown log format")
 	}

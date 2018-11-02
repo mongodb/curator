@@ -8,10 +8,10 @@ projectPath := $(orgPath)/$(name)
 # end project configuration
 
 
-# start build configuration 
+# start build configuration
 currentHash := $(shell git rev-parse HEAD)
 ldFlags := "$(if $(DEBUG_ENABLED),,-w -s )-X=github.com/mongodb/curator.BuildRevision=$(currentHash)"
-# end build configuration 
+# end build configuration
 
 
 # start linting configuration
@@ -145,6 +145,8 @@ vendor-clean:
 	rm -rf vendor/github.com/mongodb/jasper/vendor/golang.org/x/sys
 	rm -rf vendor/github.com/mongodb/jasper/vendor/google.golang.org/genproto
 	rm -rf vendor/github.com/mongodb/jasper/vendor/google.golang.org/grpc
+	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/golang/protobuf
+	rm -rf vendor/github.com/mongodb/ftdc/vendor/github.com/stretchr/testify
 	rm -rf vendor/github.com/mongodb/ftdc/vendor/github.com/mongodb/grip
 	rm -rf vendor/github.com/mongodb/ftdc/vendor/github.com/pkg/errors
 	rm -rf vendor/github.com/mongodb/ftdc/vendor/github.com/satori/go.uuid
