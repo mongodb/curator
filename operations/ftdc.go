@@ -2,11 +2,13 @@ package operations
 
 import (
 	"context"
+	"io"
 	"io/ioutil"
 	"os"
 
 	"github.com/mongodb/ftdc"
 	"github.com/mongodb/grip"
+	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -221,8 +223,8 @@ func fromBSON() cli.Command {
 				Usage: "write BSON data in FTDC format to this file",
 			},
 			cli.IntFlag{
-				Name:  "maxChunkSize",
-				Usage: "maximum chunk size",
+				Name:  "maxCount",
+				Usage: "maximum number of samples per chunk",
 				Value: 1000,
 			},
 		},
@@ -231,12 +233,12 @@ func fromBSON() cli.Command {
 			requireStringFlag("output"),
 		),
 		Action: func(c *cli.Context) error {
-			ctx, cancel := context.WithCancel(context.Background())
+			_, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
 			bsonPath := c.String("input")
 			ftdcPrefix := c.String("output")
-			maxChunkSize := c.Int("maxChunkSize")
+			maxCount := c.Int("maxCount")
 
 			bsonFile, err := os.Open(bsonPath)
 			if err != nil {
@@ -244,31 +246,21 @@ func fromBSON() cli.Command {
 			}
 			defer bsonFile.Close()
 
-			collector := ftdc.NewDynamicCollector(maxChunkSize)
-			iter := ftdc.ReadStructuredMetrics(ctx, bsonFile)
-			for iter.Next(ctx) {
-				err = collector.Add(iter.Document())
+			collector := ftdc.NewDynamicCollector(maxCount)
+			for {
+				bsonDoc := bson.NewDocument()
+				_, err := bsonDoc.ReadFrom(bsonFile)
+				if err != nil {
+					if err == io.EOF {
+						break
+					}
+					return errors.Wrap(err, "failed to write FTDC from BSON")
+				}
+				err = collector.Add(bsonDoc)
 				if err != nil {
 					return errors.Wrap(err, "failed to write FTDC from BSON")
 				}
 			}
-			/*
-				for {
-					bsonDoc := bson.NewDocument()
-					_, err := bsonDoc.ReadFrom(bsonFile)
-					if err != nil {
-						if err == io.EOF {
-							break
-						}
-						return errors.Wrap(err, "failed to write FTDC from BSON")
-					}
-					err = collector.Add(bsonDoc)
-					if err != nil {
-						return errors.Wrap(err, "failed to write FTDC from BSON")
-					}
-				}
-			*/
-
 			output, err := collector.Resolve()
 			if err != nil {
 				return errors.Wrap(err, "failed to write FTDC from BSON")
