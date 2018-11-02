@@ -63,8 +63,7 @@ func TestBSONRoundtrip(t *testing.T) {
 }
 
 func TestJSONRoundtrip(t *testing.T) {
-	t.Skip("issues with JSON on ftdc side")
-
+	t.Skip("flush issue in ftdc")
 	tempDir, err := ioutil.TempDir(".", "test_dir")
 	require.NoError(t, err)
 	jsonOriginal := path.Join(tempDir, "original.json")
@@ -76,7 +75,7 @@ func TestJSONRoundtrip(t *testing.T) {
 		os.RemoveAll(tempDir)
 	}()
 
-	cmd := exec.Command("../build/curator", "ftdc", "fromjson", "--input", jsonOriginal, "--prefix", ftdcFromOriginal, "--flush", "10ms")
+	cmd := exec.Command("../build/curator", "ftdc", "fromjson", "--input", jsonOriginal, "--prefix", ftdcFromOriginal)
 	_, err = cmd.CombinedOutput()
 	require.NoError(t, err)
 

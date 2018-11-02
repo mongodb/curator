@@ -5,12 +5,23 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"time"
 
 	"github.com/mongodb/ftdc"
 	"github.com/mongodb/grip"
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
+)
+
+// flag names
+var (
+	input     = "input"
+	output    = "output"
+	prefix    = "prefix"
+	flattened = "flattened"
+	maxCount  = "maxCount"
+	flush     = "flush"
 )
 
 func FTDC() cli.Command {
@@ -33,27 +44,27 @@ func toJSON() cli.Command {
 		Usage: "write FTDC data to a JSON file",
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name:  "input",
+				Name:  input,
 				Usage: "write FTDC data from this file",
 			},
 			cli.StringFlag{
-				Name:  "output",
+				Name:  output,
 				Usage: "write FTDC data in JSON format to this file (default: stdout)",
 			},
 			cli.BoolFlag{
-				Name:  "flattened",
+				Name:  flattened,
 				Usage: "flatten FTDC data",
 			},
 		},
 		Before: mergeBeforeFuncs(
-			requireFileExists("input", false),
+			requireFileExists(input, false),
 		),
 		Action: func(c *cli.Context) error {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			ftdcPath := c.String("input")
-			jsonPath := c.String("output")
+			ftdcPath := c.String(input)
+			jsonPath := c.String(output)
 
 			ftdcFile, err := os.Open(ftdcPath)
 			if err != nil {
@@ -73,7 +84,7 @@ func toJSON() cli.Command {
 			}
 
 			var iter ftdc.Iterator
-			if c.Bool("flattened") {
+			if c.Bool(flattened) {
 				iter = ftdc.ReadMetrics(ctx, ftdcFile)
 			} else {
 				iter = ftdc.ReadStructuredMetrics(ctx, ftdcFile)
@@ -95,27 +106,27 @@ func fromJSON() cli.Command {
 		Usage: "write FTDC data from a JSON file",
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name:  "input",
+				Name:  input,
 				Usage: "write JSON data from this file (default: stdin)",
 			},
 			cli.StringFlag{
-				Name:  "prefix",
+				Name:  prefix,
 				Usage: "prefix for FTDC filenames",
 			},
 			cli.IntFlag{
-				Name:  "maxCount",
+				Name:  maxCount,
 				Usage: "maximum number of samples per chunk",
 				Value: 1000,
 			},
 			cli.DurationFlag{
-				Name:  "flush",
+				Name:  flush,
 				Usage: "flush interval",
-				Value: 20000000,
+				Value: 20 * time.Millisecond,
 			},
 		},
 		Before: mergeBeforeFuncs(
-			requireFileExists("input", true),
-			requireStringFlag("prefix"),
+			requireFileExists(input, true),
+			requireStringFlag(prefix),
 		),
 		Action: func(c *cli.Context) error {
 			ctx, cancel := context.WithCancel(context.Background())
@@ -123,15 +134,15 @@ func fromJSON() cli.Command {
 
 			opts := ftdc.CollectJSONOptions{}
 
-			jsonPath := c.String("input")
+			jsonPath := c.String(input)
 			if jsonPath == "" {
 				opts.InputSource = os.Stdin
 			} else {
 				opts.FileName = jsonPath
 			}
-			opts.OutputFilePrefix = c.String("prefix")
-			opts.FlushInterval = c.Duration("flush")
-			opts.SampleCount = c.Int("maxCount")
+			opts.OutputFilePrefix = c.String(prefix)
+			opts.FlushInterval = c.Duration(flush)
+			opts.SampleCount = c.Int(maxCount)
 
 			if err := ftdc.CollectJSONStream(ctx, opts); err != nil {
 				return errors.Wrap(err, "Failed to write FTDC from JSON")
@@ -147,27 +158,27 @@ func toBSON() cli.Command {
 		Usage: "write FTDC data to a BSON file",
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name:  "input",
+				Name:  input,
 				Usage: "write FTDC data from this file",
 			},
 			cli.StringFlag{
-				Name:  "output",
+				Name:  output,
 				Usage: "write FTDC data in BSON format to this file (default: stdout)",
 			},
 			cli.BoolFlag{
-				Name:  "flattened",
+				Name:  flattened,
 				Usage: "flatten FTDC data",
 			},
 		},
 		Before: mergeBeforeFuncs(
-			requireFileExists("input", false),
+			requireFileExists(input, false),
 		),
 		Action: func(c *cli.Context) error {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			ftdcPath := c.String("input")
-			bsonPath := c.String("output")
+			ftdcPath := c.String(input)
+			bsonPath := c.String(output)
 
 			ftdcFile, err := os.Open(ftdcPath)
 			if err != nil {
@@ -187,7 +198,7 @@ func toBSON() cli.Command {
 			}
 
 			var iter ftdc.Iterator
-			if c.Bool("flattened") {
+			if c.Bool(flattened) {
 				iter = ftdc.ReadMetrics(ctx, ftdcFile)
 			} else {
 				iter = ftdc.ReadStructuredMetrics(ctx, ftdcFile)
@@ -215,30 +226,30 @@ func fromBSON() cli.Command {
 		Usage: "write FTDC data from a BSON file",
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name:  "input",
+				Name:  input,
 				Usage: "write BSON data from this file",
 			},
 			cli.StringFlag{
-				Name:  "output",
+				Name:  output,
 				Usage: "write BSON data in FTDC format to this file",
 			},
 			cli.IntFlag{
-				Name:  "maxCount",
+				Name:  maxCount,
 				Usage: "maximum number of samples per chunk",
 				Value: 1000,
 			},
 		},
 		Before: mergeBeforeFuncs(
-			requireFileExists("input", false),
-			requireStringFlag("output"),
+			requireFileExists(input, false),
+			requireStringFlag(output),
 		),
 		Action: func(c *cli.Context) error {
 			_, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			bsonPath := c.String("input")
-			ftdcPrefix := c.String("output")
-			maxCount := c.Int("maxCount")
+			bsonPath := c.String(input)
+			ftdcPrefix := c.String(output)
+			maxCount := c.Int(maxCount)
 
 			bsonFile, err := os.Open(bsonPath)
 			if err != nil {
