@@ -129,7 +129,7 @@ func fromJSON() cli.Command {
 			}
 			opts.OutputFilePrefix = c.String("prefix")
 			opts.FlushInterval = c.Duration("flush")
-			opts.ChunkSizeBytes = c.Int("maxCount")
+			opts.SampleCount = c.Int("maxCount")
 
 			if err := ftdc.CollectJSONStream(ctx, opts); err != nil {
 				return errors.Wrap(err, "Failed to write FTDC from JSON")

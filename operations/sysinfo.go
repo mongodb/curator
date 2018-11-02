@@ -100,7 +100,7 @@ func systemFtdc() cli.Command {
 			defer cancel()
 
 			opts := ftdc.CollectSysInfoOptions{
-				ChunkSizeBytes:     math.MaxInt32,
+				SampleCount:        math.MaxInt32,
 				OutputFilePrefix:   c.String("prefix"),
 				CollectionInterval: c.Duration("interval"),
 				FlushInterval:      c.Duration("flush"),
