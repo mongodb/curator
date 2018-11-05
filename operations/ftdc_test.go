@@ -63,7 +63,6 @@ func TestBSONRoundtrip(t *testing.T) {
 }
 
 func TestJSONRoundtrip(t *testing.T) {
-	t.Skip("flush issue in ftdc")
 	tempDir, err := ioutil.TempDir(".", "test_dir")
 	require.NoError(t, err)
 	jsonOriginal := path.Join(tempDir, "original.json")

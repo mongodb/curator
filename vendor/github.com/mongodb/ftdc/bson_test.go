@@ -158,7 +158,7 @@ func TestBSONValueToMetric(t *testing.T) {
 			Name:      "OtherDouble",
 			Value:     bson.VC.Double(42.0),
 			OutputLen: 1,
-			Expected:  42,
+			Expected:  int64(42.0),
 			Key:       "foo",
 			Path:      []string{"really", "exists"},
 		},
