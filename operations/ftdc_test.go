@@ -49,11 +49,11 @@ func TestBSONRoundtrip(t *testing.T) {
 		os.RemoveAll(tempDir)
 	}()
 
-	cmd := exec.Command("../curator", "ftdc", "frombson", "--input", bsonOriginal, "--output", ftdcFromOriginal)
+	cmd := exec.Command("./curator", "ftdc", "frombson", "--input", bsonOriginal, "--output", ftdcFromOriginal)
 	_, err = cmd.CombinedOutput()
 	require.NoError(t, err)
 
-	cmd = exec.Command("../curator", "ftdc", "tobson", "--input", ftdcFromOriginal, "--output", bsonRoundtrip)
+	cmd = exec.Command("./curator", "ftdc", "tobson", "--input", ftdcFromOriginal, "--output", bsonRoundtrip)
 	_, err = cmd.CombinedOutput()
 	require.NoError(t, err)
 
@@ -75,11 +75,11 @@ func TestJSONRoundtrip(t *testing.T) {
 		os.RemoveAll(tempDir)
 	}()
 
-	cmd := exec.Command("../curator", "ftdc", "fromjson", "--input", jsonOriginal, "--prefix", ftdcFromOriginal)
+	cmd := exec.Command("./curator", "ftdc", "fromjson", "--input", jsonOriginal, "--prefix", ftdcFromOriginal)
 	_, err = cmd.CombinedOutput()
 	require.NoError(t, err)
 
-	cmd = exec.Command("../curator", "ftdc", "tojson", "--input", ftdcFromOriginal+".0", "--output", jsonRoundtrip)
+	cmd = exec.Command("./curator", "ftdc", "tojson", "--input", ftdcFromOriginal+".0", "--output", jsonRoundtrip)
 	_, err = cmd.CombinedOutput()
 	require.NoError(t, err)
 
