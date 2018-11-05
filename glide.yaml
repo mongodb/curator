@@ -31,3 +31,4 @@ import:
 - package: google.golang.org/genproto
 - package: golang.org/x/text
 - package: github.com/mongodb/ftdc
+- package: github.com/mongodb/mongo-go-driver
