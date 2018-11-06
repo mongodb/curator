@@ -52,9 +52,9 @@ func FetchReleases(ctx context.Context, releases []string, path string, options 
 		return errors.Wrap(err, "problem populating jobs")
 	}
 
-	grip.Infof("waiting for %d download jobs to complete", q.Stats().Total)
+	grip.Debugf("waiting for %d download jobs to complete", q.Stats().Total)
 	amboy.WaitCtxInterval(ctx, q, 100*time.Millisecond)
-	grip.Info("all download tasks complete, processing errors now")
+	grip.Debug("all download tasks complete, processing errors now")
 
 	if err := amboy.ResolveErrors(ctx, q); err != nil {
 		return errors.Wrap(err, "problem(s) detected in download jobs")

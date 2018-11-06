@@ -18,6 +18,7 @@ import (
 	"github.com/mongodb/amboy/job"
 	"github.com/mongodb/amboy/registry"
 	"github.com/mongodb/grip"
+	"github.com/mongodb/grip/message"
 	"github.com/pkg/errors"
 	"github.com/tychoish/bond"
 )
@@ -89,7 +90,11 @@ func (j *DownloadFileJob) Run(_ context.Context) {
 
 	// in theory the queue should do this next check, but most do not
 	if state := j.Dependency().State(); state == dependency.Passed {
-		grip.Noticef("file %s is already downloaded", fn)
+		grip.Debug(message.Fields{
+			"file":    fn,
+			"message": "file is already downloaded",
+			"op":      "none",
+		})
 		return
 	}
 
@@ -97,7 +102,11 @@ func (j *DownloadFileJob) Run(_ context.Context) {
 		j.handleError(errors.Wrapf(err, "problem downloading file %s", fn))
 		return
 	}
-	grip.Noticef("downloaded %s file", fn)
+
+	grip.Debug(message.Fields{
+		"op":   "downloaded file complete",
+		"file": fn,
+	})
 
 	if err := extractArchive(fn); err != nil {
 		j.handleError(errors.Wrap(err, "problem extracting artifacts"))
@@ -177,7 +186,11 @@ func extractArchive(fn string) error {
 		return errors.Errorf("file %s is in unsupported archive format", fn)
 	}
 
-	grip.Noticeln("extracted archive:", fn)
+	grip.Debug(message.Fields{
+		"file": fn,
+		"op":   "extracted archive",
+	})
+
 	return nil
 }
 
@@ -201,9 +214,13 @@ func attemptTimestampUpdate(fn string) {
 
 func (j *DownloadFileJob) handleError(err error) {
 	j.AddError(err)
-	grip.CatchError(err)
-	grip.Infoln("cleaning up artifacts:", j.FileName)
-	grip.CatchWarning(os.RemoveAll(j.getFileName())) // cleanup
+
+	grip.Error(message.WrapError(err, message.Fields{
+		"message": "problem downloading file",
+		"name":    j.FileName,
+		"op":      "cleaning up artifacts",
+	}))
+	grip.Warning(os.RemoveAll(j.getFileName())) // cleanup
 }
 
 func (j *DownloadFileJob) getFileName() string {

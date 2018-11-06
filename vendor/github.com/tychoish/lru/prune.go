@@ -25,22 +25,16 @@ func (c *Cache) Prune(maxSize int, exclude []string, dryRun bool) error {
 		}
 	}
 
-	grip.Infof("cache pruning is complete; cache is %d bytes with %d items",
-		c.Size(), c.Count())
-
 	return catcher.Resolve()
 }
 
 func (c *Cache) underQuota(maxSize int) bool {
 	if c.Count() == 0 {
-		grip.Info("there are no items in the cache")
 		return true
 	}
 
 	size := c.Size()
 	if size <= maxSize {
-		grip.Infof("cache size %d is under target size of %d",
-			size, maxSize)
 		return true
 	}
 

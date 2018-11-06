@@ -44,7 +44,7 @@ func DirectoryContents(path string, skipDir bool) (*Cache, error) {
 			catcher.Len(), c.Count())
 	}
 
-	grip.Infof("created new cache, with %d items and %d bytes",
+	grip.Debugf("created new cache, with %d items and %d bytes",
 		c.Count(), c.Size())
 
 	return c, nil
@@ -81,7 +81,7 @@ func TreeContents(root string) (*Cache, error) {
 			catcher.Len(), c.Count())
 	}
 
-	grip.Infof("created new cache, with %d items and %d bytes",
+	grip.Debugf("created new cache, with %d items and %d bytes",
 		c.Count(), c.Size())
 
 	return c, nil

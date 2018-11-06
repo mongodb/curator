@@ -16,11 +16,9 @@ lintDeps := github.com/alecthomas/gometalinter
 lintArgs := --tests --deadline=1m --vendor
 #   gotype produces false positives because it reads .a files which
 #   are rarely up to date.
-lintArgs += --disable="gotype" --disable="gas"
+lintArgs += --disable="gotype" --disable="gas" --enable="goimports"
 lintArgs += --skip="$(buildDir)" --skip="buildscripts"
 #  add and configure additional linters
-lintArgs += --enable="go fmt -s" --enable="goimports"
-lintArgs += --linter='misspell:misspell ./*.go:PATH:LINE:COL:MESSAGE' --enable=misspell
 lintArgs += --line-length=100 --dupl-threshold=175 --cyclo-over=17
 #  two similar functions triggered the duplicate warning, but they're not.
 lintArgs += --exclude="duplicate of registry.go"
@@ -47,33 +45,37 @@ gopath := $(shell go env GOPATH)
 lintDeps := $(addprefix $(gopath)/src/,$(lintDeps))
 srcFiles := makefile $(shell find . -name "*.go" -not -path "./$(buildDir)/*" -not -name "*_test.go")
 testSrcFiles := makefile $(shell find . -name "*.go" -not -path "./$(buildDir)/*")
-testOutput := $(subst -,/,$(foreach target,$(packages),$(buildDir)/test.$(target).out))
-raceOutput := $(subst -,/,$(foreach target,$(packages),$(buildDir)/race.$(target).out))
-coverageOutput := $(subst -,/,$(foreach target,$(packages),$(buildDir)/coverage.$(target).out))
-coverageHtmlOutput := $(subst -,/,$(foreach target,$(packages),$(buildDir)/coverage.$(target).html))
+testOutput := $(foreach target,$(packages),$(buildDir)/output.$(target).test)
+raceOutput := $(foreach target,$(packages),$(buildDir)/output.$(target).race)
+coverageOutput := $(foreach target,$(packages),$(buildDir)/output.$(target).coverage)
+coverageHtmlOutput := $(foreach target,$(packages),$(buildDir)/output.$(target).coverage.html)
 $(gopath)/src/%:
 	@-[ ! -d $(gopath) ] && mkdir -p $(gopath) || true
 	go get $(subst $(gopath)/src/,,$@)
+$(buildDir)/run-linter:buildscripts/run-linter.go $(buildDir)/.lintSetup
+	$(vendorGopath) go build -o $@ $<
+$(buildDir)/.lintSetup:$(lintDeps)
+	@-$(gopath)/bin/gometalinter --install >/dev/null && touch $@
 # end dependency installation tools
-t:
-	@echo $(testOutput)
+
 
 # userfacing targets for basic build and development operations
-lint:$(lintDeps)
-	@-$(gopath)/bin/gometalinter --install >/dev/null
-	$(gopath)/bin/gometalinter $(lintArgs) ./...
-lint-deps:$(lintDeps)
+lint:$(buildDir)/output.lint
 build:$(deps) $(srcFiles) $(gopath)/src/$(projectPath)
-	$(vendorGopath) go build ./
+	go build ./
 build-race:$(deps) $(srcFiles) $(gopath)/src/$(projectPath)
-	$(vendorGopath) go build -race $(subst -,/,$(foreach pkg,$(packages),./$(pkg)))
+	go build -race $(subst -,/,$(foreach pkg,$(packages),./$(pkg)))
 test:$(testOutput)
 race:$(raceOutput)
 coverage:$(coverageOutput)
 coverage-html:$(coverageHtmlOutput)
 phony := lint build build-race race test coverage coverage-html
 phony += deps test-deps lint-deps
-.PRECIOUS: $(testOutput) $(raceOutput) $(coverageOutput) $(coverageHtmlOutput)
+.PRECIOUS:$(testOutput) $(raceOutput) $(coverageOutput) $(coverageHtmlOutput)
+.PRECIOUS:$(foreach target,$(packages),$(buildDir)/test.$(target))
+.PRECIOUS:$(foreach target,$(packages),$(buildDir)/race.$(target))
+.PRECIOUS:$(foreach target,$(packages),$(buildDir)/output.$(target).lint)
+.PRECIOUS:$(buildDir)/output.lint
 # end front-ends
 
 
@@ -86,96 +88,64 @@ $(gopath)/src/$(projectPath):$(gopath)/src/$(orgPath)
 $(name):$(buildDir)/$(name)
 	@[ -L $@ ] || ln -s $< $@
 $(buildDir)/$(name):$(gopath)/src/$(projectPath) $(srcFiles) $(deps)
-	$(vendorGopath) go build -o $@ main/$(name).go
+	go build -o $@ main/$(name).go
 $(buildDir)/$(name).race:$(gopath)/src/$(projectPath) $(srcFiles) $(deps)
-	$(vendorGopath) go build -race -o $@ main/$(name).go
+	go build -race -o $@ main/$(name).go
 # end main build
 
 
 # convenience targets for runing tests and coverage tasks on a
 # specific package.
-makeArgs := --no-print-directory
-race-%:
-	@$(MAKE) $(makeArgs) $(buildDir)/race.$(subst -,/,$*).out
-	@grep -e "^PASS" $(buildDir)/race.$(subst /,-,$*).out
-test-%:
-	@$(MAKE) $(makeArgs) $(buildDir)/test.$(subst -,/,$*).out
-	@grep -e "^PASS" $(buildDir)/test.$(subst /,-,$*).out
-coverage-%:
-	@$(MAKE) $(makeArgs) $(buildDir)/coverage.$(subst /,-,$*).out
-html-coverage-%:
-	@$(MAKE) $(makeArgs) $(buildDir)/coverage.$(subst /,-,$*).html
+race-%:$(buildDir)/output.%.race
+	@grep -s -q -e "^PASS" $< && ! grep -s -q "^WARNING: DATA RACE" $<
+test-%:$(buildDir)/output.%.test
+	@grep -s -q -e "^PASS" $<
+coverage-%:$(buildDir)/output.%.coverage
+	@grep -s -q -e "^PASS" $(subst coverage,test,$<)
+html-coverage-%:$(buildDir)/output.%.coverage $(buildDir)/output.%.coverage.html
+	@grep -s -q -e "^PASS" $(subst coverage,test,$<)
+lint-%:$(buildDir)/output.%.lint
+	@grep -v -s -q "^--- FAIL" $<
 # end convienence targets
-
 
 # start test and coverage artifacts
 #    tests have compile and runtime deps. This varable has everything
 #    that the tests actually need to run. (The "build" target is
 #    intentional and makes these targets rerun as expected.)
-testRunDeps := $(testSrcFiles) build
-testArgs := -v --timeout=20m
+testArgs := -test.v --test.timeout=15m
+ifneq (,$(RUN_TEST))
+testArgs += -test.run='$(RUN_TEST)'
+endif
+#    to avoid vendoring the coverage tool, install it as needed
+coverDeps := golang.org/x/tools/cmd/cover
+coverDeps := $(addprefix $(gopath)/src/,$(coverDeps))
 #    implementation for package coverage and test running,mongodb to produce
 #    and save test output.
 $(buildDir)/coverage.%.html:$(buildDir)/coverage.%.out
 	go tool cover -html=$(buildDir)/coverage.$(subst /,-,$*).out -o $(buildDir)/coverage.$(subst /,-,$*).html
 $(buildDir)/coverage.%.out:$(testRunDeps)
-	$(vendorGopath) go test $(testArgs) -covermode=count -coverprofile=$(buildDir)/coverage.$(subst /,-,$*).out $(projectPath)/$(subst -,/,$*)
+	go test $(testArgs) -covermode=count -coverprofile=$(buildDir)/coverage.$(subst /,-,$*).out $(projectPath)/$(subst -,/,$*)
 	@-[ -f $(buildDir)/coverage.$(subst /,-,$*).out ] && go tool cover -func=$(buildDir)/coverage.$(subst /,-,$*).out | sed 's%$(projectPath)/%%' | column -t
 $(buildDir)/coverage.$(name).out:$(testRunDeps)
-	$(vendorGopath) go test -covermode=count -coverprofile=$@ $(projectPath)
+	go test -covermode=count -coverprofile=$@ $(projectPath)
 	@-[ -f $@ ] && go tool cover -func=$@ | sed 's%$(projectPath)/%%' | column -t
 $(buildDir)/test.%.out:$(testRunDeps)
-	$(vendorGopath) go test $(testArgs) ./$(subst -,/,$*) | tee $(buildDir)/test.$(subst /,-,$*).out
+	go test $(testArgs) ./$(subst -,/,$*) | tee $(buildDir)/test.$(subst /,-,$*).out
 $(buildDir)/race.%.out:$(testRunDeps)
-	$(vendorGopath) go test $(testArgs) -race ./$(subst -,/,$*) | tee $(buildDir)/race.$(subst /,-,$*).out
+	go test $(testArgs) -race ./$(subst -,/,$*) | tee $(buildDir)/race.$(subst /,-,$*).out
 $(buildDir)/test.$(name).out:$(testRunDeps)
-	$(vendorGopath) go test $(testArgs) ./ | tee $@
+	go test $(testArgs) ./ | tee $@
 $(buildDir)/race.$(name).out:$(testRunDeps)
-	$(vendorGopath) go test $(testArgs) -race ./ | tee $@
+	go test $(testArgs) -race ./ | tee $@
 # end test and coverage artifacts
 
 
 # start vendoring configuration
-#    begin with configuration of dependencies
-vendorDeps := github.com/Masterminds/glide
-vendorDeps := $(addprefix $(gopath)/src/,$(vendorDeps))
-vendor-deps:$(vendorDeps)
-#   this allows us to store our vendored code in vendor and use
-#   symlinks to support vendored code both in the legacy style and with
-#   new-style vendor directories. When this codebase can drop support
-#   for go1.4, we can delete most of this.
--include $(buildDir)/makefile.vendor
-nestedVendored := vendor/github.com/mongodb/grip
-nestedVendored := $(foreach project,$(nestedVendored),$(project)/build/vendor)
-$(buildDir)/makefile.vendor:$(buildDir)/render-gopath makefile
-	@mkdir -p $(buildDir)
-	@echo "vendorGopath := \$$(shell \$$(buildDir)/render-gopath $(nestedVendored))" >| $@
-#   targets for the directory components and manipulating vendored files.
-vendor-sync:$(vendorDeps)
-	glide install -s
 vendor-clean:
 	rm -rf vendor/gopkg.in/mgo.v2/harness/
 	rm -rf vendor/github.com/stretchr/testify/vendor/
 	find vendor/ -name "*.gif" -o -name "*.gz" -o -name "*.png" -o -name "*.ico" -o -name "*.dat" -o -name "*testdata" | xargs rm -f
-change-go-version:
-	rm -rf $(buildDir)/make-vendor $(buildDir)/render-gopath
-	@$(MAKE) $(makeArgs) vendor > /dev/null 2>&1
-vendor:$(buildDir)/vendor/src
-	$(MAKE) $(makeArgs) -C vendor/github.com/mongodb/grip $@
-$(buildDir)/vendor/src:$(buildDir)/make-vendor $(buildDir)/render-gopath
-	@./$(buildDir)/make-vendor
-#   targets to build the small programs used to support vendoring.
-$(buildDir)/make-vendor:buildscripts/make-vendor.go
-	@mkdir -p $(buildDir)
-	go build -o $@ $<
-$(buildDir)/render-gopath:buildscripts/render-gopath.go
-	@mkdir -p $(buildDir)
-	go build -o $@ $<
-#   define dependencies for buildscripts
-buildscripts/make-vendor.go:buildscripts/vendoring/vendoring.go
-buildscripts/render-gopath.go:buildscripts/vendoring/vendoring.go
-#   add phony targets
-phony += vendor vendor-deps vendor-clean vendor-sync change-go-version
+phony += vendor-clean
 # end vendoring tooling configuration
 
 
@@ -186,4 +156,5 @@ phony += clean
 # end dependency targets
 
 # configure phony targets
+.FORCE:
 .PHONY:$(phony)
