@@ -40,15 +40,21 @@ func jasperGRPC() cli.Command {
 				EnvVar: "JASPER_GRPC_PORT",
 				Value:  2286,
 			},
+			cli.StringFlag{
+				Name:   "host",
+				EnvVar: "JASPER_GRPC_HOST",
+				Value:  "localhost",
+			},
 		},
 		Action: func(c *cli.Context) error {
 			port := c.Int("port")
+			host := c.String("host")
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
 			mngr := jasper.NewLocalManagerBlockingProcesses()
 
-			addr := fmt.Sprintf("localhost:%d", port)
+			addr := fmt.Sprintf("%s:%d", host, port)
 			lis, err := net.Listen("tcp", addr)
 			if err != nil {
 				return errors.WithStack(err)
