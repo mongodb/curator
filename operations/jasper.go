@@ -103,16 +103,27 @@ func jasperREST() cli.Command {
 				EnvVar: "JASPER_REST_PORT",
 				Value:  2287,
 			},
+			cli.StringFlag{
+				Name:   "host",
+				EnvVar: "JASPER_REST_HOST",
+				Value:  "localhost",
+			},
 		},
 		Action: func(c *cli.Context) error {
 			port := c.Int("port")
+			host := c.String("host")
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
 			mngr := jasper.NewManagerService(jasper.NewLocalManagerBlockingProcesses())
 			app := mngr.App()
 			app.SetPrefix("jasper")
+
 			if err := app.SetPort(port); err != nil {
+				return errors.WithStack(err)
+			}
+
+			if err := app.SetHost(host); err != nil {
 				return errors.WithStack(err)
 			}
 
