@@ -115,6 +115,7 @@ func (p *blockingProcess) reactor(ctx context.Context, cmd *exec.Cmd) {
 
 				if cmd.ProcessState != nil {
 					info.Successful = cmd.ProcessState.Success()
+					info.PID = cmd.ProcessState.Pid()
 				} else {
 					info.Successful = (err == nil)
 				}
