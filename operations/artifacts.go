@@ -75,7 +75,10 @@ func Artifacts() cli.Command {
 				Usage: "find all targets, editions and architectures for a version",
 				Flags: baseDlFlags(false),
 				Action: func(c *cli.Context) error {
-					version, err := getVersionForListing(c.String("version"), c.String("path"))
+					ctx, cancel := context.WithCancel(context.Background())
+					defer cancel()
+
+					version, err := getVersionForListing(ctx, c.String("version"), c.String("path"))
 					if err != nil {
 						return errors.Wrap(err, "problem fetching version")
 					}
@@ -89,7 +92,10 @@ func Artifacts() cli.Command {
 				Usage: "find targets/edition/architecture mappings for a version",
 				Flags: baseDlFlags(false),
 				Action: func(c *cli.Context) error {
-					version, err := getVersionForListing(c.String("version"), c.String("path"))
+					ctx, cancel := context.WithCancel(context.Background())
+					defer cancel()
+
+					version, err := getVersionForListing(ctx, c.String("version"), c.String("path"))
 					if err != nil {
 						return errors.Wrap(err, "problem fetching version")
 					}
@@ -103,7 +109,10 @@ func Artifacts() cli.Command {
 				Usage: "prints a listing of the current contents of the version cache",
 				Flags: baseDlFlags(false),
 				Action: func(c *cli.Context) error {
-					catalog, err := bond.NewCatalog(c.String("path"))
+					ctx, cancel := context.WithCancel(context.Background())
+					defer cancel()
+
+					catalog, err := bond.NewCatalog(ctx, c.String("path"))
 					if err != nil {
 						return errors.Wrap(err, "problem building catalog")
 					}
@@ -116,7 +125,10 @@ func Artifacts() cli.Command {
 				Usage: "get path to a build",
 				Flags: buildInfoFlags(baseDlFlags(false)...),
 				Action: func(c *cli.Context) error {
-					catalog, err := bond.NewCatalog(c.String("path"))
+					ctx, cancel := context.WithCancel(context.Background())
+					defer cancel()
+
+					catalog, err := bond.NewCatalog(ctx, c.String("path"))
 					if err != nil {
 						return errors.Wrap(err, "problem building catalog")
 					}
@@ -203,8 +215,8 @@ func baseDlFlags(versionSlice bool, flags ...cli.Flag) []cli.Flag {
 		})
 }
 
-func getVersionForListing(release, path string) (*bond.ArtifactVersion, error) {
-	feed, err := bond.GetArtifactsFeed(path)
+func getVersionForListing(ctx context.Context, release, path string) (*bond.ArtifactVersion, error) {
+	feed, err := bond.GetArtifactsFeed(ctx, path)
 	if err != nil {
 		return nil, errors.Wrap(err, "problem fetching artifacts feed")
 	}

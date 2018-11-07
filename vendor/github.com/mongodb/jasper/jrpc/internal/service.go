@@ -138,21 +138,26 @@ func (s *jasperService) Signal(ctx context.Context, sig *SignalProcess) (*Operat
 	if err != nil {
 		err = errors.Wrapf(err, "couldn't find process with id '%s'", sig.ProcessID)
 		return &OperationOutcome{
-			Success: false,
-			Text:    err.Error(),
+			Success:  false,
+			Text:     err.Error(),
+			ExitCode: -2,
 		}, err
 	}
 
 	if err = proc.Signal(ctx, sig.Signal.Export()); err != nil {
 		err = errors.Wrapf(err, "problem sending '%s' to '%s'", sig.Signal, sig.ProcessID)
 		return &OperationOutcome{
-			Success: false,
-			Text:    err.Error(),
+			Success:  false,
+			ExitCode: -3,
+			Text:     err.Error(),
 		}, err
 	}
 
-	out := &OperationOutcome{Success: true, Text: fmt.Sprintf("sending '%s' to '%s'", sig.Signal, sig.ProcessID)}
-	return out, nil
+	return &OperationOutcome{
+		Success:  true,
+		Text:     fmt.Sprintf("sending '%s' to '%s'", sig.Signal, sig.ProcessID),
+		ExitCode: int32(proc.Info(ctx).ExitCode),
+	}, nil
 }
 
 func (s *jasperService) Wait(ctx context.Context, id *JasperProcessID) (*OperationOutcome, error) {
@@ -160,32 +165,39 @@ func (s *jasperService) Wait(ctx context.Context, id *JasperProcessID) (*Operati
 	if err != nil {
 		err = errors.Wrapf(err, "problem finding process '%s'", id.Value)
 		return &OperationOutcome{
-			Success: false,
-			Text:    err.Error(),
+			Success:  false,
+			Text:     err.Error(),
+			ExitCode: -2,
 		}, err
 	}
 
 	if err = proc.Wait(ctx); err != nil {
 		err = errors.Wrap(err, "problem encountered while waiting")
 		return &OperationOutcome{
-			Success: false,
-			Text:    err.Error(),
+			Success:  false,
+			Text:     err.Error(),
+			ExitCode: -3,
 		}, err
 	}
 
-	return &OperationOutcome{Success: true, Text: fmt.Sprintf("'%s' operation complete", id.Value)}, nil
+	return &OperationOutcome{
+		Success:  true,
+		Text:     fmt.Sprintf("'%s' operation complete", id.Value),
+		ExitCode: int32(proc.Info(ctx).ExitCode),
+	}, nil
 }
 
 func (s *jasperService) Close(ctx context.Context, _ *empty.Empty) (*OperationOutcome, error) {
 	if err := s.manager.Close(ctx); err != nil {
 		err = errors.Wrap(err, "problem encountered closing service")
 		return &OperationOutcome{
-			Success: false,
-			Text:    err.Error(),
+			Success:  false,
+			ExitCode: 1,
+			Text:     err.Error(),
 		}, err
 	}
 
-	return &OperationOutcome{Success: true, Text: "service closed"}, nil
+	return &OperationOutcome{Success: true, Text: "service closed", ExitCode: 0}, nil
 }
 
 func (s *jasperService) GetTags(ctx context.Context, id *JasperProcessID) (*ProcessTags, error) {
@@ -202,8 +214,9 @@ func (s *jasperService) TagProcess(ctx context.Context, tags *ProcessTags) (*Ope
 	if err != nil {
 		err = errors.Wrapf(err, "problem finding process '%s'", tags.ProcessID)
 		return &OperationOutcome{
-			Success: false,
-			Text:    err.Error(),
+			ExitCode: 1,
+			Success:  false,
+			Text:     err.Error(),
 		}, err
 	}
 
@@ -212,8 +225,9 @@ func (s *jasperService) TagProcess(ctx context.Context, tags *ProcessTags) (*Ope
 	}
 
 	return &OperationOutcome{
-		Success: true,
-		Text:    "added tags",
+		Success:  true,
+		ExitCode: 0,
+		Text:     "added tags",
 	}, nil
 }
 
@@ -222,12 +236,13 @@ func (s *jasperService) ResetTags(ctx context.Context, id *JasperProcessID) (*Op
 	if err != nil {
 		err = errors.Wrapf(err, "problem finding process '%s'", id.Value)
 		return &OperationOutcome{
-			Success: false,
-			Text:    err.Error(),
+			ExitCode: 1,
+			Success:  false,
+			Text:     err.Error(),
 		}, err
 	}
 	proc.ResetTags()
-	return &OperationOutcome{Success: true, Text: "set tags"}, nil
+	return &OperationOutcome{Success: true, Text: "set tags", ExitCode: 0}, nil
 }
 
 func (s *jasperService) DownloadMongoDB(ctx context.Context, opts *MongoDBDownloadOptions) (*OperationOutcome, error) {
@@ -269,44 +284,19 @@ func (s *jasperService) DownloadFile(ctx context.Context, info *DownloadInfo) (*
 
 	if err := jinfo.Validate(); err != nil {
 		err = errors.Wrap(err, "problem validating download info")
-		return &OperationOutcome{Success: false, Text: err.Error()}, err
+		return &OperationOutcome{Success: false, Text: err.Error(), ExitCode: -2}, err
 	}
 
-	req, err := http.NewRequest(http.MethodGet, jinfo.URL, nil)
-	if err != nil {
-		err = errors.Wrapf(err, "problem creating request for URL %s", jinfo.URL)
-		return &OperationOutcome{Success: false, Text: err.Error()}, err
-	}
-
-	if err := jasper.DoDownload(req, jinfo, s.client); err != nil {
+	if err := jinfo.Download(); err != nil {
 		err = errors.Wrapf(err, "problem occurred during file download for URL %s to path %s", jinfo.URL, jinfo.Path)
-		return &OperationOutcome{Success: false, Text: err.Error()}, err
+		return &OperationOutcome{Success: false, Text: err.Error(), ExitCode: -3}, err
 	}
 
-	return &OperationOutcome{Success: true, Text: fmt.Sprintf("downloaded file %s to path %s", jinfo.URL, jinfo.Path)}, nil
-}
-
-func (s *jasperService) DownloadFileAsync(ctx context.Context, info *DownloadInfo) (*OperationOutcome, error) {
-	jinfo := info.Export()
-
-	if err := jinfo.Validate(); err != nil {
-		err = errors.Wrap(err, "problem validating download info")
-		return &OperationOutcome{Success: false, Text: err.Error()}, err
-	}
-
-	req, err := http.NewRequest(http.MethodGet, jinfo.URL, nil)
-	if err != nil {
-		err = errors.Wrapf(err, "problem creating request for URL %s", jinfo.URL)
-		return &OperationOutcome{Success: false, Text: err.Error()}, err
-	}
-
-	go func() {
-		if err := jasper.DoDownload(req, jinfo, s.client); err != nil {
-			grip.Error(errors.Wrapf(err, "problem occurred during file download for URL %s to path %s", jinfo.URL, jinfo.Path))
-		}
-	}()
-
-	return &OperationOutcome{Success: true, Text: fmt.Sprintf("started downloading file %s to path %s", jinfo.URL, jinfo.Path)}, nil
+	return &OperationOutcome{
+		Success:  true,
+		Text:     fmt.Sprintf("downloaded file %s to path %s", jinfo.URL, jinfo.Path),
+		ExitCode: 0,
+	}, nil
 }
 
 func (s *jasperService) GetBuildloggerURLs(ctx context.Context, id *JasperProcessID) (*BuildloggerURLs, error) {

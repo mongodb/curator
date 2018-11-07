@@ -12,7 +12,7 @@ imports:
   - name: github.com/evergreen-ci/gimlet
     version: 713b8d22b5e93a0c25a9f71ca944c86d7ecefe84
   - name: github.com/tychoish/bond
-    version: ac09c9b6a8c4463b1f4ed13efdc2769dea2e55cb
+    version: a6a4ddb19d113c553f1ab0970d6292e0e95c7221
   - name: github.com/tychoish/lru
     version: 91dacc0e8bc08fd2a2e8019a1ad2df86b8f5b292
   - name: github.com/mholt/archiver
@@ -20,7 +20,7 @@ imports:
   - name: github.com/montanaflynn/stats
     version: db72e6cae808b936b0c01fd330ff1fcd2c86c95e
   - name: github.com/mongodb/amboy
-    version: f897c05396072269b4140b3179fc2d190ebc29dc
+    version: 49a93edc4abc6bd35c01d50f1d263ab1ebe66857
 
   - name: google.golang.org/grpc
     version: e00d24941bcee35dd163f4377d5371349f14baaf

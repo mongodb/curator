@@ -82,7 +82,7 @@ func NewDownloadJob(url, path string, force bool) (*DownloadFileJob, error) {
 // checks the job directly and returns early if the downloaded file
 // exists. This behavior may be redundant in the case that the queue
 // skips jobs with "passed" jobs.
-func (j *DownloadFileJob) Run(_ context.Context) {
+func (j *DownloadFileJob) Run(ctx context.Context) {
 	defer j.MarkComplete()
 
 	fn := j.getFileName()
@@ -98,7 +98,7 @@ func (j *DownloadFileJob) Run(_ context.Context) {
 		return
 	}
 
-	if err := bond.DownloadFile(j.URL, fn); err != nil {
+	if err := bond.DownloadFile(ctx, j.URL, fn); err != nil {
 		j.handleError(errors.Wrapf(err, "problem downloading file %s", fn))
 		return
 	}

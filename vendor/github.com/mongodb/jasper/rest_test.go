@@ -114,10 +114,6 @@ func TestRestService(t *testing.T) {
 			assert.Error(t, err)
 			assert.Contains(t, err.Error(), "problem building request")
 
-			err = client.DownloadFileAsync(ctx, DownloadInfo{URL: "foo", Path: "bar"})
-			assert.Error(t, err)
-			assert.Contains(t, err.Error(), "problem building request")
-
 			err = client.DownloadMongoDB(ctx, MongoDBDownloadOptions{})
 			assert.Error(t, err)
 			assert.Contains(t, err.Error(), "problem building request")
@@ -162,10 +158,6 @@ func TestRestService(t *testing.T) {
 			assert.Contains(t, err.Error(), "problem making request")
 
 			err = client.DownloadFile(ctx, DownloadInfo{URL: "foo", Path: "bar"})
-			assert.Error(t, err)
-			assert.Contains(t, err.Error(), "problem making request")
-
-			err = client.DownloadFileAsync(ctx, DownloadInfo{URL: "foo", Path: "bar"})
 			assert.Error(t, err)
 			assert.Contains(t, err.Error(), "problem making request")
 
@@ -407,7 +399,7 @@ func TestRestService(t *testing.T) {
 			require.NoError(t, err)
 			absExtractDir, err := filepath.Abs(extractDir)
 
-			feed, err := bond.GetArtifactsFeed(tempDir)
+			feed, err := bond.GetArtifactsFeed(ctx, tempDir)
 			require.NoError(t, err)
 
 			opts := validMongoDBDownloadOptions()
@@ -523,74 +515,6 @@ func TestRestService(t *testing.T) {
 			rw := httptest.NewRecorder()
 
 			srv.downloadFile(rw, req)
-			assert.Equal(t, http.StatusBadRequest, rw.Code)
-		},
-		"DownloadFileAsyncPassesWithValidInfo": func(ctx context.Context, t *testing.T, srv *Service, client *restClient) {
-			file, err := ioutil.TempFile("", "out.txt")
-			require.NoError(t, err)
-
-			info := DownloadInfo{
-				URL:  "https://example.com",
-				Path: file.Name(),
-			}
-			assert.NoError(t, client.DownloadFileAsync(ctx, info))
-
-		waitAsyncDownload:
-			for {
-				select {
-				case <-ctx.Done():
-					assert.Fail(t, "asynchronous download did not complete before context deadline exceeded")
-				default:
-					fileInfo, err := os.Stat(file.Name())
-					require.NoError(t, err)
-					if fileInfo.Size() != 0 {
-						break waitAsyncDownload
-					}
-				}
-			}
-		},
-		"DownloadFileAsyncFailsExtractionWithInvalidArchiveFormat": func(ctx context.Context, t *testing.T, srv *Service, client *restClient) {
-			fileName := filepath.Join("build", "out.txt")
-			_, err := os.Stat(fileName)
-			require.True(t, os.IsNotExist(err))
-
-			info := DownloadInfo{
-				URL:  "https://example.com",
-				Path: fileName,
-				ArchiveOpts: ArchiveOptions{
-					ShouldExtract: true,
-					Format:        ArchiveFormat("foo"),
-				},
-			}
-			assert.Error(t, client.DownloadFileAsync(ctx, info))
-
-			_, err = os.Stat(fileName)
-			assert.True(t, os.IsNotExist(err))
-		},
-		"ServiceDownloadFileAsyncFailsWithInvalidInfo": func(ctx context.Context, t *testing.T, srv *Service, client *restClient) {
-			body, err := makeBody(struct {
-				URL int `json:"url"`
-			}{URL: 0})
-			require.NoError(t, err)
-
-			req, err := http.NewRequest(http.MethodPost, client.getURL("/download-async"), body)
-			require.NoError(t, err)
-			rw := httptest.NewRecorder()
-			srv.downloadFileAsync(rw, req)
-			assert.Equal(t, http.StatusBadRequest, rw.Code)
-		},
-		"ServiceDownloadFileAsyncFailsWithInvalidURL": func(ctx context.Context, t *testing.T, srv *Service, client *restClient) {
-			file, err := ioutil.TempFile("build", "out.txt")
-			require.NoError(t, err)
-			defer os.Remove(file.Name())
-			body, err := makeBody(DownloadInfo{URL: "foo", Path: file.Name()})
-			require.NoError(t, err)
-
-			req, err := http.NewRequest(http.MethodPost, client.getURL("/download-async"), body)
-			require.NoError(t, err)
-			rw := httptest.NewRecorder()
-			srv.downloadFile(rw, req)
-
 			assert.Equal(t, http.StatusBadRequest, rw.Code)
 		},
 		"GetLogsFromProcessWithInMemoryLogger": func(ctx context.Context, t *testing.T, srv *Service, client *restClient) {

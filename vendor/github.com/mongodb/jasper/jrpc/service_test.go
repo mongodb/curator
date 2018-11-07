@@ -102,57 +102,6 @@ func TestJRPCService(t *testing.T) {
 					_, err := client.DownloadFile(ctx, internal.ConvertDownloadInfo(info))
 					assert.Error(t, err)
 				},
-				"DownloadFileAsyncPassesWithValidInfo": func(ctx context.Context, t *testing.T, opts jasper.CreateOptions, client internal.JasperProcessManagerClient, output string, buildDir string) {
-					file, err := ioutil.TempFile(buildDir, "out.txt")
-					require.NoError(t, err)
-					defer os.Remove(file.Name())
-
-					info := jasper.DownloadInfo{
-						URL:  "http://example.com",
-						Path: file.Name(),
-					}
-					outcome, err := client.DownloadFileAsync(ctx, internal.ConvertDownloadInfo(info))
-					require.NoError(t, err)
-					assert.True(t, outcome.Success)
-
-				waitAsyncDownload:
-					for {
-						select {
-						case <-ctx.Done():
-							assert.Fail(t, "asynchronous download did not complete before context deadline exceeded")
-						default:
-							fileInfo, err := os.Stat(file.Name())
-							require.NoError(t, err)
-							if fileInfo.Size() != 0 {
-								break waitAsyncDownload
-							}
-						}
-					}
-				},
-				"DownloadFileAsyncFailsForInvalidArchiveFormat": func(ctx context.Context, t *testing.T, opts jasper.CreateOptions, client internal.JasperProcessManagerClient, output string, buildDir string) {
-					fileName := filepath.Join(buildDir, "out.txt")
-
-					info := jasper.DownloadInfo{
-						URL:  "https://example.com",
-						Path: fileName,
-						ArchiveOpts: jasper.ArchiveOptions{
-							ShouldExtract: true,
-							Format:        jasper.ArchiveFormat("foo"),
-						},
-					}
-					_, err := client.DownloadFileAsync(ctx, internal.ConvertDownloadInfo(info))
-					assert.Error(t, err)
-				},
-				"DownloadFileAsyncFailsForInvalidURL": func(ctx context.Context, t *testing.T, opts jasper.CreateOptions, client internal.JasperProcessManagerClient, output string, buildDir string) {
-					fileName := filepath.Join(buildDir, "out.txt")
-
-					info := jasper.DownloadInfo{
-						URL:  "://example.com",
-						Path: fileName,
-					}
-					_, err := client.DownloadFileAsync(ctx, internal.ConvertDownloadInfo(info))
-					assert.Error(t, err)
-				},
 				"GetBuildloggerURLsFailsWithNonexistentProcess": func(ctx context.Context, t *testing.T, opts jasper.CreateOptions, client internal.JasperProcessManagerClient, output string, buildDir string) {
 					urls, err := client.GetBuildloggerURLs(ctx, &internal.JasperProcessID{Value: "foo"})
 					assert.Error(t, err)

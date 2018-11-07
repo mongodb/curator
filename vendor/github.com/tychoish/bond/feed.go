@@ -1,6 +1,7 @@
 package bond
 
 import (
+	"context"
 	"encoding/json"
 	"io/ioutil"
 	"os"
@@ -29,13 +30,13 @@ type ArtifactsFeed struct {
 // This operation will automatically refresh the feed from
 // http://downloads.mongodb.org/full.json if the modification time of
 // the file on the file system is more than 48 hours old.
-func GetArtifactsFeed(path string) (*ArtifactsFeed, error) {
+func GetArtifactsFeed(ctx context.Context, path string) (*ArtifactsFeed, error) {
 	feed, err := NewArtifactsFeed(path)
 	if err != nil {
 		return nil, errors.Wrap(err, "problem building feed")
 	}
 
-	if err := feed.Populate(4 * time.Hour); err != nil {
+	if err := feed.Populate(ctx, 4*time.Hour); err != nil {
 		return nil, errors.Wrap(err, "problem getting feed data")
 	}
 
@@ -82,8 +83,8 @@ func NewArtifactsFeed(path string) (*ArtifactsFeed, error) {
 // cache if the local file doesn't exist or is older than the
 // specified TTL. Additional Populate parses the data feed, using the
 // Reload method.
-func (feed *ArtifactsFeed) Populate(ttl time.Duration) error {
-	data, err := CacheDownload(ttl, "http://downloads.mongodb.org/full.json", feed.path, false)
+func (feed *ArtifactsFeed) Populate(ctx context.Context, ttl time.Duration) error {
+	data, err := CacheDownload(ctx, ttl, "http://downloads.mongodb.org/full.json", feed.path, false)
 
 	if err != nil {
 		return errors.Wrap(err, "problem getting feed data")

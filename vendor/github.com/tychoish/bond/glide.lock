@@ -13,6 +13,6 @@ imports:
 - name: github.com/mongodb/grip
   version: 7ec499c3201dc7726da08f3f51e90386ec26a3d7
 - name: github.com/mongodb/amboy
-  version: d1e174d349e86cfe074824d06cc3d58018a27257
+  version: 49a93edc4abc6bd35c01d50f1d263ab1ebe66857
 
 devImports: []

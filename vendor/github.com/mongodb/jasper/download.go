@@ -2,11 +2,9 @@ package jasper
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"time"
 
@@ -38,6 +36,37 @@ func (info DownloadInfo) Validate() error {
 	catcher.Add(info.ArchiveOpts.Validate())
 
 	return catcher.Resolve()
+}
+
+func (info DownloadInfo) Download() error {
+	req, err := http.NewRequest(http.MethodGet, info.URL, nil)
+	if err != nil {
+		return errors.Wrap(err, "problem building request")
+	}
+
+	client := bond.GetHTTPClient()
+	defer bond.PutHTTPClient(client)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return errors.Wrapf(err, "problem downloading file for url %s", info.URL)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return errors.Errorf("%s: could not download %s to path %s", resp.Status, info.URL, info.Path)
+	}
+
+	if err = writeFile(resp.Body, info.Path); err != nil {
+		return err
+	}
+
+	if info.ArchiveOpts.ShouldExtract {
+		if err = doExtract(info); err != nil {
+			return errors.Wrapf(err, "problem extracting file %s to path %s", info.Path, info.ArchiveOpts.TargetPath)
+		}
+	}
+
+	return nil
 }
 
 // ArchiveFormat represents an archive file type.
@@ -125,30 +154,6 @@ func (opts CacheOptions) Validate() error {
 	return catcher.Resolve()
 }
 
-// DoDownload downloads the file given by the URL to the file path.
-func DoDownload(req *http.Request, info DownloadInfo, client http.Client) error {
-	resp, err := client.Do(req)
-	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("problem downloading file for url %s", info.URL))
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return errors.Errorf("%s: could not download %s to path %s", resp.Status, info.URL, info.Path)
-	}
-
-	if err = WriteFile(resp.Body, info.Path); err != nil {
-		return err
-	}
-
-	if info.ArchiveOpts.ShouldExtract {
-		if err = doExtract(info); err != nil {
-			return errors.Wrapf(err, "problem extracting file %s to path %s", info.Path, info.ArchiveOpts.TargetPath)
-		}
-	}
-
-	return nil
-}
-
 func doExtract(info DownloadInfo) error {
 	var archiveHandler archiver.Archiver
 	switch info.ArchiveOpts.Format {
@@ -175,11 +180,11 @@ func doExtract(info DownloadInfo) error {
 
 // SetupDownloadMongoDBReleases performs necessary setup to download MongoDB with the given options.
 func SetupDownloadMongoDBReleases(ctx context.Context, cache *lru.Cache, opts MongoDBDownloadOptions) error {
-	if err := MakeEnclosingDirectories(opts.Path); err != nil {
+	if err := makeEnclosingDirectories(opts.Path); err != nil {
 		return errors.Wrap(err, "problem creating enclosing directories")
 	}
 
-	feed, err := bond.GetArtifactsFeed(opts.Path)
+	feed, err := bond.GetArtifactsFeed(ctx, opts.Path)
 	if err != nil {
 		return errors.Wrap(err, "problem making artifacts feed")
 	}
@@ -244,7 +249,7 @@ func processDownloadJobs(ctx context.Context, processFile func(string) error) fu
 }
 
 func setupDownloadJobsAsync(ctx context.Context, jobs <-chan amboy.Job, processJobs func(amboy.Queue) error) error {
-	q := queue.NewLocalUnordered(runtime.NumCPU())
+	q := queue.NewLocalUnordered(2)
 	if err := q.Start(ctx); err != nil {
 		return errors.Wrap(err, "problem starting download job queue")
 	}

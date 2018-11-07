@@ -1,6 +1,7 @@
 package bond
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -53,6 +54,9 @@ func (s *DownloaderSuite) TestCreateDirectoryThatDoesNotExist() {
 }
 
 func (s *DownloaderSuite) TestCreateDirectoryErrorsIfPathIsAFile() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	name := filepath.Join(s.dir, uuid.NewV4().String())
 
 	_, err := os.Stat(name)
@@ -69,16 +73,22 @@ func (s *DownloaderSuite) TestCreateDirectoryErrorsIfPathIsAFile() {
 	s.False(os.IsNotExist(err))
 
 	// also check here that this error propagates to DownloadFile
-	s.Error(DownloadFile("foo", filepath.Join(name, "foo")))
-	s.Error(DownloadFile("foo", name))
+	s.Error(DownloadFile(ctx, "foo", filepath.Join(name, "foo")))
+	s.Error(DownloadFile(ctx, "foo", name))
 }
 
 func (s *DownloaderSuite) TestDownloadFileThatExists() {
-	err := DownloadFile("http://example.net", filepath.Join(s.dir, uuid.NewV4().String()))
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	err := DownloadFile(ctx, "http://example.net", filepath.Join(s.dir, uuid.NewV4().String()))
 	s.NoError(err, fmt.Sprintf("%+v", err))
 }
 
 func (s *DownloaderSuite) TestDownloadFileThatDoesNotExist() {
-	err := DownloadFile("http://example.net/DOES_NOT_EXIST", filepath.Join(s.dir, uuid.NewV4().String()))
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	err := DownloadFile(ctx, "http://example.net/DOES_NOT_EXIST", filepath.Join(s.dir, uuid.NewV4().String()))
 	s.Error(err, fmt.Sprintf("%+v", err))
 }

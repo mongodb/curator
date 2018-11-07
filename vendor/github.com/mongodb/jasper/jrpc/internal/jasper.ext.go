@@ -73,6 +73,7 @@ func (info *ProcessInfo) Export() jasper.ProcessInfo {
 		IsRunning:  info.Running,
 		Successful: info.Successful,
 		Complete:   info.Complete,
+		ExitCode:   int(info.ExitCode),
 		Timeout:    info.Timedout,
 		Options:    *info.Options.Export(),
 	}
@@ -82,6 +83,7 @@ func ConvertProcessInfo(info jasper.ProcessInfo) *ProcessInfo {
 	return &ProcessInfo{
 		Id:         info.ID,
 		Pid:        int64(info.PID),
+		ExitCode:   int32(info.ExitCode),
 		Running:    info.IsRunning,
 		Successful: info.Successful,
 		Complete:   info.Complete,

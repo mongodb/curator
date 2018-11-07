@@ -116,6 +116,7 @@ func (p *blockingProcess) reactor(ctx context.Context, cmd *exec.Cmd) {
 				if cmd.ProcessState != nil {
 					info.Successful = cmd.ProcessState.Success()
 					info.PID = cmd.ProcessState.Pid()
+					info.ExitCode = cmd.ProcessState.Sys().(syscall.WaitStatus).ExitStatus()
 				} else {
 					info.Successful = (err == nil)
 				}
@@ -138,6 +139,7 @@ func (p *blockingProcess) reactor(ctx context.Context, cmd *exec.Cmd) {
 				ID:         p.id,
 				Options:    p.opts,
 				Host:       p.host,
+				ExitCode:   -1,
 				Complete:   true,
 				IsRunning:  false,
 				Successful: false,
@@ -166,6 +168,7 @@ func (p *blockingProcess) Info(ctx context.Context) ProcessInfo {
 			ID:        p.id,
 			Options:   p.opts,
 			Host:      p.host,
+			ExitCode:  -1,
 			Complete:  cmd.Process.Pid == -1,
 			IsRunning: cmd.Process.Pid > 0,
 			PID:       cmd.Process.Pid,

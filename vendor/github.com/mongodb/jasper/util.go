@@ -18,8 +18,7 @@ func sliceContains(group []string, name string) bool {
 	return false
 }
 
-// MakeEnclosingDirectories recursively makes directories (if necessary) for the given path.
-func MakeEnclosingDirectories(path string) error {
+func makeEnclosingDirectories(path string) error {
 	info, err := os.Stat(path)
 	if os.IsNotExist(err) {
 		if err = os.MkdirAll(path, os.ModeDir|os.ModePerm); err != nil {
@@ -31,9 +30,8 @@ func MakeEnclosingDirectories(path string) error {
 	return nil
 }
 
-// WriteFile writes the buffer to the file.
-func WriteFile(reader io.Reader, path string) error {
-	if err := MakeEnclosingDirectories(filepath.Dir(path)); err != nil {
+func writeFile(reader io.Reader, path string) error {
+	if err := makeEnclosingDirectories(filepath.Dir(path)); err != nil {
 		return errors.Wrap(err, "problem making enclosing directories")
 	}
 

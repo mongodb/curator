@@ -76,7 +76,7 @@ func TestProcessImplementations(t *testing.T) {
 					pctx, pcancel := context.WithTimeout(ctx, 200*time.Millisecond)
 					defer pcancel()
 					startAt := time.Now()
-					opts.Args = []string{"sleep", "101"}
+					opts.Args = []string{"sleep", "20"}
 					proc, err := makep(pctx, opts)
 					assert.NoError(t, err)
 
@@ -132,7 +132,7 @@ func TestProcessImplementations(t *testing.T) {
 					assert.True(t, proc.Complete(ctx))
 				},
 				"WaitReturnsWithCancledContext": func(ctx context.Context, t *testing.T, opts *CreateOptions, makep processConstructor) {
-					opts.Args = []string{"sleep", "101"}
+					opts.Args = []string{"sleep", "20"}
 					pctx, pcancel := context.WithCancel(ctx)
 					proc, err := makep(ctx, opts)
 					require.NoError(t, err)

@@ -58,14 +58,14 @@ func TestMakeEnclosingDirectories(t *testing.T) {
 	path := "foo"
 	_, err := os.Stat(path)
 	require.True(t, os.IsNotExist(err))
-	assert.NoError(t, MakeEnclosingDirectories(path))
+	assert.NoError(t, makeEnclosingDirectories(path))
 	defer os.RemoveAll(path)
 
 	path = "util_test.go"
 	info, err := os.Stat(path)
 	require.False(t, os.IsNotExist(err))
 	require.False(t, info.IsDir())
-	assert.Error(t, MakeEnclosingDirectories(path))
+	assert.Error(t, makeEnclosingDirectories(path))
 }
 
 func TestWriteFile(t *testing.T) {
@@ -101,7 +101,7 @@ func TestWriteFile(t *testing.T) {
 			} else if runtime.GOOS == "windows" {
 				t.Skip("cannot run file write tests on windows")
 			}
-			err := WriteFile(bytes.NewBufferString(testCase.content), testCase.path)
+			err := writeFile(bytes.NewBufferString(testCase.content), testCase.path)
 			if testCase.shouldPass {
 				assert.NoError(t, err)
 			} else {

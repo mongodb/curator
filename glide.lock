@@ -46,7 +46,7 @@ imports:
 - name: github.com/tychoish/lru
   version: f77a748d12a924cfbfcf396426dd58de5aa3a9e2
 - name: github.com/tychoish/bond
-  version: ac09c9b6a8c4463b1f4ed13efdc2769dea2e55cb
+  version: a6a4ddb19d113c553f1ab0970d6292e0e95c7221
 
 - name: github.com/stretchr/testify
   version: 890a5c3458b43e6104ff5da8dfa139d013d77544
@@ -57,7 +57,7 @@ imports:
 - name: github.com/mongodb/ftdc
   version: cb8d4f967a12ac77e53060d279b3fc44ef811b93
 - name: github.com/mongodb/jasper
-  version: 026b74697c4e0b59e50a2335d6abc95e85211cb7
+  version: 8a40bf440192e92cc178ca8300cd27964fc177ee
 - name: golang.org/x/text
   version: 6e3c4e7365ddcc329f090f96e4348398f6310088
 

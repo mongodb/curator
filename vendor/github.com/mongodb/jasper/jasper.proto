@@ -92,6 +92,7 @@ message ProcessInfo {
   bool complete = 6;
   bool timedout = 7;
   CreateOptions options = 8;
+  int32 exit_code = 9;
 }
 
 message StatusResponse {
@@ -144,6 +145,7 @@ message JasperProcessID {
 message OperationOutcome {
   bool success = 1;
   string text = 2;
+  int32 exit_code = 3;
 }
 
 message BuildOptions {
@@ -201,7 +203,6 @@ service JasperProcessManager {
   rpc ResetTags(JasperProcessID) returns (OperationOutcome);
   rpc GetTags(JasperProcessID) returns (ProcessTags);
   rpc DownloadFile(DownloadInfo) returns (OperationOutcome);
-  rpc DownloadFileAsync(DownloadInfo) returns (OperationOutcome);
   rpc DownloadMongoDB(MongoDBDownloadOptions) returns (OperationOutcome);
   rpc ConfigureCache(CacheOptions) returns (OperationOutcome);
   rpc GetBuildloggerURLs(JasperProcessID) returns (BuildloggerURLs);

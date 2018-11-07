@@ -70,11 +70,13 @@ func (p *basicProcess) Info(ctx context.Context) ProcessInfo {
 
 	if info.Complete {
 		info.Successful = p.cmd.ProcessState.Success()
+		info.ExitCode = p.cmd.ProcessState.Sys().(syscall.WaitStatus).ExitStatus()
 		info.PID = -1
 	}
 
 	if info.IsRunning {
 		info.PID = p.cmd.Process.Pid
+		info.ExitCode = -1
 	}
 
 	return info

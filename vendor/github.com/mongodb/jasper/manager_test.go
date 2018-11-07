@@ -213,7 +213,7 @@ func TestManagerInterface(t *testing.T) {
 						t.Skip("the sleep tests don't block correctly on windows")
 					}
 
-					opts := sleepCreateOpts(100)
+					opts := sleepCreateOpts(20)
 					counter := 0
 					opts.closers = append(opts.closers, func() {
 						counter++

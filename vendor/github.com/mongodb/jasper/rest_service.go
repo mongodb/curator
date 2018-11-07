@@ -63,11 +63,10 @@ func (s *Service) App() *gimlet.APIApp {
 	app := gimlet.NewApp()
 
 	app.AddRoute("/").Version(1).Get().Handler(s.rootRoute)
-	app.AddRoute("/configure-cache").Version(1).Post().Handler(s.configureCache)
 	app.AddRoute("/create").Version(1).Post().Handler(s.createProcess)
-	app.AddRoute("/download-mongodb").Version(1).Post().Handler(s.downloadMongoDB)
 	app.AddRoute("/download").Version(1).Post().Handler(s.downloadFile)
-	app.AddRoute("/download-async").Version(1).Post().Handler(s.downloadFileAsync)
+	app.AddRoute("/download/cache").Version(1).Post().Handler(s.configureCache)
+	app.AddRoute("/download/mongodb").Version(1).Post().Handler(s.downloadMongoDB)
 	app.AddRoute("/list/{filter}").Version(1).Get().Handler(s.listProcesses)
 	app.AddRoute("/list/group/{name}").Version(1).Get().Handler(s.listGroupMembers)
 	app.AddRoute("/process/{id}").Version(1).Get().Handler(s.getProcess)
@@ -424,57 +423,13 @@ func (s *Service) downloadFile(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req, err := http.NewRequest(http.MethodGet, info.URL, nil)
-	if err != nil {
+	if err := info.Download(); err != nil {
 		writeError(rw, gimlet.ErrorResponse{
 			StatusCode: http.StatusBadRequest,
-			Message:    errors.Wrapf(err, "problem creating request for URL %s", info.URL).Error(),
-		})
-		return
-	}
-
-	if err := DoDownload(req, info, http.Client{}); err != nil {
-		writeError(rw, gimlet.ErrorResponse{
-			StatusCode: http.StatusInternalServerError,
 			Message:    errors.Wrapf(err, "problem occurred during file download for URL %s", info.URL).Error(),
 		})
 		return
 	}
-
-	gimlet.WriteJSON(rw, struct{}{})
-}
-
-func (s *Service) downloadFileAsync(rw http.ResponseWriter, r *http.Request) {
-	var info DownloadInfo
-	if err := gimlet.GetJSON(r.Body, &info); err != nil {
-		writeError(rw, gimlet.ErrorResponse{
-			StatusCode: http.StatusBadRequest,
-			Message:    errors.Wrap(err, "problem reading request").Error(),
-		})
-		return
-	}
-
-	if err := info.Validate(); err != nil {
-		writeError(rw, gimlet.ErrorResponse{
-			StatusCode: http.StatusBadRequest,
-			Message:    errors.Wrap(err, "problem validating download info").Error(),
-		})
-		return
-	}
-
-	req, err := http.NewRequest(http.MethodGet, info.URL, nil)
-	if err != nil {
-		writeError(rw, gimlet.ErrorResponse{
-			StatusCode: http.StatusBadRequest,
-			Message:    errors.Wrapf(err, "problem creating request for URL %s", info.URL).Error(),
-		})
-		return
-	}
-	go func() {
-		if err := DoDownload(req, info, http.Client{}); err != nil {
-			grip.Error(errors.Wrapf(err, "problem occurred during file download for URL %s", info.URL))
-		}
-	}()
 
 	gimlet.WriteJSON(rw, struct{}{})
 }

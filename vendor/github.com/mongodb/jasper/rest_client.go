@@ -276,21 +276,6 @@ func (c *restClient) DownloadFile(ctx context.Context, info DownloadInfo) error 
 	return nil
 }
 
-func (c *restClient) DownloadFileAsync(ctx context.Context, info DownloadInfo) error {
-	body, err := makeBody(info)
-	if err != nil {
-		return errors.Wrap(err, "problem building request")
-	}
-
-	resp, err := c.doRequest(ctx, http.MethodPost, c.getURL("/download-async"), body)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	return nil
-}
-
 // DownloadMongoDB downloads the desired version of MongoDB.
 func (c *restClient) DownloadMongoDB(ctx context.Context, opts MongoDBDownloadOptions) error {
 	body, err := makeBody(opts)
@@ -298,7 +283,7 @@ func (c *restClient) DownloadMongoDB(ctx context.Context, opts MongoDBDownloadOp
 		return err
 	}
 
-	resp, err := c.doRequest(ctx, http.MethodPost, c.getURL("/download-mongodb"), body)
+	resp, err := c.doRequest(ctx, http.MethodPost, c.getURL("/download/mongodb"), body)
 	if err != nil {
 		return err
 	}
@@ -313,7 +298,7 @@ func (c *restClient) ConfigureCache(ctx context.Context, opts CacheOptions) erro
 		return err
 	}
 
-	resp, err := c.doRequest(ctx, http.MethodPost, c.getURL("/configure-cache"), body)
+	resp, err := c.doRequest(ctx, http.MethodPost, c.getURL("/download/cache"), body)
 	if err != nil {
 		return err
 	}

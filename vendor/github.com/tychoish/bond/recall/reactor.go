@@ -2,7 +2,6 @@ package recall
 
 import (
 	"context"
-	"runtime"
 	"time"
 
 	"github.com/mongodb/amboy"
@@ -31,12 +30,12 @@ func FetchReleases(ctx context.Context, releases []string, path string, options 
 		return errors.Wrap(err, "invalid build options")
 	}
 
-	feed, err := bond.GetArtifactsFeed(path)
+	feed, err := bond.GetArtifactsFeed(ctx, path)
 	if err != nil {
 		return errors.Wrap(err, "problem generating data feed")
 	}
 
-	q := queue.NewLocalUnordered(runtime.NumCPU())
+	q := queue.NewLocalUnordered(4)
 	if err := q.Start(ctx); err != nil {
 		return errors.Wrap(err, "problem starting queue")
 	}

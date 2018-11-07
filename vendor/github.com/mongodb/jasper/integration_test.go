@@ -19,6 +19,9 @@ import (
 
 // Returns path to release and to mongod
 func downloadMongodb(t *testing.T) (string, string) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	var target string
 	var edition string
 	platform := runtime.GOOS
@@ -48,7 +51,7 @@ func downloadMongodb(t *testing.T) (string, string) {
 	releases := []string{release}
 	require.NoError(t, recall.DownloadReleases(releases, dir, opts))
 
-	catalog, err := bond.NewCatalog(dir)
+	catalog, err := bond.NewCatalog(ctx, dir)
 	require.NoError(t, err)
 
 	path, err := catalog.Get("4.0-current", string(edition), target, string(arch), false)

@@ -1,6 +1,7 @@
 package bond
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -26,7 +27,7 @@ type BuildCatalog struct {
 }
 
 // NewCatalog populates and returns a BuildCatalog object from a given path.
-func NewCatalog(path string) (*BuildCatalog, error) {
+func NewCatalog(ctx context.Context, path string) (*BuildCatalog, error) {
 	var err error
 	path, err = filepath.Abs(path)
 	if err != nil {
@@ -38,7 +39,7 @@ func NewCatalog(path string) (*BuildCatalog, error) {
 		return nil, errors.Wrap(err, "could not find contents")
 	}
 
-	feed, err := GetArtifactsFeed(path)
+	feed, err := GetArtifactsFeed(ctx, path)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not find build feed")
 	}

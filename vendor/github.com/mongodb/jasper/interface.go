@@ -86,6 +86,7 @@ type ProcessInfo struct {
 	ID         string
 	Host       string
 	PID        int
+	ExitCode   int
 	IsRunning  bool
 	Successful bool
 	Complete   bool

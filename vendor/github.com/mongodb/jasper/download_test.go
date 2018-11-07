@@ -3,7 +3,6 @@ package jasper
 import (
 	"context"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -129,62 +128,6 @@ func TestCreateDownloadJobsWithInvalidPath(t *testing.T) {
 	assert.Contains(t, err.Error(), "problem creating download job for "+testURL)
 }
 
-func TestSetupDownloadJobsAsync(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skip testing setup download jobs async in short mode")
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), longTaskTimeout)
-	defer cancel()
-
-	dir, err := ioutil.TempDir("build", "mongodb")
-	require.NoError(t, err)
-	defer os.RemoveAll(dir)
-
-	downloadOpts := validMongoDBDownloadOptions()
-	opts := downloadOpts.BuildOpts
-	releases := downloadOpts.Releases
-
-	feed, err := bond.GetArtifactsFeed(dir)
-	require.NoError(t, err)
-
-	catcher := grip.NewBasicCatcher()
-	urls, errs := feed.GetArchives(releases, opts)
-	jobs := createDownloadJobs(dir, urls, catcher)
-
-	downloadValidationComplete := make(chan bool)
-	validateFileName := func(q amboy.Queue) error {
-		catcher := grip.NewBasicCatcher()
-		_ = amboy.WaitCtxInterval(ctx, q, 1000*time.Millisecond)
-		err := amboy.ResolveErrors(ctx, q)
-		assert.NoError(t, err)
-		catcher.Add(err)
-
-		infos, err := ioutil.ReadDir(dir)
-		catcher.Add(err)
-		assert.NoError(t, err)
-
-		assert.NotZero(t, len(infos))
-
-		downloadValidationComplete <- true
-
-		return catcher.Resolve()
-	}
-
-	for err := range errs {
-		catcher.Add(err)
-	}
-	assert.NoError(t, setupDownloadJobsAsync(ctx, jobs, validateFileName))
-	assert.NoError(t, catcher.Resolve())
-
-	select {
-	case <-ctx.Done():
-		assert.Fail(t, "asynchronous jobs did not complete before context deadline exceeded")
-	case <-downloadValidationComplete:
-		// Test can exit once asynchronous job is done.
-	}
-}
-
 func TestProcessDownloadJobs(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skip download job test in short mode")
@@ -205,14 +148,14 @@ func TestProcessDownloadJobs(t *testing.T) {
 	opts := downloadOpts.BuildOpts
 	releases := downloadOpts.Releases
 
-	feed, err := bond.GetArtifactsFeed(dir)
+	feed, err := bond.GetArtifactsFeed(ctx, dir)
 	require.NoError(t, err)
 
 	catcher := grip.NewBasicCatcher()
 	urls, errs := feed.GetArchives(releases, opts)
 	jobs := createDownloadJobs(dir, urls, catcher)
 
-	q := queue.NewLocalUnordered(runtime.NumCPU())
+	q := queue.NewLocalUnordered(2)
 	require.NoError(t, q.Start(ctx))
 	require.NoError(t, amboy.PopulateQueue(ctx, q, jobs))
 	for err := range errs {
@@ -255,61 +198,6 @@ func TestAddMongoDBFilesToCacheWithInvalidPath(t *testing.T) {
 	err = addMongoDBFilesToCache(lru.NewCache(), absPath)(fileName)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "problem adding file "+filepath.Join(absPath, fileName)+" to cache")
-}
-
-func TestDoDownloadWithValidInfo(t *testing.T) {
-	file, err := ioutil.TempFile("build", "out.txt")
-	require.NoError(t, err)
-	defer os.Remove(file.Name())
-	absPath, err := filepath.Abs(file.Name())
-	require.NoError(t, err)
-
-	info := DownloadInfo{
-		URL:  "https://example.com",
-		Path: absPath,
-	}
-
-	req, err := http.NewRequest(http.MethodGet, info.URL, nil)
-	require.NoError(t, err)
-
-	assert.NoError(t, DoDownload(req, info, http.Client{}))
-	fileInfo, err := file.Stat()
-	require.NoError(t, err)
-	assert.NotZero(t, fileInfo.Size())
-}
-
-func TestDoDownloadWithInvalidURL(t *testing.T) {
-	fileName := filepath.Join("build", "out.txt")
-	absPath, err := filepath.Abs(fileName)
-	require.NoError(t, err)
-
-	info := DownloadInfo{
-		URL:  "http;//example.com",
-		Path: absPath,
-	}
-
-	req, err := http.NewRequest(http.MethodGet, info.URL, nil)
-	require.NoError(t, err)
-
-	assert.Error(t, DoDownload(req, info, http.Client{}))
-}
-
-func TestDoDownloadWithNonexistentURL(t *testing.T) {
-	file, err := ioutil.TempFile("build", "out.txt")
-	require.NoError(t, err)
-	defer os.Remove(file.Name())
-	absPath, err := filepath.Abs(file.Name())
-	require.NoError(t, err)
-
-	info := DownloadInfo{
-		URL:  "https://example.com/foo",
-		Path: absPath,
-	}
-
-	req, err := http.NewRequest(http.MethodGet, info.URL, nil)
-	require.NoError(t, err)
-
-	assert.Error(t, DoDownload(req, info, http.Client{}))
 }
 
 func TestDoExtract(t *testing.T) {
