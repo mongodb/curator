@@ -43,9 +43,10 @@ func newBasicProcess(ctx context.Context, opts *CreateOptions) (Process, error) 
 
 	p.RegisterTrigger(ctx, makeOptionsCloseTrigger())
 
-	// don't check the error here, if this fails, and we're
-	// interested in the outcome, we'll see that later.
-	_ = cmd.Start()
+	err = cmd.Start()
+	if err != nil {
+		return nil, errors.Wrap(err, "problem creating command")
+	}
 
 	p.opts.started = true
 	opts.started = true

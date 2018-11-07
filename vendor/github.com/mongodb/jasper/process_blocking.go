@@ -168,6 +168,7 @@ func (p *blockingProcess) Info(ctx context.Context) ProcessInfo {
 			Host:      p.host,
 			Complete:  cmd.Process.Pid == -1,
 			IsRunning: cmd.Process.Pid > 0,
+			PID:       cmd.Process.Pid,
 		}
 		close(out)
 	}
