@@ -4,16 +4,24 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"os"
-	"os/signal"
-	"syscall"
 
 	"github.com/mongodb/grip"
+	"github.com/mongodb/grip/recovery"
 	"github.com/mongodb/jasper"
 	"github.com/mongodb/jasper/jrpc"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 	"google.golang.org/grpc"
+)
+
+const (
+	envVarJasperGRPCPort  = "JASPER_GRPC_PORT"
+	envVarJasperGRPCHost  = "JASPER_GRPC_HOST"
+	envVarJasperRESTPort  = "JASPER_REST_PORT"
+	envVarJasperRESTHost  = "JASPER_REST_HOST"
+	defaultJasperGRPCPort = 2286
+	defaultJasperRESTPort = 2287
+	defaultLocalHostName  = "localhost"
 )
 
 // Jasper is a process-management service provided as a component of
@@ -26,8 +34,96 @@ func Jasper() cli.Command {
 		Subcommands: []cli.Command{
 			jasperGRPC(),
 			jasperREST(),
+			jasperCombined(),
 		},
 	}
+}
+
+func jasperCombined() cli.Command {
+	return cli.Command{
+		Name:  "service",
+		Usage: "starts a combined multiprotocol jasper service",
+		Flags: []cli.Flag{
+			cli.IntFlag{
+				Name:   "rpcPort",
+				EnvVar: envVarJasperGRPCPort,
+				Value:  defaultJasperGRPCPort,
+			},
+			cli.StringFlag{
+				Name:   "rpcHost",
+				EnvVar: envVarJasperGRPCHost,
+				Value:  defaultLocalHostName,
+			},
+			cli.IntFlag{
+				Name:   "restPort",
+				EnvVar: envVarJasperGRPCPort,
+				Value:  defaultJasperRESTPort,
+			},
+			cli.StringFlag{
+				Name:   "restHost",
+				EnvVar: envVarJasperRESTHost,
+				Value:  defaultLocalHostName,
+			},
+		},
+		Action: func(c *cli.Context) error {
+			restHost := c.String("restHost")
+			restPort := c.Int("restPort")
+			rpcAddr := fmt.Sprintf("%s:%d", c.String("rpcHost"), c.Int("rpcPort"))
+
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			mngr := jasper.NewLocalManagerBlockingProcesses()
+
+			// assemble the rest service
+			rest := jasper.NewManagerService(mngr).App()
+			rest.SetPrefix("jasper")
+			if err := rest.SetPort(restPort); err != nil {
+				return errors.WithStack(err)
+			}
+
+			if err := rest.SetHost(restHost); err != nil {
+				return errors.WithStack(err)
+			}
+
+			// assemble the rpc service
+			rpcSrv := grpc.NewServer()
+			if err := jrpc.AttachService(mngr, rpcSrv); err != nil {
+				return errors.WithStack(err)
+			}
+
+			lis, err := net.Listen("tcp", rpcAddr)
+			if err != nil {
+				return errors.WithStack(err)
+			}
+
+			// start threads to handle services
+			go signalListener(ctx, cancel)
+			grip.Infof("starting jasper gRPC service on %s", rpcAddr)
+			go func() { grip.Warning(rpcSrv.Serve(lis)) }()
+
+			rpcWait := make(chan struct{})
+			go func() {
+				defer close(rpcWait)
+				defer recovery.LogStackTraceAndContinue("waiting for rpc service")
+				<-ctx.Done()
+				rpcSrv.Stop()
+				grip.Info("jasper rpc service terminated")
+			}()
+
+			// the rest application's Run method handle's
+			// its own graceful shutdown.
+			grip.Infof("starting jasper REST service on %s:%d", restHost, restPort)
+			if err = rest.Run(ctx); err != nil {
+				return errors.Wrap(err, "problem with rest service")
+			}
+
+			// wait for servers to shutdown
+			<-rpcWait
+			return nil
+		},
+	}
+
 }
 
 func jasperGRPC() cli.Command {
@@ -37,13 +133,13 @@ func jasperGRPC() cli.Command {
 		Flags: []cli.Flag{
 			cli.IntFlag{
 				Name:   "port",
-				EnvVar: "JASPER_GRPC_PORT",
-				Value:  2286,
+				EnvVar: envVarJasperGRPCPort,
+				Value:  defaultJasperGRPCPort,
 			},
 			cli.StringFlag{
 				Name:   "host",
-				EnvVar: "JASPER_GRPC_HOST",
-				Value:  "localhost",
+				EnvVar: envVarJasperGRPCHost,
+				Value:  defaultLocalHostName,
 			},
 		},
 		Action: func(c *cli.Context) error {
@@ -67,24 +163,17 @@ func jasperGRPC() cli.Command {
 				return errors.WithStack(err)
 			}
 
-			go grip.Debug(rpcSrv.Serve(lis))
+			go signalListener(ctx, cancel)
+			go func() { grip.Warning(rpcSrv.Serve(lis)) }()
 
 			wait := make(chan struct{})
 
 			go func() {
 				defer close(wait)
-				sigChan := make(chan os.Signal, 2)
-				signal.Notify(sigChan, syscall.SIGTERM)
-
-				select {
-				case <-ctx.Done():
-					grip.Debug("context canceled")
-				case <-sigChan:
-					grip.Info("got signal, terminating")
-				}
-
+				defer recovery.LogStackTraceAndContinue("waiting for rpc service")
+				<-ctx.Done()
 				rpcSrv.Stop()
-				grip.Info("jasper service terminated")
+				grip.Info("jasper rpc service terminated")
 			}()
 
 			<-wait
@@ -100,13 +189,13 @@ func jasperREST() cli.Command {
 		Flags: []cli.Flag{
 			cli.IntFlag{
 				Name:   "port",
-				EnvVar: "JASPER_REST_PORT",
-				Value:  2287,
+				EnvVar: envVarJasperGRPCPort,
+				Value:  defaultJasperRESTPort,
 			},
 			cli.StringFlag{
 				Name:   "host",
-				EnvVar: "JASPER_REST_HOST",
-				Value:  "localhost",
+				EnvVar: envVarJasperRESTHost,
+				Value:  defaultLocalHostName,
 			},
 		},
 		Action: func(c *cli.Context) error {
@@ -127,7 +216,7 @@ func jasperREST() cli.Command {
 				return errors.WithStack(err)
 			}
 
-			grip.Infof("starting jasper gRPC service at 'localhost:%s/japser/v1'", port)
+			grip.Infof("starting jasper REST service at '%s:%d'", host, port)
 
 			if err := app.Run(ctx); err != nil {
 				return errors.WithStack(err)

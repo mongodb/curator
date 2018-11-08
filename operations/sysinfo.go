@@ -116,7 +116,13 @@ func signalListener(ctx context.Context, trigger context.CancelFunc) {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGTERM)
 
-	<-sigChan
+	select {
+	case <-sigChan:
+		grip.Debug("received signal")
+	case <-ctx.Done():
+		grip.Debug("context canceled")
+	}
+
 	trigger()
 }
 
