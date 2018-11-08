@@ -68,11 +68,7 @@ The response format is, as follows: ::
 	 target='ubuntu1604', edition='enterprise', arch='x86_64'
 	 target='ubuntu1604', edition='targeted', arch='x86_64'
 
-<<<<<<< Updated upstream
-You can get the same information in a JSON format, using the following command:
-=======
 You can get the same information in a JSON format, using the following command: ::
->>>>>>> Stashed changes
 
     ./curator artifacts list-variants --version 3.2.17
 
