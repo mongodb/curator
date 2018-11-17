@@ -109,9 +109,6 @@ func writeStream(docs [][]byte, writer io.Writer) error {
 }
 
 func TestCollectJSON(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping real integration test for runtime")
-	}
 	t.Parallel()
 
 	dir, err := ioutil.TempDir("build", "ftdc-")
@@ -268,7 +265,7 @@ func TestCollectJSON(t *testing.T) {
 
 		iter := ReadMetrics(ctx, fn)
 		idx := -1
-		for iter.Next(ctx) {
+		for iter.Next() {
 			idx++
 
 			s := iter.Document()

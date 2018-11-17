@@ -5,20 +5,17 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/mongodb/ftdc/bsonx"
 	"github.com/mongodb/grip"
-	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestCollectorInterface(t *testing.T) {
-	if testing.Short() {
-		t.Skip("a large test table")
-	}
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -27,7 +24,12 @@ func TestCollectorInterface(t *testing.T) {
 	for _, collect := range collectors {
 		t.Run(collect.name, func(t *testing.T) {
 			tests := createTests()
+
 			for _, test := range tests {
+				if testing.Short() {
+					continue
+				}
+
 				t.Run(test.name, func(t *testing.T) {
 					collector := collect.factory()
 
@@ -67,19 +69,25 @@ func TestCollectorInterface(t *testing.T) {
 					assert.Zero(t, info)
 				})
 			}
+			t.Run("ResolveWhenNil", func(t *testing.T) {
+				collector := collect.factory()
+				out, err := collector.Resolve()
+				assert.Nil(t, out)
+				assert.Error(t, err)
+			})
 			t.Run("RoundTrip", func(t *testing.T) {
-				for name, docs := range map[string][]*bson.Document{
-					"Integers": []*bson.Document{
+				for name, docs := range map[string][]*bsonx.Document{
+					"Integers": []*bsonx.Document{
 						randFlatDocument(5),
 						randFlatDocument(5),
 						randFlatDocument(5),
 						randFlatDocument(5),
 					},
-					"DecendingHandIntegers": []*bson.Document{
-						bson.NewDocument(bson.EC.Int64("one", 43), bson.EC.Int64("two", 5)),
-						bson.NewDocument(bson.EC.Int64("one", 89), bson.EC.Int64("two", 4)),
-						bson.NewDocument(bson.EC.Int64("one", 99), bson.EC.Int64("two", 3)),
-						bson.NewDocument(bson.EC.Int64("one", 101), bson.EC.Int64("two", 2)),
+					"DecendingHandIntegers": []*bsonx.Document{
+						bsonx.NewDocument(bsonx.EC.Int64("one", 43), bsonx.EC.Int64("two", 5)),
+						bsonx.NewDocument(bsonx.EC.Int64("one", 89), bsonx.EC.Int64("two", 4)),
+						bsonx.NewDocument(bsonx.EC.Int64("one", 99), bsonx.EC.Int64("two", 3)),
+						bsonx.NewDocument(bsonx.EC.Int64("one", 101), bsonx.EC.Int64("two", 2)),
 					},
 				} {
 					t.Run(name, func(t *testing.T) {
@@ -98,7 +106,7 @@ func TestCollectorInterface(t *testing.T) {
 
 						iter := ReadStructuredMetrics(ctx, buf)
 						idx := -1
-						for iter.Next(ctx) {
+						for iter.Next() {
 							idx++
 							t.Run(fmt.Sprintf("DocumentNumber_%d", idx), func(t *testing.T) {
 								s := iter.Document()
@@ -115,7 +123,6 @@ func TestCollectorInterface(t *testing.T) {
 
 					})
 				}
-
 			})
 		})
 	}
@@ -150,7 +157,7 @@ func TestStreamingEncoding(t *testing.T) {
 					t.Run("SingleValues", func(t *testing.T) {
 						collector, buf := impl.factory()
 						for _, val := range test.dataset {
-							assert.NoError(t, collector.Add(bson.NewDocument(bson.EC.Int64("foo", val))))
+							assert.NoError(t, collector.Add(bsonx.NewDocument(bsonx.EC.Int64("foo", val))))
 						}
 						require.NoError(t, FlushCollector(collector, buf))
 						payload := buf.Bytes()
@@ -158,7 +165,7 @@ func TestStreamingEncoding(t *testing.T) {
 						iter := ReadMetrics(ctx, bytes.NewBuffer(payload))
 						res := []int64{}
 						idx := 0
-						for iter.Next(ctx) {
+						for iter.Next() {
 							doc := iter.Document()
 							require.NotNil(t, doc)
 							val := doc.Lookup("foo").Int64()
@@ -175,15 +182,15 @@ func TestStreamingEncoding(t *testing.T) {
 					})
 					t.Run("MultipleValues", func(t *testing.T) {
 						collector, buf := impl.factory()
-						docs := []*bson.Document{}
+						docs := []*bsonx.Document{}
 
 						for _, val := range test.dataset {
-							doc := bson.NewDocument(
-								bson.EC.Int64("foo", val),
-								bson.EC.Int64("dub", 2*val),
-								bson.EC.Int64("dup", val),
-								bson.EC.Int64("neg", -1*val),
-								bson.EC.Int64("mag", 10*val),
+							doc := bsonx.NewDocument(
+								bsonx.EC.Int64("foo", val),
+								bsonx.EC.Int64("dub", 2*val),
+								bsonx.EC.Int64("dup", val),
+								bsonx.EC.Int64("neg", -1*val),
+								bsonx.EC.Int64("mag", 10*val),
 							)
 							docs = append(docs, doc)
 							assert.NoError(t, collector.Add(doc))
@@ -194,18 +201,14 @@ func TestStreamingEncoding(t *testing.T) {
 
 						iter := ReadMetrics(ctx, bytes.NewBuffer(payload))
 						res := []int64{}
-						for iter.Next(ctx) {
+						for iter.Next() {
 							doc := iter.Document()
 							require.NotNil(t, doc)
 							val := doc.Lookup("foo").Int64()
 							res = append(res, val)
 							idx := len(res) - 1
 
-							if !doc.Equal(docs[idx]) {
-								grip.Infoln(idx, "src:", test.dataset[idx])
-								grip.Infoln(idx, "in: ", docs[idx].ToExtJSON(false))
-								grip.Infoln(idx, "out:", doc.ToExtJSON(false))
-							}
+							assert.True(t, doc.Equal(docs[idx]))
 						}
 
 						require.NoError(t, iter.Err())
@@ -215,23 +218,23 @@ func TestStreamingEncoding(t *testing.T) {
 
 					t.Run("MultiValueKeyOrder", func(t *testing.T) {
 						collector, buf := impl.factory()
-						docs := []*bson.Document{}
+						docs := []*bsonx.Document{}
 
 						for idx, val := range test.dataset {
-							var doc *bson.Document
+							var doc *bsonx.Document
 							if len(test.dataset) >= 3 && (idx == 2 || idx == 3) {
-								doc = bson.NewDocument(
-									bson.EC.Int64("foo", val),
-									bson.EC.Int64("mag", 10*val),
-									bson.EC.Int64("neg", -1*val),
+								doc = bsonx.NewDocument(
+									bsonx.EC.Int64("foo", val),
+									bsonx.EC.Int64("mag", 10*val),
+									bsonx.EC.Int64("neg", -1*val),
 								)
 							} else {
-								doc = bson.NewDocument(
-									bson.EC.Int64("foo", val),
-									bson.EC.Int64("dub", 2*val),
-									bson.EC.Int64("dup", val),
-									bson.EC.Int64("neg", -1*val),
-									bson.EC.Int64("mag", 10*val),
+								doc = bsonx.NewDocument(
+									bsonx.EC.Int64("foo", val),
+									bsonx.EC.Int64("dub", 2*val),
+									bsonx.EC.Int64("dup", val),
+									bsonx.EC.Int64("neg", -1*val),
+									bsonx.EC.Int64("mag", 10*val),
 								)
 							}
 
@@ -243,18 +246,14 @@ func TestStreamingEncoding(t *testing.T) {
 
 						iter := ReadMetrics(ctx, bytes.NewBuffer(payload))
 						res := []int64{}
-						for iter.Next(ctx) {
+						for iter.Next() {
 							doc := iter.Document()
 							require.NotNil(t, doc)
 							val := doc.Lookup("foo").Int64()
 							res = append(res, val)
 							idx := len(res) - 1
 
-							if !doc.Equal(docs[idx]) {
-								grip.Infoln(idx, "src:", test.dataset[idx])
-								grip.Infoln(idx, "in: ", docs[idx].ToExtJSON(false))
-								grip.Infoln(idx, "out:", doc.ToExtJSON(false))
-							}
+							assert.True(t, doc.Equal(docs[idx]))
 						}
 
 						require.NoError(t, iter.Err())
@@ -263,25 +262,25 @@ func TestStreamingEncoding(t *testing.T) {
 					})
 					t.Run("DifferentKeys", func(t *testing.T) {
 						collector, buf := impl.factory()
-						docs := []*bson.Document{}
+						docs := []*bsonx.Document{}
 
 						for idx, val := range test.dataset {
-							var doc *bson.Document
+							var doc *bsonx.Document
 							if len(test.dataset) >= 5 && (idx == 2 || idx == 3) {
-								doc = bson.NewDocument(
-									bson.EC.Int64("foo", val),
-									bson.EC.Int64("dub", 2*val),
-									bson.EC.Int64("dup", val),
-									bson.EC.Int64("neg", -1*val),
-									bson.EC.Int64("mag", 10*val),
+								doc = bsonx.NewDocument(
+									bsonx.EC.Int64("foo", val),
+									bsonx.EC.Int64("dub", 2*val),
+									bsonx.EC.Int64("dup", val),
+									bsonx.EC.Int64("neg", -1*val),
+									bsonx.EC.Int64("mag", 10*val),
 								)
 							} else {
-								doc = bson.NewDocument(
-									bson.EC.Int64("foo", val),
-									bson.EC.Int64("mag", 10*val),
-									bson.EC.Int64("neg", -1*val),
-									bson.EC.Int64("dup", val),
-									bson.EC.Int64("dub", 2*val),
+								doc = bsonx.NewDocument(
+									bsonx.EC.Int64("foo", val),
+									bsonx.EC.Int64("mag", 10*val),
+									bsonx.EC.Int64("neg", -1*val),
+									bsonx.EC.Int64("dup", val),
+									bsonx.EC.Int64("dub", 2*val),
 								)
 							}
 
@@ -294,27 +293,21 @@ func TestStreamingEncoding(t *testing.T) {
 
 						iter := ReadMetrics(ctx, bytes.NewBuffer(payload))
 						res := []int64{}
-						for iter.Next(ctx) {
+						for iter.Next() {
 							doc := iter.Document()
 							require.NotNil(t, doc)
 							val := doc.Lookup("foo").Int64()
 							res = append(res, val)
 							idx := len(res) - 1
 
-							if !doc.Equal(docs[idx]) {
-								grip.Infoln(idx, "src:", test.dataset[idx])
-								grip.Infoln(idx, "in: ", docs[idx].ToExtJSON(false))
-								grip.Infoln(idx, "out:", doc.ToExtJSON(false))
-							}
+							assert.True(t, doc.Equal(docs[idx]))
 						}
 						require.NoError(t, iter.Err())
 						require.Equal(t, len(test.dataset), len(res), "%v -> %v", test.dataset, res)
 						require.Equal(t, len(test.dataset), len(res))
 					})
-
 				})
 			}
-
 		})
 	}
 }
@@ -347,7 +340,7 @@ func TestFixedEncoding(t *testing.T) {
 					t.Run("SingleValues", func(t *testing.T) {
 						collector := impl.factory()
 						for _, val := range test.dataset {
-							assert.NoError(t, collector.Add(bson.NewDocument(bson.EC.Int64("foo", val))))
+							assert.NoError(t, collector.Add(bsonx.NewDocument(bsonx.EC.Int64("foo", val))))
 						}
 
 						payload, err := collector.Resolve()
@@ -355,7 +348,7 @@ func TestFixedEncoding(t *testing.T) {
 						iter := ReadMetrics(ctx, bytes.NewBuffer(payload))
 						res := []int64{}
 						idx := 0
-						for iter.Next(ctx) {
+						for iter.Next() {
 							doc := iter.Document()
 							require.NotNil(t, doc)
 							val := doc.Lookup("foo").Int64()
@@ -372,15 +365,15 @@ func TestFixedEncoding(t *testing.T) {
 					})
 					t.Run("MultipleValues", func(t *testing.T) {
 						collector := impl.factory()
-						docs := []*bson.Document{}
+						docs := []*bsonx.Document{}
 
 						for _, val := range test.dataset {
-							doc := bson.NewDocument(
-								bson.EC.Int64("foo", val),
-								bson.EC.Int64("dub", 2*val),
-								bson.EC.Int64("dup", val),
-								bson.EC.Int64("neg", -1*val),
-								bson.EC.Int64("mag", 10*val),
+							doc := bsonx.NewDocument(
+								bsonx.EC.Int64("foo", val),
+								bsonx.EC.Int64("dub", 2*val),
+								bsonx.EC.Int64("dup", val),
+								bsonx.EC.Int64("neg", -1*val),
+								bsonx.EC.Int64("mag", 10*val),
 							)
 							docs = append(docs, doc)
 							assert.NoError(t, collector.Add(doc))
@@ -390,18 +383,14 @@ func TestFixedEncoding(t *testing.T) {
 						require.NoError(t, err)
 						iter := ReadMetrics(ctx, bytes.NewBuffer(payload))
 						res := []int64{}
-						for iter.Next(ctx) {
+						for iter.Next() {
 							doc := iter.Document()
 							require.NotNil(t, doc)
 							val := doc.Lookup("foo").Int64()
 							res = append(res, val)
 							idx := len(res) - 1
 
-							if !doc.Equal(docs[idx]) {
-								grip.Infoln(idx, "src:", test.dataset[idx])
-								grip.Infoln(idx, "in: ", docs[idx].ToExtJSON(false))
-								grip.Infoln(idx, "out:", doc.ToExtJSON(false))
-							}
+							assert.True(t, doc.Equal(docs[idx]))
 						}
 
 						require.NoError(t, iter.Err())
@@ -410,6 +399,224 @@ func TestFixedEncoding(t *testing.T) {
 					})
 				})
 			}
+			t.Run("SizeMismatch", func(t *testing.T) {
+				collector := impl.factory()
+				assert.NoError(t, collector.Add(bsonx.NewDocument(bsonx.EC.Int64("one", 43), bsonx.EC.Int64("two", 5))))
+				assert.NoError(t, collector.Add(bsonx.NewDocument(bsonx.EC.Int64("one", 43), bsonx.EC.Int64("two", 5))))
+
+				if strings.Contains(impl.name, "Dynamic") {
+					assert.NoError(t, collector.Add(bsonx.NewDocument(bsonx.EC.Int64("one", 43))))
+				} else {
+					assert.Error(t, collector.Add(bsonx.NewDocument(bsonx.EC.Int64("one", 43))))
+				}
+			})
+		})
+	}
+}
+
+func TestCollectorSizeCap(t *testing.T) {
+	for _, test := range []struct {
+		name    string
+		factory func() Collector
+	}{
+		{
+			name:    "Better",
+			factory: func() Collector { return &betterCollector{maxDeltas: 1} },
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			collector := test.factory()
+			assert.NoError(t, collector.Add(bsonx.NewDocument(bsonx.EC.Int64("one", 43), bsonx.EC.Int64("two", 5))))
+			assert.NoError(t, collector.Add(bsonx.NewDocument(bsonx.EC.Int64("one", 43), bsonx.EC.Int64("two", 5))))
+			assert.Error(t, collector.Add(bsonx.NewDocument(bsonx.EC.Int64("one", 43), bsonx.EC.Int64("two", 5))))
+		})
+	}
+}
+
+func TestWriter(t *testing.T) {
+	t.Run("NilDocuments", func(t *testing.T) {
+		collector := NewWriterCollector(2, &noopWriter{})
+		_, err := collector.Write(nil)
+		assert.Error(t, err)
+		assert.NoError(t, collector.Close())
+	})
+	t.Run("RealDocument", func(t *testing.T) {
+		collector := NewWriterCollector(2, &noopWriter{})
+		doc, err := bsonx.NewDocument(bsonx.EC.Int64("one", 43), bsonx.EC.Int64("two", 5)).MarshalBSON()
+		require.NoError(t, err)
+		_, err = collector.Write(doc)
+		assert.NoError(t, err)
+		assert.NoError(t, collector.Close())
+	})
+	t.Run("CloseNoError", func(t *testing.T) {
+		collector := NewWriterCollector(2, &noopWriter{})
+		assert.NoError(t, collector.Close())
+	})
+	t.Run("CloseError", func(t *testing.T) {
+		collector := NewWriterCollector(2, &errWriter{})
+		doc, err := bsonx.NewDocument(bsonx.EC.Int64("one", 43), bsonx.EC.Int64("two", 5)).MarshalBSON()
+		require.NoError(t, err)
+		_, err = collector.Write(doc)
+		require.NoError(t, err)
+		assert.Error(t, collector.Close())
+	})
+}
+
+func TestTimestampHandling(t *testing.T) {
+	start := time.Now().Round(time.Millisecond)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	for _, test := range []struct {
+		Name   string
+		Values []time.Time
+	}{
+		{
+			Name: "One",
+			Values: []time.Time{
+				time.Now().Round(time.Millisecond),
+			},
+		},
+		{
+			Name: "Same",
+			Values: []time.Time{
+				start, start, start,
+			},
+		},
+		{
+			Name: "SecondSteps",
+			Values: []time.Time{
+				start.Add(time.Second),
+				start.Add(time.Second),
+				start.Add(time.Second),
+				start.Add(time.Second),
+				start.Add(time.Second),
+				start.Add(time.Second),
+			},
+		},
+		{
+			Name: "HundredMillis",
+			Values: []time.Time{
+				start.Add(100 * time.Millisecond),
+				start.Add(200 * time.Millisecond),
+				start.Add(300 * time.Millisecond),
+				start.Add(400 * time.Millisecond),
+				start.Add(500 * time.Millisecond),
+				start.Add(600 * time.Millisecond),
+			},
+		},
+		{
+			Name: "TenMillis",
+			Values: []time.Time{
+				start.Add(10 * time.Millisecond),
+				start.Add(20 * time.Millisecond),
+				start.Add(30 * time.Millisecond),
+				start.Add(40 * time.Millisecond),
+				start.Add(50 * time.Millisecond),
+				start.Add(60 * time.Millisecond),
+			},
+		},
+	} {
+		t.Run(test.Name, func(t *testing.T) {
+			t.Run("TimeValue", func(t *testing.T) {
+				collector := NewBaseCollector(100)
+				for _, ts := range test.Values {
+					require.NoError(t, collector.Add(bsonx.NewDocument(
+						bsonx.EC.Time("ts", ts),
+					)))
+				}
+
+				out, err := collector.Resolve()
+				require.NoError(t, err)
+				t.Run("Structured", func(t *testing.T) {
+					iter := ReadStructuredMetrics(ctx, bytes.NewBuffer(out))
+					idx := 0
+					for iter.Next() {
+						doc := iter.Document()
+
+						val, ok := doc.Lookup("ts").TimeOK()
+						if !assert.True(t, ok) {
+							assert.Equal(t, test.Values[idx], val)
+						}
+						idx++
+					}
+					require.NoError(t, iter.Err())
+				})
+				t.Run("Flattened", func(t *testing.T) {
+					iter := ReadMetrics(ctx, bytes.NewBuffer(out))
+					idx := 0
+					for iter.Next() {
+						doc := iter.Document()
+						val, ok := doc.Lookup("ts").Int64OK()
+						if assert.True(t, ok) {
+							assert.Equal(t, epochMs(test.Values[idx]), val)
+						}
+						idx++
+					}
+					require.NoError(t, iter.Err())
+				})
+				t.Run("Chunks", func(t *testing.T) {
+					chunks := ReadChunks(ctx, bytes.NewBuffer(out))
+					idx := 0
+					for chunks.Next() {
+						chunk := chunks.Chunk()
+						assert.NotNil(t, chunk)
+						assert.Equal(t, len(test.Values), chunk.nPoints)
+						idx++
+					}
+					require.NoError(t, chunks.Err())
+				})
+
+			})
+			t.Run("UnixSecond", func(t *testing.T) {
+				collector := NewBaseCollector(100)
+				for _, ts := range test.Values {
+					require.NoError(t, collector.Add(bsonx.NewDocument(
+						bsonx.EC.Int64("ts", ts.Unix()),
+					)))
+				}
+
+				out, err := collector.Resolve()
+				require.NoError(t, err)
+
+				iter := ReadMetrics(ctx, bytes.NewBuffer(out))
+				idx := 0
+				for iter.Next() {
+					doc := iter.Document()
+
+					val, ok := doc.Lookup("ts").Int64OK()
+					if assert.True(t, ok) {
+						assert.Equal(t, test.Values[idx].Unix(), val)
+					}
+					idx++
+				}
+				require.NoError(t, iter.Err())
+			})
+			t.Run("UnixNano", func(t *testing.T) {
+				collector := NewBaseCollector(100)
+				for _, ts := range test.Values {
+					require.NoError(t, collector.Add(bsonx.NewDocument(
+						bsonx.EC.Int64("ts", ts.UnixNano()),
+					)))
+				}
+
+				out, err := collector.Resolve()
+				require.NoError(t, err)
+
+				iter := ReadMetrics(ctx, bytes.NewBuffer(out))
+				idx := 0
+				for iter.Next() {
+					doc := iter.Document()
+
+					val, ok := doc.Lookup("ts").Int64OK()
+					if assert.True(t, ok) {
+						assert.Equal(t, test.Values[idx].UnixNano(), val)
+					}
+
+					idx++
+				}
+				require.NoError(t, iter.Err())
+			})
 		})
 	}
 }

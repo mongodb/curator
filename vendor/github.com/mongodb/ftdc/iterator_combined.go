@@ -4,14 +4,15 @@ import (
 	"context"
 	"io"
 
-	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/ftdc/bsonx"
+	"github.com/mongodb/grip"
 	"github.com/pkg/errors"
 )
 
 type Iterator interface {
-	Next(context.Context) bool
-	Document() *bson.Document
-	Metadata() *bson.Document
+	Next() bool
+	Document() *bsonx.Document
+	Metadata() *bsonx.Document
 	Err() error
 	Close()
 }
@@ -20,11 +21,16 @@ type Iterator interface {
 // chunks. The Documents returned by the iterator are flattened.
 func ReadMetrics(ctx context.Context, r io.Reader) Iterator {
 	iterctx, cancel := context.WithCancel(ctx)
-	return &combinedIterator{
+	iter := &combinedIterator{
 		closer:  cancel,
 		chunks:  ReadChunks(iterctx, r),
 		flatten: true,
+		pipe:    make(chan *bsonx.Document, 100),
+		catcher: grip.NewBasicCatcher(),
 	}
+	go iter.worker(iterctx)
+
+	return iter
 }
 
 // ReadStructuredMetrics returns a standard document iterator that reads FTDC
@@ -32,21 +38,27 @@ func ReadMetrics(ctx context.Context, r io.Reader) Iterator {
 // of the input documents.
 func ReadStructuredMetrics(ctx context.Context, r io.Reader) Iterator {
 	iterctx, cancel := context.WithCancel(ctx)
-	return &combinedIterator{
+	iter := &combinedIterator{
 		closer:  cancel,
 		chunks:  ReadChunks(iterctx, r),
 		flatten: false,
+		pipe:    make(chan *bsonx.Document, 100),
+		catcher: grip.NewBasicCatcher(),
 	}
+
+	go iter.worker(iterctx)
+	return iter
 }
 
 type combinedIterator struct {
 	closer   context.CancelFunc
 	chunks   *ChunkIterator
 	sample   *sampleIterator
-	metadata *bson.Document
-	document *bson.Document
+	metadata *bsonx.Document
+	document *bsonx.Document
+	pipe     chan *bsonx.Document
+	catcher  grip.Catcher
 	flatten  bool
-	err      error
 }
 
 func (iter *combinedIterator) Close() {
@@ -60,54 +72,52 @@ func (iter *combinedIterator) Close() {
 	}
 }
 
-func (iter *combinedIterator) Err() error               { return iter.err }
-func (iter *combinedIterator) Metadata() *bson.Document { return iter.metadata }
-func (iter *combinedIterator) Document() *bson.Document { return iter.document }
+func (iter *combinedIterator) Err() error                { return iter.catcher.Resolve() }
+func (iter *combinedIterator) Metadata() *bsonx.Document { return iter.metadata }
+func (iter *combinedIterator) Document() *bsonx.Document { return iter.document }
 
-func (iter *combinedIterator) Next(ctx context.Context) bool {
-	if iter.sample != nil {
-		if out := iter.sample.Next(ctx); out {
-			iter.document = iter.sample.Document()
-			return true
-		}
-
-		if err := iter.Err(); err != nil {
-			iter.err = errors.WithStack(err)
-			return false
-		}
-
-		iter.sample = nil
+func (iter *combinedIterator) Next() bool {
+	doc, ok := <-iter.pipe
+	if !ok {
+		return false
 	}
 
-	if iter.chunks != nil {
-		ok := iter.chunks.Next(ctx)
-		if ok {
-			chunk := iter.chunks.Chunk()
-			if iter.flatten {
-				iter.sample, ok = chunk.Iterator(ctx).(*sampleIterator)
-			} else {
-				iter.sample, ok = chunk.StructuredIterator(ctx).(*sampleIterator)
-			}
+	iter.document = doc
+	return true
+}
 
-			if !ok {
-				iter.err = errors.New("programmer error")
-				return false
-			}
+func (iter *combinedIterator) worker(ctx context.Context) {
+	defer close(iter.pipe)
+	var ok bool
 
+	for iter.chunks.Next() {
+		chunk := iter.chunks.Chunk()
+
+		if iter.flatten {
+			iter.sample, ok = chunk.Iterator(ctx).(*sampleIterator)
+		} else {
+			iter.sample, ok = chunk.StructuredIterator(ctx).(*sampleIterator)
+		}
+		if !ok {
+			iter.catcher.Add(errors.New("programmer error"))
+			return
+		}
+		if iter.metadata != nil {
 			iter.metadata = chunk.GetMetadata()
-
-			if out := iter.sample.Next(ctx); out {
-				iter.document = iter.sample.Document()
-				return true
-			}
-			iter.err = iter.sample.Err()
-			iter.sample = nil
-			if iter.err != nil {
-				return false
-			}
 		}
-		iter.err = errors.WithStack(iter.chunks.Err())
-		iter.chunks = nil
+
+		for iter.sample.Next() {
+			select {
+
+			case iter.pipe <- iter.sample.Document():
+				continue
+			case <-ctx.Done():
+				iter.catcher.Add(errors.New("operation aborted"))
+				return
+			}
+
+		}
+		iter.catcher.Add(iter.sample.Err())
 	}
-	return false
+	iter.catcher.Add(iter.chunks.Err())
 }

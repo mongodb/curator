@@ -8,11 +8,11 @@ import (
 	"encoding/binary"
 	"io"
 
-	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/ftdc/bsonx"
 	"github.com/pkg/errors"
 )
 
-func readDiagnostic(ctx context.Context, f io.Reader, ch chan<- *bson.Document) error {
+func readDiagnostic(ctx context.Context, f io.Reader, ch chan<- *bsonx.Document) error {
 	defer close(ch)
 	buf := bufio.NewReader(f)
 	for {
@@ -32,10 +32,10 @@ func readDiagnostic(ctx context.Context, f io.Reader, ch chan<- *bson.Document) 
 	}
 }
 
-func readChunks(ctx context.Context, ch <-chan *bson.Document, o chan<- Chunk) error {
+func readChunks(ctx context.Context, ch <-chan *bsonx.Document, o chan<- *Chunk) error {
 	defer close(o)
 
-	var metadata *bson.Document
+	var metadata *bsonx.Document
 
 	for doc := range ch {
 		// the FTDC streams typically have onetime-per-file
@@ -96,34 +96,34 @@ func readChunks(ctx context.Context, ch <-chan *bson.Document, o chan<- Chunk) e
 		}
 
 		// now go back and populate the delta numbers
-		var nzeroes int64
+		var nzeroes uint64
 		for i, v := range metrics {
 			metrics[i].startingValue = v.startingValue
 			metrics[i].Values = make([]int64, ndeltas)
 
 			for j := 0; j < ndeltas; j++ {
-				var delta int64
+				var delta uint64
 				if nzeroes != 0 {
 					delta = 0
 					nzeroes--
 				} else {
-					delta, err = binary.ReadVarint(buf)
+					delta, err = binary.ReadUvarint(buf)
 					if err != nil {
 						return errors.Wrap(err, "reached unexpected end of encoded integer")
 					}
 					if delta == 0 {
-						nzeroes, err = binary.ReadVarint(buf)
+						nzeroes, err = binary.ReadUvarint(buf)
 						if err != nil {
 							return err
 						}
 					}
 				}
-				metrics[i].Values[j] = delta
+				metrics[i].Values[j] = int64(delta)
 			}
 			metrics[i].Values = undelta(v.startingValue, metrics[i].Values)
 		}
 		select {
-		case o <- Chunk{
+		case o <- &Chunk{
 			metrics:   metrics,
 			nPoints:   ndeltas + 1, // this accounts for the reference document
 			metadata:  metadata,
@@ -136,8 +136,8 @@ func readChunks(ctx context.Context, ch <-chan *bson.Document, o chan<- Chunk) e
 	return nil
 }
 
-func readBufBSON(buf *bufio.Reader) (*bson.Document, error) {
-	doc := &bson.Document{}
+func readBufBSON(buf *bufio.Reader) (*bsonx.Document, error) {
+	doc := &bsonx.Document{}
 
 	if _, err := doc.ReadFrom(buf); err != nil {
 		return nil, err
@@ -146,11 +146,11 @@ func readBufBSON(buf *bufio.Reader) (*bson.Document, error) {
 	return doc, nil
 }
 
-func readBufMetrics(buf *bufio.Reader) (*bson.Document, []Metric, error) {
+func readBufMetrics(buf *bufio.Reader) (*bsonx.Document, []Metric, error) {
 	doc, err := readBufBSON(buf)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "problem reading reference doc")
 	}
 
-	return doc, flattenDocument([]string{}, doc), nil
+	return doc, metricForDocument([]string{}, doc), nil
 }

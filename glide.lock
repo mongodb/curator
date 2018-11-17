@@ -55,13 +55,13 @@ imports:
   version: 1b77c8dfcc6baca12dedfab119135396782b68a1
 
 - name: github.com/mongodb/ftdc
-  version: cb8d4f967a12ac77e53060d279b3fc44ef811b93
+  version: f4b8316ee2416c8f512b48b98dc5f6086014200c
 - name: github.com/mongodb/jasper
   version: 8a40bf440192e92cc178ca8300cd27964fc177ee
 - name: golang.org/x/text
   version: 6e3c4e7365ddcc329f090f96e4348398f6310088
 
 - name: github.com/mongodb/mongo-go-driver
-  version: 44d349d1886bcc181046312daee15bb2533a2d10
+  version: 03d16bbe636981a408ff359412697fa9ff16ec83
 
 devImports: []

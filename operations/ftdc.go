@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/mongodb/ftdc"
+	"github.com/mongodb/ftdc/bsonx"
 	"github.com/mongodb/grip"
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/pkg/errors"
@@ -90,8 +91,13 @@ func toJSON() cli.Command {
 				iter = ftdc.ReadStructuredMetrics(ctx, ftdcFile)
 			}
 
-			for iter.Next(ctx) {
-				jsonFile.WriteString(iter.Document().ToExtJSON(false))
+			for iter.Next() {
+				doc, err := bson.MarshalExtJSON(iter.Document(), false, false)
+				if err != nil {
+					return errors.Wrap(err, "problem reading document to json")
+				}
+
+				jsonFile.WriteString(string(doc))
 				jsonFile.WriteString("\n")
 			}
 
@@ -204,7 +210,7 @@ func toBSON() cli.Command {
 				iter = ftdc.ReadStructuredMetrics(ctx, ftdcFile)
 			}
 
-			for iter.Next(ctx) {
+			for iter.Next() {
 				bytes, err := iter.Document().MarshalBSON()
 				if err != nil {
 					return errors.Wrap(err, "problem marshaling BSON")
@@ -259,7 +265,7 @@ func fromBSON() cli.Command {
 
 			collector := ftdc.NewDynamicCollector(maxCount)
 			for {
-				bsonDoc := bson.NewDocument()
+				bsonDoc := bsonx.NewDocument()
 				_, err := bsonDoc.ReadFrom(bsonFile)
 				if err != nil {
 					if err == io.EOF {

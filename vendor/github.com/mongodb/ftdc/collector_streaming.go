@@ -3,7 +3,6 @@ package ftdc
 import (
 	"io"
 
-	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/pkg/errors"
 )
 
@@ -35,8 +34,8 @@ func newStreamingCollector(maxSamples int, writer io.Writer) *streamingCollector
 }
 
 func (c *streamingCollector) Reset() { c.count = 0; c.betterCollector.Reset() }
-func (c *streamingCollector) Add(d *bson.Document) error {
-	if err := c.betterCollector.Add(d); err != nil {
+func (c *streamingCollector) Add(in interface{}) error {
+	if err := c.betterCollector.Add(in); err != nil {
 		return errors.Wrapf(err, "adding sample #%d", c.count+1)
 	}
 	c.count++
@@ -55,6 +54,9 @@ func (c *streamingCollector) Add(d *bson.Document) error {
 // particularly useful in the context of streaming collectors, which
 // flush data periodically and may have cached data.
 func FlushCollector(c Collector, writer io.Writer) error {
+	if writer == nil {
+		return errors.New("invalid writer")
+	}
 	if c.Info().SampleCount == 0 {
 		return nil
 	}
@@ -98,10 +100,13 @@ func (c *streamingDynamicCollector) Reset() {
 	c.hash = ""
 }
 
-func (c *streamingDynamicCollector) Add(d *bson.Document) error {
-	// defer func() { grip.Debug(c.Info()) }()
+func (c *streamingDynamicCollector) Add(in interface{}) error {
+	doc, err := readDocument(in)
+	if err != nil {
+		return errors.WithStack(err)
+	}
 
-	docHash, num := metricsHash(d)
+	docHash, num := metricsHash(doc)
 	if c.hash == "" {
 		c.hash = docHash
 		c.metricCount = num
@@ -110,7 +115,7 @@ func (c *streamingDynamicCollector) Add(d *bson.Document) error {
 				return errors.WithStack(err)
 			}
 		}
-		return errors.WithStack(c.streamingCollector.Add(d))
+		return errors.WithStack(c.streamingCollector.Add(doc))
 	}
 
 	if c.metricCount != num || c.hash != docHash {
@@ -119,5 +124,5 @@ func (c *streamingDynamicCollector) Add(d *bson.Document) error {
 		}
 	}
 
-	return errors.WithStack(c.streamingCollector.Add(d))
+	return errors.WithStack(c.streamingCollector.Add(doc))
 }

@@ -12,7 +12,7 @@ import (
 	"path"
 	"testing"
 
-	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/ftdc/bsonx"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -87,10 +87,10 @@ func TestJSONRoundtrip(t *testing.T) {
 	assert.True(t, equal)
 }
 
-func randFlatDocument(numKeys int) *bson.Document {
-	doc := bson.NewDocument()
+func randFlatDocument(numKeys int) *bsonx.Document {
+	doc := bsonx.NewDocument()
 	for i := 0; i < numKeys; i++ {
-		doc.Append(bson.EC.Int64(randStr(), rand.Int63n(int64(numKeys)*1)))
+		doc.Append(bsonx.EC.Int64(randStr(), rand.Int63n(int64(numKeys)*1)))
 	}
 
 	return doc
