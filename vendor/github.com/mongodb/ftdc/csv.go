@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/mongodb/ftdc/bsonx"
+	"github.com/mongodb/grip"
 	"github.com/pkg/errors"
 )
 
@@ -41,6 +42,9 @@ func WriteCSV(ctx context.Context, iter *ChunkIterator, writer io.Writer) error 
 	var numFields int
 	csvw := csv.NewWriter(writer)
 	for iter.Next() {
+		if ctx.Err() != nil {
+			return errors.New("operation aborted")
+		}
 		chunk := iter.Chunk()
 		if numFields == 0 {
 			fieldNames := chunk.getFieldNames()
@@ -94,6 +98,10 @@ func DumpCSV(ctx context.Context, iter *ChunkIterator, prefix string) error {
 		csvw      *csv.Writer
 	)
 	for iter.Next() {
+		if ctx.Err() != nil {
+			return errors.New("operation aborted")
+		}
+
 		if writer == nil {
 			writer, err = getCSVFile(prefix, fileCount)
 			if err != nil {
@@ -154,4 +162,59 @@ func DumpCSV(ctx context.Context, iter *ChunkIterator, prefix string) error {
 
 	}
 	return nil
+}
+
+// ConvertFromCSV takes an input stream and writes ftdc compressed
+// data to the provided output writer.
+//
+// If the number of fields changes in the CSV fields, the first field
+// with the changed number of fields becomes the header for the
+// subsequent documents in the stream.
+func ConvertFromCSV(ctx context.Context, bucketSize int, input io.Reader, output io.Writer) error {
+	csvr := csv.NewReader(input)
+
+	header, err := csvr.Read()
+	if err != nil {
+		return errors.Wrap(err, "problem reading error")
+	}
+
+	collector := NewStreamingDynamicCollector(bucketSize, output)
+	defer func() { grip.Error(FlushCollector(collector, output)) }()
+
+	record := make([]string, 0, len(header))
+	for {
+		if ctx.Err() != nil {
+			return errors.New("operation aborted")
+		}
+
+		record, err = csvr.Read()
+		if err == io.EOF {
+			return nil
+		}
+
+		if err != nil {
+			if pr, ok := err.(*csv.ParseError); ok && pr.Err == csv.ErrFieldCount {
+				header = record
+				record = make([]string, 0, len(header))
+				continue
+			}
+			return errors.Wrap(err, "problem parsing csv")
+		}
+		if len(record) != len(header) {
+			return errors.New("unexpected field count change")
+		}
+
+		elems := make([]*bsonx.Element, 0, len(header))
+		for idx := range record {
+			val, err := strconv.Atoi(record[idx])
+			if err != nil {
+				continue
+			}
+			elems = append(elems, bsonx.EC.Int64(header[idx], int64(val)))
+		}
+
+		if err := collector.Add(bsonx.NewDocument(elems...)); err != nil {
+			return err
+		}
+	}
 }

@@ -2,6 +2,7 @@ package operations
 
 import (
 	"bytes"
+	"encoding/csv"
 	"encoding/hex"
 	"encoding/json"
 	"io"
@@ -10,9 +11,11 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"strconv"
 	"testing"
 
 	"github.com/mongodb/ftdc/bsonx"
+	"github.com/mongodb/grip"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -28,13 +31,11 @@ func TestFTDCParentCommandHasExpectedProperties(t *testing.T) {
 		names[sub.Name] = true
 	}
 
-	assert.Len(t, cmd.Subcommands, 4)
+	assert.Len(t, cmd.Subcommands, 2)
 	assert.Equal(t, cmd.Name, "ftdc")
 
-	assert.True(t, names["tojson"])
-	assert.True(t, names["fromjson"])
-	assert.True(t, names["tobson"])
-	assert.True(t, names["frombson"])
+	assert.True(t, names["import"])
+	assert.True(t, names["export"])
 }
 
 func TestBSONRoundtrip(t *testing.T) {
@@ -49,15 +50,42 @@ func TestBSONRoundtrip(t *testing.T) {
 		os.RemoveAll(tempDir)
 	}()
 
-	cmd := exec.Command("./curator", "ftdc", "frombson", "--input", bsonOriginal, "--output", ftdcFromOriginal)
+	cmd := exec.Command("./curator", "ftdc", "import", "bson", "--input", bsonOriginal, "--output", ftdcFromOriginal)
 	_, err = cmd.CombinedOutput()
 	require.NoError(t, err)
 
-	cmd = exec.Command("./curator", "ftdc", "tobson", "--input", ftdcFromOriginal, "--output", bsonRoundtrip)
+	cmd = exec.Command("./curator", "ftdc", "export", "bson", "--input", ftdcFromOriginal, "--output", bsonRoundtrip)
 	_, err = cmd.CombinedOutput()
 	require.NoError(t, err)
 
 	equal, err := compareFiles(bsonOriginal, bsonRoundtrip)
+	require.NoError(t, err)
+	assert.True(t, equal)
+}
+
+func TestCSVRoundtrip(t *testing.T) {
+	tempDir, err := ioutil.TempDir(".", "test_dir")
+	require.NoError(t, err)
+	csvOriginal := path.Join(tempDir, "original.csv")
+	csvRoundtrip := path.Join(tempDir, "roundtrip.csv")
+	ftdcFromOriginal := path.Join(tempDir, "ftdc")
+	err = createCSVFile(csvOriginal, 3)
+	require.NoError(t, err)
+	defer func() {
+		os.RemoveAll(tempDir)
+	}()
+
+	var output []byte
+
+	cmd := exec.Command("./curator", "ftdc", "import", "csv", "--input", csvOriginal, "--output", ftdcFromOriginal)
+	output, err = cmd.CombinedOutput()
+	require.NoError(t, err, "output: %s", string(output))
+
+	cmd = exec.Command("./curator", "ftdc", "export", "csv", "--input", ftdcFromOriginal, "--output", csvRoundtrip)
+	output, err = cmd.CombinedOutput()
+	require.NoError(t, err, "output: %s", string(output))
+
+	equal, err := compareFiles(csvOriginal, csvRoundtrip)
 	require.NoError(t, err)
 	assert.True(t, equal)
 }
@@ -74,11 +102,11 @@ func TestJSONRoundtrip(t *testing.T) {
 		os.RemoveAll(tempDir)
 	}()
 
-	cmd := exec.Command("./curator", "ftdc", "fromjson", "--input", jsonOriginal, "--prefix", ftdcFromOriginal)
+	cmd := exec.Command("./curator", "ftdc", "import", "json", "--input", jsonOriginal, "--prefix", ftdcFromOriginal)
 	_, err = cmd.CombinedOutput()
 	require.NoError(t, err)
 
-	cmd = exec.Command("./curator", "ftdc", "tojson", "--input", ftdcFromOriginal+".0", "--output", jsonRoundtrip)
+	cmd = exec.Command("./curator", "ftdc", "export", "json", "--input", ftdcFromOriginal+".0", "--output", jsonRoundtrip)
 	_, err = cmd.CombinedOutput()
 	require.NoError(t, err)
 
@@ -115,6 +143,37 @@ func createBSONFile(name string, size int) error {
 			return errors.Wrap(err, "failed to write BSON file")
 		}
 	}
+	return nil
+}
+
+func createCSVFile(name string, size int) error {
+	file, err := os.Create(name)
+	if err != nil {
+		return errors.Wrap(err, "failed to create new file")
+	}
+	defer func() { grip.Alert(file.Close()) }()
+
+	csvw := csv.NewWriter(file)
+	if err := csvw.Write([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}); err != nil {
+		return errors.Wrap(err, "problem writing header row")
+	}
+	for i := 0; i < size; i++ {
+		row := []string{
+			strconv.Itoa(rand.Int()),
+			strconv.Itoa(rand.Int()),
+			strconv.Itoa(rand.Int()),
+			strconv.Itoa(rand.Int()),
+			strconv.Itoa(rand.Int()),
+			strconv.Itoa(rand.Int()),
+			strconv.Itoa(rand.Int()),
+			strconv.Itoa(rand.Int()),
+		}
+
+		if err := csvw.Write(row); err != nil {
+			return errors.WithStack(err)
+		}
+	}
+	csvw.Flush()
 	return nil
 }
 
