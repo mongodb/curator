@@ -3,7 +3,6 @@ package operations
 import (
 	"context"
 	"io"
-	"io/ioutil"
 	"os"
 	"time"
 
@@ -28,25 +27,38 @@ var (
 func FTDC() cli.Command {
 	return cli.Command{
 		Name:  "ftdc",
-		Usage: "tools for running FTDC parsing and generating tools",
-		Flags: []cli.Flag{},
+		Usage: "tools for manipulating FTDC data",
 		Subcommands: []cli.Command{
-			toJSON(),
-			fromJSON(),
-			toBSON(),
-			fromBSON(),
+			cli.Command{
+				Name:  "export",
+				Usage: "write FTDC data to other encoding formats",
+				Subcommands: []cli.Command{
+					toJSON(),
+					toBSON(),
+					toCSV(),
+				},
+			},
+			cli.Command{
+				Name:  "import",
+				Usage: "compress data in FTDC format",
+				Subcommands: []cli.Command{
+					fromJSON(),
+					fromBSON(),
+					fromCSV(),
+				},
+			},
 		},
 	}
 }
 
 func toJSON() cli.Command {
 	return cli.Command{
-		Name:  "tojson",
-		Usage: "write FTDC data to a JSON file",
+		Name:  "json",
+		Usage: "write data from an FTDC file data to JSON",
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:  input,
-				Usage: "write FTDC data from this file",
+				Usage: "source FTDC data file",
 			},
 			cli.StringFlag{
 				Name:  output,
@@ -57,9 +69,7 @@ func toJSON() cli.Command {
 				Usage: "flatten FTDC data",
 			},
 		},
-		Before: mergeBeforeFuncs(
-			requireFileExists(input, false),
-		),
+		Before: requireFileExists(input, false),
 		Action: func(c *cli.Context) error {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
@@ -77,6 +87,10 @@ func toJSON() cli.Command {
 			if jsonPath == "" {
 				jsonFile = os.Stdout
 			} else {
+				if _, err = os.Stat(jsonPath); !os.IsNotExist(err) {
+					return errors.Errorf("cannot export bson to %s, file already exists", jsonPath)
+				}
+
 				jsonFile, err = os.Create(jsonPath)
 				if err != nil {
 					return errors.Wrapf(err, "problem opening flie '%s'", jsonPath)
@@ -108,8 +122,8 @@ func toJSON() cli.Command {
 
 func fromJSON() cli.Command {
 	return cli.Command{
-		Name:  "fromjson",
-		Usage: "write FTDC data from a JSON file",
+		Name:  "json",
+		Usage: "write data from new line seperated JSON to FTDC files",
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:  input,
@@ -160,20 +174,20 @@ func fromJSON() cli.Command {
 
 func toBSON() cli.Command {
 	return cli.Command{
-		Name:  "tobson",
-		Usage: "write FTDC data to a BSON file",
+		Name:  "bson",
+		Usage: "write data from an FTDC file to a BSON file",
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:  input,
-				Usage: "write FTDC data from this file",
+				Usage: "read source FTDC data from this file",
 			},
 			cli.StringFlag{
 				Name:  output,
-				Usage: "write FTDC data in BSON format to this file (default: stdout)",
+				Usage: "write BSON data to this file (default: stdout)",
 			},
 			cli.BoolFlag{
 				Name:  flattened,
-				Usage: "flatten FTDC data",
+				Usage: "flatten document structure data",
 			},
 		},
 		Before: mergeBeforeFuncs(
@@ -196,6 +210,10 @@ func toBSON() cli.Command {
 			if bsonPath == "" {
 				bsonFile = os.Stdout
 			} else {
+				if _, err = os.Stat(bsonPath); !os.IsNotExist(err) {
+					return errors.Errorf("cannot export ftdc to %s, file already exists", bsonPath)
+				}
+
 				bsonFile, err = os.Create(bsonPath)
 				if err != nil {
 					return errors.Wrapf(err, "problem opening flie '%s'", bsonPath)
@@ -228,16 +246,16 @@ func toBSON() cli.Command {
 
 func fromBSON() cli.Command {
 	return cli.Command{
-		Name:  "frombson",
-		Usage: "write FTDC data from a BSON file",
+		Name:  "bson",
+		Usage: "write from a BSON file to an FTDC file",
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:  input,
-				Usage: "write BSON data from this file",
+				Usage: "write source BSON data from this file",
 			},
 			cli.StringFlag{
 				Name:  output,
-				Usage: "write BSON data in FTDC format to this file",
+				Usage: "write BSON data in FTDC format to this file, which must not exist yet",
 			},
 			cli.IntFlag{
 				Name:  maxCount,
@@ -250,23 +268,38 @@ func fromBSON() cli.Command {
 			requireStringFlag(output),
 		),
 		Action: func(c *cli.Context) error {
-			_, cancel := context.WithCancel(context.Background())
-			defer cancel()
-
 			bsonPath := c.String(input)
-			ftdcPrefix := c.String(output)
+			ftdcPath := c.String(output)
 			maxCount := c.Int(maxCount)
 
+			// access the source file
+			//
 			bsonFile, err := os.Open(bsonPath)
 			if err != nil {
-				return errors.Wrapf(err, "problem opening flie '%s'", bsonPath)
+				return errors.Wrapf(err, "problem opening file '%s'", bsonPath)
 			}
 			defer bsonFile.Close()
 
-			collector := ftdc.NewDynamicCollector(maxCount)
+			// prepare the output file
+			//
+			if _, err := os.Stat(ftdcPath); !os.IsNotExist(err) {
+				return errors.Errorf("cannot export ftdc to %s, file already exists", ftdcPath)
+			}
+			ftdcFile, err := os.Create(ftdcPath)
+			if err != nil {
+				return errors.Wrapf(err, "problem creating file '%s'", ftdcPath)
+			}
+			defer func() {
+				grip.EmergencyFatal(errors.Wrapf(ftdcFile.Close(), "problem closing '%s' file", ftdcPath))
+			}()
+
+			// collect the data
+			//
+			collector := ftdc.NewStreamingDynamicCollector(maxCount, ftdcFile)
+			defer func() { grip.EmergencyFatal(ftdc.FlushCollector(collector, ftdcFile)) }()
 			for {
 				bsonDoc := bsonx.NewDocument()
-				_, err := bsonDoc.ReadFrom(bsonFile)
+				_, err = bsonDoc.ReadFrom(bsonFile)
 				if err != nil {
 					if err == io.EOF {
 						break
@@ -278,15 +311,131 @@ func fromBSON() cli.Command {
 					return errors.Wrap(err, "failed to write FTDC from BSON")
 				}
 			}
-			output, err := collector.Resolve()
+
+			return nil
+		},
+	}
+}
+
+func toCSV() cli.Command {
+	return cli.Command{
+		Name:  "csv",
+		Usage: "write data from an FTDC file to CSV",
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:  input,
+				Usage: "source FTDC data file",
+			},
+			cli.StringFlag{
+				Name:  output,
+				Usage: "write FTDC data in CSV format to this file (default: stdout)",
+			},
+		},
+		Before: requireFileExists(input, false),
+		Action: func(c *cli.Context) error {
+			inputPath := c.String(input)
+			outputPath := c.String(output)
+
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			// Perpare the input
+			//
+			inputFile, err := os.Open(inputPath)
 			if err != nil {
-				return errors.Wrap(err, "failed to write FTDC from BSON")
+				return errors.Wrapf(err, "problem opening file '%s'", inputPath)
+			}
+			defer inputFile.Close()
+
+			// open the data source
+			//
+			var outputFile *os.File
+			if outputPath == "" {
+				outputFile = os.Stdout
+			} else {
+				if _, err = os.Stat(outputPath); !os.IsNotExist(err) {
+					return errors.Errorf("cannot write ftdc to '%s', file already exists", outputPath)
+				}
+
+				outputFile, err = os.Create(outputPath)
+				if err != nil {
+					return errors.Wrapf(err, "problem opening file '%s'", outputPath)
+				}
+				defer func() { grip.EmergencyFatal(outputFile.Close()) }()
 			}
 
-			if err = ioutil.WriteFile(ftdcPrefix, output, 0600); err != nil {
-				return errors.Wrap(err, "failed to write FTDC from BSON")
+			// actually convert data
+			//
+			if err := ftdc.WriteCSV(ctx, ftdc.ReadChunks(ctx, inputFile), outputFile); err != nil {
+				return errors.Wrap(err, "problem parsing csv")
 			}
+
 			return nil
+		},
+	}
+}
+
+func fromCSV() cli.Command {
+	return cli.Command{
+		Name:  "csv",
+		Usage: "write data from a CSV source to an FTDC file",
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:  input,
+				Usage: "write source BSON data from this file (default: stdin)",
+			},
+			cli.StringFlag{
+				Name:  output,
+				Usage: "write CSV data in FTDC format to this file",
+			},
+			cli.IntFlag{
+				Name:  maxCount,
+				Usage: "maximum number of samples per chunk",
+				Value: 1000,
+			},
+		},
+		Before: mergeBeforeFuncs(
+			requireFileExists(input, true),
+			requireStringFlag(output),
+		),
+		Action: func(c *cli.Context) error {
+			srcPath := c.String(input)
+			outputPath := c.String(output)
+			chunkSize := c.Int(maxCount)
+
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			// Pepare the data source
+			//
+			var srcFile *os.File
+			if srcPath == "" {
+				srcFile = os.Stdin
+			} else {
+				var err error
+				srcFile, err = os.Open(srcPath)
+				if err != nil {
+					return errors.Wrapf(err, "problem opening file %s", srcPath)
+				}
+				defer srcFile.Close()
+			}
+
+			// Create the output file
+			//
+			if _, err := os.Stat(outputPath); !os.IsNotExist(err) {
+				return errors.Errorf("cannot export ftdc to %s, file already exists", outputPath)
+			}
+			outputFile, err := os.Create(outputPath)
+			if err != nil {
+				return errors.Wrapf(err, "problem creating file '%s'", outputPath)
+			}
+			defer func() {
+				grip.EmergencyFatal(errors.Wrapf(outputFile.Close(), "problem closing '%s' file", outputPath))
+			}()
+
+			// Use the library conversion function.
+			//
+			return errors.Wrap(ftdc.ConvertFromCSV(ctx, chunkSize, srcFile, outputFile), "problem writing data to csv")
 		},
 	}
 }
