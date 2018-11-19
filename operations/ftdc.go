@@ -179,7 +179,7 @@ func toBSON() cli.Command {
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:  input,
-				Usage: "read FTDC data from this file",
+				Usage: "read source FTDC data from this file",
 			},
 			cli.StringFlag{
 				Name:  output,
@@ -251,7 +251,7 @@ func fromBSON() cli.Command {
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:  input,
-				Usage: "write BSON data from this file",
+				Usage: "write source BSON data from this file",
 			},
 			cli.StringFlag{
 				Name:  output,
@@ -276,7 +276,7 @@ func fromBSON() cli.Command {
 			//
 			bsonFile, err := os.Open(bsonPath)
 			if err != nil {
-				return errors.Wrapf(err, "problem opening flie '%s'", bsonPath)
+				return errors.Wrapf(err, "problem opening file '%s'", bsonPath)
 			}
 			defer bsonFile.Close()
 
@@ -359,7 +359,7 @@ func toCSV() cli.Command {
 
 				outputFile, err = os.Create(outputPath)
 				if err != nil {
-					return errors.Wrapf(err, "problem opening flie '%s'", outputPath)
+					return errors.Wrapf(err, "problem opening file '%s'", outputPath)
 				}
 				defer func() { grip.EmergencyFatal(outputFile.Close()) }()
 			}
@@ -382,11 +382,11 @@ func fromCSV() cli.Command {
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:  input,
-				Usage: "write BSON data from this file (default: stdin)",
+				Usage: "write source BSON data from this file (default: stdin)",
 			},
 			cli.StringFlag{
 				Name:  output,
-				Usage: "write BSON data in FTDC format to this file",
+				Usage: "write CSV data in FTDC format to this file",
 			},
 			cli.IntFlag{
 				Name:  maxCount,
