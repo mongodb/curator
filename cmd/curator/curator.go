@@ -32,6 +32,7 @@ func buildApp() *cli.App {
 	// Register sub-commands here.
 	app.Commands = []cli.Command{
 		operations.HelloWorld(),
+		operations.Version(),
 		operations.S3(),
 		operations.Repo(),
 		operations.Index(),

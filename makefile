@@ -9,8 +9,7 @@ projectPath := $(orgPath)/$(name)
 
 
 # start build configuration
-currentHash := $(shell git rev-parse HEAD)
-ldFlags := "$(if $(DEBUG_ENABLED),,-w -s )-X=github.com/mongodb/curator.BuildRevision=$(currentHash)"
+ldFlags := "$(if $(DEBUG_ENABLED),,-w -s )-X=github.com/mongodb/curator.BuildRevision=$(shell git rev-parse HEAD) -X=github.com/mongodb/curator.JasperChecksum=$(shell shasum vendor/github.com/mongodb/jasper/jasper.proto | cut -f 1 -d ' ')"
 # end build configuration
 
 
