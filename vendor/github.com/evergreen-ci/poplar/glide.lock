@@ -1,0 +1,28 @@
+hash: ""
+updated: 2016-10-20T16:48:42.872025812-04:00
+imports:
+  - name: github.com/mongodb/ftdc
+    version: 8923d07346eeb63ed18f01c96fa9ae384e960706
+  - name: github.com/mongodb/grip
+    version: d07e4b4315431972625195cb03f8dc7ecdc6b8be
+
+  - name: github.com/pkg/errors
+    version: 2b3a18b5f0fb6b4f9190549597d3f962c02bc5eb
+  - name: github.com/stretchr/testify
+    version: 890a5c3458b43e6104ff5da8dfa139d013d77544
+  - name: github.com/mongodb/grip
+    version: d07e4b4315431972625195cb03f8dc7ecdc6b8be
+
+  # grpc dependencies 
+  - name: golang.org/x/sys
+    version: 3b58ed4ad3395d483fc92d5d14123ce2c3581fec
+  - name: golang.org/x/text
+    version: 6e3c4e7365ddcc329f090f96e4348398f6310088
+  - name: google.golang.org/genproto
+    version: c66870c02cf823ceb633bcd05be3c7cda29976f4
+  - name: google.golang.org/grpc
+    version: e00d24941bcee35dd163f4377d5371349f14baaf
+  - name: golang.org/x/net
+    version: 922f4815f713f213882e8ef45e0d315b164d705c
+  - name: github.com/golang/protobuf
+    version: b27b920f9e71b439b873b17bf99f56467623814a
