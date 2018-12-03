@@ -8,8 +8,10 @@ projectPath := $(orgPath)/$(name)
 # end project configuration
 
 
-# start build configuration
-ldFlags := "$(if $(DEBUG_ENABLED),,-w -s )-X=github.com/mongodb/curator.BuildRevision=$(shell git rev-parse HEAD) -X=github.com/mongodb/curator.JasperChecksum=$(shell shasum vendor/github.com/mongodb/jasper/jasper.proto | cut -f 1 -d ' ')"
+# start build configuratino
+ldFlags := $(if $(DEBUG_ENABLED),,-w -s)
+ldFlags += -X=github.com/mongodb/curator.BuildRevision=$(shell git rev-parse HEAD)
+ldFlags += -X=github.com/mongodb/curator.JasperChecksum=$(shell shasum vendor/github.com/mongodb/jasper/jasper.proto | cut -f 1 -d ' ')
 # end build configuration
 
 
@@ -85,9 +87,9 @@ phony := lint build build-race race test coverage coverage-html
 $(name):$(buildDir)/$(name)
 	@[ -e $@ ] || ln -s $<
 $(buildDir)/$(name):$(srcFiles)
-	go build -ldflags=$(ldFlags) -o $@ cmd/$(name)/$(name).go
+	go build -ldflags="$(ldFlags)" -o $@ cmd/$(name)/$(name).go
 $(buildDir)/$(name).race:$(srcFiles)
-	go build -ldflags=$(ldFlags) -race -o $@ cmd/$(name)/$(name).go
+	go build -ldflags="$(ldFlags)" -race -o $@ cmd/$(name)/$(name).go
 phony += $(buildDir)/$(name)
 # end main build
 
