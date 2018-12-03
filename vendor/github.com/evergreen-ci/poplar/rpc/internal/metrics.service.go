@@ -1,10 +1,9 @@
 package internal
 
 import (
-	"context"
-
 	"github.com/evergreen-ci/poplar"
 	"github.com/pkg/errors"
+	"golang.org/x/net/context"
 )
 
 type metricsService struct {
