@@ -19,6 +19,10 @@ func BenchmarkIterator(b *testing.B) {
 		Path string
 	}{
 		{
+			Name: "PerfMockSmall",
+			Path: "perf_metrics_small.ftdc",
+		},
+		{
 			Name: "PerfMock",
 			Path: "perf_metrics.ftdc",
 		},
@@ -38,6 +42,7 @@ func BenchmarkIterator(b *testing.B) {
 			b.Run("Chunk", func(b *testing.B) {
 				b.Run("Resolving", func(b *testing.B) {
 					iter := ReadChunks(ctx, bytes.NewBuffer(data))
+					b.ResetTimer()
 					for n := 0; n < b.N; n++ {
 						if !iter.Next() {
 							break
@@ -54,9 +59,50 @@ func BenchmarkIterator(b *testing.B) {
 					}
 				})
 			})
+			b.Run("Series", func(b *testing.B) {
+				b.Run("Resolving", func(b *testing.B) {
+					iter := ReadSeries(ctx, bytes.NewBuffer(data))
+					b.ResetTimer()
+					for n := 0; n < b.N; n++ {
+						if !iter.Next() {
+							break
+						}
+						require.NotNil(b, iter.Document())
+					}
+				})
+				b.Run("Iterating", func(b *testing.B) {
+					for n := 0; n < b.N; n++ {
+						iter := ReadSeries(ctx, bytes.NewBuffer(data))
+						for iter.Next() {
+							require.NotNil(b, iter.Document())
+						}
+					}
+				})
+			})
+			b.Run("Matrix", func(b *testing.B) {
+				b.Run("Resolving", func(b *testing.B) {
+					iter := ReadMatrix(ctx, bytes.NewBuffer(data))
+					b.ResetTimer()
+					for n := 0; n < b.N; n++ {
+						if !iter.Next() {
+							break
+						}
+						require.NotNil(b, iter.Document())
+					}
+				})
+				b.Run("Iterating", func(b *testing.B) {
+					for n := 0; n < b.N; n++ {
+						iter := ReadMatrix(ctx, bytes.NewBuffer(data))
+						for iter.Next() {
+							require.NotNil(b, iter.Document())
+						}
+					}
+				})
+			})
 			b.Run("Structured", func(b *testing.B) {
 				b.Run("Resolving", func(b *testing.B) {
 					iter := ReadStructuredMetrics(ctx, bytes.NewBuffer(data))
+					b.ResetTimer()
 					for n := 0; n < b.N; n++ {
 						if !iter.Next() {
 							break
@@ -76,6 +122,7 @@ func BenchmarkIterator(b *testing.B) {
 			b.Run("Flattened", func(b *testing.B) {
 				b.Run("Resolving", func(b *testing.B) {
 					iter := ReadStructuredMetrics(ctx, bytes.NewBuffer(data))
+					b.ResetTimer()
 					for n := 0; n < b.N; n++ {
 						if !iter.Next() {
 							break
