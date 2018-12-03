@@ -44,6 +44,7 @@ func buildApp() *cli.App {
 		operations.Notify(),
 		operations.Greenbay(),
 		operations.Jasper(),
+		operations.Poplar(),
 		operations.FTDC(),
 	}
 

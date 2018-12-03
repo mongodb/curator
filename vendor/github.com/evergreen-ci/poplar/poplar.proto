@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package poplar;
+option go_package = "internal";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/duration.proto";
+
+message PoplarID {
+  string name = 1;
+}
+
+message CreateOptions {
+  string name = 1;
+  string path = 2;
+  int32 chunkSize = 3;
+  bool streaming = 4;
+  bool dynamic = 5;
+  enum RecorderType {
+    UNKNOWN = 0;
+    PERF = 1;
+    PERF_SINGLE = 2;
+    PERF_100MS = 3;
+    PERF_1S = 4;
+    HISTOGRAM_SINGLE = 6;
+    HISTOGRAM_100MS = 7;
+    HISTOGRAM_1S = 8;
+    INTERVAL_SUMMARIZATION = 9;
+  };
+  RecorderType recorder = 6;
+}
+
+message PoplarResponse {
+  string name = 1;
+  bool status = 2;
+}
+
+

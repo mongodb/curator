@@ -11,8 +11,10 @@ import (
 )
 
 type versionInfo struct {
-	Curator string `json:"curator"`
-	Jasper  string `json:"jasper_proto"`
+	Curator        string `json:"curator"`
+	Jasper         string `json:"jasper_proto"`
+	PoplarEvents   string `json:"poplar_proto_events"`
+	PoplarRecorder string `json:"poplar_proto_recorder"`
 }
 
 func (v versionInfo) String() string {
@@ -20,6 +22,8 @@ func (v versionInfo) String() string {
 		"Curator Version Info:",
 		"\n\t", "Build: ", v.Curator,
 		"\n\t", "Jasper: ", v.Jasper,
+		"\n\t", "PoplarEvents: ", v.PoplarEvents,
+		"\n\t", "PoplarRecorder: ", v.PoplarRecorder,
 	}, "")
 }
 
@@ -37,8 +41,10 @@ func Version() cli.Command {
 			isJSON := c.Bool("json")
 
 			info := versionInfo{
-				Curator: curator.BuildRevision,
-				Jasper:  curator.JasperChecksum,
+				Curator:        curator.BuildRevision,
+				Jasper:         curator.JasperChecksum,
+				PoplarEvents:   curator.PoplarEventsChecksum,
+				PoplarRecorder: curator.PoplarRecorderChecksum,
 			}
 			if isJSON {
 				out, err := json.MarshalIndent(info, "", "   ")

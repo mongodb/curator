@@ -25,17 +25,19 @@ imports:
 
 - name: github.com/ghodss/yaml
   version: bea76d6a4713e18b7f5321a2b020738552def3ea
-- name: golang.org/x/sys
-  version: 0ffbfd41fbef8ffcf9b62b0b0aa3a5873ed7a4fe
 
 - name: google.golang.org/grpc
   version: e00d24941bcee35dd163f4377d5371349f14baaf
-- name: golang.org/x/net
-  version: 922f4815f713f213882e8ef45e0d315b164d705c
 - name: github.com/golang/protobuf
   version: b27b920f9e71b439b873b17bf99f56467623814a
 - name: google.golang.org/genproto
   version: c66870c02cf823ceb633bcd05be3c7cda29976f4
+- name: golang.org/x/sys
+  version: 0ffbfd41fbef8ffcf9b62b0b0aa3a5873ed7a4fe
+- name: golang.org/x/net
+  version: 922f4815f713f213882e8ef45e0d315b164d705c
+- name: golang.org/x/text
+  version: 6e3c4e7365ddcc329f090f96e4348398f6310088
 
 - name: github.com/mongodb/grip
   version: d6146c91d71cb4d53509d9d02b273aac156fc155
@@ -55,11 +57,11 @@ imports:
   version: 1b77c8dfcc6baca12dedfab119135396782b68a1
 
 - name: github.com/mongodb/ftdc
-  version: 56ab6683a89cf2a34a2ecec9899eb18679fc728e
+  version: 8923d07346eeb63ed18f01c96fa9ae384e960706
 - name: github.com/mongodb/jasper
   version: 8a40bf440192e92cc178ca8300cd27964fc177ee
-- name: golang.org/x/text
-  version: 6e3c4e7365ddcc329f090f96e4348398f6310088
+- name: github.com/evergreen-ci/poplar
+  version: f58f869487f7287697d52ec0379e4c835e26c820
 
 - name: github.com/mongodb/mongo-go-driver
   version: 03d16bbe636981a408ff359412697fa9ff16ec83

@@ -12,8 +12,10 @@ imports:
 
 - name: github.com/mongodb/mongo-go-driver
   version: 03d16bbe636981a408ff359412697fa9ff16ec83
+- name: gopkg.in/mgo.v2
+  version: 3f83fa5005286a7fe593b055f0d7771a7dce4655
 
 - name: github.com/mongodb/grip
-  version: 5d6dffc047e01c5553d48459d68a2d4f6c11a6ff
+  version: 1f64f878ff63db69d7b94d7ab9cdbec0c4e9d017
 
 devImports: []

@@ -5,3 +5,7 @@ package curator
 var BuildRevision = ""
 
 var JasperChecksum = ""
+
+var PoplarEventsChecksum = ""
+
+var PoplarRecorderChecksum = ""
