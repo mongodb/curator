@@ -46,3 +46,21 @@ func mergeBeforeFuncs(ops ...func(c *cli.Context) error) cli.BeforeFunc {
 		return catcher.Resolve()
 	}
 }
+
+func requireFileOrPositional(pathFlagName string) cli.BeforeFunc {
+	return func(c *cli.Context) error {
+		path := c.String(pathFlagName)
+		if path == "" {
+			if c.NArg() != 1 {
+				return errors.New("must specify a path")
+			}
+			path = c.Args().Get(0)
+		}
+
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			return errors.Errorf("file %s does not exist", path)
+		}
+
+		return c.Set(pathFlagName, path)
+	}
+}

@@ -4,7 +4,6 @@ package poplar;
 option go_package = "internal";
 
 import "poplar.proto";
-import "recorder.proto";
 
 message IntervalSummary {
   string collector = 1;

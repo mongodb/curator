@@ -15,6 +15,7 @@ type versionInfo struct {
 	Jasper         string `json:"jasper_proto"`
 	PoplarEvents   string `json:"poplar_proto_events"`
 	PoplarRecorder string `json:"poplar_proto_recorder"`
+	CedarMetrics   string `json:"cedar_metrics_proto"`
 }
 
 func (v versionInfo) String() string {
@@ -24,6 +25,7 @@ func (v versionInfo) String() string {
 		"\n\t", "Jasper: ", v.Jasper,
 		"\n\t", "PoplarEvents: ", v.PoplarEvents,
 		"\n\t", "PoplarRecorder: ", v.PoplarRecorder,
+		"\n\t", "CedarMetrics: ", v.CedarMetrics,
 	}, "")
 }
 
@@ -45,6 +47,7 @@ func Version() cli.Command {
 				Jasper:         curator.JasperChecksum,
 				PoplarEvents:   curator.PoplarEventsChecksum,
 				PoplarRecorder: curator.PoplarRecorderChecksum,
+				CedarMetrics:   curator.CedarMetricsChecksum,
 			}
 			if isJSON {
 				out, err := json.MarshalIndent(info, "", "   ")

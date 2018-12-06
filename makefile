@@ -14,6 +14,7 @@ ldFlags += -X=github.com/mongodb/curator.BuildRevision=$(shell git rev-parse HEA
 ldFlags += -X=github.com/mongodb/curator.JasperChecksum=$(shell shasum vendor/github.com/mongodb/jasper/jasper.proto | cut -f 1 -d ' ')
 ldFlags += -X=github.com/mongodb/curator.PoplarEventsChecksum=$(shell shasum vendor/github.com/evergreen-ci/poplar/metrics.proto | cut -f 1 -d ' ')
 ldFlags += -X=github.com/mongodb/curator.PoplarRecorderChecksum=$(shell shasum vendor/github.com/evergreen-ci/poplar/recorder.proto | cut -f 1 -d ' ')
+ldFlags += -X=github.com/mongodb/curator.CedarMetricsChecksum=$(shell shasum vendor/github.com/evergreen-ci/poplar/vendor/cedar.proto | cut -f 1 -d ' ')
 # end build configuration
 
 
@@ -133,6 +134,7 @@ vendor-clean:
 	rm -rf vendor/github.com/evergreen-ci/poplar/vendor/golang.org/x/text/
 	rm -rf vendor/github.com/evergreen-ci/poplar/vendor/github.com/pkg/errors/
 	rm -rf vendor/github.com/mongodb/amboy/vendor/github.com/mongodb/grip/
+	rm -rf vendor/github.com/mongodb/amboy/vendor/github.com/mongodb/mongo-go-driver/
 	rm -rf vendor/github.com/mongodb/amboy/vendor/github.com/pkg/errors/
 	rm -rf vendor/github.com/mongodb/amboy/vendor/github.com/stretchr/testify/
 	rm -rf vendor/github.com/mongodb/ftdc/vendor/github.com/mongodb/grip
