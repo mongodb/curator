@@ -15,8 +15,8 @@ import (
 )
 
 const (
-	envVarPoplarRecorderGRPCPort  = ""
-	envVarPoplarRecorderGRPCHost  = ""
+	envVarPoplarRecorderGRPCPort  = "POPLAR_GRPC_PORT"
+	envVarPoplarRecorderGRPCHost  = "POPLAR_GRPC_HOST"
 	defaultPoplarRecorderGRPCPort = 2288
 )
 
@@ -26,7 +26,7 @@ func Poplar() cli.Command {
 		Usage: "a performance testing and metrics reporting toolkit",
 		Flags: []cli.Flag{},
 		Subcommands: []cli.Command{
-
+			poplarReport(),
 			poplarGRPC(),
 		},
 	}
@@ -82,6 +82,68 @@ func poplarGRPC() cli.Command {
 			}()
 
 			<-wait
+			return nil
+		},
+	}
+}
+
+func poplarReport() cli.Command {
+	const (
+		serviceFlagName = "service"
+		pathFlagName    = "path"
+	)
+
+	return cli.Command{
+		Name:  "send",
+		Usage: "send a metrics report",
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:  serviceFlagName,
+				Usage: "specify the address of the metrics service",
+			},
+			cli.BoolFlag{
+				Name:  "insecure",
+				Usage: "disables certificate validation requirements",
+			},
+			cli.StringFlag{
+				Name:  pathFlagName,
+				Usage: "specify the path of the input file, may be the first positional argument",
+			},
+		},
+		Before: mergeBeforeFuncs(
+			requireStringFlag(serviceFlagName),
+			requireFileOrPositional(pathFlagName),
+		),
+		Action: func(c *cli.Context) error {
+			addr := c.String(serviceFlagName)
+			fileName := c.String(pathFlagName)
+			isInsecure := c.Bool("insecure")
+
+			report, err := poplar.LoadReport(fileName)
+			if err != nil {
+				return errors.WithStack(err)
+			}
+
+			rpcOpts := []grpc.DialOption{
+				grpc.WithBlock(),
+			}
+
+			if isInsecure {
+				rpcOpts = append(rpcOpts, grpc.WithInsecure())
+			}
+
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			conn, err := grpc.DialContext(ctx, addr, rpcOpts...)
+			if err != nil {
+				return errors.WithStack(err)
+			}
+
+			if err := rpc.UploadReport(ctx, report, conn); err != nil {
+				return errors.WithStack(err)
+			}
+
 			return nil
 		},
 	}

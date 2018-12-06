@@ -44,12 +44,21 @@ $(buildDir)/cover.html:$(buildDir)/cover.out
 .FORCE:
 
 
-proto:
+proto:vendor/cedar.proto
 	@mkdir -p rpc/internal
 	protoc --go_out=plugins=grpc:rpc/internal *.proto
+	protoc --go_out=plugins=grpc:rpc/internal vendor/cedar.proto
+	mv rpc/internal/vendor/cedar.pb.go rpc/internal/cedar.pb.go
 clean:
 	rm -rf rpc/internal/*.pb.go
 
+vendor/cedar.proto:
+	curl -L https://raw.githubusercontent.com/evergreen-ci/cedar/master/perf.proto -o $@
+vendor:
+	glide install -s
+
+
+.PHONY:vendor
 vendor-clean:
 	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/montanaflynn/
 	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/stretchr/testify/

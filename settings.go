@@ -9,3 +9,5 @@ var JasperChecksum = ""
 var PoplarEventsChecksum = ""
 
 var PoplarRecorderChecksum = ""
+
+var CedarMetricsChecksum = ""
