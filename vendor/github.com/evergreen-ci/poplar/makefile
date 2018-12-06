@@ -67,4 +67,8 @@ vendor-clean:
 	rm -rf vendor/github.com/mongodb/ftdc/vendor/github.com/pkg/errors/
 	rm -rf vendor/github.com/mongodb/ftdc/vendor/github.com/mongodb/grip/
 	rm -rf vendor/github.com/mongodb/grip/buildscripts/
+	rm -rf vendor/github.com/mongodb/mongo-go-driver/vendor/golang.org/x/text/
+	rm -rf vendor/github.com/mongodb/mongo-go-driver/vendor/github.com/montanaflynn/
+	rm -rf vendor/github.com/mongodb/mongo-go-driver/vendor/github.com/stretchr/	
+	rm -rf vendor/github.com/mongodb/mongo-go-driver/vendor/github.com/google/go-cmp/cmp/
 	find vendor/ -name "*.gif" -o -name "*.gz" -o -name "*.png" -o -name "*.ico" -o -name "*.dat" -o -name "*testdata" | xargs rm -rf
