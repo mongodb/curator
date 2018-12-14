@@ -166,8 +166,35 @@ func TestRegistry(t *testing.T) {
 
 		coll, ok = reg.GetCollector("foo")
 		require.True(t, ok)
-		require.NotNil(t, coll)
+
+		cus, ok := reg.GetCustomCollector("foo")
+		require.False(t, ok)
+		require.Nil(t, cus)
 
 	})
+	t.Run("CustomCollector", func(t *testing.T) {
+		reg := NewRegistry()
+		opts := CreateOptions{
+			Recorder: CustomMetrics,
+			Dynamic:  true,
+			Path:     filepath.Join(tmpdir, "foobaz"),
+		}
+		rec, err := reg.Create("custom", opts)
+		assert.NoError(t, err)
+		assert.Nil(t, rec)
 
+		require.Error(t, ((*customEventTracker)(nil)).Add("foo", 1))
+
+		coll, ok := reg.GetCustomCollector("not")
+		require.Nil(t, coll)
+		require.False(t, ok)
+
+		coll, ok = reg.GetCustomCollector("custom")
+		require.NotNil(t, coll)
+		require.True(t, ok)
+		require.NoError(t, coll.Add("foo", 1))
+		require.Equal(t, 1, len(coll.Dump()))
+		coll.Reset()
+		require.Equal(t, 0, len(coll.Dump()))
+	})
 }
