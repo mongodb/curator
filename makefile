@@ -123,10 +123,12 @@ lint-%:$(buildDir)/output.%.lint
 vendor-clean:
 	rm -rf vendor/github.com/evergreen-ci/gimlet/vendor/github.com/mongodb/grip
 	rm -rf vendor/github.com/evergreen-ci/gimlet/vendor/github.com/stretchr/testify/
-	rm -rf vendor/github.com/evergreen-ci/pail/vendor/github.com/aws/aws-sdk-go/
 	rm -rf vendor/github.com/evergreen-ci/pail/vendor/github.com/mongodb/grip/
 	rm -rf vendor/github.com/evergreen-ci/pail/vendor/github.com/pkg/errors/
-	rm -rf vendor/github.com/evergreen-ci/pail/vendor/gopkg.in/mgo.v2/
+	rm -rf vendor/github.com/evergreen-ci/pail/vendor/gopkg.in/mgo.v2/harness/
+	rm -rf vendor/github.com/evergreen-ci/pail/vendor/gopkg.in/mgo.v2/txn/
+	rm -rf vendor/github.com/evergreen-ci/pail/vendor/github.com/stretchr/
+	rm -rf vendor/github.com/evergreen-ci/pail/{scripts,cmd,evergreen.yaml}
 	rm -rf vendor/github.com/evergreen-ci/poplar/vendor/github.com/golang/protobuf
 	rm -rf vendor/github.com/evergreen-ci/poplar/vendor/github.com/mongodb/grip
 	rm -rf vendor/github.com/evergreen-ci/poplar/vendor/github.com/mongodb/ftdc

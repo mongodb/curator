@@ -33,9 +33,6 @@ import (
 //  - we might need to have variants that Put/Get byte slices rather
 //    than readers.
 //  - pass contexts to requests for timeouts.
-//
-// Eventually we'll move this package to its own repository, but for
-// now we can do development here.
 
 type Bucket interface {
 	Check(context.Context) error

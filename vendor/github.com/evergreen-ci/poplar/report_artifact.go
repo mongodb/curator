@@ -8,7 +8,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/evergreen-ci/pail"
 	"github.com/mongodb/ftdc"
 	"github.com/mongodb/ftdc/bsonx"
@@ -85,7 +84,7 @@ func (a *TestArtifact) Upload(ctx context.Context, conf BucketConfiguration) err
 			Prefix: conf.Prefix,
 		}
 		if (conf.APIKey != "" && conf.APISecret != "") || conf.APIToken != "" {
-			opts.Credentials = credentials.NewStaticCredentials(conf.APIKey, conf.APISecret, conf.APIToken)
+			opts.Credentials = pail.CreateAWSCredentials(conf.APIKey, conf.APISecret, conf.APIToken)
 		}
 
 		conf.bucket, err = pail.NewS3Bucket(opts)

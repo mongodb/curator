@@ -9,3 +9,5 @@ imports:
   version: cf66c348f82c79de333bd788d4f782c4d623ebad
 - name: gopkg.in/mgo.v2
   version: 3f83fa5005286a7fe593b055f0d7771a7dce4655
+- name: github.com/stretchr/testify
+  version: 890a5c3458b43e6104ff5da8dfa139d013d77544
