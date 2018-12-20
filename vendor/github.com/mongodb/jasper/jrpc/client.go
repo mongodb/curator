@@ -94,6 +94,10 @@ func (m *jrpcManager) Get(ctx context.Context, name string) (jasper.Process, err
 	return &jrpcProcess{client: m.client, info: info}, nil
 }
 
+func (m *jrpcManager) Clear(ctx context.Context) {
+	m.client.Clear(ctx, &empty.Empty{})
+}
+
 func (m *jrpcManager) Close(ctx context.Context) error {
 	resp, err := m.client.Close(ctx, &empty.Empty{})
 	if err != nil {
@@ -170,17 +174,29 @@ func (p *jrpcProcess) Signal(ctx context.Context, sig syscall.Signal) error {
 	return errors.New(resp.Text)
 }
 
-func (p *jrpcProcess) Wait(ctx context.Context) error {
+func (p *jrpcProcess) Wait(ctx context.Context) (int, error) {
 	resp, err := p.client.Wait(ctx, &internal.JasperProcessID{Value: p.info.Id})
 	if err != nil {
-		return errors.WithStack(err)
+		return -1, errors.WithStack(err)
 	}
 
 	if resp.Success {
-		return nil
+		if resp.ExitCode != 0 {
+			return int(resp.ExitCode), errors.New("operation failed")
+		}
+		return int(resp.ExitCode), nil
 	}
 
-	return errors.New(resp.Text)
+	return -1, errors.New(resp.Text)
+}
+
+func (p *jrpcProcess) Respawn(ctx context.Context) (jasper.Process, error) {
+	newProc, err := p.client.Respawn(ctx, &internal.JasperProcessID{Value: p.info.Id})
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	return &jrpcProcess{client: p.client, info: newProc}, nil
 }
 
 func (p *jrpcProcess) RegisterTrigger(ctx context.Context, _ jasper.ProcessTrigger) error {

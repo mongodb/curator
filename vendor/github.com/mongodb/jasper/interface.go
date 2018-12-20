@@ -26,6 +26,7 @@ type Manager interface {
 	List(context.Context, Filter) ([]Process, error)
 	Group(context.Context, string) ([]Process, error)
 	Get(context.Context, string) (Process, error)
+	Clear(context.Context)
 	Close(context.Context) error
 }
 
@@ -61,9 +62,21 @@ type Process interface {
 	Signal(context.Context, syscall.Signal) error
 
 	// Wait blocks until the process exits or the context is
-	// canceled or is not properly defined. Returns nil if the
-	// process has completed.
-	Wait(context.Context) error
+	// canceled or is not properly defined. Wait will return the
+	// exit code as -1 if it was unable to return a true code due
+	// to some other error, but otherwise will return the actual
+	// exit code of the process. Returns nil if the process has
+	// completed successfully. If the process has not completed
+	// successfully, Wait will return a non-nil error.
+	//
+	// Note that death by signal does not return the signal code
+	// and instead is returned as -1.
+	Wait(context.Context) (int, error)
+
+	// Respawn respawns a near-identical version of the process on
+	// which it is called. It will spawn a new process with the same
+	// options and return the new, "respawned" process.
+	Respawn(context.Context) (Process, error)
 
 	// RegisterTrigger associates triggers with a process,
 	// erroring when the context is canceled, the process is

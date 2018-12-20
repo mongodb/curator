@@ -67,7 +67,7 @@ func TestRestService(t *testing.T) {
 			assert.Nil(t, list)
 		},
 		"RegisterAlwaysErrors": func(ctx context.Context, t *testing.T, srv *Service, client *restClient) {
-			proc, err := newBasicProcess(ctx, trueCreateOpts())
+			proc, err := newBlockingProcess(ctx, trueCreateOpts())
 			require.NoError(t, err)
 
 			assert.Error(t, client.Register(ctx, nil))
@@ -181,7 +181,7 @@ func TestRestService(t *testing.T) {
 			assert.Error(t, err)
 			assert.Contains(t, err.Error(), "problem building request")
 
-			err = proc.Wait(ctx)
+			_, err = proc.Wait(ctx)
 			assert.Error(t, err)
 			assert.Contains(t, err.Error(), "problem building request")
 
@@ -205,7 +205,7 @@ func TestRestService(t *testing.T) {
 			assert.Error(t, err)
 			assert.Contains(t, err.Error(), "problem making request")
 
-			err = proc.Wait(ctx)
+			_, err = proc.Wait(ctx)
 			assert.Error(t, err)
 			assert.Contains(t, err.Error(), "problem making request")
 
@@ -284,7 +284,8 @@ func TestRestService(t *testing.T) {
 				id:     "foo",
 			}
 
-			assert.Error(t, proc.Wait(ctx))
+			_, err := proc.Wait(ctx)
+			assert.Error(t, err)
 		},
 		"SignalProcessThatDoesNotExistShouldError": func(ctx context.Context, t *testing.T, srv *Service, client *restClient) {
 			proc := &restProcess{
@@ -534,7 +535,8 @@ func TestRestService(t *testing.T) {
 			assert.NoError(t, err)
 			assert.NotNil(t, proc)
 
-			assert.NoError(t, proc.Wait(ctx))
+			_, err = proc.Wait(ctx)
+			assert.NoError(t, err)
 
 			logs, err := client.GetLogs(ctx, proc.ID())
 			assert.NoError(t, err)
@@ -551,7 +553,8 @@ func TestRestService(t *testing.T) {
 			proc, err := client.Create(ctx, opts)
 			assert.NoError(t, err)
 			assert.NotNil(t, proc)
-			assert.NoError(t, proc.Wait(ctx))
+			_, err = proc.Wait(ctx)
+			assert.NoError(t, err)
 			logs, err := client.GetLogs(ctx, proc.ID())
 			assert.Error(t, err)
 			assert.Empty(t, logs)
@@ -665,7 +668,8 @@ func TestRestService(t *testing.T) {
 			opts.Args = []string{"echo", "foobar"}
 			proc, err := client.Create(ctx, opts)
 			require.NoError(t, err)
-			require.NoError(t, proc.Wait(ctx))
+			_, err = proc.Wait(ctx)
+			require.NoError(t, err)
 
 			logs, err := client.GetLogs(ctx, proc.ID())
 			require.NoError(t, err)

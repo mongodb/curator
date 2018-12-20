@@ -76,9 +76,18 @@ func (p *localProcess) RegisterTrigger(ctx context.Context, trigger ProcessTrigg
 	return errors.WithStack(p.proc.RegisterTrigger(ctx, trigger))
 }
 
-func (p *localProcess) Wait(ctx context.Context) error {
+func (p *localProcess) Wait(ctx context.Context) (int, error) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
-	return errors.WithStack(p.proc.Wait(ctx))
+	exitCode, err := p.proc.Wait(ctx)
+	return exitCode, errors.WithStack(err)
+}
+
+func (p *localProcess) Respawn(ctx context.Context) (Process, error) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
+	newProc, err := p.proc.Respawn(ctx)
+	return newProc, errors.WithStack(err)
 }

@@ -198,7 +198,7 @@ func TestBlockingProcess(t *testing.T) {
 					assert.NoError(t, cmd.Start())
 					startAt := time.Now()
 					go proc.reactor(ctx, cmd)
-					err = proc.Wait(cctx)
+					_, err = proc.Wait(cctx)
 					assert.Error(t, err)
 					assert.Contains(t, err.Error(), "operation canceled")
 					assert.True(t, time.Since(startAt) >= 500*time.Millisecond)
@@ -214,7 +214,8 @@ func TestBlockingProcess(t *testing.T) {
 					go func() {
 						// this is the crucial
 						// assertion of this tests
-						assert.NoError(t, proc.Wait(ctx))
+						_, err := proc.Wait(ctx)
+						assert.NoError(t, err)
 						close(signal)
 					}()
 
@@ -244,7 +245,8 @@ func TestBlockingProcess(t *testing.T) {
 					go func() {
 						// this is the crucial
 						// assertion of this tests
-						assert.NoError(t, proc.Wait(ctx))
+						_, err := proc.Wait(ctx)
+						assert.NoError(t, err)
 						close(signal)
 					}()
 
@@ -275,7 +277,8 @@ func TestBlockingProcess(t *testing.T) {
 					go func() {
 						// this is the crucial assertion
 						// of this tests.
-						assert.Error(t, proc.Wait(ctx))
+						_, err := proc.Wait(ctx)
+						assert.Error(t, err)
 						close(signal)
 					}()
 

@@ -16,8 +16,7 @@ import (
 
 func TestJRPCService(t *testing.T) {
 	for managerName, makeManager := range map[string]func() jasper.Manager{
-		"Blocking":    jasper.NewLocalManagerBlockingProcesses,
-		"Nonblocking": jasper.NewLocalManager,
+		"Blocking": jasper.NewLocalManager,
 	} {
 		t.Run(managerName, func(t *testing.T) {
 			for testName, testCase := range map[string]func(context.Context, *testing.T, jasper.CreateOptions, internal.JasperProcessManagerClient, string, string){

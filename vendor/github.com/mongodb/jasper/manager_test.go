@@ -19,22 +19,16 @@ func TestManagerInterface(t *testing.T) {
 	defer cancel()
 
 	for mname, factory := range map[string]func(ctx context.Context, t *testing.T) Manager{
-		"Basic/NoLock": func(ctx context.Context, t *testing.T) Manager {
+		"Basic/NoLock/BlockingProcs": func(ctx context.Context, t *testing.T) Manager {
 			return &basicProcessManager{
 				procs: map[string]Process{},
 			}
 		},
-		"Basic/NoLock/BlockingProcs": func(ctx context.Context, t *testing.T) Manager {
-			return &basicProcessManager{
-				procs:    map[string]Process{},
-				blocking: true,
-			}
-		},
-		"Basic/Lock": func(ctx context.Context, t *testing.T) Manager {
+		"Basic/Lock/BlockingProcs": func(ctx context.Context, t *testing.T) Manager {
 			return NewLocalManager()
 		},
-		"Basic/Lock/BlockingProcs": func(ctx context.Context, t *testing.T) Manager {
-			return NewLocalManagerBlockingProcesses()
+		"Basic/Lock/SelfClearing/BlockingProcs": func(ctx context.Context, t *testing.T) Manager {
+			return NewSelfClearingProcessManager(10)
 		},
 		"REST": func(ctx context.Context, t *testing.T) Manager {
 			srv, port := makeAndStartService(ctx, httpClient)
@@ -110,7 +104,8 @@ func TestManagerInterface(t *testing.T) {
 					proc, err := manager.Create(ctx, trueCreateOpts())
 					require.NoError(t, err)
 
-					assert.NoError(t, proc.Wait(ctx))
+					_, err = proc.Wait(ctx)
+					assert.NoError(t, err)
 
 					listOut, err := manager.List(ctx, Successful)
 					assert.NoError(t, err)
@@ -122,7 +117,8 @@ func TestManagerInterface(t *testing.T) {
 				"ListReturnsOneFailedCommand": func(ctx context.Context, t *testing.T, manager Manager) {
 					proc, err := manager.Create(ctx, falseCreateOpts())
 					require.NoError(t, err)
-					assert.Error(t, proc.Wait(ctx))
+					_, err = proc.Wait(ctx)
+					assert.Error(t, err)
 
 					listOut, err := manager.List(ctx, Failed)
 					assert.NoError(t, err)
@@ -189,7 +185,8 @@ func TestManagerInterface(t *testing.T) {
 				"CloseErrorsWithTerminatedProcesses": func(ctx context.Context, t *testing.T, manager Manager) {
 					procs, err := createProcs(ctx, trueCreateOpts(), manager, 10)
 					for _, p := range procs {
-						assert.NoError(t, p.Wait(ctx))
+						_, err := p.Wait(ctx)
+						assert.NoError(t, err)
 					}
 
 					assert.NoError(t, err)
@@ -249,7 +246,7 @@ func TestManagerInterface(t *testing.T) {
 
 					cctx, cancel := context.WithCancel(ctx)
 					cancel()
-					proc, err := newBasicProcess(ctx, trueCreateOpts())
+					proc, err := newBlockingProcess(ctx, trueCreateOpts())
 					assert.NoError(t, err)
 					err = manager.Register(cctx, proc)
 					assert.Error(t, err)
@@ -260,7 +257,7 @@ func TestManagerInterface(t *testing.T) {
 						t.Skip("not supported on rest interfaces")
 					}
 
-					proc := &basicProcess{}
+					proc := &blockingProcess{}
 					assert.Equal(t, proc.ID(), "")
 					err := manager.Register(ctx, proc)
 					assert.Error(t, err)
@@ -271,7 +268,7 @@ func TestManagerInterface(t *testing.T) {
 						t.Skip("not supported on rest interfaces")
 					}
 
-					proc, err := newBasicProcess(ctx, trueCreateOpts())
+					proc, err := newBlockingProcess(ctx, trueCreateOpts())
 					require.NoError(t, err)
 					err = manager.Register(ctx, proc)
 					assert.NoError(t, err)
@@ -287,7 +284,7 @@ func TestManagerInterface(t *testing.T) {
 						t.Skip("not supported on rest interfaces")
 					}
 
-					proc, err := newBasicProcess(ctx, trueCreateOpts())
+					proc, err := newBlockingProcess(ctx, trueCreateOpts())
 					assert.NoError(t, err)
 					assert.NotEmpty(t, proc)
 					err = manager.Register(ctx, proc)
@@ -308,7 +305,8 @@ func TestManagerInterface(t *testing.T) {
 					opts.closers = append(opts.closers, func() { closersDone <- true })
 					proc, err := manager.Create(ctx, opts)
 					assert.NoError(t, err)
-					assert.NoError(t, proc.Wait(ctx))
+					_, err = proc.Wait(ctx)
+					assert.NoError(t, err)
 					select {
 					case <-ctx.Done():
 						assert.Fail(t, "process took too long to run closers")
@@ -316,10 +314,53 @@ func TestManagerInterface(t *testing.T) {
 						assert.Equal(t, 1, count)
 					}
 				},
+				"ClearCausesDeletionOfProcesses": func(ctx context.Context, t *testing.T, manager Manager) {
+					opts := trueCreateOpts()
+					proc, err := manager.Create(ctx, opts)
+					require.NoError(t, err)
+					sameProc, err := manager.Get(ctx, proc.ID())
+					require.Equal(t, proc.ID(), sameProc.ID())
+					_, err = proc.Wait(ctx)
+					require.NoError(t, err)
+					manager.Clear(ctx)
+					nilProc, err := manager.Get(ctx, proc.ID())
+					assert.Nil(t, nilProc)
+				},
+				"ClearIsANoOpForActiveProcesses": func(ctx context.Context, t *testing.T, manager Manager) {
+					opts := sleepCreateOpts(20)
+					proc, err := manager.Create(ctx, opts)
+					require.NoError(t, err)
+					manager.Clear(ctx)
+					sameProc, err := manager.Get(ctx, proc.ID())
+					assert.Equal(t, proc.ID(), sameProc.ID())
+					require.NoError(t, Terminate(ctx, proc)) // Clean up
+				},
+				"ClearSelectivelyDeletesOnlyDeadProcesses": func(ctx context.Context, t *testing.T, manager Manager) {
+					trueOpts := trueCreateOpts()
+					lsProc, err := manager.Create(ctx, trueOpts)
+					require.NoError(t, err)
+
+					sleepOpts := sleepCreateOpts(20)
+					sleepProc, err := manager.Create(ctx, sleepOpts)
+					require.NoError(t, err)
+
+					_, err = lsProc.Wait(ctx)
+					require.NoError(t, err)
+
+					manager.Clear(ctx)
+
+					sameSleepProc, err := manager.Get(ctx, sleepProc.ID())
+					require.NoError(t, err)
+					assert.Equal(t, sleepProc.ID(), sameSleepProc.ID())
+
+					nilProc, err := manager.Get(ctx, lsProc.ID())
+					assert.Nil(t, nilProc)
+					require.NoError(t, Terminate(ctx, sleepProc)) // Clean up
+				},
 				// "": func(ctx context.Context, t *testing.T, manager Manager) {},
 			} {
 				t.Run(name, func(t *testing.T) {
-					tctx, cancel := context.WithTimeout(ctx, taskTimeout)
+					tctx, cancel := context.WithTimeout(ctx, managerTestTimeout)
 					defer cancel()
 					test(tctx, t, factory(tctx, t))
 				})

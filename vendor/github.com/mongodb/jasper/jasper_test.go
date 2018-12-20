@@ -33,8 +33,10 @@ func getPortNumber() int {
 }
 
 const (
-	taskTimeout     = 5 * time.Second
-	longTaskTimeout = 100 * time.Second
+	taskTimeout        = 5 * time.Second
+	processTestTimeout = 15 * time.Second
+	managerTestTimeout = 5 * taskTimeout
+	longTaskTimeout    = 100 * time.Second
 )
 
 // this file contains tools and constants used throughout the test
@@ -146,6 +148,7 @@ type MockManager struct {
 	FailList     bool
 	FailGroup    bool
 	FailGet      bool
+	FailClear    bool
 	FailClose    bool
 	Process      *MockProcess
 	Array        []Process
@@ -189,6 +192,10 @@ func (m *MockManager) Get(_ context.Context, name string) (Process, error) {
 	return m.Process, nil
 }
 
+func (m *MockManager) Clear(_ context.Context) {
+	return
+}
+
 func (m *MockManager) Close(_ context.Context) error {
 	if m.FailClose {
 		return errors.New("always fail")
@@ -203,6 +210,7 @@ type MockProcess struct {
 	IsComplete          bool
 	FailSignal          bool
 	FailWait            bool
+	FailRespawn         bool
 	FailRegisterTrigger bool
 }
 
@@ -221,12 +229,20 @@ func (p *MockProcess) Signal(_ context.Context, s syscall.Signal) error {
 	return nil
 }
 
-func (p *MockProcess) Wait(_ context.Context) error {
+func (p *MockProcess) Wait(_ context.Context) (int, error) {
 	if p.FailWait {
-		return errors.New("always fail")
+		return -1, errors.New("always fail")
 	}
 
-	return nil
+	return 0, nil
+}
+
+func (p *MockProcess) Respawn(_ context.Context) (Process, error) {
+	if p.FailRespawn {
+		return nil, errors.New("always fail")
+	}
+
+	return nil, nil
 }
 
 func (p *MockProcess) RegisterTrigger(_ context.Context, t ProcessTrigger) error {

@@ -10,17 +10,7 @@ import (
 func NewLocalManager() Manager {
 	return &localProcessManager{
 		manager: &basicProcessManager{
-			procs:    map[string]Process{},
-			blocking: false,
-		},
-	}
-}
-
-func NewLocalManagerBlockingProcesses() Manager {
-	return &localProcessManager{
-		manager: &basicProcessManager{
-			procs:    map[string]Process{},
-			blocking: true,
+			procs: map[string]Process{},
 		},
 	}
 }
@@ -69,6 +59,13 @@ func (m *localProcessManager) Get(ctx context.Context, id string) (Process, erro
 
 	proc, err := m.manager.Get(ctx, id)
 	return proc, errors.WithStack(err)
+}
+
+func (m *localProcessManager) Clear(ctx context.Context) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	m.manager.Clear(ctx)
 }
 
 func (m *localProcessManager) Close(ctx context.Context) error {

@@ -213,6 +213,15 @@ func (c *restClient) Get(ctx context.Context, id string) (Process, error) {
 	}, nil
 }
 
+func (c *restClient) Clear(ctx context.Context) {
+	// Avoid errors here, because we can't return them anyways, and these errors
+	// should not really ever happen.
+	req, _ := http.NewRequest(http.MethodPost, c.getURL("/clear"), nil)
+	req = req.WithContext(ctx)
+
+	c.client.Do(req)
+}
+
 func (c *restClient) Close(ctx context.Context) error {
 	req, err := http.NewRequest(http.MethodDelete, c.getURL("/close"), nil)
 	if err != nil {
@@ -352,24 +361,57 @@ func (p *restProcess) Signal(ctx context.Context, sig syscall.Signal) error {
 	return nil
 }
 
-func (p *restProcess) Wait(ctx context.Context) error {
+func (p *restProcess) Wait(ctx context.Context) (int, error) {
 	req, err := http.NewRequest(http.MethodGet, p.client.getURL("/process/%s/wait", p.id), nil)
 	if err != nil {
-		return errors.Wrap(err, "problem building request")
+		return -1, errors.Wrap(err, "problem building request")
 	}
 
 	req = req.WithContext(ctx)
 
 	resp, err := p.client.client.Do(req)
 	if err != nil {
-		return errors.Wrap(err, "problem making request")
+		return -1, errors.Wrap(err, "problem making request")
 	}
 
 	if err = handleError(resp); err != nil {
-		return errors.WithStack(err)
+		return -1, errors.WithStack(err)
 	}
 
-	return nil
+	var exitCode int
+	gimlet.GetJSON(resp.Body, &exitCode)
+	if exitCode != 0 {
+		return exitCode, errors.New("operation failed")
+	}
+	return exitCode, nil
+}
+
+func (p *restProcess) Respawn(ctx context.Context) (Process, error) {
+	req, err := http.NewRequest(http.MethodGet, p.client.getURL("/process/%s/respawn", p.id), nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "problem building request")
+	}
+
+	req = req.WithContext(ctx)
+
+	resp, err := p.client.client.Do(req)
+	if err != nil {
+		return nil, errors.Wrap(err, "problem making request")
+	}
+
+	if err = handleError(resp); err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	info := ProcessInfo{}
+	if err = gimlet.GetJSON(resp.Body, &info); err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	return &restProcess{
+		id:     info.ID,
+		client: p.client,
+	}, nil
 }
 
 func (p *restProcess) RegisterTrigger(ctx context.Context, _ ProcessTrigger) error {

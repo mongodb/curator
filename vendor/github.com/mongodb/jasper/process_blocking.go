@@ -130,7 +130,9 @@ func (p *blockingProcess) reactor(ctx context.Context, cmd *exec.Cmd) {
 			}()
 
 			p.setInfo(info)
+			p.mu.RLock()
 			p.triggers.Run(info)
+			p.mu.RUnlock()
 			return
 		case <-ctx.Done():
 			// note, the process might take a moment to
@@ -270,9 +272,13 @@ func (p *blockingProcess) RegisterTrigger(ctx context.Context, trigger ProcessTr
 	return nil
 }
 
-func (p *blockingProcess) Wait(ctx context.Context) error {
+func (p *blockingProcess) Wait(ctx context.Context) (int, error) {
 	if p.hasInfo() {
-		return nil
+		// If the process did not end successfully, then there should be an error.
+		if !p.getInfo().Successful {
+			return p.getInfo().ExitCode, errors.New("operation failed")
+		}
+		return p.getInfo().ExitCode, nil
 	}
 
 	out := make(chan error)
@@ -299,18 +305,27 @@ func (p *blockingProcess) Wait(ctx context.Context) error {
 		case p.ops <- waiter:
 			continue
 		case <-ctx.Done():
-			return errors.New("wait operation canceled")
+			return -1, errors.New("wait operation canceled")
 		case err := <-out:
-			return errors.WithStack(err)
+			return p.getInfo().ExitCode, errors.WithStack(err)
 		default:
 			if p.hasInfo() {
-				if p.getInfo().Successful {
-					return nil
+				if !p.getInfo().Successful {
+					return p.getInfo().ExitCode, errors.New("operation failed")
 				}
-				return errors.New("operation failed")
+				return p.getInfo().ExitCode, nil
 			}
 		}
 	}
+}
+
+func (p *blockingProcess) Respawn(ctx context.Context) (Process, error) {
+	opts := p.Info(ctx).Options
+	opts.closers = []func(){}
+
+	newProc, err := newBlockingProcess(ctx, &opts)
+
+	return newProc, err
 }
 
 func (p *blockingProcess) Tag(t string) {

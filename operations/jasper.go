@@ -73,7 +73,7 @@ func jasperCombined() cli.Command {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			mngr := jasper.NewLocalManagerBlockingProcesses()
+			mngr := jasper.NewLocalManager()
 
 			// assemble the rest service
 			rest := jasper.NewManagerService(mngr).App()
@@ -148,7 +148,7 @@ func jasperGRPC() cli.Command {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			mngr := jasper.NewLocalManagerBlockingProcesses()
+			mngr := jasper.NewLocalManager()
 
 			addr := fmt.Sprintf("%s:%d", host, port)
 			lis, err := net.Listen("tcp", addr)
@@ -204,7 +204,7 @@ func jasperREST() cli.Command {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			mngr := jasper.NewManagerService(jasper.NewLocalManagerBlockingProcesses())
+			mngr := jasper.NewManagerService(jasper.NewLocalManager())
 			app := mngr.App()
 			app.SetPrefix("jasper")
 

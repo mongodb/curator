@@ -33,7 +33,6 @@ func yesCreateOpts(timeout time.Duration) CreateOptions {
 func procMap() map[string]func(context.Context, *CreateOptions) (Process, error) {
 	return map[string]func(context.Context, *CreateOptions) (Process, error){
 		"Blocking": newBlockingProcess,
-		"Basic":    newBasicProcess,
 	}
 }
 
@@ -42,7 +41,7 @@ func runIteration(ctx context.Context, makeProc func(context.Context, *CreateOpt
 	if err != nil {
 		return err
 	}
-	_ = proc.Wait(ctx)
+	_, _ = proc.Wait(ctx)
 	return nil
 }
 

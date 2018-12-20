@@ -32,7 +32,8 @@ func TestDefaultTrigger(t *testing.T) {
 			out, err := manager.List(ctx, All)
 			assert.NoError(t, err)
 			assert.Len(t, out, 1)
-			assert.NoError(t, out[0].Wait(ctx))
+			_, err = out[0].Wait(ctx)
+			assert.NoError(t, err)
 			assert.True(t, tcmd.started)
 		},
 		"OneOnSuccess": func(ctx context.Context, t *testing.T, manager Manager) {
@@ -99,7 +100,8 @@ func TestDefaultTrigger(t *testing.T) {
 			out, err := manager.List(ctx, All)
 			assert.NoError(t, err)
 			assert.Len(t, out, 1)
-			assert.NoError(t, out[0].Wait(ctx))
+			_, err = out[0].Wait(ctx)
+			assert.NoError(t, err)
 			assert.True(t, tcmd.started)
 		},
 		"TimeoutWithoutTimeout": func(ctx context.Context, t *testing.T, manager Manager) {
@@ -113,7 +115,8 @@ func TestDefaultTrigger(t *testing.T) {
 			out, err := manager.List(ctx, All)
 			assert.NoError(t, err)
 			assert.Len(t, out, 1)
-			assert.NoError(t, out[0].Wait(ctx))
+			_, err = out[0].Wait(ctx)
+			assert.NoError(t, err)
 			assert.True(t, tcmd.started)
 		},
 		"TimeoutWithCanceledContext": func(ctx context.Context, t *testing.T, manager Manager) {

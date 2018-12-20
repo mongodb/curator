@@ -75,9 +75,11 @@ func (s *Service) App() *gimlet.APIApp {
 	app.AddRoute("/process/{id}/tags").Version(1).Delete().Handler(s.deleteProcessTags)
 	app.AddRoute("/process/{id}/tags").Version(1).Post().Handler(s.addProcessTag)
 	app.AddRoute("/process/{id}/wait").Version(1).Get().Handler(s.waitForProcess)
+	app.AddRoute("/process/{id}/respawn").Version(1).Get().Handler(s.respawnProcess)
 	app.AddRoute("/process/{id}/metrics").Version(1).Get().Handler(s.processMetrics)
 	app.AddRoute("/process/{id}/signal/{signal}").Version(1).Patch().Handler(s.signalProcess)
 	app.AddRoute("/process/{id}/logs").Version(1).Get().Handler(s.getLogs)
+	app.AddRoute("/clear").Version(1).Post().Handler(s.clearManager)
 	app.AddRoute("/close").Version(1).Delete().Handler(s.closeManager)
 
 	go s.backgroundPrune()
@@ -157,11 +159,17 @@ func (s *Service) createProcess(rw http.ResponseWriter, r *http.Request) {
 	if err := proc.RegisterTrigger(ctx, func(_ ProcessInfo) {
 		cancel()
 	}); err != nil {
-		writeError(rw, gimlet.ErrorResponse{
-			StatusCode: http.StatusInternalServerError,
-			Message:    errors.Wrap(err, "problem managing resources").Error(),
-		})
-		return
+		// If we get an error registering a trigger, then we should make sure that
+		// the reason for it isn't just because the process has exited already,
+		// since that should not be considered an error.
+		if !proc.Info(ctx).Complete {
+			writeError(rw, gimlet.ErrorResponse{
+				StatusCode: http.StatusInternalServerError,
+				Message:    errors.Wrap(err, "problem managing resources").Error(),
+			})
+			return
+		}
+		cancel()
 	}
 
 	gimlet.WriteJSON(rw, proc.Info(r.Context()))
@@ -361,7 +369,8 @@ func (s *Service) waitForProcess(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := proc.Wait(ctx); err != nil {
+	exitCode, err := proc.Wait(ctx)
+	if err != nil && exitCode == -1 {
 		writeError(rw, gimlet.ErrorResponse{
 			StatusCode: http.StatusBadRequest,
 			Message:    err.Error(),
@@ -369,7 +378,59 @@ func (s *Service) waitForProcess(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	gimlet.WriteJSON(rw, struct{}{})
+	gimlet.WriteJSON(rw, exitCode)
+}
+
+func (s *Service) respawnProcess(rw http.ResponseWriter, r *http.Request) {
+	id := gimlet.GetVars(r)["id"]
+
+	proc, err := s.manager.Get(r.Context(), id)
+	if err != nil {
+		writeError(rw, gimlet.ErrorResponse{
+			StatusCode: http.StatusNotFound,
+			Message:    errors.Wrapf(err, "no process '%s' found", id).Error(),
+		})
+		return
+	}
+
+	// Spawn a new context so that the process' context is not potentially
+	// canceled by the request's. See how createProcess() does this same thing.
+	ctx, cancel := context.WithCancel(context.Background())
+	newProc, err := proc.Respawn(ctx)
+	if err != nil {
+		writeError(rw, gimlet.ErrorResponse{
+			StatusCode: http.StatusBadRequest,
+			Message:    err.Error(),
+		})
+		cancel()
+		return
+	}
+	s.manager.Register(ctx, newProc)
+
+	if err := newProc.RegisterTrigger(ctx, func(_ ProcessInfo) {
+		cancel()
+	}); err != nil {
+		if !newProc.Info(ctx).Complete {
+			writeError(rw, gimlet.ErrorResponse{
+				StatusCode: http.StatusInternalServerError,
+				Message: errors.Wrap(
+					err, "failed to register trigger on respawn").Error(),
+			})
+			return
+		}
+		cancel()
+	}
+
+	info := newProc.Info(ctx)
+	if info.ID == "" {
+		writeError(rw, gimlet.ErrorResponse{
+			StatusCode: http.StatusNotFound,
+			Message:    fmt.Sprintf("no process '%s' found", id),
+		})
+		return
+	}
+
+	gimlet.WriteJSON(rw, info)
 }
 
 func (s *Service) signalProcess(rw http.ResponseWriter, r *http.Request) {
@@ -477,6 +538,11 @@ func (s *Service) getLogs(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	gimlet.WriteJSON(rw, logs)
+}
+
+func (s *Service) clearManager(rw http.ResponseWriter, r *http.Request) {
+	s.manager.Clear(r.Context())
+	gimlet.WriteJSON(rw, struct{}{})
 }
 
 func (s *Service) closeManager(rw http.ResponseWriter, r *http.Request) {

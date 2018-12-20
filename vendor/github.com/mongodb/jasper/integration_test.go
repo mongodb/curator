@@ -160,7 +160,7 @@ func TestMongod(t *testing.T) {
 					waitError := make(chan error, test.numProcs)
 					for _, proc := range procs {
 						go func(proc Process) {
-							err := proc.Wait(ctx)
+							_, err := proc.Wait(ctx)
 							waitError <- err
 						}(proc)
 					}
