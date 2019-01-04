@@ -325,7 +325,10 @@ func (p *restProcess) ID() string { return p.id }
 
 func (p *restProcess) Info(ctx context.Context) ProcessInfo {
 	info, err := p.client.getProcessInfo(ctx, p.id)
-	grip.Debug(message.WrapError(err, message.Fields{"process": p.id}))
+	if err != nil {
+		grip.Debug(message.WrapError(err, message.Fields{"process": p.id}))
+	}
+
 	return info
 }
 

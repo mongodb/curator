@@ -88,7 +88,7 @@ func TestManagerInterface(t *testing.T) {
 					assert.Nil(t, output)
 				},
 				"LongRunningOperationsAreListedAsRunning": func(ctx context.Context, t *testing.T, manager Manager) {
-					procs, err := createProcs(ctx, sleepCreateOpts(1), manager, 10)
+					procs, err := createProcs(ctx, sleepCreateOpts(10), manager, 10)
 					assert.NoError(t, err)
 					assert.Len(t, procs, 10)
 
@@ -319,6 +319,7 @@ func TestManagerInterface(t *testing.T) {
 					proc, err := manager.Create(ctx, opts)
 					require.NoError(t, err)
 					sameProc, err := manager.Get(ctx, proc.ID())
+					require.NoError(t, err)
 					require.Equal(t, proc.ID(), sameProc.ID())
 					_, err = proc.Wait(ctx)
 					require.NoError(t, err)
@@ -332,6 +333,7 @@ func TestManagerInterface(t *testing.T) {
 					require.NoError(t, err)
 					manager.Clear(ctx)
 					sameProc, err := manager.Get(ctx, proc.ID())
+					require.NoError(t, err)
 					assert.Equal(t, proc.ID(), sameProc.ID())
 					require.NoError(t, Terminate(ctx, proc)) // Clean up
 				},

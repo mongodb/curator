@@ -184,10 +184,10 @@ func (p *blockingProcess) Info(ctx context.Context) ProcessInfo {
 		case res := <-out:
 			return res
 		case <-ctx.Done():
-			return ProcessInfo{}
+			return p.getInfo()
 		}
 	case <-ctx.Done():
-		return ProcessInfo{}
+		return p.getInfo()
 	}
 }
 

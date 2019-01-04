@@ -65,7 +65,9 @@ func (m *basicProcessManager) List(ctx context.Context, f Filter) ([]Process, er
 			return nil, errors.New("operation canceled")
 		}
 
-		info := proc.Info(ctx)
+		cctx, cancel := context.WithTimeout(ctx, 100*time.Millisecond)
+		info := proc.Info(cctx)
+		cancel()
 		switch {
 		case f == Running:
 			if info.IsRunning {
