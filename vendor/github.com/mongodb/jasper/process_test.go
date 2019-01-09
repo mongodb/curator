@@ -36,6 +36,8 @@ func TestProcessImplementations(t *testing.T) {
 	for cname, makeProc := range map[string]processConstructor{
 		"BlockingNoLock":   newBlockingProcess,
 		"BlockingWithLock": makeLockingProcess(newBlockingProcess),
+		"BasicNoLock":      newBasicProcess,
+		"BasicWithLock":    makeLockingProcess(newBasicProcess),
 		"REST": func(ctx context.Context, opts *CreateOptions) (Process, error) {
 			srv, port := makeAndStartService(ctx, httpClient)
 			if port < 100 || srv == nil {
@@ -161,9 +163,12 @@ func TestProcessImplementations(t *testing.T) {
 						t.Skip("remote triggers are not supported on rest processes")
 					}
 					count := 0
-					opts.closers = append(opts.closers, func() { count++ })
-					closersDone := make(chan bool)
-					opts.closers = append(opts.closers, func() { closersDone <- true })
+					countIncremented := make(chan bool, 1)
+					opts.closers = append(opts.closers, func() {
+						count++
+						countIncremented <- true
+						close(countIncremented)
+					})
 
 					proc, err := makep(ctx, opts)
 					assert.NoError(t, err)
@@ -173,7 +178,7 @@ func TestProcessImplementations(t *testing.T) {
 					select {
 					case <-ctx.Done():
 						assert.Fail(t, "closers took too long to run")
-					case <-closersDone:
+					case <-countIncremented:
 						assert.Equal(t, 1, count)
 					}
 				},
@@ -362,6 +367,8 @@ func TestProcessImplementations(t *testing.T) {
 					}
 
 					newProc, err := proc.Respawn(ctx)
+					require.NoError(t, err)
+					require.NotNil(t, newProc)
 					newProc.RegisterTrigger(ctx, func(pIfno ProcessInfo) {
 						count++
 						countIncremented <- true

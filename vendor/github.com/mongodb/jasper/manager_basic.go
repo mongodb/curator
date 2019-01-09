@@ -10,6 +10,7 @@ import (
 type basicProcessManager struct {
 	procs              map[string]Process
 	skipDefaultTrigger bool
+	blocking           bool
 }
 
 func (m *basicProcessManager) Create(ctx context.Context, opts *CreateOptions) (Process, error) {
@@ -18,7 +19,11 @@ func (m *basicProcessManager) Create(ctx context.Context, opts *CreateOptions) (
 		err  error
 	)
 
-	proc, err = newBlockingProcess(ctx, opts)
+	if m.blocking {
+		proc, err = newBlockingProcess(ctx, opts)
+	} else {
+		proc, err = newBasicProcess(ctx, opts)
+	}
 
 	if err != nil {
 		return nil, errors.Wrap(err, "problem constructing local process")

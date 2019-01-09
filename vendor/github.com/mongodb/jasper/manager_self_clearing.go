@@ -19,6 +19,16 @@ func NewSelfClearingProcessManager(maxProcs int) Manager {
 	}
 }
 
+// NewSelfClearingProcessManagerBlockingProcesses creates and returns a process
+// manager that uses blockingProcesses rather than the default basicProcess.
+// See the NewSelfClearingProcessManager() constructor for more information.
+func NewSelfClearingProcessManagerBlockingProcesses(maxProcs int) Manager {
+	return &selfClearingProcessManager{
+		local:    NewLocalManagerBlockingProcesses().(*localProcessManager),
+		maxProcs: maxProcs,
+	}
+}
+
 type selfClearingProcessManager struct {
 	local    *localProcessManager
 	maxProcs int

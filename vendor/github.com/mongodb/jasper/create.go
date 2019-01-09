@@ -14,6 +14,8 @@ import (
 	"github.com/pkg/errors"
 )
 
+// CreateOptions contains options related to starting a process. This includes
+// execution configuration, post-execution triggers, and output configuration.
 type CreateOptions struct {
 	Args             []string          `json:"args"`
 	Environment      map[string]string `json:"env,omitempty"`
@@ -32,6 +34,9 @@ type CreateOptions struct {
 	started bool
 }
 
+// MakeCreationOptions takes a command string and returns an equivalent
+// CreateOptions struct that would spawn a process corresponding to the given
+// command string.
 func MakeCreationOptions(cmdStr string) (*CreateOptions, error) {
 	args, err := shlex.Split(cmdStr)
 	if err != nil {
@@ -51,6 +56,7 @@ func MakeCreationOptions(cmdStr string) (*CreateOptions, error) {
 	}, nil
 }
 
+// Validate ensures that CreateOptions is valid.
 func (opts *CreateOptions) Validate() error {
 	if len(opts.Args) == 0 {
 		return errors.New("invalid command, must specify at least one argument")
@@ -92,6 +98,7 @@ func (opts *CreateOptions) Validate() error {
 	return nil
 }
 
+// Resolve creates the command object according to the create options.
 func (opts *CreateOptions) Resolve(ctx context.Context) (*exec.Cmd, error) {
 	var err error
 	if ctx.Err() != nil {
@@ -159,6 +166,9 @@ func (opts *CreateOptions) Resolve(ctx context.Context) (*exec.Cmd, error) {
 	return cmd, nil
 }
 
+// AddEnvVar adds an environment variable to the CreateOptions struct on which
+// this method is called. If the Environment map is nil, this method will
+// instantiate one.
 func (opts *CreateOptions) AddEnvVar(k, v string) {
 	if opts.Environment == nil {
 		opts.Environment = make(map[string]string)
@@ -167,6 +177,9 @@ func (opts *CreateOptions) AddEnvVar(k, v string) {
 	opts.Environment[k] = v
 }
 
+// Close will execute the closer functions assigned to the CreateOptions. This
+// function is often called as a trigger at the end of a process' lifetime in
+// Jasper.
 func (opts *CreateOptions) Close() {
 	for _, c := range opts.closers {
 		c()

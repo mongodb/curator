@@ -18,6 +18,7 @@ type jrpcManager struct {
 
 // TODO provide some better way of constructing this object
 
+// NewJRPCManager is a constructor for a jrpcManager.
 func NewJRPCManager(cc *grpc.ClientConn) jasper.Manager {
 	return &jrpcManager{
 		client: internal.NewJasperProcessManagerClient(cc),

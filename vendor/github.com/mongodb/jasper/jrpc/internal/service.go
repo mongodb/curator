@@ -17,6 +17,9 @@ import (
 	grpc "google.golang.org/grpc"
 )
 
+// AttachService attaches the given manager to the jasper GRPC server. This
+// function eventually calls generated Protobuf code for registering the the
+// GRPC Jasper server with the given Manager.
 func AttachService(manager jasper.Manager, s *grpc.Server) error {
 	hn, err := os.Hostname()
 	if err != nil {

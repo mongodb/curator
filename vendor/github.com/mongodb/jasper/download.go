@@ -38,6 +38,7 @@ func (info DownloadInfo) Validate() error {
 	return catcher.Resolve()
 }
 
+// Download executes the download operation.
 func (info DownloadInfo) Download() error {
 	req, err := http.NewRequest(http.MethodGet, info.URL, nil)
 	if err != nil {
@@ -73,9 +74,11 @@ func (info DownloadInfo) Download() error {
 type ArchiveFormat string
 
 const (
+	// ArchiveAuto is an ArchiveFormat that does not force any particular type of
+	// archive format.
 	ArchiveAuto  ArchiveFormat = "auto"
-	ArchiveTarGz               = "targz"
-	ArchiveZip                 = "zip"
+	ArchiveTarGz               = "targz" // nolint
+	ArchiveZip                 = "zip"   // nolint
 )
 
 // Validate checks that the ArchiveFormat is a recognized format.

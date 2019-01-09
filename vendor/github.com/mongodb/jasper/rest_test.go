@@ -296,7 +296,7 @@ func TestRestService(t *testing.T) {
 			assert.Error(t, proc.Signal(ctx, syscall.SIGTERM))
 		},
 		"SignalErrorsWithInvalidSyscall": func(ctx context.Context, t *testing.T, srv *Service, client *restClient) {
-			proc, err := client.Create(ctx, trueCreateOpts())
+			proc, err := client.Create(ctx, sleepCreateOpts(10))
 			require.NoError(t, err)
 
 			assert.Error(t, proc.Signal(ctx, syscall.Signal(-1)))
