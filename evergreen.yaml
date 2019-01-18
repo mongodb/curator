@@ -254,7 +254,7 @@ buildvariants:
   - name: rhel70
     display_name: RHEL 7.0
     expansions:
-      build_env: "GOROOT=/opt/go1.10/go PATH=/opt/go1.10/go/bin:$PATH"
+      build_env: "GOROOT=/opt/golang/go1.10/ PATH=/opt/golang/go1.10/bin:$PATH"
     run_on:
       - rhel70-small
     tasks:
@@ -267,7 +267,7 @@ buildvariants:
     run_on:
       - ubuntu1604-test
     expansions:
-      build_env: "GOROOT=/opt/go1.10/go PATH=/opt/go1.10/go/bin:$PATH"
+      build_env: "GOROOT=/opt/golang/go1.10/ PATH=/opt/golang/go1.10/bin:$PATH"
     tasks:
       - ".dist"
       - ".test"
@@ -276,7 +276,7 @@ buildvariants:
   - name: macos
     display_name: macOS 10.12
     expansions:
-      build_env: "GOROOT=/usr/local/go1.10/go PATH=/usr/local/go1.10/go/bin:$PATH"
+      build_env: "GOROOT=/opt/golang/go1.10/ PATH=/opt/golang/go1.10/bin:$PATH"
     run_on:
       - macos-1012
     tasks:
@@ -288,7 +288,7 @@ buildvariants:
   - name: s390x
     display_name: "zLinux (cross-compile)"
     expansions:
-      build_env: "GOROOT=/opt/go1.10/go PATH=/opt/go1.10/go/bin:$PATH"
+      build_env: "GOROOT=/opt/golang/go1.10/ PATH=/opt/golang/go1.10/bin:$PATH"
       xc_env: "GOARCH=s390x GOOS=linux"
     run_on:
       - ubuntu1604-test
@@ -302,7 +302,7 @@ buildvariants:
   - name: power
     display_name: "Linux POWER (cross-compile)"
     expansions:
-      build_env: "GOROOT=/opt/go1.10/go PATH=/opt/go1.10/go/bin:$PATH"
+      build_env: "GOROOT=/opt/golang/go1.10/ PATH=/opt/golang/go1.10/bin:$PATH"
       xc_env: "GOARCH=ppc64le GOOS=linux"
     run_on:
       - ubuntu1604-test
@@ -316,7 +316,7 @@ buildvariants:
   - name: arm
     display_name: "Linux ARM64 (cross-compile)"
     expansions:
-      build_env: "GOROOT=/opt/go1.10/go PATH=/opt/go1.10/go/bin:$PATH"
+      build_env: "GOROOT=/opt/golang/go1.10/ PATH=/opt/golang/go1.10/bin:$PATH"
       xc_env: "GOARCH=arm64 GOOS=linux"
     run_on:
       - ubuntu1604-test
@@ -330,7 +330,7 @@ buildvariants:
   - name: linux-32
     display_name: "Linux 32-bit (cross-compile)"
     expansions:
-      build_env: "GOROOT=/opt/go1.10/go PATH=/opt/go1.10/go/bin:$PATH"
+      build_env: "GOROOT=/opt/golang/go1.10/ PATH=/opt/golang/go1.10/bin:$PATH"
       xc_env: "GOARCH=386 GOOS=linux"
     run_on:
       - ubuntu1604-test
@@ -344,7 +344,7 @@ buildvariants:
   - name: windows-64
     display_name: "Windows 64-bit (cross-compile)"
     expansions:
-      build_env: "GOROOT=/opt/go1.10/go PATH=/opt/go1.10/go/bin:$PATH"
+      build_env: "GOROOT=/opt/golang/go1.10/ PATH=/opt/golang/go1.10/bin:$PATH"
       xc_env: "GOARCH=amd64 GOOS=windows"
     run_on:
       - ubuntu1604-test
@@ -358,7 +358,7 @@ buildvariants:
   - name: windows-32
     display_name: "Windows 32-bit (cross-compile)"
     expansions:
-      build_env: "GOROOT=/opt/go1.10/go PATH=/opt/go1.10/go/bin:$PATH"
+      build_env: "GOROOT=/opt/golang/go1.10/ PATH=/opt/golang/go1.10/bin:$PATH"
       xc_env: "GOARCH=386 GOOS=windows"
     run_on:
       - ubuntu1604-test
