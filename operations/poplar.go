@@ -12,12 +12,13 @@ import (
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 )
 
 const (
-	envVarPoplarRecorderGRPCPort  = "POPLAR_GRPC_PORT"
-	envVarPoplarRecorderGRPCHost  = "POPLAR_GRPC_HOST"
-	defaultPoplarRecorderGRPCPort = 2288
+	envVarPoplarRecorderRPCPort  = "POPLAR_RPC_PORT"
+	envVarPoplarRecorderRPCHost  = "POPLAR_RPC_HOST"
+	defaultPoplarRecorderRPCPort = 2288
 )
 
 func Poplar() cli.Command {
@@ -39,13 +40,13 @@ func poplarGRPC() cli.Command {
 		Flags: []cli.Flag{
 			cli.IntFlag{
 				Name:   "port",
-				EnvVar: envVarPoplarRecorderGRPCPort,
-				Value:  defaultPoplarRecorderGRPCPort,
+				EnvVar: envVarPoplarRecorderRPCPort,
+				Value:  defaultPoplarRecorderRPCPort,
 			},
 			cli.StringFlag{
 				Name:   "host",
-				EnvVar: envVarJasperGRPCHost,
-				Value:  envVarPoplarRecorderGRPCHost,
+				EnvVar: envVarJasperRPCHost,
+				Value:  envVarPoplarRecorderRPCHost,
 			},
 		},
 		Action: func(c *cli.Context) error {
@@ -89,8 +90,14 @@ func poplarGRPC() cli.Command {
 
 func poplarReport() cli.Command {
 	const (
-		serviceFlagName = "service"
-		pathFlagName    = "path"
+		serviceFlagName  = "service"
+		pathFlagName     = "path"
+		insecureFlagName = "insecure"
+		usernameFlagName = "username"
+		passwordFlagName = "password"
+
+		cedarUsernameEnvVar = "CEDAR_RPC_USERNAME"
+		cedarPasswordEnvVar = "CEDAR_RPC_PASSWORD"
 	)
 
 	return cli.Command{
@@ -102,12 +109,22 @@ func poplarReport() cli.Command {
 				Usage: "specify the address of the metrics service",
 			},
 			cli.BoolFlag{
-				Name:  "insecure",
+				Name:  insecureFlagName,
 				Usage: "disables certificate validation requirements",
 			},
 			cli.StringFlag{
 				Name:  pathFlagName,
 				Usage: "specify the path of the input file, may be the first positional argument",
+			},
+			cli.StringFlag{
+				Name:   usernameFlagName,
+				Usage:  "specify the username for rpc header authentication",
+				EnvVar: cedarUsernameEnvVar,
+			},
+			cli.StringFlag{
+				Name:   passwordFlagName,
+				Usage:  "specify the passord for rpc header authentication",
+				EnvVar: cedarPasswordEnvVar,
 			},
 		},
 		Before: mergeBeforeFuncs(
@@ -117,7 +134,9 @@ func poplarReport() cli.Command {
 		Action: func(c *cli.Context) error {
 			addr := c.String(serviceFlagName)
 			fileName := c.String(pathFlagName)
-			isInsecure := c.Bool("insecure")
+			username := c.String(usernameFlagName)
+			password := c.String(passwordFlagName)
+			isInsecure := c.Bool(insecureFlagName)
 
 			report, err := poplar.LoadReport(fileName)
 			if err != nil {
@@ -126,6 +145,22 @@ func poplarReport() cli.Command {
 
 			rpcOpts := []grpc.DialOption{
 				grpc.WithBlock(),
+				grpc.WithUnaryInterceptor(func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+					opts = append(opts, grpc.Header(&metadata.MD{
+						"Api-User": []string{username},
+						"Api-Key":  []string{password},
+					}))
+
+					return invoker(ctx, method, req, reply, cc, opts...)
+				}),
+				grpc.WithStreamInterceptor(func(ctx context.Context, desc *grpc.StreamDesc, cc *grpc.ClientConn, method string, streamer grpc.Streamer, opts ...grpc.CallOption) (grpc.ClientStream, error) {
+					opts = append(opts, grpc.Header(&metadata.MD{
+						"Api-User": []string{username},
+						"Api-Key":  []string{passwordFlagName},
+					}))
+
+					return streamer(ctx, desc, cc, method, opts...)
+				}),
 			}
 
 			if isInsecure {

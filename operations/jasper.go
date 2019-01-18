@@ -15,11 +15,11 @@ import (
 )
 
 const (
-	envVarJasperGRPCPort  = "JASPER_GRPC_PORT"
-	envVarJasperGRPCHost  = "JASPER_GRPC_HOST"
+	envVarJasperRPCPort   = "JASPER_RPC_PORT"
+	envVarJasperRPCHost   = "JASPER_RPC_HOST"
 	envVarJasperRESTPort  = "JASPER_REST_PORT"
 	envVarJasperRESTHost  = "JASPER_REST_HOST"
-	defaultJasperGRPCPort = 2286
+	defaultJasperRPCPort  = 2286
 	defaultJasperRESTPort = 2287
 	defaultLocalHostName  = "localhost"
 )
@@ -32,7 +32,7 @@ func Jasper() cli.Command {
 		Usage: "tools for running jasper process management services",
 		Flags: []cli.Flag{},
 		Subcommands: []cli.Command{
-			jasperGRPC(),
+			jasperRPC(),
 			jasperREST(),
 			jasperCombined(),
 		},
@@ -46,17 +46,17 @@ func jasperCombined() cli.Command {
 		Flags: []cli.Flag{
 			cli.IntFlag{
 				Name:   "rpcPort",
-				EnvVar: envVarJasperGRPCPort,
-				Value:  defaultJasperGRPCPort,
+				EnvVar: envVarJasperRPCPort,
+				Value:  defaultJasperRPCPort,
 			},
 			cli.StringFlag{
 				Name:   "rpcHost",
-				EnvVar: envVarJasperGRPCHost,
+				EnvVar: envVarJasperRPCHost,
 				Value:  defaultLocalHostName,
 			},
 			cli.IntFlag{
 				Name:   "restPort",
-				EnvVar: envVarJasperGRPCPort,
+				EnvVar: envVarJasperRPCPort,
 				Value:  defaultJasperRESTPort,
 			},
 			cli.StringFlag{
@@ -126,19 +126,19 @@ func jasperCombined() cli.Command {
 
 }
 
-func jasperGRPC() cli.Command {
+func jasperRPC() cli.Command {
 	return cli.Command{
 		Name:  "grpc",
 		Usage: "run jasper service accessible with gRPC",
 		Flags: []cli.Flag{
 			cli.IntFlag{
 				Name:   "port",
-				EnvVar: envVarJasperGRPCPort,
-				Value:  defaultJasperGRPCPort,
+				EnvVar: envVarJasperRPCPort,
+				Value:  defaultJasperRPCPort,
 			},
 			cli.StringFlag{
 				Name:   "host",
-				EnvVar: envVarJasperGRPCHost,
+				EnvVar: envVarJasperRPCHost,
 				Value:  defaultLocalHostName,
 			},
 		},
@@ -189,7 +189,7 @@ func jasperREST() cli.Command {
 		Flags: []cli.Flag{
 			cli.IntFlag{
 				Name:   "port",
-				EnvVar: envVarJasperGRPCPort,
+				EnvVar: envVarJasperRESTPort,
 				Value:  defaultJasperRESTPort,
 			},
 			cli.StringFlag{
