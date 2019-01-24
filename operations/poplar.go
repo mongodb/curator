@@ -2,22 +2,17 @@ package operations
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
-	"io/ioutil"
 	"net"
 
-	"crypto/x509"
 	"github.com/evergreen-ci/poplar"
 	"github.com/evergreen-ci/poplar/rpc"
 	"github.com/mongodb/grip"
-	"github.com/mongodb/grip/message"
 	"github.com/mongodb/grip/recovery"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/metadata"
 )
 
 const (
@@ -99,11 +94,6 @@ func poplarReport() cli.Command {
 		pathFlagName     = "path"
 		insecureFlagName = "insecure"
 		certFileFlagName = "certfile"
-		usernameFlagName = "username"
-		apiKeyFlagName   = "apikey"
-
-		cedarUsernameEnvVar = "CEDAR_RPC_USERNAME"
-		cedarApiKeyEnvVar   = "CEDAR_RPC_API_KEY"
 	)
 
 	return cli.Command{
@@ -126,16 +116,6 @@ func poplarReport() cli.Command {
 				Name:  pathFlagName,
 				Usage: "specify the path of the input file, may be the first positional argument",
 			},
-			cli.StringFlag{
-				Name:   usernameFlagName,
-				Usage:  "specify the username for rpc header authentication",
-				EnvVar: cedarUsernameEnvVar,
-			},
-			cli.StringFlag{
-				Name:   apiKeyFlagName,
-				Usage:  "specify the passord for rpc header authentication",
-				EnvVar: cedarApiKeyEnvVar,
-			},
 		},
 		Before: mergeBeforeFuncs(
 			requireStringFlag(serviceFlagName),
@@ -144,8 +124,6 @@ func poplarReport() cli.Command {
 		Action: func(c *cli.Context) error {
 			addr := c.String(serviceFlagName)
 			fileName := c.String(pathFlagName)
-			username := c.String(usernameFlagName)
-			apiKey := c.String(apiKeyFlagName)
 			isInsecure := c.Bool(insecureFlagName)
 			certFile := c.String(certFileFlagName)
 
@@ -154,6 +132,7 @@ func poplarReport() cli.Command {
 				return errors.WithStack(err)
 			}
 
+			rpcOpts := []grpc.DialOption{}
 			if isInsecure {
 				rpcOpts = append(rpcOpts, grpc.WithInsecure())
 			} else {
