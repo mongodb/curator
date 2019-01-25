@@ -26,6 +26,10 @@ func getUnmarshaler(fn string) unmarshaler {
 	}
 }
 
+// LoadReport reads the content of the specified file and attempts to
+// create a Report structure based on the content. The file can be in
+// bson, json, or yaml, and LoadReport examines the files' extension
+// to determine the data format.
 func LoadReport(fn string) (*Report, error) {
 	if stat, err := os.Stat(fn); os.IsNotExist(err) || stat.IsDir() {
 		return nil, errors.Errorf("'%s' does not exist", fn)

@@ -8,6 +8,10 @@ import (
 	"github.com/pkg/errors"
 )
 
+// Report is the top level object to represent a suite of performance
+// tests and is used to feed data to a ceder instance. All of the test
+// data is in the "Tests" field, with additional metadata common to
+// all tests in the top-level fields of the Report structure.
 type Report struct {
 	// These settings are at the top level to provide a DRY
 	// location for the data, in the DB they're part of the
@@ -26,6 +30,11 @@ type Report struct {
 	Tests []Test `bson:"tests" json:"tests" yaml:"tests"`
 }
 
+// Test holds data about a specific test and its subtests. You should
+// not populate the ID field, and instead populate the entire Info
+// structure. ID fields are populated by the server by hashing the
+// Info document along with high level metadata that is, in this
+// representation, stored in the report structure.
 type Test struct {
 	ID          string         `bson:"_id" json:"id" yaml:"id"`
 	Info        TestInfo       `bson:"info" json:"info" yaml:"info"`
@@ -36,6 +45,10 @@ type Test struct {
 	SubTests    []Test         `bson:"sub_tests" json:"sub_tests" yaml:"sub_tests"`
 }
 
+// TestInfo holds metadata about the test configuration and
+// execution. The parent field holds the content of the ID field of
+// the parent test for sub tests, and should be populated
+// automatically by the client when uploading results.
 type TestInfo struct {
 	TestName  string           `bson:"test_name" json:"test_name" yaml:"test_name"`
 	Trial     int              `bson:"trial" json:"trial" yaml:"trial"`
@@ -44,6 +57,8 @@ type TestInfo struct {
 	Arguments map[string]int32 `bson:"args" json:"args" yaml:"args"`
 }
 
+// TestArtifact is an optional structure to allow you to upload and
+// attach metadata to results files.
 type TestArtifact struct {
 	Bucket                string    `bson:"bucket" json:"bucket" yaml:"bucket"`
 	Path                  string    `bson:"path" json:"path" yaml:"path"`
@@ -61,9 +76,12 @@ type TestArtifact struct {
 	EventsCollapsed       bool      `bson:"events_collapsed,omitempty" json:"events_collapsed,omitempty" yaml:"events_collapsed,omitempty"`
 	ConvertGzip           bool      `bson:"convert_gzip,omitempty" json:"convert_gzip,omitempty" yaml:"convert_gzip,omitempty"`
 	ConvertBSON2FTDC      bool      `bson:"convert_bson_to_ftdc,omitempty" json:"convert_bson_to_ftdc,omitempty" yaml:"convert_bson_to_ftdc,omitempty"`
+	ConvertJSON2FTDC      bool      `bson:"convert_json_to_ftdc" json:"convert_json_to_ftdc" yaml:"convert_json_to_ftdc"`
 	ConvertCSV2FTDC       bool      `bson:"convert_csv_to_ftdc" json:"convert_csv_to_ftdc" yaml:"convert_csv_to_ftdc"`
 }
 
+// Validate examines an entire artifact structure and reports if there
+// are any logical inconsistencies with the data.
 func (a *TestArtifact) Validate() error {
 	catcher := grip.NewBasicCatcher()
 
@@ -80,7 +98,7 @@ func (a *TestArtifact) Validate() error {
 		a.PayloadFTDC = true
 	}
 
-	if isMoreThanOneTrue([]bool{a.ConvertBSON2FTDC, a.ConvertCSV2FTDC}) {
+	if isMoreThanOneTrue([]bool{a.ConvertBSON2FTDC, a.ConvertCSV2FTDC, a.ConvertJSON2FTDC}) {
 		catcher.Add(errors.New("cannot specify contradictory conversion requests"))
 	}
 
@@ -99,6 +117,9 @@ func (a *TestArtifact) Validate() error {
 	return catcher.Resolve()
 }
 
+// TestMetrics is a structure that holds computed metrics for an
+// entire test in the case that test harnesses need or want to report
+// their own test outcomes.
 type TestMetrics struct {
 	Name    string      `bson:"name" json:"name" yaml:"name"`
 	Version int         `bson:"version,omitempty" json:"version,omitempty" yaml:"version,omitempty"`
@@ -106,6 +127,8 @@ type TestMetrics struct {
 	Value   interface{} `bson:"value" json:"value" yaml:"value"`
 }
 
+// BucketConfiguration describes the configuration information for an
+// AWS s3 bucket for uploading test artifacts for this report.
 type BucketConfiguration struct {
 	APIKey    string `bson:"api_key" json:"api_key" yaml:"api_key"`
 	APISecret string `bson:"api_secret" json:"api_secret" yaml:"api_secret"`

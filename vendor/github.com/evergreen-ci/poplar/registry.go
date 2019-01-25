@@ -3,7 +3,9 @@ package poplar
 import (
 	"io"
 	"os"
+	"path/filepath"
 	"sync"
+	"testing"
 	"time"
 
 	"github.com/mongodb/ftdc"
@@ -81,8 +83,9 @@ type CustomMetricsCollector interface {
 }
 
 type RecorderRegistry struct {
-	cache map[string]*recorderInstance
-	mu    sync.Mutex
+	cache       map[string]*recorderInstance
+	benchPrefix string
+	mu          sync.Mutex
 }
 
 func NewRegistry() *RecorderRegistry {
@@ -161,6 +164,37 @@ func (r *RecorderRegistry) GetCollector(key string) (ftdc.Collector, bool) {
 	return impl.collector, true
 }
 
+func (r *RecorderRegistry) SetBenchRecorderPrefix(prefix string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	r.benchPrefix = prefix
+}
+
+// MakeBenchmark configures a recorder to support executing a
+// BenchmarkCase in the form of a standard library benchmarking
+// format.
+func (r *RecorderRegistry) MakeBenchmark(bench *BenchmarkCase) func(*testing.B) {
+	name := bench.Name()
+	r.mu.Lock()
+	fqname := filepath.Join(r.benchPrefix, name) + ".ftdc"
+	r.mu.Unlock()
+
+	recorder, err := r.Create(name, CreateOptions{
+		Path:      fqname,
+		ChunkSize: 1024,
+		Streaming: true,
+		Dynamic:   true,
+		Recorder:  bench.Recorder,
+	})
+
+	if err != nil {
+		return func(b *testing.B) { b.Fatal(errors.Wrap(err, "problem making recorder")) }
+	}
+
+	return bench.Bench.standard(recorder, func() error { return r.Close(name) })
+}
+
 // Close flushes and closes the underlying recorder and collector and
 // then removes it from the cache.
 func (r *RecorderRegistry) Close(key string) error {
@@ -218,6 +252,7 @@ func (opts *CreateOptions) build() (*recorderInstance, error) {
 
 	out := &recorderInstance{
 		isDynamic: opts.Dynamic,
+		file:      file,
 	}
 
 	switch {
