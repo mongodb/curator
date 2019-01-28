@@ -1,5 +1,10 @@
 # start project configuration
 name := curator
+ifeq ($(shell go env GOOS), windows)
+	binary := $(name).exe
+else
+	binary := $(name)
+endif
 buildDir := build
 packages := $(name) operations cmd-curator sthree repobuilder
 packages += greenbay greenbay-check
@@ -49,7 +54,7 @@ lintArgs += --exclude="should check returned error before deferring.*Close()"
 
 # start dependency installation tools
 #   implementation details for being able to lazily install dependencies
-.DEFAULT_GOAL := $(name)
+.DEFAULT_GOAL := $(binary)
 gopath := $(shell go env GOPATH)
 lintDeps := $(addprefix $(gopath)/src/,$(lintDeps))
 srcFiles := makefile $(shell find . -name "*.go" -not -path "./$(buildDir)/*" -not -name "*_test.go" )
@@ -70,7 +75,7 @@ $(buildDir)/.lintSetup:$(lintDeps)
 
 # userfacing targets for basic build and development operations
 lint:$(buildDir)/output.lint
-build:$(buildDir)/$(name)
+build:$(buildDir)/$(binary)
 build-race:$(buildDir)/$(name).race
 test:$(foreach target,$(packages),test-$(target))
 race:$(foreach target,$(packages),race-$(target))
@@ -87,20 +92,20 @@ phony := lint build build-race race test coverage coverage-html
 
 # implementation details for building the binary and creating a
 # convienent link in the working directory
-$(name):$(buildDir)/$(name)
+$(binary):$(buildDir)/$(binary)
 	@[ -e $@ ] || ln -s $<
-$(buildDir)/$(name):$(srcFiles)
+$(buildDir)/$(binary):$(srcFiles)
 	go build -ldflags="$(ldFlags)" -o $@ cmd/$(name)/$(name).go
 $(buildDir)/$(name).race:$(srcFiles)
 	go build -ldflags="$(ldFlags)" -race -o $@ cmd/$(name)/$(name).go
-phony += $(buildDir)/$(name)
+phony += $(buildDir)/$(binary)
 # end main build
 
 
 # distribution targets and implementation
 dist:$(buildDir)/dist.tar.gz
-$(buildDir)/dist.tar.gz:$(buildDir)/$(name)
-	tar -C $(buildDir) -czvf $@ $(name)
+$(buildDir)/dist.tar.gz:$(buildDir)/$(binary)
+	tar -C $(buildDir) -czvf $@ $(binary)
 # end main build
 
 
@@ -228,7 +233,7 @@ $(buildDir)/output.%.coverage.html:$(buildDir)/output.%.coverage $(coverDeps)
 
 # clean and other utility targets
 clean:
-	rm -rf $(lintDeps) $(buildDir)/test.* $(buildDir)/coverage.* $(buildDir)/race.* $(name) $(buildDir)/$(name)
+	rm -rf $(lintDeps) $(buildDir)/test.* $(buildDir)/coverage.* $(buildDir)/race.* $(binary) $(buildDir)/$(binary)
 phony += clean
 # end dependency targets
 
