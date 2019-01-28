@@ -12,7 +12,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/credentials"
 )
 
 const (
@@ -93,11 +93,7 @@ func poplarReport() cli.Command {
 		serviceFlagName  = "service"
 		pathFlagName     = "path"
 		insecureFlagName = "insecure"
-		usernameFlagName = "username"
-		passwordFlagName = "password"
-
-		cedarUsernameEnvVar = "CEDAR_RPC_USERNAME"
-		cedarPasswordEnvVar = "CEDAR_RPC_PASSWORD"
+		certFileFlagName = "certfile"
 	)
 
 	return cli.Command{
@@ -113,18 +109,12 @@ func poplarReport() cli.Command {
 				Usage: "disables certificate validation requirements",
 			},
 			cli.StringFlag{
+				Name:  certFileFlagName,
+				Usage: "specify the client certificate to connect over TLS",
+			},
+			cli.StringFlag{
 				Name:  pathFlagName,
 				Usage: "specify the path of the input file, may be the first positional argument",
-			},
-			cli.StringFlag{
-				Name:   usernameFlagName,
-				Usage:  "specify the username for rpc header authentication",
-				EnvVar: cedarUsernameEnvVar,
-			},
-			cli.StringFlag{
-				Name:   passwordFlagName,
-				Usage:  "specify the passord for rpc header authentication",
-				EnvVar: cedarPasswordEnvVar,
 			},
 		},
 		Before: mergeBeforeFuncs(
@@ -134,37 +124,20 @@ func poplarReport() cli.Command {
 		Action: func(c *cli.Context) error {
 			addr := c.String(serviceFlagName)
 			fileName := c.String(pathFlagName)
-			username := c.String(usernameFlagName)
-			password := c.String(passwordFlagName)
 			isInsecure := c.Bool(insecureFlagName)
+			certFile := c.String(certFileFlagName)
 
 			report, err := poplar.LoadReport(fileName)
 			if err != nil {
 				return errors.WithStack(err)
 			}
 
-			rpcOpts := []grpc.DialOption{
-				grpc.WithBlock(),
-				grpc.WithUnaryInterceptor(func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
-					opts = append(opts, grpc.Header(&metadata.MD{
-						"Api-User": []string{username},
-						"Api-Key":  []string{password},
-					}))
-
-					return invoker(ctx, method, req, reply, cc, opts...)
-				}),
-				grpc.WithStreamInterceptor(func(ctx context.Context, desc *grpc.StreamDesc, cc *grpc.ClientConn, method string, streamer grpc.Streamer, opts ...grpc.CallOption) (grpc.ClientStream, error) {
-					opts = append(opts, grpc.Header(&metadata.MD{
-						"Api-User": []string{username},
-						"Api-Key":  []string{passwordFlagName},
-					}))
-
-					return streamer(ctx, desc, cc, method, opts...)
-				}),
-			}
-
+			rpcOpts := []grpc.DialOption{}
 			if isInsecure {
 				rpcOpts = append(rpcOpts, grpc.WithInsecure())
+			} else {
+				creds, _ := credentials.NewClientTLSFromFile(certFile, "")
+				rpcOpts = append(rpcOpts, grpc.WithTransportCredentials(creds))
 			}
 
 			ctx, cancel := context.WithCancel(context.Background())
