@@ -2,7 +2,10 @@ package operations
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
+	"io/ioutil"
 	"net"
 
 	"github.com/evergreen-ci/poplar"
@@ -93,7 +96,9 @@ func poplarReport() cli.Command {
 		serviceFlagName  = "service"
 		pathFlagName     = "path"
 		insecureFlagName = "insecure"
-		certFileFlagName = "certfile"
+		caFileFlagName   = "ca"
+		certFileFlagName = "cert"
+		keyFileFlagName  = "key"
 	)
 
 	return cli.Command{
@@ -113,6 +118,14 @@ func poplarReport() cli.Command {
 				Usage: "specify the client certificate to connect over TLS",
 			},
 			cli.StringFlag{
+				Name:  caFileFlagName,
+				Usage: "specify the client ca to connect over TLS",
+			},
+			cli.StringFlag{
+				Name:  keyFileFlagName,
+				Usage: "specify the client cert key to connect over TLS",
+			},
+			cli.StringFlag{
 				Name:  pathFlagName,
 				Usage: "specify the path of the input file, may be the first positional argument",
 			},
@@ -126,6 +139,8 @@ func poplarReport() cli.Command {
 			fileName := c.String(pathFlagName)
 			isInsecure := c.Bool(insecureFlagName)
 			certFile := c.String(certFileFlagName)
+			caFile := c.String(caFileFlagName)
+			keyFile := c.String(keyFileFlagName)
 
 			report, err := poplar.LoadReport(fileName)
 			if err != nil {
@@ -136,8 +151,12 @@ func poplarReport() cli.Command {
 			if isInsecure {
 				rpcOpts = append(rpcOpts, grpc.WithInsecure())
 			} else {
-				creds, _ := credentials.NewClientTLSFromFile(certFile, "")
-				rpcOpts = append(rpcOpts, grpc.WithTransportCredentials(creds))
+				tlsConf, err := getTLSConfig(caFile, certFile, keyFile)
+				if err != nil {
+					return errors.WithStack(err)
+				}
+
+				rpcOpts = append(rpcOpts, grpc.WithTransportCredentials(credentials.NewTLS(tlsConf)))
 			}
 
 			ctx, cancel := context.WithCancel(context.Background())
@@ -155,4 +174,25 @@ func poplarReport() cli.Command {
 			return nil
 		},
 	}
+}
+
+func getTLSConfig(caFile, certFile, keyFile string) (*tls.Config, error) {
+	ca, err := ioutil.ReadFile(caFile)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	cp := x509.NewCertPool()
+	if !cp.AppendCertsFromPEM(ca) {
+		return nil, errors.New("credentials: failed to append certificates")
+	}
+
+	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+	if err != nil {
+		return nil, errors.Wrap(err, "problem reading client cert")
+	}
+
+	return &tls.Config{
+		Certificates: []tls.Certificate{cert},
+		RootCAs:      cp,
+	}, nil
 }
