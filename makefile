@@ -1,6 +1,6 @@
 # start project configuration
 name := curator
-ifeq ($(shell go env GOOS), windows)
+ifeq (${GOOS}, windows)
 	binary := $(name).exe
 else
 	binary := $(name)
