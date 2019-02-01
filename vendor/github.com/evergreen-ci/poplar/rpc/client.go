@@ -55,6 +55,7 @@ func uploadTests(ctx context.Context, client internal.CedarPerformanceMetricsCli
 			Id: &internal.ResultID{
 				Project:   report.Project,
 				Version:   report.Version,
+				Variant:   report.Variant,
 				TaskName:  report.TaskName,
 				TaskId:    report.TaskID,
 				Execution: int32(report.Execution),
