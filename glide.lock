@@ -62,7 +62,7 @@ imports:
 - name: github.com/mongodb/jasper
   version: 4cb04231cdfce86b8564c044cb648bcf15f37818
 - name: github.com/evergreen-ci/poplar
-  version: f57e81efbcdacb249cc95ba5c0f03c1b3a8d7be3
+  version: efaf7fb6f33d2c67b249c5562f807647375c72cb
 - name: github.com/evergreen-ci/pail
   version: 91478d8564989cc5aff7bf19f1ad2e1f6c03df55
 - name: github.com/mongodb/mongo-go-driver
