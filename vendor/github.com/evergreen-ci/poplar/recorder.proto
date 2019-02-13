@@ -38,6 +38,7 @@ service PoplarMetricsRecorder {
   rpc BeginEvent(PoplarID) returns (PoplarResponse);
   rpc ResetEvent(PoplarID) returns (PoplarResponse);
   rpc EndEvent(EventSendDuration) returns (PoplarResponse);
+  rpc SetID(EventSendInt) returns (PoplarResponse);
 
   // Timers
   rpc SetTime(EventSendTime) returns (PoplarResponse);

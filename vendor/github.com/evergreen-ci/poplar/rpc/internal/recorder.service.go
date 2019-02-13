@@ -66,6 +66,17 @@ func (s *recorderService) EndEvent(ctx context.Context, val *EventSendDuration) 
 	return &PoplarResponse{Name: val.Name, Status: true}, nil
 }
 
+func (s *recorderService) SetID(ctx context.Context, val *EventSendInt) (*PoplarResponse, error) {
+	rec, ok := s.registry.GetRecorder(val.Name)
+	if !ok {
+		return nil, errors.Errorf("could not find recorder '%s'", val.Name)
+	}
+
+	rec.SetID(val.Value)
+
+	return &PoplarResponse{Name: val.Name, Status: true}, nil
+}
+
 func (s *recorderService) SetTime(ctx context.Context, t *EventSendTime) (*PoplarResponse, error) {
 	rec, ok := s.registry.GetRecorder(t.Name)
 	if !ok {
