@@ -93,6 +93,7 @@ func (a *TestArtifact) Validate() error {
 		a.PayloadFTDC = true
 
 	}
+
 	if a.ConvertBSON2FTDC {
 		a.PayloadBSON = false
 		a.PayloadFTDC = true

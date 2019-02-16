@@ -53,6 +53,13 @@ func ExportRollup(in *poplar.TestMetrics) *RollupValue {
 		UserSubmitted: true,
 	}
 
+	if in.Type != "" {
+		t, ok := RollupType_value[in.Type]
+		if ok {
+			out.Type = RollupType(t)
+		}
+	}
+
 	switch val := in.Value.(type) {
 	case int64:
 		out.Value = &RollupValue_Int{Int: val}

@@ -6,6 +6,8 @@ import (
 
 	"github.com/evergreen-ci/poplar"
 	"github.com/evergreen-ci/poplar/rpc/internal"
+	"github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/mongodb/grip"
 	"github.com/mongodb/grip/message"
 	"github.com/pkg/errors"
@@ -50,6 +52,14 @@ func uploadTests(ctx context.Context, client internal.CedarPerformanceMetricsCli
 				}
 			}
 		}
+		var createdAt *timestamp.Timestamp
+		if !test.CreatedAt.IsZero() {
+			var err error
+			createdAt, err = ptypes.TimestampProto(test.CreatedAt)
+			if err != nil {
+				return errors.Wrap(err, "problem specifying timestamp")
+			}
+		}
 
 		resp, err := client.CreateMetricSeries(ctx, &internal.ResultData{
 			Id: &internal.ResultID{
@@ -64,6 +74,7 @@ func uploadTests(ctx context.Context, client internal.CedarPerformanceMetricsCli
 				Tags:      test.Info.Tags,
 				Arguments: test.Info.Arguments,
 				Parent:    test.Info.Parent,
+				CreatedAt: createdAt,
 			},
 			Artifacts: artifacts,
 		})
@@ -90,6 +101,19 @@ func uploadTests(ctx context.Context, client internal.CedarPerformanceMetricsCli
 
 		if err = uploadTests(ctx, client, report, test.SubTests); err != nil {
 			return errors.Wrapf(err, "problem submitting subtests of '%s'", test.ID)
+		}
+
+		var completedAt *timestamp.Timestamp
+		if !test.CompletedAt.IsZero() {
+			completedAt, err = ptypes.TimestampProto(test.CompletedAt)
+			if err != nil {
+				return errors.Wrap(err, "problem specifying timestamp")
+			}
+		}
+
+		resp, err = client.CloseMetrics(ctx, &internal.MetricsSeriesEnd{Id: test.ID, IsComplete: true, CompletedAt: completedAt})
+		if err != nil {
+			return errors.Wrapf(err, "problem closing metrics series for '%s'", test.ID)
 		}
 	}
 

@@ -22,35 +22,35 @@ func TestCaseType(t *testing.T) {
 			// no minimum specified
 			assert.True(t, c.satisfiedMinimumRuntime(r))
 			assert.False(t, c.satisfiedMinimumIterations(r))
-			assert.False(t, c.satisfiedMinimumns(r))
+			assert.False(t, c.satisfiedMinimums(r))
 		})
 		t.Run("RuntimeUnfulfilled", func(t *testing.T) {
 			c := BenchmarkCase{MinIterations: 2, MinRuntime: time.Hour}
 			r := &BenchmarkResult{Iterations: 2, Runtime: time.Minute}
 			assert.False(t, c.satisfiedMinimumRuntime(r))
 			assert.True(t, c.satisfiedMinimumIterations(r))
-			assert.False(t, c.satisfiedMinimumns(r))
+			assert.False(t, c.satisfiedMinimums(r))
 		})
 		t.Run("PassingCaseIterations", func(t *testing.T) {
 			c := BenchmarkCase{MinIterations: 2}
 			r := &BenchmarkResult{Iterations: 3}
 			assert.True(t, c.satisfiedMinimumRuntime(r))
 			assert.True(t, c.satisfiedMinimumIterations(r))
-			assert.True(t, c.satisfiedMinimumns(r))
+			assert.True(t, c.satisfiedMinimums(r))
 		})
 		t.Run("PassingCase", func(t *testing.T) {
 			c := BenchmarkCase{MinIterations: 2, MinRuntime: time.Minute}
 			r := &BenchmarkResult{Iterations: 3, Runtime: 5 * time.Minute}
 			assert.True(t, c.satisfiedMinimumRuntime(r))
 			assert.True(t, c.satisfiedMinimumIterations(r))
-			assert.True(t, c.satisfiedMinimumns(r))
+			assert.True(t, c.satisfiedMinimums(r))
 		})
 		t.Run("RuntimeOnlySatisfied", func(t *testing.T) {
 			c := BenchmarkCase{MinRuntime: time.Minute, MinIterations: 0}
 			r := &BenchmarkResult{Runtime: time.Hour, Iterations: 1}
 			assert.True(t, c.satisfiedMinimumRuntime(r))
 			assert.False(t, c.satisfiedMinimumIterations(r))
-			assert.False(t, c.satisfiedMinimumns(r))
+			assert.False(t, c.satisfiedMinimums(r))
 		})
 	})
 	t.Run("ExceedsMinimums", func(t *testing.T) {
@@ -423,13 +423,13 @@ func TestResultType(t *testing.T) {
 	})
 	t.Run("Results", func(t *testing.T) {
 		t.Run("Empty", func(t *testing.T) {
-			s := BenchmarkSuiteResults{}
+			s := BenchmarkResultGroup{}
 			assert.Zero(t, s.Report())
 			assert.False(t, s.Composer().Loggable())
 			assert.Equal(t, len(s), len(s.Export()))
 		})
 		t.Run("Populated", func(t *testing.T) {
-			s := BenchmarkSuiteResults{
+			s := BenchmarkResultGroup{
 				res, res, res,
 			}
 			assert.NotZero(t, s.Report())

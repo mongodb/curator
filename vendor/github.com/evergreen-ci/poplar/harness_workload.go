@@ -214,7 +214,7 @@ func (w *BenchmarkWorkload) Run(ctx context.Context, prefix string) (BenchmarkRe
 			}
 
 			for idx, wlg := range w.Group {
-				resultGroup, err := wlg.Run(ctx, fmt.Sprintf("%s.%s.%d.%d", prefix, name, idx))
+				resultGroup, err := wlg.Run(ctx, fmt.Sprintf("%s.%s.%d.%d", prefix, name, instanceIdx, idx))
 				catcher.Add(err)
 
 				for _, r := range resultGroup {

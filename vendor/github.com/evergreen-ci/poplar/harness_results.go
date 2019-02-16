@@ -29,7 +29,7 @@ type BenchmarkResult struct {
 func (res *BenchmarkResult) Report() string {
 	out := []string{
 		"=== RUN", res.Name,
-		"    --- REPORT: " + fmt.Sprintf("count=%d, iters=%s, runtime=%s", res.Count, res.Iterations, roundDurationMS(res.Runtime)),
+		"    --- REPORT: " + fmt.Sprintf("count=%d, iters=%d, runtime=%s", res.Count, res.Iterations, roundDurationMS(res.Runtime)),
 	}
 
 	if res.Error != nil {
@@ -37,7 +37,7 @@ func (res *BenchmarkResult) Report() string {
 			fmt.Sprintf("    --- ERRORS: %s", res.Error.Error()),
 			fmt.Sprintf("--- FAIL: %s (%s)", res.Name, roundDurationMS(res.Runtime)))
 	} else {
-		out = append(out, fmt.Sprintf("--- PASS: %s", res.Name, roundDurationMS(res.Runtime)))
+		out = append(out, fmt.Sprintf("--- PASS: %s (%s)", res.Name, roundDurationMS(res.Runtime)))
 	}
 
 	return strings.Join(out, "\n")
@@ -78,7 +78,7 @@ func (res *BenchmarkResult) Export() Test {
 // Composer produces a grip/message.Composer implementation that
 // allows for easy logging of a results object. The message's string
 // form is the same as Report, but also includes a structured raw format.
-func (res *BenchmarkResult) Composer() message.Composer { return nil }
+func (res *BenchmarkResult) Composer() message.Composer { return &resultComposer{res: res} }
 
 type resultComposer struct {
 	res          *BenchmarkResult `bson:"result" json:"result" yaml:"result"`
