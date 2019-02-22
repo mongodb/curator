@@ -191,6 +191,10 @@ func TestRestService(t *testing.T) {
 			assert.Nil(t, out)
 
 			proc.ResetTags()
+
+			err = proc.RegisterSignalTriggerID(ctx, MongodShutdownSignalTrigger)
+			assert.Error(t, err)
+			assert.Contains(t, err.Error(), "problem building request")
 		},
 		"ProcessRequestsFailWithBadURL": func(ctx context.Context, t *testing.T, srv *Service, client *restClient) {
 
@@ -215,6 +219,10 @@ func TestRestService(t *testing.T) {
 			assert.Nil(t, out)
 
 			proc.ResetTags()
+
+			err = proc.RegisterSignalTriggerID(ctx, MongodShutdownSignalTrigger)
+			assert.Error(t, err)
+			assert.Contains(t, err.Error(), "problem making request")
 		},
 		"CheckSafetyOfTagMethodsForBrokenTasks": func(ctx context.Context, t *testing.T, srv *Service, client *restClient) {
 			proc := &restProcess{
@@ -250,7 +258,7 @@ func TestRestService(t *testing.T) {
 			srv.createProcess(rw, req)
 			assert.Equal(t, http.StatusBadRequest, rw.Code)
 		},
-		"CreateFailPropogatesErrors": func(ctx context.Context, t *testing.T, srv *Service, client *restClient) {
+		"CreateFailPropagatesErrors": func(ctx context.Context, t *testing.T, srv *Service, client *restClient) {
 			srv.manager = &MockManager{
 				FailCreate: true,
 			}
@@ -272,11 +280,9 @@ func TestRestService(t *testing.T) {
 			assert.Contains(t, err.Error(), "problem managing resources")
 		},
 		"InvalidFilterReturnsError": func(ctx context.Context, t *testing.T, srv *Service, client *restClient) {
-			req, err := http.NewRequest(http.MethodGet, client.getURL("/list/%s", "foo"), nil)
-			require.NoError(t, err)
-			out, err := client.getListOfProcesses(req)
+			procs, err := client.List(ctx, Filter("foo"))
 			assert.Error(t, err)
-			assert.Nil(t, out)
+			assert.Nil(t, procs)
 		},
 		"WaitForProcessThatDoesNotExistShouldError": func(ctx context.Context, t *testing.T, srv *Service, client *restClient) {
 			proc := &restProcess{
@@ -303,6 +309,7 @@ func TestRestService(t *testing.T) {
 		},
 		"GetProcessWhenInvalid": func(ctx context.Context, t *testing.T, srv *Service, client *restClient) {
 			srv.manager = &MockManager{
+				FailGet: true,
 				Process: &MockProcess{},
 			}
 
@@ -362,12 +369,15 @@ func TestRestService(t *testing.T) {
 
 		},
 		"SignalFailsToParsePid": func(ctx context.Context, t *testing.T, srv *Service, client *restClient) {
-			req, err := http.NewRequest(http.MethodPost, client.getURL("/process/%s/signal/f", "foo"), nil)
+			req, err := http.NewRequest(http.MethodPatch, client.getURL("/process/%s/signal/f", "foo"), nil)
 			require.NoError(t, err)
-			rw := httptest.NewRecorder()
+			req = req.WithContext(ctx)
 
-			srv.signalProcess(rw, req)
-			assert.Equal(t, http.StatusBadRequest, rw.Code)
+			resp, err := client.client.Do(req)
+			require.NoError(t, err)
+			defer resp.Body.Close()
+			assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+			assert.Contains(t, handleError(resp).Error(), "problem converting signal 'f'")
 		},
 		"DownloadFileCreatesResource": func(ctx context.Context, t *testing.T, srv *Service, client *restClient) {
 			file, err := ioutil.TempFile("build", "out.txt")
@@ -382,6 +392,7 @@ func TestRestService(t *testing.T) {
 			assert.NoError(t, err)
 			assert.NotEqual(t, 0, info.Size())
 		},
+		// TODO: fix this flaky test. It occasionally this receives 400 Bad Request instead of OK on Evergreen.
 		"DownloadFileCreatesResourceAndExtracts": func(ctx context.Context, t *testing.T, srv *Service, client *restClient) {
 			if testing.Short() {
 				t.Skip("skipping download and extract test in short mode")
@@ -399,6 +410,7 @@ func TestRestService(t *testing.T) {
 			absFilePath, err := filepath.Abs(file.Name())
 			require.NoError(t, err)
 			absExtractDir, err := filepath.Abs(extractDir)
+			require.NoError(t, err)
 
 			feed, err := bond.GetArtifactsFeed(ctx, tempDir)
 			require.NoError(t, err)
@@ -587,6 +599,7 @@ func TestRestService(t *testing.T) {
 			var opts struct {
 				MaxSize string `json:"max_size"`
 			}
+			opts.MaxSize = "foo"
 			body, err := makeBody(opts)
 			require.NoError(t, err)
 			req, err := http.NewRequest(http.MethodPost, client.getURL("/configure-cache"), body)
@@ -679,6 +692,37 @@ func TestRestService(t *testing.T) {
 			require.NoError(t, err)
 			assert.NotZero(t, info.Size())
 
+		},
+		"ServiceRegisterSignalTriggerIDChecksForExistingProcess": func(ctx context.Context, t *testing.T, srv *Service, client *restClient) {
+			req, err := http.NewRequest(http.MethodPatch, client.getURL("/process/%s/trigger/signal/%s", "foo", MongodShutdownSignalTrigger), nil)
+			require.NoError(t, err)
+
+			resp, err := client.client.Do(req)
+			require.NoError(t, err)
+			defer resp.Body.Close()
+
+			assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+			assert.Contains(t, handleError(resp).Error(), "no process 'foo' found")
+		},
+		"ServiceRegisterSignalTriggerIDChecksForInvalidTriggerID": func(ctx context.Context, t *testing.T, srv *Service, client *restClient) {
+			opts := yesCreateOpts(0)
+			proc, err := client.Create(ctx, &opts)
+			require.NoError(t, err)
+			assert.True(t, proc.Running(ctx))
+
+			assert.Error(t, proc.RegisterSignalTriggerID(ctx, SignalTriggerID("foo")))
+
+			assert.NoError(t, proc.Signal(ctx, syscall.SIGTERM))
+		},
+		"ServiceRegisterSignalTriggerIDPassesWithValidArgs": func(ctx context.Context, t *testing.T, srv *Service, client *restClient) {
+			opts := yesCreateOpts(0)
+			proc, err := client.Create(ctx, &opts)
+			require.NoError(t, err)
+			assert.True(t, proc.Running(ctx))
+
+			assert.NoError(t, proc.RegisterSignalTriggerID(ctx, MongodShutdownSignalTrigger))
+
+			assert.NoError(t, proc.Signal(ctx, syscall.SIGTERM))
 		},
 		// "": func(ctx context.Context, t *testing.T, srv *Service, client *restClient) {},
 	} {

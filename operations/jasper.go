@@ -8,7 +8,7 @@ import (
 	"github.com/mongodb/grip"
 	"github.com/mongodb/grip/recovery"
 	"github.com/mongodb/jasper"
-	"github.com/mongodb/jasper/jrpc"
+	"github.com/mongodb/jasper/rpc"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 	"google.golang.org/grpc"
@@ -73,7 +73,10 @@ func jasperCombined() cli.Command {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			mngr := jasper.NewLocalManager()
+			mngr, err := jasper.NewLocalManager(false)
+			if err != nil {
+				return errors.Wrap(err, "problem constructing manager")
+			}
 
 			// assemble the rest service
 			rest := jasper.NewManagerService(mngr).App()
@@ -88,7 +91,7 @@ func jasperCombined() cli.Command {
 
 			// assemble the rpc service
 			rpcSrv := grpc.NewServer()
-			if err := jrpc.AttachService(mngr, rpcSrv); err != nil {
+			if err := rpc.AttachService(mngr, rpcSrv); err != nil {
 				return errors.WithStack(err)
 			}
 
@@ -148,7 +151,10 @@ func jasperRPC() cli.Command {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			mngr := jasper.NewLocalManager()
+			mngr, err := jasper.NewLocalManager(false)
+			if err != nil {
+				return errors.Wrap(err, "problem constructing manager")
+			}
 
 			addr := fmt.Sprintf("%s:%d", host, port)
 			lis, err := net.Listen("tcp", addr)
@@ -159,7 +165,7 @@ func jasperRPC() cli.Command {
 			grip.Infof("starting jasper gRPC service at '%s'", addr)
 			rpcSrv := grpc.NewServer()
 
-			if err = jrpc.AttachService(mngr, rpcSrv); err != nil {
+			if err = rpc.AttachService(mngr, rpcSrv); err != nil {
 				return errors.WithStack(err)
 			}
 
@@ -204,7 +210,12 @@ func jasperREST() cli.Command {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			mngr := jasper.NewManagerService(jasper.NewLocalManager())
+			m, err := jasper.NewLocalManager(false)
+			if err != nil {
+				return errors.Wrap(err, "problem constructing base manager")
+			}
+
+			mngr := jasper.NewManagerService(m)
 			app := mngr.App()
 			app.SetPrefix("jasper")
 

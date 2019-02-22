@@ -8,24 +8,26 @@ import (
 )
 
 // NewLocalManager is a constructor for a thread-safe Manager.
-func NewLocalManager() Manager {
-	return &localProcessManager{
-		manager: &basicProcessManager{
-			procs:    map[string]Process{},
-			blocking: false,
-		},
+func NewLocalManager(trackProcs bool) (Manager, error) {
+	basicManager, err := newBasicProcessManager(map[string]Process{}, false, false, trackProcs)
+	if err != nil {
+		return nil, err
 	}
+	return &localProcessManager{
+		manager: basicManager.(*basicProcessManager),
+	}, nil
 }
 
 // NewLocalManagerBlockingProcesses is a constructor for localProcessManager,
 // that uses blockingProcess instead of the default basicProcess.
-func NewLocalManagerBlockingProcesses() Manager {
-	return &localProcessManager{
-		manager: &basicProcessManager{
-			procs:    map[string]Process{},
-			blocking: true,
-		},
+func NewLocalManagerBlockingProcesses(trackProcs bool) (Manager, error) {
+	basicBlockingManager, err := newBasicProcessManager(map[string]Process{}, false, true, trackProcs)
+	if err != nil {
+		return nil, err
 	}
+	return &localProcessManager{
+		manager: basicBlockingManager.(*basicProcessManager),
+	}, nil
 }
 
 type localProcessManager struct {

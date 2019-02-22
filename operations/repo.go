@@ -56,7 +56,7 @@ func repoFlags() []cli.Flag {
 
 	pwd, err := os.Getwd()
 	grip.CatchEmergencyFatal(err)
-	workingDir := filepath.Join(pwd, uuid.NewV4().String())
+	workingDir := filepath.Join(pwd, uuid.Must(uuid.NewV4()).String())
 
 	return []cli.Flag{
 		cli.StringFlag{

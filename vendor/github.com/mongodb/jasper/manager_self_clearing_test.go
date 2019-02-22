@@ -80,8 +80,9 @@ func TestSelfClearingManager(t *testing.T) {
 					tctx, cancel := context.WithTimeout(context.Background(), managerTestTimeout)
 					defer cancel()
 
-					selfClearingManager := NewSelfClearingProcessManager(5).(*selfClearingProcessManager)
-					test(tctx, t, selfClearingManager)
+					selfClearingManager, err := NewSelfClearingProcessManager(5, false)
+					require.NoError(t, err)
+					test(tctx, t, selfClearingManager.(*selfClearingProcessManager))
 					selfClearingManager.Close(tctx)
 				})
 			}

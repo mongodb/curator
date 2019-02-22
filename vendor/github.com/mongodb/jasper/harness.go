@@ -58,9 +58,10 @@ func inMemoryLoggerCase(ctx context.Context, c *caseDefinition) result {
 	res := result{duration: c.timeout}
 	size := make(chan int64)
 	opts := makeCreateOpts(c.timeout, Logger{Type: logType, Options: logOptions})
-	opts.closers = append(opts.closers, func() {
+	opts.closers = append(opts.closers, func() (_ error) {
 		logger := opts.Output.outputSender.Sender.(*send.InMemorySender)
 		size <- logger.TotalBytesSent()
+		return
 	})
 
 	err := runIteration(ctx, c.procMaker, opts)

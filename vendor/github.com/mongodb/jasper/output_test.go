@@ -28,12 +28,6 @@ func TestOutputOptions(t *testing.T) {
 			opts.Error = stderr
 			assert.NoError(t, opts.Validate())
 		},
-		"StreamsMustBeDifferent": func(t *testing.T, opts OutputOptions) {
-			// invalid if both streams are the same
-			opts.Error = stderr
-			opts.Output = stderr
-			assert.Error(t, opts.Validate())
-		},
 		"SuppressErrorWhenSpecified": func(t *testing.T, opts OutputOptions) {
 			opts.Error = stderr
 			opts.SuppressError = true
@@ -219,11 +213,11 @@ func TestOutputOptions(t *testing.T) {
 func TestOutputOptionsIntegrationTableTest(t *testing.T) {
 	buf := &bytes.Buffer{}
 	shouldFail := []OutputOptions{
-		{Output: buf, Error: buf},
 		{Output: buf, SendOutputToError: true},
 	}
 
 	shouldPass := []OutputOptions{
+		{Output: buf, Error: buf},
 		{SuppressError: true, SuppressOutput: true},
 		{Output: buf, SendErrorToOutput: true},
 	}

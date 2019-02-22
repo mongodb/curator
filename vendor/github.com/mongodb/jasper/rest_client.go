@@ -80,19 +80,11 @@ func (c *restClient) Create(ctx context.Context, opts *CreateOptions) (Process, 
 		return nil, errors.Wrap(err, "problem building request for job create")
 	}
 
-	req, err := http.NewRequest(http.MethodPost, c.getURL("/create"), body)
+	resp, err := c.doRequest(ctx, http.MethodPost, c.getURL("/create"), body)
 	if err != nil {
-		return nil, errors.Wrap(err, "problem building request")
+		return nil, errors.Wrap(err, "request returned error")
 	}
-	req = req.WithContext(ctx)
-	resp, err := c.client.Do(req)
-	if err != nil {
-		return nil, errors.Wrap(err, "problem making request")
-	}
-
-	if err = handleError(resp); err != nil {
-		return nil, errors.WithStack(err)
-	}
+	defer resp.Body.Close()
 
 	var info ProcessInfo
 	if err := gimlet.GetJSON(resp.Body, &info); err != nil {
@@ -109,16 +101,7 @@ func (c *restClient) Register(ctx context.Context, proc Process) error {
 	return errors.New("cannot register a local process on a remote service")
 }
 
-func (c *restClient) getListOfProcesses(req *http.Request) ([]Process, error) {
-	resp, err := c.client.Do(req)
-	if err != nil {
-		return nil, errors.Wrap(err, "problem making request")
-	}
-
-	if err = handleError(resp); err != nil {
-		return nil, errors.WithStack(err)
-	}
-
+func (c *restClient) getListOfProcesses(resp *http.Response) ([]Process, error) {
 	payload := []ProcessInfo{}
 	if err := gimlet.GetJSON(resp.Body, &payload); err != nil {
 		return nil, errors.Wrap(err, "problem reading process info from response")
@@ -126,7 +109,6 @@ func (c *restClient) getListOfProcesses(req *http.Request) ([]Process, error) {
 
 	output := []Process{}
 	for _, info := range payload {
-
 		output = append(output, &restProcess{
 			id:     info.ID,
 			client: c,
@@ -141,45 +123,33 @@ func (c *restClient) List(ctx context.Context, f Filter) ([]Process, error) {
 		return nil, errors.WithStack(err)
 	}
 
-	req, err := http.NewRequest(http.MethodGet, c.getURL("/list/%s", string(f)), nil)
+	resp, err := c.doRequest(ctx, http.MethodGet, c.getURL("/list/%s", string(f)), nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "problem building request")
+		return nil, errors.Wrap(err, "request returned error")
 	}
-	req = req.WithContext(ctx)
+	defer resp.Body.Close()
 
-	out, err := c.getListOfProcesses(req)
+	out, err := c.getListOfProcesses(resp)
 
 	return out, errors.WithStack(err)
 }
 
 func (c *restClient) Group(ctx context.Context, name string) ([]Process, error) {
-	req, err := http.NewRequest(http.MethodGet, c.getURL("/list/group/%s", name), nil)
+	resp, err := c.doRequest(ctx, http.MethodGet, c.getURL("/list/group/%s", name), nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "problem building request")
+		return nil, errors.Wrap(err, "request returned error")
 	}
+	defer resp.Body.Close()
 
-	req = req.WithContext(ctx)
-
-	out, err := c.getListOfProcesses(req)
+	out, err := c.getListOfProcesses(resp)
 
 	return out, errors.WithStack(err)
 }
 
 func (c *restClient) getProcess(ctx context.Context, id string) (*http.Response, error) {
-	req, err := http.NewRequest(http.MethodGet, c.getURL("/process/%s", id), nil)
+	resp, err := c.doRequest(ctx, http.MethodGet, c.getURL("/process/%s", id), nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "problem building request")
-	}
-
-	req = req.WithContext(ctx)
-
-	resp, err := c.client.Do(req)
-	if err != nil {
-		return nil, errors.Wrap(err, "problem making request")
-	}
-
-	if err = handleError(resp); err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errors.Wrap(err, "request returned error")
 	}
 
 	return resp, nil
@@ -190,6 +160,7 @@ func (c *restClient) getProcessInfo(ctx context.Context, id string) (ProcessInfo
 	if err != nil {
 		return ProcessInfo{}, errors.WithStack(err)
 	}
+	defer resp.Body.Close()
 
 	out := ProcessInfo{}
 	if err = gimlet.GetJSON(resp.Body, &out); err != nil {
@@ -200,10 +171,11 @@ func (c *restClient) getProcessInfo(ctx context.Context, id string) (ProcessInfo
 }
 
 func (c *restClient) Get(ctx context.Context, id string) (Process, error) {
-	_, err := c.getProcess(ctx, id)
+	resp, err := c.getProcess(ctx, id)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
+	defer resp.Body.Close()
 
 	// we don't actually need to parse the body of the post if we
 	// know the process exists.
@@ -216,27 +188,19 @@ func (c *restClient) Get(ctx context.Context, id string) (Process, error) {
 func (c *restClient) Clear(ctx context.Context) {
 	// Avoid errors here, because we can't return them anyways, and these errors
 	// should not really ever happen.
-	req, _ := http.NewRequest(http.MethodPost, c.getURL("/clear"), nil)
-	req = req.WithContext(ctx)
-
-	c.client.Do(req)
+	resp, err := c.doRequest(ctx, http.MethodPost, c.getURL("/clear"), nil)
+	if err != nil {
+		grip.Debug(errors.Wrap(err, "request returned error"))
+	}
+	defer resp.Body.Close()
 }
 
 func (c *restClient) Close(ctx context.Context) error {
-	req, err := http.NewRequest(http.MethodDelete, c.getURL("/close"), nil)
+	resp, err := c.doRequest(ctx, http.MethodDelete, c.getURL("/close"), nil)
 	if err != nil {
-		return errors.Wrap(err, "problem building request")
+		return err
 	}
-	req = req.WithContext(ctx)
-
-	resp, err := c.client.Do(req)
-	if err != nil {
-		return errors.Wrap(err, "problem making request")
-	}
-
-	if err = handleError(resp); err != nil {
-		return errors.WithStack(err)
-	}
+	defer resp.Body.Close()
 
 	return nil
 }
@@ -282,6 +246,7 @@ func (c *restClient) DownloadFile(ctx context.Context, info DownloadInfo) error 
 		return err
 	}
 	defer resp.Body.Close()
+
 	return nil
 }
 
@@ -297,6 +262,7 @@ func (c *restClient) DownloadMongoDB(ctx context.Context, opts MongoDBDownloadOp
 		return err
 	}
 	defer resp.Body.Close()
+
 	return nil
 }
 
@@ -312,6 +278,7 @@ func (c *restClient) ConfigureCache(ctx context.Context, opts CacheOptions) erro
 		return err
 	}
 	defer resp.Body.Close()
+
 	return nil
 }
 
@@ -325,10 +292,7 @@ func (p *restProcess) ID() string { return p.id }
 
 func (p *restProcess) Info(ctx context.Context) ProcessInfo {
 	info, err := p.client.getProcessInfo(ctx, p.id)
-	if err != nil {
-		grip.Debug(message.WrapError(err, message.Fields{"process": p.id}))
-	}
-
+	grip.Debug(message.WrapError(err, message.Fields{"process": p.id}))
 	return info
 }
 
@@ -345,44 +309,26 @@ func (p *restProcess) Complete(ctx context.Context) bool {
 }
 
 func (p *restProcess) Signal(ctx context.Context, sig syscall.Signal) error {
-	req, err := http.NewRequest(http.MethodPatch, p.client.getURL("/process/%s/signal/%d", p.id, sig), nil)
+	resp, err := p.client.doRequest(ctx, http.MethodPatch, p.client.getURL("/process/%s/signal/%d", p.id, sig), nil)
 	if err != nil {
-		return errors.Wrap(err, "problem building request")
+		return err
 	}
-
-	req = req.WithContext(ctx)
-
-	resp, err := p.client.client.Do(req)
-	if err != nil {
-		return errors.Wrap(err, "problem making request")
-	}
-
-	if err = handleError(resp); err != nil {
-		return errors.WithStack(err)
-	}
+	defer resp.Body.Close()
 
 	return nil
 }
 
 func (p *restProcess) Wait(ctx context.Context) (int, error) {
-	req, err := http.NewRequest(http.MethodGet, p.client.getURL("/process/%s/wait", p.id), nil)
+	resp, err := p.client.doRequest(ctx, http.MethodGet, p.client.getURL("/process/%s/wait", p.id), nil)
 	if err != nil {
-		return -1, errors.Wrap(err, "problem building request")
+		return -1, err
 	}
-
-	req = req.WithContext(ctx)
-
-	resp, err := p.client.client.Do(req)
-	if err != nil {
-		return -1, errors.Wrap(err, "problem making request")
-	}
-
-	if err = handleError(resp); err != nil {
-		return -1, errors.WithStack(err)
-	}
+	defer resp.Body.Close()
 
 	var exitCode int
-	gimlet.GetJSON(resp.Body, &exitCode)
+	if err = gimlet.GetJSON(resp.Body, &exitCode); err != nil {
+		return -1, errors.Wrap(err, "request returned error")
+	}
 	if exitCode != 0 {
 		return exitCode, errors.New("operation failed")
 	}
@@ -390,21 +336,11 @@ func (p *restProcess) Wait(ctx context.Context) (int, error) {
 }
 
 func (p *restProcess) Respawn(ctx context.Context) (Process, error) {
-	req, err := http.NewRequest(http.MethodGet, p.client.getURL("/process/%s/respawn", p.id), nil)
+	resp, err := p.client.doRequest(ctx, http.MethodGet, p.client.getURL("/process/%s/respawn", p.id), nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "problem building request")
+		return nil, errors.Wrap(err, "request returned error")
 	}
-
-	req = req.WithContext(ctx)
-
-	resp, err := p.client.client.Do(req)
-	if err != nil {
-		return nil, errors.Wrap(err, "problem making request")
-	}
-
-	if err = handleError(resp); err != nil {
-		return nil, errors.WithStack(err)
-	}
+	defer resp.Body.Close()
 
 	info := ProcessInfo{}
 	if err = gimlet.GetJSON(resp.Body, &info); err != nil {
@@ -417,65 +353,48 @@ func (p *restProcess) Respawn(ctx context.Context) (Process, error) {
 	}, nil
 }
 
-func (p *restProcess) RegisterTrigger(ctx context.Context, _ ProcessTrigger) error {
+func (p *restProcess) RegisterTrigger(_ context.Context, _ ProcessTrigger) error {
 	return errors.New("cannot register triggers on remote processes")
 }
+
+func (p *restProcess) RegisterSignalTrigger(_ context.Context, _ SignalTrigger) error {
+	return errors.New("cannot register signal trigger on remote processes")
+}
+
+func (p *restProcess) RegisterSignalTriggerID(ctx context.Context, triggerID SignalTriggerID) error {
+	resp, err := p.client.doRequest(ctx, http.MethodPatch, p.client.getURL("/process/%s/trigger/signal/%s", p.id, triggerID), nil)
+	if err != nil {
+		return errors.Wrap(err, "request returned error")
+	}
+	defer resp.Body.Close()
+
+	return nil
+}
+
 func (p *restProcess) Tag(t string) {
-	req, err := http.NewRequest(http.MethodPost, p.client.getURL("/process/%s/tags?add=%s", p.id, t), nil)
+	resp, err := p.client.doRequest(context.Background(), http.MethodPost, p.client.getURL("/process/%s/tags?add=%s", p.id, t), nil)
 	if err != nil {
-		grip.Debug(message.WrapError(err, message.Fields{
-			"message": "problem making request",
-			"process": p.id,
-		}))
-		return
-	}
-
-	resp, err := p.client.client.Do(req)
-	if err != nil {
-		grip.Debug(message.WrapError(err, message.Fields{
-			"message": "problem making request",
-			"process": p.id,
-		}))
-		return
-	}
-
-	if err = handleError(resp); err != nil {
 		grip.Debug(message.WrapError(err, message.Fields{
 			"message": "request returned error",
 			"process": p.id,
 		}))
 		return
 	}
+	defer resp.Body.Close()
 
 	return
 }
 
 func (p *restProcess) GetTags() []string {
-	req, err := http.NewRequest(http.MethodGet, p.client.getURL("/process/%s/tags", p.id), nil)
+	resp, err := p.client.doRequest(context.Background(), http.MethodGet, p.client.getURL("/process/%s/tags", p.id), nil)
 	if err != nil {
-		grip.Debug(message.WrapError(err, message.Fields{
-			"message": "problem making request",
-			"process": p.id,
-		}))
-		return nil
-	}
-
-	resp, err := p.client.client.Do(req)
-	if err != nil {
-		grip.Debug(message.WrapError(err, message.Fields{
-			"message": "problem making request",
-			"process": p.id,
-		}))
-		return nil
-	}
-
-	if err = handleError(resp); err != nil {
 		grip.Debug(message.WrapError(err, message.Fields{
 			"message": "request returned error",
 			"process": p.id,
 		}))
 		return nil
 	}
+	defer resp.Body.Close()
 
 	out := []string{}
 	if err = gimlet.GetJSON(resp.Body, &out); err != nil {
@@ -490,29 +409,13 @@ func (p *restProcess) GetTags() []string {
 }
 
 func (p *restProcess) ResetTags() {
-	req, err := http.NewRequest(http.MethodDelete, p.client.getURL("/process/%s/tags", p.id), nil)
+	resp, err := p.client.doRequest(context.Background(), http.MethodDelete, p.client.getURL("/process/%s/tags", p.id), nil)
 	if err != nil {
-		grip.Debug(message.WrapError(err, message.Fields{
-			"message": "problem making request",
-			"process": p.id,
-		}))
-		return
-	}
-
-	resp, err := p.client.client.Do(req)
-	if err != nil {
-		grip.Debug(message.WrapError(err, message.Fields{
-			"message": "problem making request",
-			"process": p.id,
-		}))
-		return
-	}
-
-	if err = handleError(resp); err != nil {
 		grip.Debug(message.WrapError(err, message.Fields{
 			"message": "request returned error",
 			"process": p.id,
 		}))
 		return
 	}
+	defer resp.Body.Close()
 }

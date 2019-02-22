@@ -3,11 +3,13 @@
 
 package internal
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
-import _ "github.com/golang/protobuf/ptypes/duration"
-import _ "github.com/golang/protobuf/ptypes/timestamp"
+import (
+	fmt "fmt"
+	proto "github.com/golang/protobuf/proto"
+	_ "github.com/golang/protobuf/ptypes/duration"
+	_ "github.com/golang/protobuf/ptypes/timestamp"
+	math "math"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -18,7 +20,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 type CreateOptions_RecorderType int32
 
@@ -45,6 +47,7 @@ var CreateOptions_RecorderType_name = map[int32]string{
 	8: "HISTOGRAM_1S",
 	9: "INTERVAL_SUMMARIZATION",
 }
+
 var CreateOptions_RecorderType_value = map[string]int32{
 	"UNKNOWN":                0,
 	"PERF":                   1,
@@ -60,8 +63,9 @@ var CreateOptions_RecorderType_value = map[string]int32{
 func (x CreateOptions_RecorderType) String() string {
 	return proto.EnumName(CreateOptions_RecorderType_name, int32(x))
 }
+
 func (CreateOptions_RecorderType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_poplar_c432bb9c7668081a, []int{1, 0}
+	return fileDescriptor_b63ae76ef0e442c8, []int{1, 0}
 }
 
 type PoplarID struct {
@@ -75,16 +79,17 @@ func (m *PoplarID) Reset()         { *m = PoplarID{} }
 func (m *PoplarID) String() string { return proto.CompactTextString(m) }
 func (*PoplarID) ProtoMessage()    {}
 func (*PoplarID) Descriptor() ([]byte, []int) {
-	return fileDescriptor_poplar_c432bb9c7668081a, []int{0}
+	return fileDescriptor_b63ae76ef0e442c8, []int{0}
 }
+
 func (m *PoplarID) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PoplarID.Unmarshal(m, b)
 }
 func (m *PoplarID) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_PoplarID.Marshal(b, m, deterministic)
 }
-func (dst *PoplarID) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_PoplarID.Merge(dst, src)
+func (m *PoplarID) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_PoplarID.Merge(m, src)
 }
 func (m *PoplarID) XXX_Size() int {
 	return xxx_messageInfo_PoplarID.Size(m)
@@ -118,16 +123,17 @@ func (m *CreateOptions) Reset()         { *m = CreateOptions{} }
 func (m *CreateOptions) String() string { return proto.CompactTextString(m) }
 func (*CreateOptions) ProtoMessage()    {}
 func (*CreateOptions) Descriptor() ([]byte, []int) {
-	return fileDescriptor_poplar_c432bb9c7668081a, []int{1}
+	return fileDescriptor_b63ae76ef0e442c8, []int{1}
 }
+
 func (m *CreateOptions) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CreateOptions.Unmarshal(m, b)
 }
 func (m *CreateOptions) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CreateOptions.Marshal(b, m, deterministic)
 }
-func (dst *CreateOptions) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CreateOptions.Merge(dst, src)
+func (m *CreateOptions) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CreateOptions.Merge(m, src)
 }
 func (m *CreateOptions) XXX_Size() int {
 	return xxx_messageInfo_CreateOptions.Size(m)
@@ -192,16 +198,17 @@ func (m *PoplarResponse) Reset()         { *m = PoplarResponse{} }
 func (m *PoplarResponse) String() string { return proto.CompactTextString(m) }
 func (*PoplarResponse) ProtoMessage()    {}
 func (*PoplarResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_poplar_c432bb9c7668081a, []int{2}
+	return fileDescriptor_b63ae76ef0e442c8, []int{2}
 }
+
 func (m *PoplarResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PoplarResponse.Unmarshal(m, b)
 }
 func (m *PoplarResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_PoplarResponse.Marshal(b, m, deterministic)
 }
-func (dst *PoplarResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_PoplarResponse.Merge(dst, src)
+func (m *PoplarResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_PoplarResponse.Merge(m, src)
 }
 func (m *PoplarResponse) XXX_Size() int {
 	return xxx_messageInfo_PoplarResponse.Size(m)
@@ -227,15 +234,15 @@ func (m *PoplarResponse) GetStatus() bool {
 }
 
 func init() {
+	proto.RegisterEnum("poplar.CreateOptions_RecorderType", CreateOptions_RecorderType_name, CreateOptions_RecorderType_value)
 	proto.RegisterType((*PoplarID)(nil), "poplar.PoplarID")
 	proto.RegisterType((*CreateOptions)(nil), "poplar.CreateOptions")
 	proto.RegisterType((*PoplarResponse)(nil), "poplar.PoplarResponse")
-	proto.RegisterEnum("poplar.CreateOptions_RecorderType", CreateOptions_RecorderType_name, CreateOptions_RecorderType_value)
 }
 
-func init() { proto.RegisterFile("poplar.proto", fileDescriptor_poplar_c432bb9c7668081a) }
+func init() { proto.RegisterFile("poplar.proto", fileDescriptor_b63ae76ef0e442c8) }
 
-var fileDescriptor_poplar_c432bb9c7668081a = []byte{
+var fileDescriptor_b63ae76ef0e442c8 = []byte{
 	// 386 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x6c, 0x91, 0xc1, 0x8f, 0xd2, 0x40,
 	0x14, 0xc6, 0x2d, 0xdb, 0x2d, 0xe5, 0x2d, 0xb2, 0x93, 0xd1, 0x6c, 0x1a, 0x62, 0xd6, 0xa6, 0xa7,

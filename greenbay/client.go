@@ -76,7 +76,7 @@ func (c *Client) Run(ctx context.Context) error {
 			continue
 		}
 		j := check.Job.(Checker)
-		j.SetID(fmt.Sprintf("%s-%d-%s", j.ID(), time.Now().Unix(), uuid.NewV4().String()))
+		j.SetID(fmt.Sprintf("%s-%d-%s", j.ID(), time.Now().Unix(), uuid.Must(uuid.NewV4()).String()))
 		id, err := c.client.SubmitJob(ctx, j)
 		if err != nil {
 			catcher.Add(err)

@@ -76,6 +76,20 @@ func (p *localProcess) RegisterTrigger(ctx context.Context, trigger ProcessTrigg
 	return errors.WithStack(p.proc.RegisterTrigger(ctx, trigger))
 }
 
+func (p *localProcess) RegisterSignalTrigger(ctx context.Context, trigger SignalTrigger) error {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
+	return errors.WithStack(p.proc.RegisterSignalTrigger(ctx, trigger))
+}
+
+func (p *localProcess) RegisterSignalTriggerID(ctx context.Context, trigger SignalTriggerID) error {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
+	return errors.WithStack(p.proc.RegisterSignalTriggerID(ctx, trigger))
+}
+
 func (p *localProcess) Wait(ctx context.Context) (int, error) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()

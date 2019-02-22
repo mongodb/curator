@@ -169,6 +169,7 @@ vendor-clean:
 	rm -rf vendor/github.com/mongodb/jasper/vendor/google.golang.org/genproto
 	rm -rf vendor/github.com/mongodb/jasper/vendor/google.golang.org/grpc
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/stretchr/
+	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/satori/go.uuid/
 	rm -rf vendor/github.com/papertrail/go-tail/main.go
 	rm -rf vendor/github.com/papertrail/go-tail/vendor/github.com/spf13/pflag/
 	rm -rf vendor/github.com/papertrail/go-tail/vendor/golang.org/x/sys/

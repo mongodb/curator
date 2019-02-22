@@ -18,19 +18,21 @@ import (
 
 type blockingProcess struct {
 	id   string
-	host string
 	opts CreateOptions
 	ops  chan func(*exec.Cmd)
+	err  error
 
-	mu       sync.RWMutex
-	tags     map[string]struct{}
-	triggers ProcessTriggerSequence
-	info     *ProcessInfo
+	mu             sync.RWMutex
+	tags           map[string]struct{}
+	triggers       ProcessTriggerSequence
+	signalTriggers SignalTriggerSequence
+	info           ProcessInfo
 }
 
 func newBlockingProcess(ctx context.Context, opts *CreateOptions) (Process, error) {
 	id := uuid.Must(uuid.NewV4()).String()
 	opts.AddEnvVar(EnvironID, id)
+	opts.Hostname, _ = os.Hostname()
 
 	cmd, err := opts.Resolve(ctx)
 	if err != nil {
@@ -48,8 +50,9 @@ func newBlockingProcess(ctx context.Context, opts *CreateOptions) (Process, erro
 		p.Tag(t)
 	}
 
-	p.host, _ = os.Hostname()
-	p.RegisterTrigger(ctx, makeOptionsCloseTrigger())
+	if err = p.RegisterTrigger(ctx, makeOptionsCloseTrigger()); err != nil {
+		return nil, errors.Wrap(err, "problem registering options closer trigger")
+	}
 
 	if err = cmd.Start(); err != nil {
 		return nil, errors.Wrap(err, "problem starting command")
@@ -57,6 +60,14 @@ func newBlockingProcess(ctx context.Context, opts *CreateOptions) (Process, erro
 
 	p.opts.started = true
 	opts.started = true
+
+	p.info = ProcessInfo{
+		ID:        id,
+		PID:       cmd.Process.Pid,
+		Host:      opts.Hostname,
+		Options:   *opts,
+		IsRunning: true,
+	}
 
 	go p.reactor(ctx, cmd)
 
@@ -66,29 +77,36 @@ func newBlockingProcess(ctx context.Context, opts *CreateOptions) (Process, erro
 func (p *blockingProcess) setInfo(info ProcessInfo) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	p.info = &info
+	p.info = info
 }
 
-func (p *blockingProcess) hasInfo() bool {
+func (p *blockingProcess) hasCompleteInfo() bool {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 
-	return p.info != nil
+	return p.info.Complete
 }
 
 func (p *blockingProcess) getInfo() ProcessInfo {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
-
-	ret := ProcessInfo{}
-	if p.info == nil {
-		return ret
-	}
-
-	ret = *p.info
-
-	return ret
+	return p.info
 }
+
+func (p *blockingProcess) setErr(err error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	p.err = err
+}
+
+func (p *blockingProcess) getErr() error {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+
+	return p.err
+}
+
 func (p *blockingProcess) reactor(ctx context.Context, cmd *exec.Cmd) {
 	signal := make(chan error)
 	go func() {
@@ -105,18 +123,18 @@ func (p *blockingProcess) reactor(ctx context.Context, cmd *exec.Cmd) {
 				p.mu.RLock()
 				defer p.mu.RUnlock()
 
-				info = ProcessInfo{
-					ID:        p.id,
-					Options:   p.opts,
-					Host:      p.host,
-					Complete:  true,
-					IsRunning: false,
-				}
+				info = p.info
+				info.Complete = true
+				info.IsRunning = false
 
 				if cmd.ProcessState != nil {
 					info.Successful = cmd.ProcessState.Success()
-					info.PID = cmd.ProcessState.Pid()
-					info.ExitCode = cmd.ProcessState.Sys().(syscall.WaitStatus).ExitStatus()
+					procWaitStatus := cmd.ProcessState.Sys().(syscall.WaitStatus)
+					if procWaitStatus.Signaled() {
+						info.ExitCode = int(procWaitStatus.Signal())
+					} else {
+						info.ExitCode = procWaitStatus.ExitStatus()
+					}
 				} else {
 					info.Successful = (err == nil)
 				}
@@ -129,6 +147,7 @@ func (p *blockingProcess) reactor(ctx context.Context, cmd *exec.Cmd) {
 				}))
 			}()
 
+			p.setErr(err)
 			p.setInfo(info)
 			p.mu.RLock()
 			p.triggers.Run(info)
@@ -137,15 +156,10 @@ func (p *blockingProcess) reactor(ctx context.Context, cmd *exec.Cmd) {
 		case <-ctx.Done():
 			// note, the process might take a moment to
 			// die when it gets here.
-			info := ProcessInfo{
-				ID:         p.id,
-				Options:    p.opts,
-				Host:       p.host,
-				ExitCode:   -1,
-				Complete:   true,
-				IsRunning:  false,
-				Successful: false,
-			}
+			info := p.getInfo()
+			info.Complete = true
+			info.IsRunning = false
+			info.Successful = false
 
 			p.setInfo(info)
 			p.triggers.Run(info)
@@ -160,21 +174,13 @@ func (p *blockingProcess) reactor(ctx context.Context, cmd *exec.Cmd) {
 
 func (p *blockingProcess) ID() string { return p.id }
 func (p *blockingProcess) Info(ctx context.Context) ProcessInfo {
-	if p.hasInfo() {
+	if p.hasCompleteInfo() {
 		return p.getInfo()
 	}
 
 	out := make(chan ProcessInfo)
 	operation := func(cmd *exec.Cmd) {
-		out <- ProcessInfo{
-			ID:        p.id,
-			Options:   p.opts,
-			Host:      p.host,
-			ExitCode:  -1,
-			Complete:  cmd.Process.Pid == -1,
-			IsRunning: cmd.Process.Pid > 0,
-			PID:       cmd.Process.Pid,
-		}
+		out <- p.getInfo()
 		close(out)
 	}
 
@@ -192,7 +198,7 @@ func (p *blockingProcess) Info(ctx context.Context) ProcessInfo {
 }
 
 func (p *blockingProcess) Running(ctx context.Context) bool {
-	if p.hasInfo() {
+	if p.hasCompleteInfo() {
 		return false
 	}
 
@@ -221,12 +227,12 @@ func (p *blockingProcess) Running(ctx context.Context) bool {
 	}
 }
 
-func (p *blockingProcess) Complete(ctx context.Context) bool {
-	return p.hasInfo()
+func (p *blockingProcess) Complete(_ context.Context) bool {
+	return p.hasCompleteInfo()
 }
 
 func (p *blockingProcess) Signal(ctx context.Context, sig syscall.Signal) error {
-	if p.hasInfo() {
+	if p.hasCompleteInfo() {
 		return errors.New("cannot signal a process that has terminated")
 	}
 
@@ -239,8 +245,14 @@ func (p *blockingProcess) Signal(ctx context.Context, sig syscall.Signal) error 
 			return
 		}
 
-		out <- errors.Wrapf(cmd.Process.Signal(sig), "problem sending signal '%s' to '%s'",
-			sig, p.id)
+		if skipSignal := p.signalTriggers.Run(p.getInfo(), sig); !skipSignal {
+			sig = makeCompatible(sig)
+			out <- errors.Wrapf(cmd.Process.Signal(sig), "problem sending signal '%s' to '%s'",
+				sig, p.id)
+		} else {
+			out <- nil
+		}
+
 	}
 	select {
 	case p.ops <- operation:
@@ -255,7 +267,7 @@ func (p *blockingProcess) Signal(ctx context.Context, sig syscall.Signal) error 
 	}
 }
 
-func (p *blockingProcess) RegisterTrigger(ctx context.Context, trigger ProcessTrigger) error {
+func (p *blockingProcess) RegisterTrigger(_ context.Context, trigger ProcessTrigger) error {
 	if trigger == nil {
 		return errors.New("cannot register nil trigger")
 	}
@@ -263,7 +275,7 @@ func (p *blockingProcess) RegisterTrigger(ctx context.Context, trigger ProcessTr
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	if p.info != nil {
+	if p.info.Complete {
 		return errors.New("cannot register trigger after process exits")
 	}
 
@@ -272,28 +284,43 @@ func (p *blockingProcess) RegisterTrigger(ctx context.Context, trigger ProcessTr
 	return nil
 }
 
+func (p *blockingProcess) RegisterSignalTrigger(_ context.Context, trigger SignalTrigger) error {
+	if trigger == nil {
+		return errors.New("cannot register nil trigger")
+	}
+
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	if p.info.Complete {
+		return errors.New("cannot register trigger after process exits")
+	}
+
+	p.signalTriggers = append(p.signalTriggers, trigger)
+
+	return nil
+}
+
+func (p *blockingProcess) RegisterSignalTriggerID(ctx context.Context, id SignalTriggerID) error {
+	makeTrigger, ok := GetSignalTriggerFactory(id)
+	if !ok {
+		return errors.Errorf("could not find signal trigger with id '%s'", id)
+	}
+	return errors.Wrap(p.RegisterSignalTrigger(ctx, makeTrigger()), "failed to register signal trigger")
+}
+
 func (p *blockingProcess) Wait(ctx context.Context) (int, error) {
-	if p.hasInfo() {
-		// If the process did not end successfully, then there should be an error.
-		if !p.getInfo().Successful {
-			return p.getInfo().ExitCode, errors.New("operation failed")
-		}
-		return p.getInfo().ExitCode, nil
+	if p.hasCompleteInfo() {
+		return p.getInfo().ExitCode, p.getErr()
 	}
 
 	out := make(chan error)
 	waiter := func(cmd *exec.Cmd) {
-		info := p.getInfo()
-		if info.ID == "" {
+		if !p.hasCompleteInfo() {
 			return
 		}
 
-		if info.Successful {
-			out <- nil
-			return
-		}
-
-		out <- errors.New("task exited with error")
+		out <- p.getErr()
 	}
 
 	timer := time.NewTimer(0)
@@ -309,11 +336,8 @@ func (p *blockingProcess) Wait(ctx context.Context) (int, error) {
 		case err := <-out:
 			return p.getInfo().ExitCode, errors.WithStack(err)
 		default:
-			if p.hasInfo() {
-				if !p.getInfo().Successful {
-					return p.getInfo().ExitCode, errors.New("operation failed")
-				}
-				return p.getInfo().ExitCode, nil
+			if p.hasCompleteInfo() {
+				return p.getInfo().ExitCode, p.getErr()
 			}
 		}
 	}
@@ -321,7 +345,7 @@ func (p *blockingProcess) Wait(ctx context.Context) (int, error) {
 
 func (p *blockingProcess) Respawn(ctx context.Context) (Process, error) {
 	opts := p.Info(ctx).Options
-	opts.closers = []func(){}
+	opts.closers = []func() error{}
 
 	newProc, err := newBlockingProcess(ctx, &opts)
 

@@ -12,21 +12,29 @@ import (
 // the need for calling Clear() from the user. Clear() can, however, be called
 // proactively. This manager therefore gives no guarantees on the persistence
 // of a process in its memory that has already completed.
-func NewSelfClearingProcessManager(maxProcs int) Manager {
-	return &selfClearingProcessManager{
-		local:    NewLocalManager().(*localProcessManager),
-		maxProcs: maxProcs,
+func NewSelfClearingProcessManager(maxProcs int, trackProcs bool) (Manager, error) {
+	localManager, err := NewLocalManager(trackProcs)
+	if err != nil {
+		return nil, err
 	}
+	return &selfClearingProcessManager{
+		local:    localManager.(*localProcessManager),
+		maxProcs: maxProcs,
+	}, nil
 }
 
 // NewSelfClearingProcessManagerBlockingProcesses creates and returns a process
 // manager that uses blockingProcesses rather than the default basicProcess.
 // See the NewSelfClearingProcessManager() constructor for more information.
-func NewSelfClearingProcessManagerBlockingProcesses(maxProcs int) Manager {
-	return &selfClearingProcessManager{
-		local:    NewLocalManagerBlockingProcesses().(*localProcessManager),
-		maxProcs: maxProcs,
+func NewSelfClearingProcessManagerBlockingProcesses(maxProcs int, trackProcs bool) (Manager, error) {
+	localBlockingManager, err := NewLocalManagerBlockingProcesses(trackProcs)
+	if err != nil {
+		return nil, err
 	}
+	return &selfClearingProcessManager{
+		local:    localBlockingManager.(*localProcessManager),
+		maxProcs: maxProcs,
+	}, nil
 }
 
 type selfClearingProcessManager struct {

@@ -137,7 +137,7 @@ func TestCreateOptions(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Zero(t, cmd.Env)
 		},
-		"EnvironmentVariablesArePropogated": func(t *testing.T, opts *CreateOptions) {
+		"EnvironmentVariablesArePropagated": func(t *testing.T, opts *CreateOptions) {
 			opts.Environment = map[string]string{
 				"foo": "bar",
 			}
@@ -147,7 +147,7 @@ func TestCreateOptions(t *testing.T) {
 			assert.Contains(t, cmd.Env, "foo=bar")
 			assert.NotContains(t, cmd.Env, "bar=foo")
 		},
-		"MultipleArgsArePropogated": func(t *testing.T, opts *CreateOptions) {
+		"MultipleArgsArePropagated": func(t *testing.T, opts *CreateOptions) {
 			opts.Args = append(opts.Args, "-lha")
 			cmd, err := opts.Resolve(ctx)
 			assert.NoError(t, err)
@@ -172,8 +172,9 @@ func TestCreateOptions(t *testing.T) {
 		"ClosersAreAlwaysCalled": func(t *testing.T, opts *CreateOptions) {
 			var counter int
 			opts.closers = append(opts.closers,
-				func() { counter++ },
-				func() { counter += 2 })
+				func() (_ error) { counter++; return },
+				func() (_ error) { counter += 2; return },
+			)
 			opts.Close()
 			assert.Equal(t, counter, 3)
 

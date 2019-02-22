@@ -4,13 +4,32 @@ import (
 	"context"
 	"time"
 
+	"github.com/mongodb/grip"
 	"github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 )
 
 type basicProcessManager struct {
 	procs              map[string]Process
 	skipDefaultTrigger bool
 	blocking           bool
+	tracker            processTracker
+}
+
+func newBasicProcessManager(procs map[string]Process, skipDefaultTrigger bool, blocking bool, trackProcs bool) (Manager, error) {
+	m := basicProcessManager{
+		procs:              procs,
+		blocking:           blocking,
+		skipDefaultTrigger: skipDefaultTrigger,
+	}
+	if trackProcs {
+		tracker, err := newProcessTracker("jasper" + uuid.Must(uuid.NewV4()).String())
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to make process tracker")
+		}
+		m.tracker = tracker
+	}
+	return &m, nil
 }
 
 func (m *basicProcessManager) Create(ctx context.Context, opts *CreateOptions) (Process, error) {
@@ -31,7 +50,15 @@ func (m *basicProcessManager) Create(ctx context.Context, opts *CreateOptions) (
 
 	// TODO this will race because it runs later
 	if !m.skipDefaultTrigger {
-		proc.RegisterTrigger(ctx, makeDefaultTrigger(ctx, m, opts, proc.ID()))
+		_ = proc.RegisterTrigger(ctx, makeDefaultTrigger(ctx, m, opts, proc.ID()))
+	}
+
+	if m.tracker != nil {
+		pid := uint(proc.Info(ctx).PID)
+		// The process may have terminated already, so don't return on error.
+		if err := m.tracker.add(pid); err != nil {
+			grip.Warningf("problem adding local process to tracker during process creation: %s", err)
+		}
 	}
 
 	m.procs[proc.ID()] = proc
@@ -51,6 +78,14 @@ func (m *basicProcessManager) Register(ctx context.Context, proc Process) error 
 	id := proc.ID()
 	if id == "" {
 		return errors.New("process is malformed")
+	}
+
+	if m.tracker != nil {
+		pid := uint(proc.Info(ctx).PID)
+		// The process may have terminated already, so don't return on error.
+		if err := m.tracker.add(pid); err != nil {
+			grip.Warningf("problem adding local process to tracker during process registration: %s", err)
+		}
 	}
 
 	_, ok := m.procs[id]
@@ -131,6 +166,13 @@ func (m *basicProcessManager) Close(ctx context.Context) error {
 	termCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
+	if m.tracker != nil {
+		if err := m.tracker.cleanup(); err != nil {
+			grip.Warningf("process tracker did not clean up successfully: %s", err)
+		} else {
+			return nil
+		}
+	}
 	if err := TerminateAll(termCtx, procs); err != nil {
 		killCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()

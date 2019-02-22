@@ -19,6 +19,7 @@ import (
 type CreateOptions struct {
 	Args             []string          `json:"args"`
 	Environment      map[string]string `json:"env,omitempty"`
+	Hostname         string            `json:"host,omitempty"`
 	WorkingDirectory string            `json:"working_directory,omitempty"`
 	Output           OutputOptions     `json:"output"`
 	OverrideEnviron  bool              `json:"override_env,omitempty"`
@@ -30,7 +31,7 @@ type CreateOptions struct {
 	OnTimeout        []*CreateOptions  `json:"on_timeout"`
 
 	//
-	closers []func()
+	closers []func() error
 	started bool
 }
 
@@ -130,7 +131,7 @@ func (opts *CreateOptions) Resolve(ctx context.Context) (*exec.Cmd, error) {
 	if opts.Timeout > 0 {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(ctx, opts.Timeout)
-		opts.closers = append(opts.closers, cancel)
+		opts.closers = append(opts.closers, func() (_ error) { cancel(); return })
 	}
 
 	cmd := exec.CommandContext(ctx, opts.Args[0], args...) // nolint
@@ -147,7 +148,7 @@ func (opts *CreateOptions) Resolve(ctx context.Context) (*exec.Cmd, error) {
 	cmd.Env = env
 
 	// Senders require Close() or else command output is not guaranteed to log.
-	opts.closers = append(opts.closers, func() {
+	opts.closers = append(opts.closers, func() (_ error) {
 		if opts.Output.outputSender != nil {
 			opts.Output.outputSender.Close()
 		}
@@ -161,6 +162,8 @@ func (opts *CreateOptions) Resolve(ctx context.Context) (*exec.Cmd, error) {
 		if opts.Output.errorSender != nil && (opts.Output.SuppressOutput || opts.Output.SendOutputToError) {
 			opts.Output.errorSender.Sender.Close()
 		}
+
+		return
 	})
 
 	return cmd, nil
