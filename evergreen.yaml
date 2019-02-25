@@ -135,9 +135,6 @@ tasks:
     name: test-cmd-curator
   - <<: *run-go-test-suite
     tags: ["test"]
-    name: test-curator
-  - <<: *run-go-test-suite
-    tags: ["test"]
     name: test-sthree
   - <<: *run-go-test-suite
     tags: ["test"]
@@ -156,11 +153,6 @@ tasks:
       - name: build-race
   - <<: *run-go-test-suite
     name: race-cmd-curator
-    tags: ["race"]
-    depends_on:
-      - name: build-race
-  - <<: *run-go-test-suite
-    name: race-curator
     tags: ["race"]
     depends_on:
       - name: build-race

@@ -1,4 +1,4 @@
-package curator
+package bond
 
 import (
 	"fmt"
