@@ -15,10 +15,10 @@ import (
 	"github.com/mongodb/amboy/dependency"
 	"github.com/mongodb/amboy/job"
 	"github.com/mongodb/amboy/registry"
-	"github.com/mongodb/curator"
 	"github.com/mongodb/curator/sthree"
 	"github.com/mongodb/grip"
 	"github.com/pkg/errors"
+	"github.com/tychoish/bond"
 )
 
 type jobImpl interface {
@@ -40,7 +40,7 @@ type Job struct {
 	*job.Base    `bson:"metadata" json:"metadata" yaml:"metadata"`
 
 	workingDirs []string
-	release     *curator.MongoDBVersion
+	release     *bond.MongoDBVersion
 	mutex       sync.RWMutex
 	builder     jobImpl
 }
@@ -79,7 +79,7 @@ func NewBuildRepoJob(conf *RepositoryConfig, distro *RepositoryDefinition, versi
 		setupRPMJob(j)
 	}
 
-	j.release, err = curator.NewMongoDBVersion(version)
+	j.release, err = bond.NewMongoDBVersion(version)
 	if err != nil {
 		return nil, err
 	}

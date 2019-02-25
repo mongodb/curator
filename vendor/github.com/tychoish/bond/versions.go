@@ -5,7 +5,7 @@ The MongoDBVersion type provides support for interacting with MongoDB
 versions. This type makes it possible to validate MongoDB version
 numbers and ask common questions about MongoDB versions.
 */
-package curator
+package bond
 
 import (
 	"fmt"

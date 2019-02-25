@@ -135,9 +135,6 @@ tasks:
     name: test-cmd-curator
   - <<: *run-go-test-suite
     tags: ["test"]
-    name: test-curator
-  - <<: *run-go-test-suite
-    tags: ["test"]
     name: test-sthree
   - <<: *run-go-test-suite
     tags: ["test"]
