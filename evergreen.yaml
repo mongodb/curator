@@ -157,11 +157,6 @@ tasks:
     depends_on:
       - name: build-race
   - <<: *run-go-test-suite
-    name: race-curator
-    tags: ["race"]
-    depends_on:
-      - name: build-race
-  - <<: *run-go-test-suite
     name: race-sthree
     tags: ["race"]
     depends_on:
