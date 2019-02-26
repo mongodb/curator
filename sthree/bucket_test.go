@@ -68,8 +68,7 @@ func (s *BucketSuite) SetupSuite() {
 	s.bucketName = "build-test-curator"
 
 	// save a uuid for this suite to use as a prefix
-	id := uuid.NewV4()
-	s.uuid = id.String()
+	s.uuid = uuid.Must(uuid.NewV4()).String()
 
 	grip.SetName("curator.sthree.bucket.suite")
 	grip.Noticef("running s3 bucket tests, using %s (%s)", s.bucketName, s.uuid)
@@ -382,7 +381,9 @@ func (s *BucketSuite) TestDeleteManyOperationRemovesManyPathsFromBucket() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	s.NoError(s.b.Open(ctx))
-	prefix := uuid.NewV4().String()
+	id, err := uuid.NewV4()
+	s.require.NoError(err)
+	prefix := id.String()
 
 	s.Len(s.b.contents(filepath.Join(s.uuid, prefix)), 0)
 
@@ -406,7 +407,7 @@ func (s *BucketSuite) TestDeleteManySpecialCasesSingleOperation() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	s.NoError(s.b.Open(ctx))
-	prefix := uuid.NewV4().String()
+	prefix := uuid.Must(uuid.NewV4()).String()
 
 	s.Len(s.b.contents(filepath.Join(s.uuid, prefix)), 0)
 	name := filepath.Join(s.uuid, prefix, local+".fiveish.0")
@@ -422,7 +423,7 @@ func (s *BucketSuite) TestDeleteMatchingRemovesSomePaths() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	s.NoError(s.b.Open(ctx))
-	prefix := uuid.NewV4().String()
+	prefix := uuid.Must(uuid.NewV4()).String()
 
 	s.Len(s.b.contents(filepath.Join(s.uuid, prefix)), 0)
 

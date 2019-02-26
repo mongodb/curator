@@ -38,7 +38,7 @@ func TestSyncToSuite(t *testing.T) {
 func (s *SyncToSuite) SetupSuite() {
 	s.require = s.Require()
 
-	id := uuid.NewV4()
+	id := uuid.Must(uuid.NewV4())
 	s.uuid = id.String()
 	tmpDir, err := ioutil.TempDir("", s.uuid)
 	s.require.NoError(err)
@@ -71,7 +71,7 @@ func (s *SyncToSuite) writeToTempFile() string {
 		return f.Name()
 	}
 
-	if !s.NoError(ioutil.WriteFile(f.Name(), uuid.NewV4().Bytes(), 0644)) {
+	if !s.NoError(ioutil.WriteFile(f.Name(), uuid.Must(uuid.NewV4()).Bytes(), 0644)) {
 		return f.Name()
 	}
 
@@ -186,7 +186,7 @@ func (s *SyncToSuite) TestSyncPutsNewFileIntoBucket() {
 
 func (s *SyncToSuite) TestSyncUploadsNewFileOverWrites() {
 	var err error
-	id := uuid.NewV4()
+	id := uuid.Must(uuid.NewV4())
 	remoteFn := id.String() + "-repeated-upload"
 
 	for i := 0; i < 5; i++ {

@@ -79,7 +79,7 @@ func (s *ProducerSuite) SetupSuite() {
 	s.require = s.Require()
 	s.queue = queue.NewLocalUnordered(2)
 	s.require.NoError(s.queue.Start(ctx))
-	tmpDir, err := ioutil.TempDir("", uuid.NewV4().String())
+	tmpDir, err := ioutil.TempDir("", uuid.Must(uuid.NewV4()).String())
 	s.require.NoError(err)
 	s.tmpDir = tmpDir
 	for i := 0; i < 10; i++ {

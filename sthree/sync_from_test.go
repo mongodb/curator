@@ -35,7 +35,7 @@ func TestSyncFromSuite(t *testing.T) {
 func (s *SyncFromSuite) SetupSuite() {
 	s.require = s.Require()
 
-	id := uuid.NewV4()
+	id := uuid.Must(uuid.NewV4())
 	s.uuid = id.String()
 }
 
@@ -80,7 +80,7 @@ func (s *SyncFromSuite) writeToTempFile() string {
 		return f.Name()
 	}
 
-	if !s.NoError(ioutil.WriteFile(f.Name(), uuid.NewV4().Bytes(), 0644)) {
+	if !s.NoError(ioutil.WriteFile(f.Name(), uuid.Must(uuid.NewV4()).Bytes(), 0644)) {
 		return f.Name()
 	}
 
