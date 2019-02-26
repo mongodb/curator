@@ -35,7 +35,7 @@ func (s *OptionsSuite) SetupSuite() {
 	s.cancel = cancel
 	s.require = s.Require()
 
-	tmpDir, err := ioutil.TempDir("", uuid.NewV4().String())
+	tmpDir, err := ioutil.TempDir("", uuid.Must(uuid.NewV4()).String())
 	s.require.NoError(err)
 	s.tmpDir = tmpDir
 

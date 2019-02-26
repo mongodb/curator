@@ -28,7 +28,7 @@ func TestConfigSuite(t *testing.T) {
 }
 
 func (s *ConfigSuite) SetupSuite() {
-	dir, err := ioutil.TempDir("", uuid.NewV4().String())
+	dir, err := ioutil.TempDir("", uuid.Must(uuid.NewV4()).String())
 	s.Require().NoError(err)
 	s.tempDir = dir
 
