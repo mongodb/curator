@@ -11,17 +11,16 @@ import (
 
 // Terminate sends a SIGTERM signal to the given process under the given
 // context. This does not guarantee that the process will actually die. This
-// function does not Wait() on the given process upon sending the signal. On
-// Windows, this function sends a SIGKILL instead of SIGTERM.
+// function does not Wait() on the given process upon sending the signal.
 func Terminate(ctx context.Context, p Process) error {
-	return errors.WithStack(p.Signal(ctx, makeCompatible(syscall.SIGTERM)))
+	return errors.WithStack(p.Signal(ctx, syscall.SIGTERM))
 }
 
 // Kill sends a SIGKILL signal to the given process under the given context.
 // This guarantees that the process will die. This function does not Wait() on
 // the given process upon sending the signal.
 func Kill(ctx context.Context, p Process) error {
-	return errors.WithStack(p.Signal(ctx, makeCompatible(syscall.SIGKILL)))
+	return errors.WithStack(p.Signal(ctx, syscall.SIGKILL))
 }
 
 // TerminateAll sends a SIGTERM signal to each of the given processes under the

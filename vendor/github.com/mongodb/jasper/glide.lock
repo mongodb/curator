@@ -20,7 +20,7 @@ imports:
   - name: github.com/montanaflynn/stats
     version: db72e6cae808b936b0c01fd330ff1fcd2c86c95e
   - name: github.com/mongodb/amboy
-    version: 49a93edc4abc6bd35c01d50f1d263ab1ebe66857
+    version: ba41957778899cce2775284bfdb7155475794657
   - name: github.com/google/shlex
     version: 6f45313302b9c56850fc17f99e40caebce98c716
 

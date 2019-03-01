@@ -32,7 +32,7 @@ func newBasicProcessManager(procs map[string]Process, skipDefaultTrigger bool, b
 	return &m, nil
 }
 
-func (m *basicProcessManager) Create(ctx context.Context, opts *CreateOptions) (Process, error) {
+func (m *basicProcessManager) CreateProcess(ctx context.Context, opts *CreateOptions) (Process, error) {
 	var (
 		proc Process
 		err  error
@@ -64,6 +64,10 @@ func (m *basicProcessManager) Create(ctx context.Context, opts *CreateOptions) (
 	m.procs[proc.ID()] = proc
 
 	return proc, nil
+}
+
+func (m *basicProcessManager) CreateCommand(ctx context.Context) *Command {
+	return NewCommand().ProcConstructor(m.CreateProcess)
 }
 
 func (m *basicProcessManager) Register(ctx context.Context, proc Process) error {

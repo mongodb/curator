@@ -54,17 +54,21 @@ func (m *selfClearingProcessManager) checkProcCapacity(ctx context.Context) erro
 	return nil
 }
 
-func (m *selfClearingProcessManager) Create(ctx context.Context, opts *CreateOptions) (Process, error) {
+func (m *selfClearingProcessManager) CreateProcess(ctx context.Context, opts *CreateOptions) (Process, error) {
 	if err := m.checkProcCapacity(ctx); err != nil {
 		return nil, err
 	}
 
-	proc, err := m.local.Create(ctx, opts)
+	proc, err := m.local.CreateProcess(ctx, opts)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 
 	return proc, nil
+}
+
+func (m *selfClearingProcessManager) CreateCommand(ctx context.Context) *Command {
+	return NewCommand().ProcConstructor(m.CreateProcess)
 }
 
 func (m *selfClearingProcessManager) Register(ctx context.Context, proc Process) error {

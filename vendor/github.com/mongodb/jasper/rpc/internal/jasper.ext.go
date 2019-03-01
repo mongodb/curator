@@ -554,6 +554,8 @@ func (t SignalTriggerID) Export() jasper.SignalTriggerID {
 	switch t {
 	case SignalTriggerID_MONGODSHUTDOWN:
 		return jasper.MongodShutdownSignalTrigger
+	case SignalTriggerID_CLEANTERMINATION:
+		return jasper.CleanTerminationSignalTrigger
 	default:
 		return jasper.SignalTriggerID("")
 	}
@@ -566,6 +568,8 @@ func ConvertSignalTriggerID(id jasper.SignalTriggerID) SignalTriggerID {
 	switch id {
 	case jasper.MongodShutdownSignalTrigger:
 		return SignalTriggerID_MONGODSHUTDOWN
+	case jasper.CleanTerminationSignalTrigger:
+		return SignalTriggerID_CLEANTERMINATION
 	default:
 		return SignalTriggerID_NONE
 	}

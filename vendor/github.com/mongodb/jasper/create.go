@@ -148,22 +148,23 @@ func (opts *CreateOptions) Resolve(ctx context.Context) (*exec.Cmd, error) {
 	cmd.Env = env
 
 	// Senders require Close() or else command output is not guaranteed to log.
-	opts.closers = append(opts.closers, func() (_ error) {
+	opts.closers = append(opts.closers, func() error {
+		catcher := grip.NewBasicCatcher()
 		if opts.Output.outputSender != nil {
-			opts.Output.outputSender.Close()
+			catcher.Add(opts.Output.outputSender.Close())
 		}
 		if opts.Output.errorSender != nil {
-			opts.Output.errorSender.Close()
+			catcher.Add(opts.Output.errorSender.Close())
 		}
 		if opts.Output.outputSender != nil {
-			opts.Output.outputSender.Sender.Close()
+			catcher.Add(opts.Output.outputSender.Sender.Close())
 		}
 		// Since senders are shared, only close error's senders if output hasn't already closed them.
 		if opts.Output.errorSender != nil && (opts.Output.SuppressOutput || opts.Output.SendOutputToError) {
-			opts.Output.errorSender.Sender.Close()
+			catcher.Add(opts.Output.errorSender.Sender.Close())
 		}
 
-		return
+		return catcher.Resolve()
 	})
 
 	return cmd, nil
@@ -183,8 +184,10 @@ func (opts *CreateOptions) AddEnvVar(k, v string) {
 // Close will execute the closer functions assigned to the CreateOptions. This
 // function is often called as a trigger at the end of a process' lifetime in
 // Jasper.
-func (opts *CreateOptions) Close() {
+func (opts *CreateOptions) Close() error {
+	catcher := grip.NewBasicCatcher()
 	for _, c := range opts.closers {
-		c()
+		catcher.Add(c())
 	}
+	return catcher.Resolve()
 }

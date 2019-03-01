@@ -52,12 +52,12 @@ func TestRestService(t *testing.T) {
 			assert.Error(t, handleError(&http.Response{Body: &neverJSON{}, StatusCode: http.StatusTeapot}))
 		},
 		"EmptyCreateOpts": func(ctx context.Context, t *testing.T, srv *Service, client *restClient) {
-			proc, err := client.Create(ctx, &CreateOptions{})
+			proc, err := client.CreateProcess(ctx, &CreateOptions{})
 			assert.Error(t, err)
 			assert.Nil(t, proc)
 		},
 		"WithOnlyTimeoutValue": func(ctx context.Context, t *testing.T, srv *Service, client *restClient) {
-			proc, err := client.Create(ctx, &CreateOptions{Args: []string{"ls"}, TimeoutSecs: 300})
+			proc, err := client.CreateProcess(ctx, &CreateOptions{Args: []string{"ls"}, TimeoutSecs: 300})
 			assert.NoError(t, err)
 			assert.NotNil(t, proc)
 		},
@@ -82,7 +82,7 @@ func TestRestService(t *testing.T) {
 			assert.Error(t, err)
 			assert.Contains(t, err.Error(), "problem building request")
 
-			_, err = client.Create(ctx, nil)
+			_, err = client.CreateProcess(ctx, nil)
 			assert.Error(t, err)
 			assert.Contains(t, err.Error(), "problem building request")
 
@@ -133,7 +133,7 @@ func TestRestService(t *testing.T) {
 			assert.Error(t, err)
 			assert.Contains(t, err.Error(), "problem making request")
 
-			_, err = client.Create(ctx, nil)
+			_, err = client.CreateProcess(ctx, nil)
 			assert.Error(t, err)
 			assert.Contains(t, err.Error(), "problem making request")
 
@@ -262,7 +262,7 @@ func TestRestService(t *testing.T) {
 			srv.manager = &MockManager{
 				FailCreate: true,
 			}
-			proc, err := client.Create(ctx, trueCreateOpts())
+			proc, err := client.CreateProcess(ctx, trueCreateOpts())
 			assert.Error(t, err)
 			assert.Nil(t, proc)
 			assert.Contains(t, err.Error(), "problem submitting request")
@@ -274,7 +274,7 @@ func TestRestService(t *testing.T) {
 					FailRegisterTrigger: true,
 				},
 			}
-			proc, err := client.Create(ctx, trueCreateOpts())
+			proc, err := client.CreateProcess(ctx, trueCreateOpts())
 			assert.Error(t, err)
 			assert.Nil(t, proc)
 			assert.Contains(t, err.Error(), "problem managing resources")
@@ -302,7 +302,7 @@ func TestRestService(t *testing.T) {
 			assert.Error(t, proc.Signal(ctx, syscall.SIGTERM))
 		},
 		"SignalErrorsWithInvalidSyscall": func(ctx context.Context, t *testing.T, srv *Service, client *restClient) {
-			proc, err := client.Create(ctx, sleepCreateOpts(10))
+			proc, err := client.CreateProcess(ctx, sleepCreateOpts(10))
 			require.NoError(t, err)
 
 			assert.Error(t, proc.Signal(ctx, syscall.Signal(-1)))
@@ -543,7 +543,7 @@ func TestRestService(t *testing.T) {
 				},
 			}
 
-			proc, err := client.Create(ctx, opts)
+			proc, err := client.CreateProcess(ctx, opts)
 			assert.NoError(t, err)
 			assert.NotNil(t, proc)
 
@@ -562,7 +562,7 @@ func TestRestService(t *testing.T) {
 		"GetLogsFailsForProcessWithoutLogs": func(ctx context.Context, t *testing.T, srv *Service, client *restClient) {
 			opts := &CreateOptions{Args: []string{"echo", "foo"}}
 
-			proc, err := client.Create(ctx, opts)
+			proc, err := client.CreateProcess(ctx, opts)
 			assert.NoError(t, err)
 			assert.NotNil(t, proc)
 			_, err = proc.Wait(ctx)
@@ -648,7 +648,7 @@ func TestRestService(t *testing.T) {
 			opts := &CreateOptions{Args: []string{"echo", "foo"}}
 			opts.Output.Loggers = []Logger{Logger{Type: LogDefault, Options: LogOptions{Format: LogFormatPlain}}}
 
-			proc, err := client.Create(ctx, opts)
+			proc, err := client.CreateProcess(ctx, opts)
 			assert.NoError(t, err)
 			assert.NotNil(t, proc)
 
@@ -679,7 +679,7 @@ func TestRestService(t *testing.T) {
 
 			opts := &CreateOptions{Output: OutputOptions{Loggers: []Logger{inMemoryLogger, fileLogger}}}
 			opts.Args = []string{"echo", "foobar"}
-			proc, err := client.Create(ctx, opts)
+			proc, err := client.CreateProcess(ctx, opts)
 			require.NoError(t, err)
 			_, err = proc.Wait(ctx)
 			require.NoError(t, err)
@@ -706,7 +706,7 @@ func TestRestService(t *testing.T) {
 		},
 		"ServiceRegisterSignalTriggerIDChecksForInvalidTriggerID": func(ctx context.Context, t *testing.T, srv *Service, client *restClient) {
 			opts := yesCreateOpts(0)
-			proc, err := client.Create(ctx, &opts)
+			proc, err := client.CreateProcess(ctx, &opts)
 			require.NoError(t, err)
 			assert.True(t, proc.Running(ctx))
 
@@ -716,7 +716,7 @@ func TestRestService(t *testing.T) {
 		},
 		"ServiceRegisterSignalTriggerIDPassesWithValidArgs": func(ctx context.Context, t *testing.T, srv *Service, client *restClient) {
 			opts := yesCreateOpts(0)
-			proc, err := client.Create(ctx, &opts)
+			proc, err := client.CreateProcess(ctx, &opts)
 			require.NoError(t, err)
 			assert.True(t, proc.Running(ctx))
 

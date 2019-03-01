@@ -22,7 +22,7 @@ func registerBasedCreate(ctx context.Context, m *selfClearingProcessManager, t *
 }
 
 func pureCreate(ctx context.Context, m *selfClearingProcessManager, t *testing.T, opts *CreateOptions) (Process, error) {
-	return m.Create(ctx, opts)
+	return m.CreateProcess(ctx, opts)
 }
 
 func fillUp(ctx context.Context, t *testing.T, manager *selfClearingProcessManager, numProcs int) {

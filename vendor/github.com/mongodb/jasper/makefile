@@ -19,6 +19,8 @@ benchPattern := ./
 
 compile:
 	go build $(_testPackages)
+compile-base:
+	go build ./
 race:
 	@mkdir -p $(buildDir)
 	go test $(testArgs) -race $(_testPackages) | tee $(buildDir)/race.sink.out

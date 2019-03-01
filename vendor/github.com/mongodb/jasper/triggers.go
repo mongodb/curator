@@ -7,6 +7,7 @@ import (
 
 	"github.com/mongodb/grip"
 	"github.com/mongodb/grip/message"
+	"github.com/pkg/errors"
 )
 
 // ProcessTrigger describes the way to write cleanup functions for
@@ -39,8 +40,9 @@ type SignalTriggerSequence []SignalTrigger
 // It returns a boolean indicating whether or not the signal should
 // be skipped after executing all of the signal triggers.
 func (s SignalTriggerSequence) Run(info ProcessInfo, sig syscall.Signal) (skipSignal bool) {
+	skipSignal = false
 	for _, trigger := range s {
-		skipSignal = skipSignal || trigger(info, sig)
+		skipSignal = trigger(info, sig) || skipSignal
 	}
 	return
 }
@@ -49,13 +51,19 @@ func (s SignalTriggerSequence) Run(info ProcessInfo, sig syscall.Signal) (skipSi
 type SignalTriggerID string
 
 const (
-	// MongodShutdownSignalTrigger is the ID for the signal trigger to use for clean mongod shutdown.
+	// MongodShutdownSignalTrigger is the ID for the signal trigger to use for
+	// clean mongod shutdown.
 	MongodShutdownSignalTrigger SignalTriggerID = "mongod_shutdown"
+	// CleanTerminationSignalTrigger is the ID for the signal trigger to use for
+	// termination of processes with exit code 0.
+	CleanTerminationSignalTrigger SignalTriggerID = "clean_terminate"
 )
 
 func makeOptionsCloseTrigger() ProcessTrigger {
 	return func(info ProcessInfo) {
-		info.Options.Close()
+		if err := info.Options.Close(); err != nil {
+			grip.Warning(errors.Wrap(err, "error occurred while closing options"))
+		}
 	}
 }
 
@@ -78,7 +86,7 @@ func makeDefaultTrigger(ctx context.Context, m Manager, opts *CreateOptions, par
 					newctx, cancel = context.WithCancel(ctx)
 				}
 
-				p, err := m.Create(newctx, opt)
+				p, err := m.CreateProcess(newctx, opt)
 				if err != nil {
 					grip.Warning(message.WrapError(err, message.Fields{
 						"trigger": "on-timeout",
@@ -92,7 +100,7 @@ func makeDefaultTrigger(ctx context.Context, m Manager, opts *CreateOptions, par
 			}
 		case info.Successful:
 			for _, opt := range opts.OnSuccess {
-				p, err := m.Create(ctx, opt)
+				p, err := m.CreateProcess(ctx, opt)
 				if err != nil {
 					grip.Warning(message.WrapError(err, message.Fields{
 						"trigger": "on-success",
@@ -104,7 +112,7 @@ func makeDefaultTrigger(ctx context.Context, m Manager, opts *CreateOptions, par
 			}
 		case !info.Successful:
 			for _, opt := range opts.OnFailure {
-				p, err := m.Create(ctx, opt)
+				p, err := m.CreateProcess(ctx, opt)
 				if err != nil {
 
 					grip.Warning(message.WrapError(err, message.Fields{

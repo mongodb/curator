@@ -35,22 +35,26 @@ type localProcessManager struct {
 	manager *basicProcessManager
 }
 
-func (m *localProcessManager) Create(ctx context.Context, opts *CreateOptions) (Process, error) {
+func (m *localProcessManager) CreateProcess(ctx context.Context, opts *CreateOptions) (Process, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	m.manager.skipDefaultTrigger = true
-	proc, err := m.manager.Create(ctx, opts)
+	proc, err := m.manager.CreateProcess(ctx, opts)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 
-	proc.RegisterTrigger(ctx, makeDefaultTrigger(ctx, m, opts, proc.ID()))
+	_ = proc.RegisterTrigger(ctx, makeDefaultTrigger(ctx, m, opts, proc.ID()))
 
 	proc = &localProcess{proc: proc}
 	m.manager.procs[proc.ID()] = proc
 
 	return proc, nil
+}
+
+func (m *localProcessManager) CreateCommand(ctx context.Context) *Command {
+	return NewCommand().ProcConstructor(m.CreateProcess)
 }
 
 func (m *localProcessManager) Register(ctx context.Context, proc Process) error {
