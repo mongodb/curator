@@ -192,6 +192,7 @@ message BuildloggerURLs {
 enum SignalTriggerID {
   NONE = 0;
   MONGODSHUTDOWN = 1;
+  CLEANTERMINATION = 2;
 }
 
 message SignalTriggerParams {

@@ -7,6 +7,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+// SignalTriggerFactory is a function that creates a SignalTrigger.
 type SignalTriggerFactory func() SignalTrigger
 
 type signalTriggerRegistry struct {
@@ -20,7 +21,8 @@ func init() {
 	jasperSignalTriggerRegistry = newSignalTriggerRegistry()
 
 	signalTriggers := map[SignalTriggerID]SignalTriggerFactory{
-		MongodShutdownSignalTrigger: makeMongodShutdownSignalTrigger,
+		MongodShutdownSignalTrigger:   makeMongodShutdownSignalTrigger,
+		CleanTerminationSignalTrigger: makeCleanTerminationSignalTrigger,
 	}
 
 	for id, factory := range signalTriggers {
@@ -32,10 +34,14 @@ func newSignalTriggerRegistry() *signalTriggerRegistry {
 	return &signalTriggerRegistry{mu: &sync.RWMutex{}, signalTriggers: map[SignalTriggerID]SignalTriggerFactory{}}
 }
 
+// RegisterSignalTriggerFactory registers a factory to create the signal trigger
+// represented by the id.
 func RegisterSignalTriggerFactory(id SignalTriggerID, factory SignalTriggerFactory) error {
 	return errors.Wrap(jasperSignalTriggerRegistry.registerSignalTriggerFactory(id, factory), "problem registering signal trigger factory")
 }
 
+// GetSignalTriggerFactory retrieves a factory to create the signal trigger
+// represented by the id.
 func GetSignalTriggerFactory(id SignalTriggerID) (SignalTriggerFactory, bool) {
 	return jasperSignalTriggerRegistry.getSignalTriggerFactory(id)
 }

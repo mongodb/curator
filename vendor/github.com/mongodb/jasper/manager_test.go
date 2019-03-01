@@ -11,6 +11,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var echoSubCmd = []string{"echo", "foo"}
+
 func TestManagerInterface(t *testing.T) {
 	t.Parallel()
 
@@ -79,13 +81,13 @@ func TestManagerInterface(t *testing.T) {
 					}
 
 					opts := trueCreateOpts()
-					proc, err := manager.Create(ctx, opts)
+					proc, err := manager.CreateProcess(ctx, opts)
 					assert.NoError(t, err)
 					assert.NotNil(t, proc)
 					assert.True(t, opts.started)
 				},
 				"CreateProcessFails": func(ctx context.Context, t *testing.T, manager Manager) {
-					proc, err := manager.Create(ctx, &CreateOptions{})
+					proc, err := manager.CreateProcess(ctx, &CreateOptions{})
 					assert.Error(t, err)
 					assert.Nil(t, proc)
 				},
@@ -122,7 +124,7 @@ func TestManagerInterface(t *testing.T) {
 					assert.Len(t, procs, 0)
 				},
 				"ListReturnsOneSuccessfulCommand": func(ctx context.Context, t *testing.T, manager Manager) {
-					proc, err := manager.Create(ctx, trueCreateOpts())
+					proc, err := manager.CreateProcess(ctx, trueCreateOpts())
 					require.NoError(t, err)
 
 					_, err = proc.Wait(ctx)
@@ -136,7 +138,7 @@ func TestManagerInterface(t *testing.T) {
 					}
 				},
 				"ListReturnsOneFailedCommand": func(ctx context.Context, t *testing.T, manager Manager) {
-					proc, err := manager.Create(ctx, falseCreateOpts())
+					proc, err := manager.CreateProcess(ctx, falseCreateOpts())
 					require.NoError(t, err)
 					_, err = proc.Wait(ctx)
 					assert.Error(t, err)
@@ -154,7 +156,7 @@ func TestManagerInterface(t *testing.T) {
 					assert.Nil(t, proc)
 				},
 				"GetMethodReturnsMatchingDoc": func(ctx context.Context, t *testing.T, manager Manager) {
-					proc, err := manager.Create(ctx, trueCreateOpts())
+					proc, err := manager.CreateProcess(ctx, trueCreateOpts())
 					require.NoError(t, err)
 
 					ret, err := manager.Get(ctx, proc.ID())
@@ -168,7 +170,7 @@ func TestManagerInterface(t *testing.T) {
 					assert.Contains(t, err.Error(), "no jobs")
 				},
 				"GroupErrorsForCanceledContexts": func(ctx context.Context, t *testing.T, manager Manager) {
-					_, err := manager.Create(ctx, trueCreateOpts())
+					_, err := manager.CreateProcess(ctx, trueCreateOpts())
 					assert.NoError(t, err)
 
 					cctx, cancel := context.WithCancel(ctx)
@@ -179,7 +181,7 @@ func TestManagerInterface(t *testing.T) {
 					assert.Contains(t, err.Error(), "canceled")
 				},
 				"GroupPropagatesMatching": func(ctx context.Context, t *testing.T, manager Manager) {
-					proc, err := manager.Create(ctx, trueCreateOpts())
+					proc, err := manager.CreateProcess(ctx, trueCreateOpts())
 					require.NoError(t, err)
 
 					proc.Tag("foo")
@@ -241,7 +243,7 @@ func TestManagerInterface(t *testing.T) {
 						return
 					})
 
-					_, err := manager.Create(ctx, opts)
+					_, err := manager.CreateProcess(ctx, opts)
 					assert.NoError(t, err)
 
 					assert.Equal(t, count, 0)
@@ -331,7 +333,7 @@ func TestManagerInterface(t *testing.T) {
 						return
 					})
 
-					proc, err := manager.Create(ctx, opts)
+					proc, err := manager.CreateProcess(ctx, opts)
 					assert.NoError(t, err)
 					_, err = proc.Wait(ctx)
 					assert.NoError(t, err)
@@ -345,7 +347,7 @@ func TestManagerInterface(t *testing.T) {
 				},
 				"ClearCausesDeletionOfProcesses": func(ctx context.Context, t *testing.T, manager Manager) {
 					opts := trueCreateOpts()
-					proc, err := manager.Create(ctx, opts)
+					proc, err := manager.CreateProcess(ctx, opts)
 					require.NoError(t, err)
 					sameProc, err := manager.Get(ctx, proc.ID())
 					require.NoError(t, err)
@@ -359,7 +361,7 @@ func TestManagerInterface(t *testing.T) {
 				},
 				"ClearIsANoopForActiveProcesses": func(ctx context.Context, t *testing.T, manager Manager) {
 					opts := sleepCreateOpts(20)
-					proc, err := manager.Create(ctx, opts)
+					proc, err := manager.CreateProcess(ctx, opts)
 					require.NoError(t, err)
 					manager.Clear(ctx)
 					sameProc, err := manager.Get(ctx, proc.ID())
@@ -369,11 +371,11 @@ func TestManagerInterface(t *testing.T) {
 				},
 				"ClearSelectivelyDeletesOnlyDeadProcesses": func(ctx context.Context, t *testing.T, manager Manager) {
 					trueOpts := trueCreateOpts()
-					lsProc, err := manager.Create(ctx, trueOpts)
+					lsProc, err := manager.CreateProcess(ctx, trueOpts)
 					require.NoError(t, err)
 
 					sleepOpts := sleepCreateOpts(20)
-					sleepProc, err := manager.Create(ctx, sleepOpts)
+					sleepProc, err := manager.CreateProcess(ctx, sleepOpts)
 					require.NoError(t, err)
 
 					_, err = lsProc.Wait(ctx)
@@ -389,6 +391,44 @@ func TestManagerInterface(t *testing.T) {
 					assert.Error(t, err)
 					assert.Nil(t, nilProc)
 					require.NoError(t, Terminate(ctx, sleepProc)) // Clean up
+				},
+				"CreateCommandPasses": func(ctx context.Context, t *testing.T, manager Manager) {
+					cmd := manager.CreateCommand(ctx)
+					cmd.Add(echoSubCmd)
+					assert.NoError(t, cmd.Run(ctx))
+				},
+				"RunningCommandCreatesNewProcesses": func(ctx context.Context, t *testing.T, manager Manager) {
+					procList, err := manager.List(ctx, All)
+					require.Error(t, err, "no processes")
+					originalProcCount := len(procList) // zero
+					cmd := manager.CreateCommand(ctx)
+					subCmds := [][]string{echoSubCmd, echoSubCmd, echoSubCmd}
+					cmd.Extend(subCmds)
+					assert.NoError(t, cmd.Run(ctx))
+					newProcList, err := manager.List(ctx, All)
+					require.NoError(t, err)
+
+					assert.Len(t, newProcList, originalProcCount+len(subCmds))
+				},
+				"CommandProcIDsMatchManagerIDs": func(ctx context.Context, t *testing.T, manager Manager) {
+					cmd := manager.CreateCommand(ctx)
+					cmd.Extend([][]string{echoSubCmd, echoSubCmd, echoSubCmd})
+					assert.NoError(t, cmd.Run(ctx))
+					newProcList, err := manager.List(ctx, All)
+					require.NoError(t, err)
+
+					findIDInProcList := func(procID string) bool {
+						for _, proc := range newProcList {
+							if proc.ID() == procID {
+								return true
+							}
+						}
+						return false
+					}
+
+					for _, procID := range cmd.GetProcIDs() {
+						assert.True(t, findIDInProcList(procID))
+					}
 				},
 				// "": func(ctx context.Context, t *testing.T, manager Manager) {},
 			} {

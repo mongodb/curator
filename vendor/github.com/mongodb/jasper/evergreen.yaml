@@ -71,11 +71,15 @@ tasks:
     name: test
 
   - <<: *run-build
+    tags: ["legacy-check"]
+    name: compile-base
+
+  - <<: *run-build
     tags: ["race"]
     name: race
 
   - <<: *run-build
-    tags: ["test"]
+    tags: ["bench"]
     name: benchmark
 
 #######################################
@@ -90,30 +94,44 @@ buildvariants:
       - archlinux-test
     tasks: 
       - name: ".race"
+      - name: ".bench"
 
   - name: ubuntu1604
     display_name: Ubuntu 16.04
     expansions:
-      build_env: "GOROOT=/opt/go1.8/go PATH=/opt/go1.8/go/bin:$PATH"
+      build_env: "GOROOT=/opt/golang/go1.11/ PATH=/opt/golang/go1.11/bin:$PATH"
     run_on:
       - ubuntu1604-test
     tasks: 
       - name: ".test"
+      - name: ".bench"
+
+  - name: ubuntu1604-go1.8
+    display_name: Ubuntu 16.04 (go1.8)
+    expansions:
+      build_env: "GOROOT=/opt/golang/go1.8/ PATH=/opt/golang/go1.8/bin:$PATH"
+    run_on:
+      - ubuntu1604-test
+    tasks: 
+      - name: ".legacy-check"
+
 
   - name: macos
     display_name: macOS 10.12
     expansions:
-      build_env: "GOROOT=/usr/local/go1.8/go PATH=/usr/local/go1.8/go/bin:$PATH DISABLE_COVERAGE=true"
+      build_env: "GOROOT=/opt/golang/go1.11/ PATH=/opt/golang/go1.11/bin:$PATH DISABLE_COVERAGE=true"
     run_on:
       - macos-1012
     tasks:
       - name: ".test"
+      - name: ".bench"
 
   - name: windows
     display_name: Windows
     run_on:
       - windows-64-vs2015-small
     expansions:
-      build_env: "GOROOT=c:/go1.8/go PATH=/cygdrive/c/go1.8/go/bin:$PATH DISABLE_COVERAGE=true"
+      build_env: "GOROOT=c:/golang/go1.11 PATH=/cygdrive/c/golang/go1.11/bin:$PATH DISABLE_COVERAGE=true"
     tasks:
       - name: ".test"
+      - name: ".bench"

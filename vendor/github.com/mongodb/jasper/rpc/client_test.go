@@ -62,7 +62,7 @@ func TestRPCManager(t *testing.T) {
 					assert.Contains(t, err.Error(), "no processes")
 				},
 				"CreateProcessFails": func(ctx context.Context, t *testing.T, manager jasper.Manager) {
-					proc, err := manager.Create(ctx, &jasper.CreateOptions{})
+					proc, err := manager.CreateProcess(ctx, &jasper.CreateOptions{})
 					assert.Error(t, err)
 					assert.Nil(t, proc)
 				},
@@ -94,7 +94,7 @@ func TestRPCManager(t *testing.T) {
 					assert.Len(t, procs, 0)
 				},
 				"ListReturnsOneSuccessfulCommand": func(ctx context.Context, t *testing.T, manager jasper.Manager) {
-					proc, err := manager.Create(ctx, trueCreateOpts())
+					proc, err := manager.CreateProcess(ctx, trueCreateOpts())
 					require.NoError(t, err)
 
 					_, err = proc.Wait(ctx)
@@ -114,7 +114,7 @@ func TestRPCManager(t *testing.T) {
 				},
 				"GetMethodReturnsMatchingDoc": func(ctx context.Context, t *testing.T, manager jasper.Manager) {
 					t.Skip("for now,")
-					proc, err := manager.Create(ctx, trueCreateOpts())
+					proc, err := manager.CreateProcess(ctx, trueCreateOpts())
 					require.NoError(t, err)
 
 					ret, err := manager.Get(ctx, proc.ID())
@@ -129,7 +129,7 @@ func TestRPCManager(t *testing.T) {
 					assert.Contains(t, err.Error(), "no jobs")
 				},
 				"GroupErrorsForCanceledContexts": func(ctx context.Context, t *testing.T, manager jasper.Manager) {
-					_, err := manager.Create(ctx, trueCreateOpts())
+					_, err := manager.CreateProcess(ctx, trueCreateOpts())
 					assert.NoError(t, err)
 
 					cctx, cancel := context.WithCancel(ctx)
@@ -140,7 +140,7 @@ func TestRPCManager(t *testing.T) {
 					assert.Contains(t, err.Error(), "canceled")
 				},
 				"GroupPropagatesMatching": func(ctx context.Context, t *testing.T, manager jasper.Manager) {
-					proc, err := manager.Create(ctx, trueCreateOpts())
+					proc, err := manager.CreateProcess(ctx, trueCreateOpts())
 					require.NoError(t, err)
 
 					proc.Tag("foo")
@@ -188,7 +188,7 @@ func TestRPCManager(t *testing.T) {
 					assert.Error(t, manager.Close(ctx))
 				},
 				"WaitingOnNonExistentProcessErrors": func(ctx context.Context, t *testing.T, manager jasper.Manager) {
-					proc, err := manager.Create(ctx, trueCreateOpts())
+					proc, err := manager.CreateProcess(ctx, trueCreateOpts())
 
 					_, err = proc.Wait(ctx)
 					assert.NoError(t, err)
@@ -201,7 +201,7 @@ func TestRPCManager(t *testing.T) {
 				},
 				"ClearCausesDeletionOfProcesses": func(ctx context.Context, t *testing.T, manager jasper.Manager) {
 					opts := trueCreateOpts()
-					proc, err := manager.Create(ctx, opts)
+					proc, err := manager.CreateProcess(ctx, opts)
 					require.NoError(t, err)
 					sameProc, err := manager.Get(ctx, proc.ID())
 					require.NoError(t, err)
@@ -215,7 +215,7 @@ func TestRPCManager(t *testing.T) {
 				},
 				"ClearIsANoopForActiveProcesses": func(ctx context.Context, t *testing.T, manager jasper.Manager) {
 					opts := sleepCreateOpts(20)
-					proc, err := manager.Create(ctx, opts)
+					proc, err := manager.CreateProcess(ctx, opts)
 					require.NoError(t, err)
 					manager.Clear(ctx)
 					sameProc, err := manager.Get(ctx, proc.ID())
@@ -225,11 +225,11 @@ func TestRPCManager(t *testing.T) {
 				},
 				"ClearSelectivelyDeletesOnlyDeadProcesses": func(ctx context.Context, t *testing.T, manager jasper.Manager) {
 					trueOpts := trueCreateOpts()
-					lsProc, err := manager.Create(ctx, trueOpts)
+					lsProc, err := manager.CreateProcess(ctx, trueOpts)
 					require.NoError(t, err)
 
 					sleepOpts := sleepCreateOpts(20)
-					sleepProc, err := manager.Create(ctx, sleepOpts)
+					sleepProc, err := manager.CreateProcess(ctx, sleepOpts)
 					require.NoError(t, err)
 
 					_, err = lsProc.Wait(ctx)
@@ -266,7 +266,7 @@ func TestRPCManager(t *testing.T) {
 					assert.Len(t, procs, 0)
 				},
 				"CreateProcessReturnsCorrectExample": func(ctx context.Context, t *testing.T, manager jasper.Manager) {
-					proc, err := manager.Create(ctx, trueCreateOpts())
+					proc, err := manager.CreateProcess(ctx, trueCreateOpts())
 					assert.NoError(t, err)
 					assert.NotNil(t, proc)
 					assert.NotZero(t, proc.ID())
@@ -277,7 +277,7 @@ func TestRPCManager(t *testing.T) {
 					assert.Equal(t, proc.ID(), fetched.ID())
 				},
 				"WaitOnSigKilledProcessReturnsProperExitCode": func(ctx context.Context, t *testing.T, manager jasper.Manager) {
-					proc, err := manager.Create(ctx, sleepCreateOpts(100))
+					proc, err := manager.CreateProcess(ctx, sleepCreateOpts(100))
 					require.NoError(t, err)
 					require.NotNil(t, proc)
 					require.NotZero(t, proc.ID())
@@ -324,7 +324,7 @@ func TestRPCProcess(t *testing.T) {
 				return nil, errors.WithStack(err)
 			}
 
-			return client.Create(ctx, opts)
+			return client.CreateProcess(ctx, opts)
 
 		},
 		"Blocking": func(ctx context.Context, opts *jasper.CreateOptions) (jasper.Process, error) {
@@ -340,7 +340,7 @@ func TestRPCProcess(t *testing.T) {
 				return nil, errors.WithStack(err)
 			}
 
-			return client.Create(ctx, opts)
+			return client.CreateProcess(ctx, opts)
 
 		},
 	} {
@@ -582,7 +582,7 @@ func TestRPCProcess(t *testing.T) {
 					case <-ctx.Done():
 						assert.Fail(t, "call to Wait() took too long to finish")
 					}
-					jasper.Terminate(ctx, proc) // Clean up.
+					require.NoError(t, jasper.Terminate(ctx, proc)) // Clean up.
 				},
 				"CallingSignalOnDeadProcessDoesError": func(ctx context.Context, t *testing.T, opts *jasper.CreateOptions, makep processConstructor) {
 					proc, err := makep(ctx, opts)

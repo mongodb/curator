@@ -175,7 +175,7 @@ func TestCreateOptions(t *testing.T) {
 				func() (_ error) { counter++; return },
 				func() (_ error) { counter += 2; return },
 			)
-			opts.Close()
+			assert.NoError(t, opts.Close())
 			assert.Equal(t, counter, 3)
 
 		},
@@ -367,7 +367,7 @@ func TestFileLogging(t *testing.T) {
 			require.NoError(t, cmd.Start())
 
 			cmd.Wait()
-			opts.Close()
+			assert.NoError(t, opts.Close())
 
 			for _, file := range files {
 				info, err := file.Stat()

@@ -107,7 +107,7 @@ func TestMongod(t *testing.T) {
 	dir, mongodPath := downloadMongoDB(t)
 	defer os.RemoveAll(dir)
 
-	for name, makeProc := range map[string]processConstructor{
+	for name, makeProc := range map[string]ProcessConstructor{
 		"Basic":    newBasicProcess,
 		"Blocking": newBlockingProcess,
 	} {

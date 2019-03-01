@@ -9,3 +9,9 @@ func makeMongodShutdownSignalTrigger() SignalTrigger {
 		return false
 	}
 }
+
+func makeCleanTerminationSignalTrigger() SignalTrigger {
+	return func(_ ProcessInfo, _ syscall.Signal) bool {
+		return false
+	}
+}

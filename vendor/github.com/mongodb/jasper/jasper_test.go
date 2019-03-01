@@ -39,6 +39,16 @@ const (
 	longTaskTimeout    = 100 * time.Second
 )
 
+func makeLockingProcess(pmake ProcessConstructor) ProcessConstructor {
+	return func(ctx context.Context, opts *CreateOptions) (Process, error) {
+		proc, err := pmake(ctx, opts)
+		if err != nil {
+			return nil, err
+		}
+		return &localProcess{proc: proc}, nil
+	}
+}
+
 // this file contains tools and constants used throughout the test
 // suite.
 
@@ -66,7 +76,7 @@ func createProcs(ctx context.Context, opts *CreateOptions, manager Manager, num 
 	for i := 0; i < num; i++ {
 		optsCopy := *opts
 
-		proc, err := manager.Create(ctx, &optsCopy)
+		proc, err := manager.CreateProcess(ctx, &optsCopy)
 		catcher.Add(err)
 		if proc != nil {
 			out = append(out, proc)
@@ -158,12 +168,16 @@ type MockManager struct {
 	Array        []Process
 }
 
-func (m *MockManager) Create(_ context.Context, opts *CreateOptions) (Process, error) {
+func (m *MockManager) CreateProcess(_ context.Context, opts *CreateOptions) (Process, error) {
 	if m.FailCreate {
 		return nil, errors.New("always fail")
 	}
 
 	return m.Process, nil
+}
+
+func (m *MockManager) CreateCommand(_ context.Context) *Command {
+	return NewCommand().ProcConstructor(m.CreateProcess)
 }
 
 func (m *MockManager) Register(_ context.Context, proc Process) error {

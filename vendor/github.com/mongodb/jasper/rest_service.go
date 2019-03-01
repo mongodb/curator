@@ -152,7 +152,7 @@ func (s *Service) createProcess(rw http.ResponseWriter, r *http.Request) {
 		ctx, cancel = context.WithCancel(context.Background())
 	}
 
-	proc, err := s.manager.Create(ctx, opts)
+	proc, err := s.manager.CreateProcess(ctx, opts)
 	if err != nil {
 		cancel()
 		writeError(rw, gimlet.ErrorResponse{
@@ -635,7 +635,7 @@ func (s *Service) registerSignalTriggerID(rw http.ResponseWriter, r *http.Reques
 	if !ok {
 		writeError(rw, gimlet.ErrorResponse{
 			StatusCode: http.StatusBadRequest,
-			Message:    errors.Wrapf(err, "could not find signal trigger with id '%s'", sigTriggerID).Error(),
+			Message:    errors.Errorf("could not find signal trigger with id '%s'", sigTriggerID).Error(),
 		})
 		return
 	}

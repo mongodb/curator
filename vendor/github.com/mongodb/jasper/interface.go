@@ -20,7 +20,8 @@ const EnvironID = "JASPER_ID"
 // interfaces and remote management tools can be implemented in terms
 // of this interface.
 type Manager interface {
-	Create(context.Context, *CreateOptions) (Process, error)
+	CreateProcess(context.Context, *CreateOptions) (Process, error)
+	CreateCommand(context.Context) *Command
 	Register(context.Context, Process) error
 
 	List(context.Context, Filter) ([]Process, error)
@@ -99,6 +100,10 @@ type Process interface {
 	// ResetTags should clear all existing tags.
 	ResetTags()
 }
+
+// ProcessConstructor is a function type that, given a context.Context and a
+// CreateOptions struct, returns a Process and an error.
+type ProcessConstructor func(context.Context, *CreateOptions) (Process, error)
 
 // ProcessInfo reports on the current state of a process. It is always
 // returned and passed by value, and reflects the state of the process

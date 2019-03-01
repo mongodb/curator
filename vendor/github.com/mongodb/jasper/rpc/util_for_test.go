@@ -58,7 +58,7 @@ func createProcs(ctx context.Context, opts *jasper.CreateOptions, manager jasper
 	catcher := grip.NewBasicCatcher()
 	out := []jasper.Process{}
 	for i := 0; i < num; i++ {
-		proc, err := manager.Create(ctx, opts)
+		proc, err := manager.CreateProcess(ctx, opts)
 		catcher.Add(err)
 		if proc != nil {
 			out = append(out, proc)

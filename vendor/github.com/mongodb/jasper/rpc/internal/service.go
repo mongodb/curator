@@ -97,7 +97,7 @@ func (s *jasperService) Create(ctx context.Context, opts *CreateOptions) (*Proce
 		cctx, cancel = context.WithCancel(context.Background())
 	}
 
-	proc, err := s.manager.Create(cctx, jopts)
+	proc, err := s.manager.CreateProcess(cctx, jopts)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}

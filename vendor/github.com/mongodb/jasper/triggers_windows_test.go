@@ -1,5 +1,3 @@
-// +build windows
-
 package jasper
 
 import (
@@ -16,7 +14,7 @@ import (
 const mongodStartupTime = 15 * time.Second
 
 func TestMongodShutdownEventTrigger(t *testing.T) {
-	for procName, makeProc := range map[string]processConstructor{
+	for procName, makeProc := range map[string]ProcessConstructor{
 		"Basic":    newBasicProcess,
 		"Blocking": newBlockingProcess,
 	} {
@@ -26,12 +24,10 @@ func TestMongodShutdownEventTrigger(t *testing.T) {
 				useMongod            bool
 				expectCleanTerminate bool
 			}{
-				"WithSIGTERMAndMongod":           {signal: syscall.SIGTERM, useMongod: true, expectCleanTerminate: true},
-				"WithSIGKILLAndMongod":           {signal: syscall.SIGKILL, useMongod: true, expectCleanTerminate: true},
-				"WithNonTerminationAndMongod":    {signal: syscall.SIGHUP, useMongod: true, expectCleanTerminate: false},
-				"WithSIGTERMAndNonMongod":        {signal: syscall.SIGTERM, useMongod: false, expectCleanTerminate: false},
-				"WithSIGKILLAndNonMongod":        {signal: syscall.SIGKILL, useMongod: false, expectCleanTerminate: false},
-				"WithNonTerminationAndNonMongod": {signal: syscall.SIGHUP, useMongod: false, expectCleanTerminate: false},
+				"WithSIGTERMAndMongod":       {signal: syscall.SIGTERM, useMongod: true, expectCleanTerminate: true},
+				"WithNonSIGTERMAndMongod":    {signal: syscall.SIGHUP, useMongod: true, expectCleanTerminate: false},
+				"WithSIGTERMAndNonMongod":    {signal: syscall.SIGTERM, useMongod: false, expectCleanTerminate: false},
+				"WithNonSIGTERMAndNonMongod": {signal: syscall.SIGHUP, useMongod: false, expectCleanTerminate: false},
 			} {
 				t.Run(testName, func(t *testing.T) {
 					if testing.Short() {
@@ -66,7 +62,12 @@ func TestMongodShutdownEventTrigger(t *testing.T) {
 					}
 
 					trigger := makeMongodShutdownSignalTrigger()
-					trigger(proc.Info(ctx), testParams.signal)
+					terminated := trigger(proc.Info(ctx), testParams.signal)
+					if testParams.expectCleanTerminate {
+						assert.True(t, terminated)
+					} else {
+						assert.False(t, terminated)
+					}
 
 					if testParams.expectCleanTerminate {
 						exitCode, err := proc.Wait(ctx)
@@ -77,6 +78,62 @@ func TestMongodShutdownEventTrigger(t *testing.T) {
 						assert.True(t, proc.Running(ctx))
 						assert.NoError(t, proc.Signal(ctx, syscall.SIGKILL))
 					}
+				})
+			}
+		})
+	}
+}
+
+func TestCleanTerminationSignalTrigger(t *testing.T) {
+	for procName, makeProc := range map[string]ProcessConstructor{
+		"Basic":    newBasicProcess,
+		"Blocking": newBlockingProcess,
+	} {
+		t.Run(procName, func(t *testing.T) {
+			for testName, testCase := range map[string]func(context.Context, *CreateOptions, ProcessConstructor){
+				"CleanTerminationRunsForSIGTERM": func(ctx context.Context, opts *CreateOptions, makep ProcessConstructor) {
+					proc, err := makep(ctx, opts)
+					require.NoError(t, err)
+					trigger := makeCleanTerminationSignalTrigger()
+					assert.True(t, trigger(proc.Info(ctx), syscall.SIGTERM))
+
+					exitCode, err := proc.Wait(ctx)
+					assert.NoError(t, err)
+					assert.Zero(t, exitCode)
+					assert.False(t, proc.Running(ctx))
+
+					// Subsequent executions of trigger should fail.
+					assert.False(t, trigger(proc.Info(ctx), syscall.SIGTERM))
+				},
+				"CleanTerminationIgnoresNonSIGTERM": func(ctx context.Context, opts *CreateOptions, makep ProcessConstructor) {
+					proc, err := makep(ctx, opts)
+					require.NoError(t, err)
+					trigger := makeCleanTerminationSignalTrigger()
+					assert.False(t, trigger(proc.Info(ctx), syscall.SIGHUP))
+
+					assert.True(t, proc.Running(ctx))
+
+					assert.NoError(t, proc.Signal(ctx, syscall.SIGKILL))
+				},
+				"CleanTerminationFailsForExitedProcess": func(ctx context.Context, opts *CreateOptions, makep ProcessConstructor) {
+					opts = trueCreateOpts()
+					proc, err := makep(ctx, opts)
+					require.NoError(t, err)
+
+					exitCode, err := proc.Wait(ctx)
+					assert.NoError(t, err)
+					assert.Zero(t, exitCode)
+
+					trigger := makeCleanTerminationSignalTrigger()
+					assert.False(t, trigger(proc.Info(ctx), syscall.SIGTERM))
+				},
+			} {
+				t.Run(testName, func(t *testing.T) {
+					ctx, cancel := context.WithCancel(context.Background())
+					defer cancel()
+
+					opts := yesCreateOpts(0)
+					testCase(ctx, &opts, makeProc)
 				})
 			}
 		})

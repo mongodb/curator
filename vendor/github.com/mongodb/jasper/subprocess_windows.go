@@ -13,7 +13,12 @@ import (
 // TODO: needs some documentation.
 
 const (
-	ERROR_SUCCESS syscall.Errno = 0
+	// Constants for error codes
+	ERROR_SUCCESS           syscall.Errno = 0
+	ERROR_FILE_NOT_FOUND    syscall.Errno = 2
+	ERROR_ACCESS_DENIED     syscall.Errno = 5
+	ERROR_INVALID_HANDLE    syscall.Errno = 6
+	ERROR_INVALID_PARAMETER syscall.Errno = 87
 
 	DELETE                   = 0x00010000
 	READ_CONTROL             = 0x00020000
@@ -59,6 +64,9 @@ const (
 	JobObjectInfoClassNameBasicProcessIdList       = 3
 	JobObjectInfoClassNameExtendedLimitInformation = 9
 
+	// Constants for exit codes
+	STILL_ACTIVE = 0x103
+
 	// Constants for access rights for event objects
 	EVENT_ALL_ACCESS   = 0x1F0003
 	EVENT_MODIFY_STATE = 0x0002
@@ -83,7 +91,9 @@ var (
 	procCreateEventW              = modkernel32.NewProc("CreateEventW")
 	procOpenEventW                = modkernel32.NewProc("OpenEventW")
 	procSetEvent                  = modkernel32.NewProc("SetEvent")
+	procGetExitCodeProcess        = modkernel32.NewProc("GetExitCodeProcess")
 	procOpenProcess               = modkernel32.NewProc("OpenProcess")
+	procTerminateProcess          = modkernel32.NewProc("TerminateProcess")
 	procQueryInformationJobObject = modkernel32.NewProc("QueryInformationJobObject")
 	procTerminateJobObject        = modkernel32.NewProc("TerminateJobObject")
 	procSetInformationJobObject   = modkernel32.NewProc("SetInformationJobObject")
@@ -201,6 +211,30 @@ func OpenProcess(desiredAccess uint32, inheritHandle bool, processId uint32) (sy
 	return syscall.Handle(r1), nil
 }
 
+func GetExitCodeProcess(handle syscall.Handle, exitCode *uint32) error {
+	r1, _, e1 := procGetExitCodeProcess.Call(uintptr(handle), uintptr(unsafe.Pointer(exitCode)))
+	if r1 == 0 {
+		if e1 != ERROR_SUCCESS {
+			return e1
+		} else {
+			return syscall.EINVAL
+		}
+	}
+	return nil
+}
+
+func TerminateProcess(handle syscall.Handle, exitCode uint32) error {
+	r1, _, e1 := procTerminateProcess.Call(uintptr(handle), uintptr(exitCode))
+	if r1 == 0 {
+		if e1 != ERROR_SUCCESS {
+			return e1
+		} else {
+			return syscall.EINVAL
+		}
+	}
+	return nil
+}
+
 type SecurityAttributes struct {
 	Length             uint32
 	SecurityDescriptor uintptr
@@ -288,19 +322,19 @@ func WaitForSingleObject(object syscall.Handle, timeout time.Duration) (uint32, 
 		uintptr(object),
 		uintptr(uint32(timeoutMillis)),
 	)
-	waitEvent := uint32(r1)
-	if waitEvent == WAIT_FAILED {
+	waitStatus := uint32(r1)
+	if waitStatus == WAIT_FAILED {
 		if e1 != ERROR_SUCCESS {
-			return waitEvent, e1
+			return waitStatus, e1
 		} else {
-			return waitEvent, syscall.EINVAL
+			return waitStatus, syscall.EINVAL
 		}
 	}
-	return waitEvent, nil
+	return waitStatus, nil
 }
 
-func getWaitEventError(waitEvent uint32) error {
-	switch waitEvent {
+func getWaitStatusError(waitStatus uint32) error {
+	switch waitStatus {
 	case WAIT_OBJECT_0:
 		return nil
 	case WAIT_ABANDONED:
