@@ -29,6 +29,7 @@ func (v versionInfo) String() string {
 	}, "")
 }
 
+// Version command line function.
 func Version() cli.Command {
 	return cli.Command{
 		Name:  "version",

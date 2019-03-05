@@ -24,6 +24,7 @@ var (
 	flush     = "flush"
 )
 
+// FTDC command line function.
 func FTDC() cli.Command {
 	return cli.Command{
 		Name:  "ftdc",
@@ -81,7 +82,9 @@ func toJSON() cli.Command {
 			if err != nil {
 				return errors.Wrapf(err, "problem opening file '%s'", ftdcPath)
 			}
-			defer ftdcFile.Close()
+			defer func() {
+				_ = ftdcFile.Close()
+			}()
 
 			var jsonFile *os.File
 			if jsonPath == "" {
@@ -95,7 +98,9 @@ func toJSON() cli.Command {
 				if err != nil {
 					return errors.Wrapf(err, "problem opening flie '%s'", jsonPath)
 				}
-				defer jsonFile.Close()
+				defer func() {
+					_ = ftdcFile.Close()
+				}()
 			}
 
 			var iter ftdc.Iterator
@@ -111,8 +116,10 @@ func toJSON() cli.Command {
 					return errors.Wrap(err, "problem reading document to json")
 				}
 
-				jsonFile.WriteString(string(doc))
-				jsonFile.WriteString("\n")
+				_, err = jsonFile.WriteString(string(doc) + "\n")
+				if err != nil {
+					return errors.Wrap(err, "problem writing json to document")
+				}
 			}
 
 			return iter.Err()
@@ -204,7 +211,9 @@ func toBSON() cli.Command {
 			if err != nil {
 				return errors.Wrapf(err, "problem opening file '%s'", ftdcPath)
 			}
-			defer ftdcFile.Close()
+			defer func() {
+				_ = ftdcFile.Close()
+			}()
 
 			var bsonFile *os.File
 			if bsonPath == "" {
@@ -229,7 +238,8 @@ func toBSON() cli.Command {
 			}
 
 			for iter.Next() {
-				bytes, err := iter.Document().MarshalBSON()
+				var bytes []byte
+				bytes, err = iter.Document().MarshalBSON()
 				if err != nil {
 					return errors.Wrap(err, "problem marshaling BSON")
 				}
@@ -278,11 +288,13 @@ func fromBSON() cli.Command {
 			if err != nil {
 				return errors.Wrapf(err, "problem opening file '%s'", bsonPath)
 			}
-			defer bsonFile.Close()
+			defer func() {
+				_ = bsonFile.Close()
+			}()
 
 			// prepare the output file
 			//
-			if _, err := os.Stat(ftdcPath); !os.IsNotExist(err) {
+			if _, err = os.Stat(ftdcPath); !os.IsNotExist(err) {
 				return errors.Errorf("cannot export ftdc to %s, file already exists", ftdcPath)
 			}
 			ftdcFile, err := os.Create(ftdcPath)
@@ -345,7 +357,9 @@ func toCSV() cli.Command {
 			if err != nil {
 				return errors.Wrapf(err, "problem opening file '%s'", inputPath)
 			}
-			defer inputFile.Close()
+			defer func() {
+				_ = inputFile.Close()
+			}()
 
 			// open the data source
 			//
@@ -417,7 +431,9 @@ func fromCSV() cli.Command {
 				if err != nil {
 					return errors.Wrapf(err, "problem opening file %s", srcPath)
 				}
-				defer srcFile.Close()
+				defer func() {
+					_ = srcFile.Close()
+				}()
 			}
 
 			// Create the output file

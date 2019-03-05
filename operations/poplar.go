@@ -24,6 +24,7 @@ const (
 	defaultPoplarRecorderRPCPort = 2288
 )
 
+// Poplar command line function.
 func Poplar() cli.Command {
 	return cli.Command{
 		Name:  "poplar",
@@ -151,7 +152,8 @@ func poplarReport() cli.Command {
 			if isInsecure {
 				rpcOpts = append(rpcOpts, grpc.WithInsecure())
 			} else {
-				tlsConf, err := getTLSConfig(caFile, certFile, keyFile)
+				var tlsConf *tls.Config
+				tlsConf, err = getTLSConfig(caFile, certFile, keyFile)
 				if err != nil {
 					return errors.WithStack(err)
 				}
