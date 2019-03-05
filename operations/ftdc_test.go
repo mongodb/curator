@@ -47,7 +47,7 @@ func TestBSONRoundtrip(t *testing.T) {
 	err = createBSONFile(bsonOriginal, 3)
 	require.NoError(t, err)
 	defer func() {
-		os.RemoveAll(tempDir)
+		_ = os.RemoveAll(tempDir)
 	}()
 
 	cmd := exec.Command("./curator", "ftdc", "import", "bson", "--input", bsonOriginal, "--output", ftdcFromOriginal)
@@ -72,7 +72,7 @@ func TestCSVRoundtrip(t *testing.T) {
 	err = createCSVFile(csvOriginal, 3)
 	require.NoError(t, err)
 	defer func() {
-		os.RemoveAll(tempDir)
+		_ = os.RemoveAll(tempDir)
 	}()
 
 	var output []byte
@@ -99,7 +99,7 @@ func TestJSONRoundtrip(t *testing.T) {
 	err = createJSONFile(jsonOriginal, 3)
 	require.NoError(t, err)
 	defer func() {
-		os.RemoveAll(tempDir)
+		_ = os.RemoveAll(tempDir)
 	}()
 
 	cmd := exec.Command("./curator", "ftdc", "import", "json", "--input", jsonOriginal, "--prefix", ftdcFromOriginal)
@@ -135,7 +135,9 @@ func createBSONFile(name string, size int) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to create new file")
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 
 	for i := 0; i < size; i++ {
 		_, err := randFlatDocument(size).WriteTo(file)
@@ -182,7 +184,9 @@ func createJSONFile(name string, size int) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to create new file")
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 
 	for i := 0; i < size; i++ {
 		jsonMap := make(map[string]int64, size)
@@ -193,7 +197,10 @@ func createJSONFile(name string, size int) error {
 		if err != nil {
 			return errors.Wrap(err, "failed to marshal json")
 		}
-		file.Write(append(jsonString, '\n'))
+		_, err = file.Write(append(jsonString, '\n'))
+		if err != nil {
+			return errors.Wrap(err, "failed to write json to file")
+		}
 	}
 	return nil
 }
@@ -205,12 +212,16 @@ func compareFiles(file1, file2 string) (bool, error) {
 	if err != nil {
 		return false, errors.Wrapf(err, "problem opening file '%s'", file1)
 	}
-	defer f1.Close()
+	defer func() {
+		_ = f1.Close()
+	}()
 	f2, err := os.Open(file2)
 	if err != nil {
 		return false, errors.Wrapf(err, "problem opening file '%s'", file2)
 	}
-	defer f2.Close()
+	defer func() {
+		_ = f2.Close()
+	}()
 
 	for {
 		b1 := make([]byte, chunkSize)

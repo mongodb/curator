@@ -81,17 +81,17 @@ func jasperCombined() cli.Command {
 			// assemble the rest service
 			rest := jasper.NewManagerService(mngr).App()
 			rest.SetPrefix("jasper")
-			if err := rest.SetPort(restPort); err != nil {
+			if err = rest.SetPort(restPort); err != nil {
 				return errors.WithStack(err)
 			}
 
-			if err := rest.SetHost(restHost); err != nil {
+			if err = rest.SetHost(restHost); err != nil {
 				return errors.WithStack(err)
 			}
 
 			// assemble the rpc service
 			rpcSrv := grpc.NewServer()
-			if err := rpc.AttachService(mngr, rpcSrv); err != nil {
+			if err = rpc.AttachService(mngr, rpcSrv); err != nil {
 				return errors.WithStack(err)
 			}
 
