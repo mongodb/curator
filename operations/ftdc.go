@@ -82,9 +82,7 @@ func toJSON() cli.Command {
 			if err != nil {
 				return errors.Wrapf(err, "problem opening file '%s'", ftdcPath)
 			}
-			defer func() {
-				_ = ftdcFile.Close()
-			}()
+			defer func() { grip.Warning(ftdcFile.Close()) }()
 
 			var jsonFile *os.File
 			if jsonPath == "" {
@@ -98,9 +96,7 @@ func toJSON() cli.Command {
 				if err != nil {
 					return errors.Wrapf(err, "problem opening flie '%s'", jsonPath)
 				}
-				defer func() {
-					_ = ftdcFile.Close()
-				}()
+				defer func() { grip.Warning(ftdcFile.Close()) }()
 			}
 
 			var iter ftdc.Iterator
@@ -211,9 +207,7 @@ func toBSON() cli.Command {
 			if err != nil {
 				return errors.Wrapf(err, "problem opening file '%s'", ftdcPath)
 			}
-			defer func() {
-				_ = ftdcFile.Close()
-			}()
+			defer func() { grip.Warning(ftdcFile.Close()) }()
 
 			var bsonFile *os.File
 			if bsonPath == "" {
@@ -288,9 +282,7 @@ func fromBSON() cli.Command {
 			if err != nil {
 				return errors.Wrapf(err, "problem opening file '%s'", bsonPath)
 			}
-			defer func() {
-				_ = bsonFile.Close()
-			}()
+			defer func() { grip.Warning(bsonFile.Close()) }()
 
 			// prepare the output file
 			//
@@ -357,9 +349,7 @@ func toCSV() cli.Command {
 			if err != nil {
 				return errors.Wrapf(err, "problem opening file '%s'", inputPath)
 			}
-			defer func() {
-				_ = inputFile.Close()
-			}()
+			defer func() { grip.Warning(inputFile.Close()) }()
 
 			// open the data source
 			//
@@ -431,9 +421,7 @@ func fromCSV() cli.Command {
 				if err != nil {
 					return errors.Wrapf(err, "problem opening file %s", srcPath)
 				}
-				defer func() {
-					_ = srcFile.Close()
-				}()
+				defer func() { grip.Warning(srcFile.Close()) }()
 			}
 
 			// Create the output file
