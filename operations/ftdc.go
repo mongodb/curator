@@ -2,6 +2,7 @@ package operations
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"time"
@@ -9,7 +10,9 @@ import (
 	"github.com/mongodb/ftdc"
 	"github.com/mongodb/ftdc/bsonx"
 	"github.com/mongodb/grip"
+	"github.com/mongodb/grip/message"
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/mongo"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -36,6 +39,7 @@ func FTDC() cli.Command {
 					toJSON(),
 					toBSON(),
 					toCSV(),
+					toMDB(),
 				},
 			},
 			cli.Command{
@@ -239,7 +243,7 @@ func toBSON() cli.Command {
 				}
 			}
 
-			return errors.Wrap(err, "problem iterating ftdc file")
+			return errors.Wrap(iter.Err(), "problem iterating ftdc file")
 		},
 	}
 }
@@ -436,6 +440,136 @@ func fromCSV() cli.Command {
 			// Use the library conversion function.
 			//
 			return errors.Wrap(ftdc.ConvertFromCSV(ctx, chunkSize, srcFile, outputFile), "problem writing data to csv")
+		},
+	}
+}
+
+func toMDB() cli.Command {
+	return cli.Command{
+		Name:  "mongodb",
+		Usage: "load data from an FTDC file into a MongoDB database",
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:  input,
+				Usage: "load source FTDC data from this file",
+			},
+			cli.StringFlag{
+				Name:  "url",
+				Usage: "specify the mongodb url",
+				Value: "mongodb://127.0.0.1:27017",
+			},
+			cli.StringFlag{
+				Name:  "collection, coll, c",
+				Usage: "specify the name of the collection to load data too",
+				Value: fmt.Sprintf("ftdc.%d", time.Now().Unix()),
+			},
+			cli.StringFlag{
+				Name:  "database, db, d",
+				Value: "curator",
+			},
+			cli.IntFlag{
+				Name:  "batchSize",
+				Value: 1000,
+			},
+			cli.BoolFlag{
+				Name:  "drop",
+				Usage: "specify 'drop' if you want to drop the collection before loading into it",
+			},
+			cli.BoolFlag{
+				Name:  flattened,
+				Usage: "flatten document structure data",
+			},
+			cli.BoolFlag{
+				Name:  "continue",
+				Usage: "continue on error during insertion",
+			},
+		},
+		Action: func(c *cli.Context) error {
+			srcPath := c.String(input)
+			dbName := c.String("database")
+			mdburl := c.String("url")
+			collName := c.String("collection")
+			batchSize := c.Int("batchSize")
+			doDrop := c.Bool("drop")
+			shouldContinue := c.Bool("continue")
+			shouldFlatten := c.Bool(flattened)
+			ctx, cancel := context.WithCancel(context.Background())
+
+			srcFile, err := os.Open(srcPath)
+			if err != nil {
+				return errors.Wrapf(err, "problem opening file %s", srcPath)
+			}
+			defer srcFile.Close()
+
+			client, err := mongo.NewClient(mdburl)
+			if err != nil {
+				return errors.Wrap(err, "problem creating mongodb client")
+			}
+
+			connCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+			defer cancel()
+			if err := client.Connect(connCtx); err != nil {
+				return errors.Wrap(err, "problem connecting to mongodb")
+			}
+
+			var iter ftdc.Iterator
+			if shouldFlatten {
+				iter = ftdc.ReadMetrics(ctx, srcFile)
+			} else {
+				iter = ftdc.ReadStructuredMetrics(ctx, srcFile)
+			}
+
+			coll := client.Database(dbName).Collection(collName)
+			if doDrop {
+				if err := coll.Drop(ctx); err != nil {
+					return errors.Wrap(err, "problem dropping collection")
+				}
+				grip.Infof("dropped '%s.%s'", dbName, collName)
+
+			}
+
+			batch := []interface{}{}
+			catcher := grip.NewBasicCatcher()
+			count := 0
+			batches := 0
+			for iter.Next() {
+				batch = append(batch, iter.Document())
+
+				if len(batch) < batchSize {
+					continue
+				}
+				batches++
+
+				res, err := coll.InsertMany(ctx, batch)
+				batch = []interface{}{}
+				catcher.Add(err)
+				if res != nil {
+					count += len(res.InsertedIDs)
+				}
+				if !shouldContinue && err != nil {
+					break
+				}
+			}
+			catcher.Add(errors.Wrapf(iter.Err(), "problem iterating ftdc data from file '%s'", srcPath))
+
+			if len(batch) > 0 {
+				batches++
+				res, err := coll.InsertMany(ctx, batch)
+				catcher.Add(err)
+				if res != nil {
+					count += len(res.InsertedIDs)
+				}
+			}
+
+			grip.Info(message.Fields{
+				"count":      count,
+				"errs":       catcher.Len(),
+				"collection": collName,
+				"database":   dbName,
+				"batches":    batches,
+			})
+
+			return catcher.Resolve()
 		},
 	}
 }
