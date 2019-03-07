@@ -643,7 +643,6 @@ func fromMDB() cli.Command {
 			if size == 0 {
 				return errors.New("cannot write data from collection without documents")
 			}
-			grip.Alert(size)
 
 			var out *os.File
 			if outfn == "" {
@@ -655,7 +654,7 @@ func fromMDB() cli.Command {
 
 				out, err = os.Create(outfn)
 				if err != nil {
-					return errors.Wrapf(err, "problem opening flie '%s'", outfn)
+					return errors.Wrapf(err, "problem opening file '%s'", outfn)
 				}
 				defer func() { grip.EmergencyFatal(out.Close()) }()
 			}
