@@ -505,7 +505,7 @@ func toMDB() cli.Command {
 			if err != nil {
 				return errors.Wrapf(err, "problem opening file %s", srcPath)
 			}
-			defer srcFile.Close()
+			defer func() { grip.Error(srcFile.Close()) }()
 
 			client, err := mongo.NewClient(mdburl)
 			if err != nil {
@@ -631,7 +631,7 @@ func fromMDB() cli.Command {
 
 			connCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 			defer cancel()
-			if err := client.Connect(connCtx); err != nil {
+			if err = client.Connect(connCtx); err != nil {
 				return errors.Wrap(err, "problem connecting to mongodb")
 			}
 
@@ -657,14 +657,14 @@ func fromMDB() cli.Command {
 				if err != nil {
 					return errors.Wrapf(err, "problem opening flie '%s'", outfn)
 				}
-				defer out.Close()
+				defer func() { grip.EmergencyFatal(out.Close()) }()
 			}
 
 			cursor, err := coll.Find(ctx, bsonx.NewDocument())
 			if err != nil {
 				return errors.Wrap(err, "problem finding documents")
 			}
-			defer cursor.Close(ctx)
+			defer func() { grip.Error(cursor.Close(ctx)) }()
 
 			collector := ftdc.NewStreamingDynamicCollector(batchSize, out)
 			defer func() { grip.EmergencyFatal(ftdc.FlushCollector(collector, out)) }()
