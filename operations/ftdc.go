@@ -50,6 +50,7 @@ func FTDC() cli.Command {
 					fromJSON(),
 					fromBSON(),
 					fromCSV(),
+					fromMDB(),
 				},
 			},
 		},
@@ -498,6 +499,7 @@ func toMDB() cli.Command {
 			shouldContinue := c.Bool("continue")
 			shouldFlatten := c.Bool(flattened)
 			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
 
 			srcFile, err := os.Open(srcPath)
 			if err != nil {
@@ -571,6 +573,136 @@ func toMDB() cli.Command {
 				"collection": collName,
 				"database":   dbName,
 				"batches":    batches,
+			})
+
+			return catcher.Resolve()
+		},
+	}
+}
+
+func fromMDB() cli.Command {
+	return cli.Command{
+		Name:  "mongodb",
+		Usage: "dump data from a mongodb collection into a FDTC file",
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:  output,
+				Usage: "write FTDC data in JSON format to this file (default: stdout)",
+			},
+
+			cli.StringFlag{
+				Name:  "url",
+				Usage: "specify the mongodb url",
+				Value: "mongodb://127.0.0.1:27017",
+			},
+			cli.StringFlag{
+				Name:  "collection, coll, c",
+				Usage: "specify the name of the collection to load data too",
+				Value: fmt.Sprintf("ftdc.%d", time.Now().Unix()),
+			},
+			cli.StringFlag{
+				Name:  "database, db, d",
+				Value: "curator",
+			},
+			cli.IntFlag{
+				Name:  "batchSize",
+				Value: 1000,
+			},
+			cli.BoolFlag{
+				Name:  "continue",
+				Usage: "continue on error during insertion",
+			},
+		},
+		Action: func(c *cli.Context) error {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			outfn := c.String(output)
+			dbName := c.String("database")
+			mdburl := c.String("url")
+			collName := c.String("collection")
+			batchSize := c.Int("batchSize")
+			shouldContinue := c.Bool("continue")
+
+			client, err := mongo.NewClient(mdburl)
+			if err != nil {
+				return errors.Wrap(err, "problem creating mongodb client")
+			}
+
+			connCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+			defer cancel()
+			if err := client.Connect(connCtx); err != nil {
+				return errors.Wrap(err, "problem connecting to mongodb")
+			}
+
+			coll := client.Database(dbName).Collection(collName)
+			size, err := coll.CountDocuments(ctx, struct{}{})
+			if err != nil {
+				return errors.Wrap(err, "problem finding number of source documents")
+			}
+			if size == 0 {
+				return errors.New("cannot write data from collection without documents")
+			}
+			grip.Alert(size)
+
+			var out *os.File
+			if outfn == "" {
+				out = os.Stdout
+			} else {
+				if _, err = os.Stat(outfn); !os.IsNotExist(err) {
+					return errors.Errorf("cannot export collection to %s, file already exists", outfn)
+				}
+
+				out, err = os.Create(outfn)
+				if err != nil {
+					return errors.Wrapf(err, "problem opening flie '%s'", outfn)
+				}
+				defer out.Close()
+			}
+
+			cursor, err := coll.Find(ctx, bsonx.NewDocument())
+			if err != nil {
+				return errors.Wrap(err, "problem finding documents")
+			}
+			defer cursor.Close(ctx)
+
+			collector := ftdc.NewStreamingDynamicCollector(batchSize, out)
+			defer func() { grip.EmergencyFatal(ftdc.FlushCollector(collector, out)) }()
+			catcher := grip.NewBasicCatcher()
+			count := 0
+
+			for cursor.Next(ctx) {
+				doc := bsonx.NewDocument()
+				err := cursor.Decode(doc)
+				catcher.Add(err)
+				if err != nil {
+					if !shouldContinue {
+						break
+					}
+					continue
+				}
+
+				err = collector.Add(doc)
+				catcher.Add(err)
+				if err != nil {
+					if !shouldContinue {
+						break
+					}
+					continue
+				}
+
+				count++
+			}
+
+			catcher.Add(cursor.Err())
+			catcher.Add(ftdc.FlushCollector(collector, out))
+			grip.Info(message.Fields{
+				"count":      count,
+				"size":       size,
+				"errs":       catcher.Len(),
+				"collection": collName,
+				"database":   dbName,
+				"file":       outfn,
 			})
 
 			return catcher.Resolve()
