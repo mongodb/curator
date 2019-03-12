@@ -21,7 +21,6 @@ func init() {
 	jasperSignalTriggerRegistry = newSignalTriggerRegistry()
 
 	signalTriggers := map[SignalTriggerID]SignalTriggerFactory{
-		MongodShutdownSignalTrigger:   makeMongodShutdownSignalTrigger,
 		CleanTerminationSignalTrigger: makeCleanTerminationSignalTrigger,
 	}
 

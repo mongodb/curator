@@ -286,6 +286,16 @@ func (c *restClient) ConfigureCache(ctx context.Context, opts CacheOptions) erro
 	return nil
 }
 
+func (c *restClient) SignalEvent(ctx context.Context, name string) error {
+	resp, err := c.doRequest(ctx, http.MethodPatch, c.getURL("/signal/event/%s", name), nil)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	return nil
+}
+
 type restProcess struct {
 	id              string
 	client          *restClient

@@ -451,7 +451,7 @@ func TestRPCProcess(t *testing.T) {
 					require.NoError(t, err)
 					_, err = proc.Wait(ctx)
 					assert.NoError(t, err)
-					assert.Error(t, proc.RegisterSignalTriggerID(ctx, jasper.MongodShutdownSignalTrigger))
+					assert.Error(t, proc.RegisterSignalTriggerID(ctx, jasper.CleanTerminationSignalTrigger))
 				},
 				"RegisterSignalTriggerIDFailsWithInvalidTriggerID": func(ctx context.Context, t *testing.T, opts *jasper.CreateOptions, makep processConstructor) {
 					opts = sleepCreateOpts(3)
@@ -463,7 +463,7 @@ func TestRPCProcess(t *testing.T) {
 					opts = sleepCreateOpts(3)
 					proc, err := makep(ctx, opts)
 					require.NoError(t, err)
-					assert.NoError(t, proc.RegisterSignalTriggerID(ctx, jasper.MongodShutdownSignalTrigger))
+					assert.NoError(t, proc.RegisterSignalTriggerID(ctx, jasper.CleanTerminationSignalTrigger))
 				},
 				"WaitOnRespawnedProcessDoesNotError": func(ctx context.Context, t *testing.T, opts *jasper.CreateOptions, makep processConstructor) {
 					proc, err := makep(ctx, opts)
