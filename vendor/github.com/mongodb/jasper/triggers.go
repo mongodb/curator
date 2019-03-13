@@ -51,9 +51,6 @@ func (s SignalTriggerSequence) Run(info ProcessInfo, sig syscall.Signal) (skipSi
 type SignalTriggerID string
 
 const (
-	// MongodShutdownSignalTrigger is the ID for the signal trigger to use for
-	// clean mongod shutdown.
-	MongodShutdownSignalTrigger SignalTriggerID = "mongod_shutdown"
 	// CleanTerminationSignalTrigger is the ID for the signal trigger to use for
 	// termination of processes with exit code 0.
 	CleanTerminationSignalTrigger SignalTriggerID = "clean_terminate"

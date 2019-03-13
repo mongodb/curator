@@ -156,7 +156,7 @@ func TestProcessImplementations(t *testing.T) {
 					require.NoError(t, err)
 					_, err = proc.Wait(ctx)
 					assert.NoError(t, err)
-					assert.Error(t, proc.RegisterSignalTriggerID(ctx, MongodShutdownSignalTrigger))
+					assert.Error(t, proc.RegisterSignalTriggerID(ctx, CleanTerminationSignalTrigger))
 				},
 				"RegisterSignalTriggerIDFailsWithInvalidTriggerID": func(ctx context.Context, t *testing.T, opts *CreateOptions, makep ProcessConstructor) {
 					opts = sleepCreateOpts(3)
@@ -168,7 +168,7 @@ func TestProcessImplementations(t *testing.T) {
 					opts = sleepCreateOpts(3)
 					proc, err := makep(ctx, opts)
 					require.NoError(t, err)
-					assert.NoError(t, proc.RegisterSignalTriggerID(ctx, MongodShutdownSignalTrigger))
+					assert.NoError(t, proc.RegisterSignalTriggerID(ctx, CleanTerminationSignalTrigger))
 				},
 				"DefaultTriggerSucceeds": func(ctx context.Context, t *testing.T, opts *CreateOptions, makep ProcessConstructor) {
 					if cname == "REST" {

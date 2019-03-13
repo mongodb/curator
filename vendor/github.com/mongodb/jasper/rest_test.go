@@ -192,7 +192,7 @@ func TestRestService(t *testing.T) {
 
 			proc.ResetTags()
 
-			err = proc.RegisterSignalTriggerID(ctx, MongodShutdownSignalTrigger)
+			err = proc.RegisterSignalTriggerID(ctx, CleanTerminationSignalTrigger)
 			assert.Error(t, err)
 			assert.Contains(t, err.Error(), "problem building request")
 		},
@@ -220,7 +220,7 @@ func TestRestService(t *testing.T) {
 
 			proc.ResetTags()
 
-			err = proc.RegisterSignalTriggerID(ctx, MongodShutdownSignalTrigger)
+			err = proc.RegisterSignalTriggerID(ctx, CleanTerminationSignalTrigger)
 			assert.Error(t, err)
 			assert.Contains(t, err.Error(), "problem making request")
 		},
@@ -694,7 +694,7 @@ func TestRestService(t *testing.T) {
 
 		},
 		"ServiceRegisterSignalTriggerIDChecksForExistingProcess": func(ctx context.Context, t *testing.T, srv *Service, client *restClient) {
-			req, err := http.NewRequest(http.MethodPatch, client.getURL("/process/%s/trigger/signal/%s", "foo", MongodShutdownSignalTrigger), nil)
+			req, err := http.NewRequest(http.MethodPatch, client.getURL("/process/%s/trigger/signal/%s", "foo", CleanTerminationSignalTrigger), nil)
 			require.NoError(t, err)
 
 			resp, err := client.client.Do(req)
@@ -720,7 +720,7 @@ func TestRestService(t *testing.T) {
 			require.NoError(t, err)
 			assert.True(t, proc.Running(ctx))
 
-			assert.NoError(t, proc.RegisterSignalTriggerID(ctx, MongodShutdownSignalTrigger))
+			assert.NoError(t, proc.RegisterSignalTriggerID(ctx, CleanTerminationSignalTrigger))
 
 			assert.NoError(t, proc.Signal(ctx, syscall.SIGTERM))
 		},

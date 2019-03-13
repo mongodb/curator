@@ -397,8 +397,8 @@ func (s *jasperService) GetBuildloggerURLs(ctx context.Context, id *JasperProces
 	return &BuildloggerURLs{Urls: urls}, nil
 }
 
-func (s *jasperService) RegisterSignalTriggerID(ctx context.Context, opts *SignalTriggerParams) (*OperationOutcome, error) {
-	jasperProcessID, signalTriggerID := opts.Export()
+func (s *jasperService) RegisterSignalTriggerID(ctx context.Context, params *SignalTriggerParams) (*OperationOutcome, error) {
+	jasperProcessID, signalTriggerID := params.Export()
 
 	proc, err := s.manager.Get(ctx, jasperProcessID)
 	if err != nil {
@@ -431,6 +431,24 @@ func (s *jasperService) RegisterSignalTriggerID(ctx context.Context, opts *Signa
 	return &OperationOutcome{
 		Success:  true,
 		Text:     fmt.Sprintf("registered signal trigger with id '%s' on process with id '%s'", signalTriggerID, jasperProcessID),
+		ExitCode: 0,
+	}, nil
+}
+
+func (s *jasperService) SignalEvent(ctx context.Context, name *EventName) (*OperationOutcome, error) {
+	eventName := name.Value
+
+	if err := jasper.SignalEvent(ctx, eventName); err != nil {
+		return &OperationOutcome{
+			Success:  false,
+			Text:     errors.Wrapf(err, "problem signaling event '%s'", eventName).Error(),
+			ExitCode: -2,
+		}, nil
+	}
+
+	return &OperationOutcome{
+		Success:  true,
+		Text:     fmt.Sprintf("signaled event named '%s'", eventName),
 		ExitCode: 0,
 	}, nil
 }

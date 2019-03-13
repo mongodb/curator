@@ -191,13 +191,16 @@ message BuildloggerURLs {
 
 enum SignalTriggerID {
   NONE = 0;
-  MONGODSHUTDOWN = 1;
-  CLEANTERMINATION = 2;
+  CLEANTERMINATION = 1;
 }
 
 message SignalTriggerParams {
   JasperProcessID processID = 1;
   SignalTriggerID signalTriggerID = 2;
+}
+
+message EventName {
+  string value = 1;
 }
 
 service JasperProcessManager {
@@ -219,4 +222,5 @@ service JasperProcessManager {
   rpc ConfigureCache(CacheOptions) returns (OperationOutcome);
   rpc GetBuildloggerURLs(JasperProcessID) returns (BuildloggerURLs);
   rpc RegisterSignalTriggerID(SignalTriggerParams) returns (OperationOutcome);
+  rpc SignalEvent(EventName) returns (OperationOutcome);
 }

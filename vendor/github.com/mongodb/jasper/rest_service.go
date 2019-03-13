@@ -79,6 +79,7 @@ func (s *Service) App() *gimlet.APIApp {
 	app.AddRoute("/process/{id}/signal/{signal}").Version(1).Patch().Handler(s.signalProcess)
 	app.AddRoute("/process/{id}/logs").Version(1).Get().Handler(s.getLogs)
 	app.AddRoute("/process/{id}/trigger/signal/{trigger-id}").Version(1).Patch().Handler(s.registerSignalTriggerID)
+	app.AddRoute("/signal/event/{name}").Version(1).Patch().Handler(s.signalEvent)
 	app.AddRoute("/clear").Version(1).Post().Handler(s.clearManager)
 	app.AddRoute("/close").Version(1).Delete().Handler(s.closeManager)
 
@@ -644,6 +645,22 @@ func (s *Service) registerSignalTriggerID(rw http.ResponseWriter, r *http.Reques
 		writeError(rw, gimlet.ErrorResponse{
 			StatusCode: http.StatusInternalServerError,
 			Message:    errors.Wrapf(err, "problem registering signal trigger with id '%s'", sigTriggerID).Error(),
+		})
+		return
+	}
+
+	gimlet.WriteJSON(rw, struct{}{})
+}
+
+func (s *Service) signalEvent(rw http.ResponseWriter, r *http.Request) {
+	vars := gimlet.GetVars(r)
+	name := vars["name"]
+	ctx := r.Context()
+
+	if err := SignalEvent(ctx, name); err != nil {
+		writeError(rw, gimlet.ErrorResponse{
+			StatusCode: http.StatusInternalServerError,
+			Message:    errors.Wrapf(err, "problem signaling event named '%s'", name).Error(),
 		})
 		return
 	}

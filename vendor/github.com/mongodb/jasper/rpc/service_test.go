@@ -122,7 +122,7 @@ func TestRPCService(t *testing.T) {
 					assert.Nil(t, urls)
 				},
 				"RegisterSignalTriggerIDChecksForExistingProcess": func(ctx context.Context, t *testing.T, opts jasper.CreateOptions, client internal.JasperProcessManagerClient, output string, buildDir string) {
-					outcome, err := client.RegisterSignalTriggerID(ctx, internal.ConvertSignalTriggerParams("foo", jasper.MongodShutdownSignalTrigger))
+					outcome, err := client.RegisterSignalTriggerID(ctx, internal.ConvertSignalTriggerParams("foo", jasper.CleanTerminationSignalTrigger))
 					require.NoError(t, err)
 					assert.False(t, outcome.Success)
 				},
@@ -144,7 +144,7 @@ func TestRPCService(t *testing.T) {
 					info, err := client.Create(ctx, internal.ConvertCreateOptions(sleepOpts))
 					require.NoError(t, err)
 
-					outcome, err := client.RegisterSignalTriggerID(ctx, internal.ConvertSignalTriggerParams(info.Id, jasper.MongodShutdownSignalTrigger))
+					outcome, err := client.RegisterSignalTriggerID(ctx, internal.ConvertSignalTriggerParams(info.Id, jasper.CleanTerminationSignalTrigger))
 					require.NoError(t, err)
 					assert.True(t, outcome.Success)
 
