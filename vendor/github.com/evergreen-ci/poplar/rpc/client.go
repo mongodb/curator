@@ -30,7 +30,6 @@ func uploadTests(ctx context.Context, client internal.CedarPerformanceMetricsCli
 		})
 		artifacts := make([]*internal.ArtifactInfo, 0, len(test.Artifacts))
 		for _, a := range test.Artifacts {
-			artifacts = append(artifacts, internal.ExportArtifactInfo(&a))
 			if a.LocalFile != "" {
 				if a.Path == "" {
 					a.Path = filepath.Join(test.ID, filepath.Base(a.LocalFile))
@@ -51,6 +50,7 @@ func uploadTests(ctx context.Context, client internal.CedarPerformanceMetricsCli
 					return errors.Wrap(err, "problem uploading artifact")
 				}
 			}
+			artifacts = append(artifacts, internal.ExportArtifactInfo(&a))
 		}
 		var createdAt *timestamp.Timestamp
 		if !test.CreatedAt.IsZero() {
