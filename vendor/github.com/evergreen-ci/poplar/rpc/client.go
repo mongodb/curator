@@ -28,30 +28,7 @@ func uploadTests(ctx context.Context, client internal.CedarPerformanceMetricsCli
 			"name":   test.Info.TestName,
 			"task":   report.TaskID,
 		})
-		artifacts := make([]*internal.ArtifactInfo, 0, len(test.Artifacts))
-		for _, a := range test.Artifacts {
-			if a.LocalFile != "" {
-				if a.Path == "" {
-					a.Path = filepath.Join(test.ID, filepath.Base(a.LocalFile))
-				}
 
-				grip.Info(message.Fields{
-					"op":     "uploading file",
-					"path":   a.Path,
-					"bucket": a.Bucket,
-					"file":   a.LocalFile,
-				})
-
-				if err := a.Convert(ctx); err != nil {
-					return errors.Wrap(err, "problem converting artifact")
-				}
-
-				if err := a.Upload(ctx, &report.BucketConf); err != nil {
-					return errors.Wrap(err, "problem uploading artifact")
-				}
-			}
-			artifacts = append(artifacts, internal.ExportArtifactInfo(&a))
-		}
 		var createdAt *timestamp.Timestamp
 		if !test.CreatedAt.IsZero() {
 			var err error
@@ -76,7 +53,6 @@ func uploadTests(ctx context.Context, client internal.CedarPerformanceMetricsCli
 				Parent:    test.Info.Parent,
 				CreatedAt: createdAt,
 			},
-			Artifacts: artifacts,
 		})
 		if err != nil {
 			return errors.Wrapf(err, "problem submitting test %d of %d", idx, len(tests))
@@ -85,18 +61,59 @@ func uploadTests(ctx context.Context, client internal.CedarPerformanceMetricsCli
 		}
 		test.ID = resp.Id
 
+		if len(test.Artifacts) > 0 {
+			artifacts := make([]*internal.ArtifactInfo, 0, len(test.Artifacts))
+			for _, a := range test.Artifacts {
+				if a.LocalFile != "" {
+					if a.Path == "" {
+						a.Path = filepath.Join(test.ID, filepath.Base(a.LocalFile))
+					}
+
+					grip.Info(message.Fields{
+						"op":     "uploading file",
+						"path":   a.Path,
+						"bucket": a.Bucket,
+						"file":   a.LocalFile,
+					})
+
+					if err := a.Convert(ctx); err != nil {
+						return errors.Wrap(err, "problem converting artifact")
+					}
+
+					if err := a.Upload(ctx, &report.BucketConf); err != nil {
+						return errors.Wrap(err, "problem uploading artifact")
+					}
+				}
+				artifacts = append(artifacts, internal.ExportArtifactInfo(&a))
+			}
+
+			resp, err := client.AttachArtifacts(ctx, &internal.ArtifactData{
+				Id:        test.ID,
+				Artifacts: artifacts,
+			})
+			if err != nil {
+				return errors.Wrapf(err, "problem attaching artifacts to test '%s'", test.ID)
+			} else if !resp.Success {
+				return errors.New("operation return failed state")
+			}
+		}
+
+		if len(test.Metrics) > 0 {
+			rollups := make([]*internal.RollupValue, 0, len(test.Metrics))
+			for _, r := range test.Metrics {
+				rollups = append(rollups, internal.ExportRollup(&r))
+			}
+
+			resp, err = client.AttachRollups(ctx, &internal.RollupData{Id: test.ID, Rollups: rollups})
+			if err != nil {
+				return errors.Wrapf(err, "problem attaching rollups for '%s'", test.ID)
+			} else if !resp.Success {
+				return errors.New("attaching rollups returned failed state")
+			}
+		}
+
 		for _, st := range test.SubTests {
 			st.Info.Parent = test.ID
-		}
-
-		rollups := make([]*internal.RollupValue, 0, len(test.Metrics))
-		for _, r := range test.Metrics {
-			rollups = append(rollups, internal.ExportRollup(&r))
-		}
-
-		resp, err = client.AttachRollups(ctx, &internal.RollupData{Id: test.ID, Rollups: rollups})
-		if err != nil {
-			return errors.Wrapf(err, "problem attaching rollups for '%s'", test.ID)
 		}
 
 		if err = uploadTests(ctx, client, report, test.SubTests); err != nil {
@@ -114,7 +131,10 @@ func uploadTests(ctx context.Context, client internal.CedarPerformanceMetricsCli
 		resp, err = client.CloseMetrics(ctx, &internal.MetricsSeriesEnd{Id: test.ID, IsComplete: true, CompletedAt: completedAt})
 		if err != nil {
 			return errors.Wrapf(err, "problem closing metrics series for '%s'", test.ID)
+		} else if !resp.Success {
+			return errors.New("operation return failed state")
 		}
+
 	}
 
 	return nil
