@@ -23,6 +23,7 @@ type Report struct {
 	TaskName  string `bson:"task_name" json:"task_name" yaml:"task_name"`
 	TaskID    string `bson:"task_id" json:"task_id" yaml:"task_id"`
 	Execution int    `bson:"execution_number" json:"execution_number" yaml:"execution_number"`
+	Mainline  bool   `bson:"mainline" json:"mainline" yaml:"mainline"`
 
 	BucketConf BucketConfiguration `bson:"bucket" json:"bucket" yaml:"bucket"`
 
