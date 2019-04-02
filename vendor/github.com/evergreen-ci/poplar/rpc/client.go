@@ -66,6 +66,10 @@ func uploadTests(ctx context.Context, client internal.CedarPerformanceMetricsCli
 			artifacts := make([]*internal.ArtifactInfo, 0, len(test.Artifacts))
 			for _, a := range test.Artifacts {
 				if a.LocalFile != "" {
+					if err = a.Validate(); err != nil {
+						return errors.Wrap(err, "problem validating artifact")
+					}
+
 					if a.Path == "" {
 						a.Path = filepath.Join(test.ID, filepath.Base(a.LocalFile))
 					}
