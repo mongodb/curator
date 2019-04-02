@@ -92,9 +92,10 @@ func (a *TestArtifact) Upload(ctx context.Context, conf *BucketConfiguration) er
 		}
 
 		opts := pail.S3Options{
-			Region: conf.Region,
-			Name:   a.Bucket,
-			Prefix: conf.Prefix,
+			Name:       a.Bucket,
+			Region:     conf.Region,
+			Prefix:     conf.Prefix,
+			Permission: conf.Permission,
 		}
 		if (conf.APIKey != "" && conf.APISecret != "") || conf.APIToken != "" {
 			opts.Credentials = pail.CreateAWSCredentials(conf.APIKey, conf.APISecret, conf.APIToken)
