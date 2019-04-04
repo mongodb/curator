@@ -39,36 +39,42 @@ func (a *TestArtifact) Convert(ctx context.Context) error {
 		return errors.New("cannot convert non existant file")
 	}
 
-	switch {
-	case a.ConvertBSON2FTDC:
+	converted := false
+	if a.ConvertBSON2FTDC {
+		converted = true
 		fn, err := a.bsonToFTDC(ctx, a.LocalFile)
 		if err != nil {
 			return errors.Wrap(err, "problem converting file")
 		}
 		a.LocalFile = fn
-		fallthrough
-	case a.ConvertJSON2FTDC:
+	}
+	if a.ConvertJSON2FTDC {
+		converted = true
 		fn, err := a.jsonToFTDC(ctx, a.LocalFile)
 		if err != nil {
 			return errors.Wrap(err, "problem converting file")
 		}
 		a.LocalFile = fn
-		fallthrough
-	case a.ConvertCSV2FTDC:
+	}
+	if a.ConvertCSV2FTDC {
+		converted = true
 		fn, err := a.csvToFTDC(ctx, a.LocalFile)
 		if err != nil {
 			return errors.Wrap(err, "problem converting file")
 		}
 		a.LocalFile = fn
-		fallthrough
-	case a.ConvertGzip:
+	}
+	if a.ConvertGzip {
+		converted = true
 		fn, err := a.gzip(a.LocalFile)
 		if err != nil {
 			return errors.Wrap(err, "problem writing file")
 		}
 		a.LocalFile = fn
-	default:
-		return errors.New("unimplemented conversion")
+	}
+
+	if !converted {
+		grip.Warning("no conversion took place")
 	}
 
 	return nil
@@ -95,7 +101,7 @@ func (a *TestArtifact) Upload(ctx context.Context, conf *BucketConfiguration) er
 			Name:       a.Bucket,
 			Region:     conf.Region,
 			Prefix:     conf.Prefix,
-			Permission: conf.Permission,
+			Permission: conf.Permissions,
 		}
 		if (conf.APIKey != "" && conf.APISecret != "") || conf.APIToken != "" {
 			opts.Credentials = pail.CreateAWSCredentials(conf.APIKey, conf.APISecret, conf.APIToken)

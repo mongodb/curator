@@ -66,9 +66,15 @@ vendor-clean:
 	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/pkg/errors/
 	rm -rf vendor/github.com/mongodb/ftdc/vendor/github.com/pkg/errors/
 	rm -rf vendor/github.com/mongodb/ftdc/vendor/github.com/mongodb/grip/
+	rm -rf vendor/github.com/mongodb/ftdc/vendor/github.com/stretchr/testify
+	rm -rf vendor/github.com/mongodb/ftdc/vendor/github.com/mongodb/mongo-go-driver/
 	rm -rf vendor/github.com/mongodb/grip/buildscripts/
 	rm -rf vendor/github.com/mongodb/mongo-go-driver/vendor/golang.org/x/text/
+	rm -rf vendor/github.com/mongodb/mongo-go-driver/vendor/golang.org/x/net/
 	rm -rf vendor/github.com/mongodb/mongo-go-driver/vendor/github.com/montanaflynn/
-	rm -rf vendor/github.com/mongodb/mongo-go-driver/vendor/github.com/stretchr/	
+	rm -rf vendor/github.com/mongodb/mongo-go-driver/vendor/github.com/stretchr/
 	rm -rf vendor/github.com/mongodb/mongo-go-driver/vendor/github.com/google/go-cmp/cmp/
+	rm -rf vendor/github.com/evergreen-ci/pail/vendor/github.com/mongodb/grip/
+	rm -rf vendor/github.com/evergreen-ci/pail/vendor/github.com/pkg/errors/
+	rm -rf vendor/github.com/evergreen-ci/pail/vendor/github.com/stretchr/testify/
 	find vendor/ -name "*.gif" -o -name "*.gz" -o -name "*.png" -o -name "*.ico" -o -name "*.dat" -o -name "*testdata" | xargs rm -rf
