@@ -6,4 +6,8 @@ import:
   - package: golang.org/x/sys
   - package: golang.org/x/text
   - package: google.golang.org/genproto
-
+  - package: github.com/evergreen-ci/pail
+  - package: github.com/mongodb/grip
+  - package: github.com/mongodb/ftdc
+  - package: github.com/pkg/errors
+  - package: github.com/stretcher/testify
