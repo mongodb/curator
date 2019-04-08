@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"compress/gzip"
 	"context"
-	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -92,16 +91,16 @@ func (a *TestArtifact) Upload(ctx context.Context, conf *BucketConfiguration) er
 		return errors.New("cannot upload file that does not exist ")
 	}
 
-	if conf.bucket == nil || fmt.Sprint(conf.bucket) != a.Bucket {
+	if conf.bucket == nil || conf.name != a.Bucket || conf.prefix != a.Prefix {
 		if a.Bucket == "" {
 			return errors.New("cannot upload file, no bucket specified")
 		}
 
 		opts := pail.S3Options{
 			Name:       a.Bucket,
+			Prefix:     a.Prefix,
 			Region:     conf.Region,
-			Prefix:     conf.Prefix,
-			Permission: conf.Permissions,
+			Permission: a.Permissions,
 		}
 		if (conf.APIKey != "" && conf.APISecret != "") || conf.APIToken != "" {
 			opts.Credentials = pail.CreateAWSCredentials(conf.APIKey, conf.APISecret, conf.APIToken)
@@ -109,8 +108,10 @@ func (a *TestArtifact) Upload(ctx context.Context, conf *BucketConfiguration) er
 
 		conf.bucket, err = pail.NewS3Bucket(opts)
 		if err != nil {
-			return errors.Wrap(err, "could not construct ")
+			return errors.Wrap(err, "could not construct bucket")
 		}
+		conf.name = a.Bucket
+		conf.prefix = a.Prefix
 	}
 
 	if err := conf.bucket.Upload(ctx, a.Path, a.LocalFile); err != nil {

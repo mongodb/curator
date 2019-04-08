@@ -32,12 +32,13 @@ message ResultData {
 message ArtifactInfo {
   StorageLocation location = 1;
   string bucket = 2;
-  string path = 3;
-  DataFormat format = 4;
-  CompressionType compression = 5;
-  SchemaType schema = 6;
-  repeated string tags = 7;
-  google.protobuf.Timestamp created_at = 8;
+  string prefix = 3;
+  string path = 4;
+  DataFormat format = 5;
+  CompressionType compression = 6;
+  SchemaType schema = 7;
+  repeated string tags = 8;
+  google.protobuf.Timestamp created_at = 9;
 }
 
 enum StorageLocation {
@@ -46,6 +47,7 @@ enum StorageLocation {
   PROJECT_S3 = 2;
   GRIDFS = 3;
   EPHEMERAL = 4;
+  LOCAL = 5;
 }
 
 enum DataFormat {

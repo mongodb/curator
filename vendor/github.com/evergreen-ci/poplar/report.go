@@ -62,6 +62,8 @@ type TestInfo struct {
 // attach metadata to results files.
 type TestArtifact struct {
 	Bucket                string    `bson:"bucket" json:"bucket" yaml:"bucket"`
+	Prefix                string    `bson:"prefix" json:"prefix" yaml:"prefix"`
+	Permissions           string    `bson:"permissions" json:"permissions" yaml:"permissions"`
 	Path                  string    `bson:"path" json:"path" yaml:"path"`
 	Tags                  []string  `bson:"tags" json:"tags" yaml:"tags"`
 	CreatedAt             time.Time `bson:"created_at" json:"created_at" yaml:"created_at"`
@@ -132,13 +134,12 @@ type TestMetrics struct {
 // BucketConfiguration describes the configuration information for an
 // AWS S3 bucket for uploading test artifacts for this report.
 type BucketConfiguration struct {
-	APIKey      string `bson:"api_key" json:"api_key" yaml:"api_key"`
-	APISecret   string `bson:"api_secret" json:"api_secret" yaml:"api_secret"`
-	APIToken    string `bson:"api_token" json:"api_token" yaml:"api_token"`
-	Region      string `bson:"region" json:"region" yaml:"region"`
-	Name        string `bson:"name" json:"name" yaml:"name"`
-	Prefix      string `bson:"prefix" json:"prefix" yaml:"prefix"`
-	Permissions string `bson:"permissions" json:"permissions" yaml:"permissions"`
+	APIKey    string `bson:"api_key" json:"api_key" yaml:"api_key"`
+	APISecret string `bson:"api_secret" json:"api_secret" yaml:"api_secret"`
+	APIToken  string `bson:"api_token" json:"api_token" yaml:"api_token"`
+	Region    string `bson:"region" json:"region" yaml:"region"`
 
+	name   string
+	prefix string
 	bucket pail.Bucket
 }
