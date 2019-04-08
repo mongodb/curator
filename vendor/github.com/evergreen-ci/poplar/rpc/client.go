@@ -78,6 +78,7 @@ func uploadTests(ctx context.Context, client internal.CedarPerformanceMetricsCli
 						"op":     "uploading file",
 						"path":   a.Path,
 						"bucket": a.Bucket,
+						"prefix": a.Prefix,
 						"file":   a.LocalFile,
 					})
 

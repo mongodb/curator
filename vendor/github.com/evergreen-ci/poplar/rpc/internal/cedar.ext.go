@@ -8,6 +8,7 @@ import (
 func ExportArtifactInfo(in *poplar.TestArtifact) *ArtifactInfo {
 	out := &ArtifactInfo{
 		Bucket: in.Bucket,
+		Prefix: in.Prefix,
 		Path:   in.Path,
 		Tags:   in.Tags,
 	}
