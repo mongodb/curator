@@ -193,20 +193,8 @@ tasks:
              'destination': { 'path': 'build/curator/curator-dist-${build_variant}-${revision}.tar.gz', 'bucket': 'boxes.10gen.com' } }
           - {'source': { 'path': 'curator/${build_id}-${build_variant}/curator-dist-${revision}.tar.gz', 'bucket': 'mciuploads' },
              'destination': { 'path': 'build/curator/curator-dist-${build_variant}-latest.tar.gz', 'bucket': 'boxes.10gen.com' } }
-  - name: push-platform
-    patchable: false
-    stepback: false
-    depends_on:
-    - name: "push"
-    commands:
-      - command: s3Copy.copy
-        type: test
-        params: 
-          aws_key: ${aws_key}
-          aws_secret: ${aws_secret}
-          s3_copy_files:
           - {'source': { 'path': 'curator/${build_id}-${build_variant}/curator-dist-${revision}.tar.gz', 'bucket': 'mciuploads' },
-             'destination': { 'path': 'build/curator/curator-dist-${GOOS}-${GOARCH}-${revision}.tar.gz', 'bucket': 'boxes.10gen.com' } }
+             'destination': { 'path': 'build/curator/curator-dist-${goos}-${goarch}-${revision}.tar.gz', 'bucket': 'boxes.10gen.com' } }
 
 post:
   - command: gotest.parse_files
@@ -261,6 +249,8 @@ buildvariants:
     display_name: RHEL 7.0
     expansions:
       build_env: "GOROOT=/opt/golang/go1.10/ PATH=/opt/golang/go1.10/bin:$PATH"
+      goarch: amd64
+      goos: linux
     run_on:
       - rhel70-small
     tasks:
@@ -280,7 +270,6 @@ buildvariants:
       - ".dist"
       - ".test"
       - name: "push"
-      - name: "push-platform"
 
   - name: macos
     display_name: macOS 10.12
@@ -294,7 +283,6 @@ buildvariants:
       - ".dist"
       - ".test"
       - name: "push"
-      - name: "push-platform"
 
   # the following targets *just* cross compile the binary for different architectures.
   - name: s390x
@@ -312,7 +300,6 @@ buildvariants:
         - name: ".test"
           variant: "rhel70"
       - name: "push"
-      - name: "push-platform"
 
   - name: power
     display_name: "Linux POWER (cross-compile)"
@@ -329,7 +316,6 @@ buildvariants:
         - name: ".test"
           variant: "rhel70"
       - name: "push"
-      - name: "push-platform"
 
   - name: arm
     display_name: "Linux ARM64 (cross-compile)"
@@ -346,7 +332,6 @@ buildvariants:
         - name: ".test"
           variant: "rhel70"
       - name: "push"
-      - name: "push-platform"
 
   - name: linux-32
     display_name: "Linux 32-bit (cross-compile)"
@@ -363,7 +348,6 @@ buildvariants:
         - name: ".test"
           variant: "rhel70"
       - name: "push"
-      - name: "push-platform"
 
   - name: windows-64
     display_name: "Windows 64-bit (cross-compile)"
@@ -380,7 +364,6 @@ buildvariants:
         - name: ".test"
           variant: "rhel70"
       - name: "push"
-      - name: "push-platform"
 
   - name: windows-32
     display_name: "Windows 32-bit (cross-compile)"
@@ -397,4 +380,3 @@ buildvariants:
         - name: ".test"
           variant: "rhel70"
       - name: "push"
-      - name: "push-platform"
