@@ -261,7 +261,7 @@ buildvariants:
     run_on:
       - ubuntu1604-test
     expansions:
-      build_env: "GOROOT=/opt/golang/go1.10/ PATH=/opt/golang/go1.10/bin:$PATH"
+      build_env: "GOARCH=amd64 GOOS=linux GOROOT=/opt/golang/go1.10/ PATH=/opt/golang/go1.10/bin:$PATH"
     tasks:
       - ".dist"
       - ".test"
@@ -270,7 +270,7 @@ buildvariants:
   - name: macos
     display_name: macOS 10.12
     expansions:
-      build_env: "GOROOT=/opt/golang/go1.10/ PATH=/opt/golang/go1.10/bin:$PATH DISABLE_COVERAGE=true"
+      build_env: "GOARCH=amd64 GOOS=darwin GOROOT=/opt/golang/go1.10/ PATH=/opt/golang/go1.10/bin:$PATH DISABLE_COVERAGE=true"
     run_on:
       - macos-1012
     tasks:
