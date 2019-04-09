@@ -193,6 +193,8 @@ tasks:
              'destination': { 'path': 'build/curator/curator-dist-${build_variant}-${revision}.tar.gz', 'bucket': 'boxes.10gen.com' } }
           - {'source': { 'path': 'curator/${build_id}-${build_variant}/curator-dist-${revision}.tar.gz', 'bucket': 'mciuploads' },
              'destination': { 'path': 'build/curator/curator-dist-${build_variant}-latest.tar.gz', 'bucket': 'boxes.10gen.com' } }
+          - {'source': { 'path': 'curator/${build_id}-${build_variant}/curator-dist-${revision}.tar.gz', 'bucket': 'mciuploads' },
+             'destination': { 'path': 'build/curator/curator-dist-${goos}-${goarch}-${revision}.tar.gz', 'bucket': 'boxes.10gen.com' } }
 
 post:
   - command: gotest.parse_files
@@ -247,6 +249,8 @@ buildvariants:
     display_name: RHEL 7.0
     expansions:
       build_env: "GOROOT=/opt/golang/go1.10/ PATH=/opt/golang/go1.10/bin:$PATH"
+      goarch: amd64
+      goos: linux
     run_on:
       - rhel70-small
     tasks:
@@ -260,6 +264,8 @@ buildvariants:
       - ubuntu1604-test
     expansions:
       build_env: "GOROOT=/opt/golang/go1.10/ PATH=/opt/golang/go1.10/bin:$PATH"
+      goarch: amd64
+      goos: linux
     tasks:
       - ".dist"
       - ".test"
@@ -269,6 +275,8 @@ buildvariants:
     display_name: macOS 10.12
     expansions:
       build_env: "GOROOT=/opt/golang/go1.10/ PATH=/opt/golang/go1.10/bin:$PATH DISABLE_COVERAGE=true"
+      goarch: amd64
+      goos: darwin
     run_on:
       - macos-1012
     tasks:
@@ -282,6 +290,8 @@ buildvariants:
     expansions:
       build_env: "GOROOT=/opt/golang/go1.10/ PATH=/opt/golang/go1.10/bin:$PATH"
       xc_env: "GOARCH=s390x GOOS=linux"
+      goarch: s390x
+      goos: linux
     run_on:
       - ubuntu1604-test
     tasks:
@@ -296,6 +306,8 @@ buildvariants:
     expansions:
       build_env: "GOROOT=/opt/golang/go1.10/ PATH=/opt/golang/go1.10/bin:$PATH"
       xc_env: "GOARCH=ppc64le GOOS=linux"
+      goarch: ppc64le
+      goos: linux
     run_on:
       - ubuntu1604-test
     tasks:
@@ -310,6 +322,8 @@ buildvariants:
     expansions:
       build_env: "GOROOT=/opt/golang/go1.10/ PATH=/opt/golang/go1.10/bin:$PATH"
       xc_env: "GOARCH=arm64 GOOS=linux"
+      goarch: arm64
+      goos: linux
     run_on:
       - ubuntu1604-test
     tasks:
@@ -324,6 +338,8 @@ buildvariants:
     expansions:
       build_env: "GOROOT=/opt/golang/go1.10/ PATH=/opt/golang/go1.10/bin:$PATH"
       xc_env: "GOARCH=386 GOOS=linux"
+      goarch: 386
+      goos: linux
     run_on:
       - ubuntu1604-test
     tasks:
@@ -338,6 +354,8 @@ buildvariants:
     expansions:
       build_env: "GOROOT=/opt/golang/go1.10/ PATH=/opt/golang/go1.10/bin:$PATH"
       xc_env: "GOARCH=amd64 GOOS=windows"
+      goarch: amd64
+      goos: windows
     run_on:
       - ubuntu1604-test
     tasks:
@@ -352,6 +370,8 @@ buildvariants:
     expansions:
       build_env: "GOROOT=/opt/golang/go1.10/ PATH=/opt/golang/go1.10/bin:$PATH"
       xc_env: "GOARCH=386 GOOS=windows"
+      goarch: 386
+      goos: windows
     run_on:
       - ubuntu1604-test
     tasks:
