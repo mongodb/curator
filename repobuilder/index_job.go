@@ -78,7 +78,7 @@ func (j *IndexBuildJob) Run(ctx context.Context) {
 
 	grip.Infof("downloading from %s to %s", bucket, j.WorkSpace)
 	if err = bucket.Pull(ctx, j.WorkSpace, ""); err != nil {
-		j.AddError(errors.Wrapf(err, "sync from %s to %s", bucket, j.WorkSpace))
+		j.AddError(errors.Wrapf(err, "problem syncing from %s to %s", bucket, j.WorkSpace))
 		return
 	}
 
@@ -88,7 +88,7 @@ func (j *IndexBuildJob) Run(ctx context.Context) {
 
 	err = j.Conf.BuildIndexPageForDirectory(j.WorkSpace, j.RepoName)
 	if err != nil {
-		j.AddError(errors.Wrapf(err, "building index.html pages for %s", j.WorkSpace))
+		j.AddError(errors.Wrapf(err, "problem building index.html pages for %s", j.WorkSpace))
 		return
 	}
 
