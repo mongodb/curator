@@ -6,7 +6,7 @@ else
 	binary := $(name)
 endif
 buildDir := build
-packages := operations cmd-curator sthree repobuilder
+packages := operations cmd-curator repobuilder
 packages += greenbay greenbay-check
 orgPath := github.com/mongodb
 projectPath := $(orgPath)/$(name)

@@ -59,7 +59,9 @@ func (s *CommandsSuite) TestS3ParentCommandHasExpectedProperties() {
 		s.IsType(cli.Command{}, sub)
 		names[sub.Name] = true
 
-		if sub.Name == "put" || sub.Name == "get" {
+		if sub.Name == "put" {
+			s.Equal(sub.Flags, baseS3Flags(s3opFlags(s3putFlags()...)...))
+		} else if sub.Name == "get" {
 			s.Equal(sub.Flags, baseS3Flags(s3opFlags()...))
 		} else if strings.HasPrefix(sub.Name, "sync") {
 			s.Equal(sub.Flags, baseS3Flags(s3syncFlags()...))

@@ -46,8 +46,13 @@ import (
 	"os"
 	"time"
 
-	"github.com/mongodb/curator/sthree"
+	"github.com/evergreen-ci/pail"
+	"github.com/pkg/errors"
 	"github.com/urfave/cli"
+)
+
+const (
+	defaultMaxRetries = 20
 )
 
 // S3 returns a cli.Command object for the S3 command group which has a
@@ -79,17 +84,31 @@ func S3() cli.Command {
 func s3PutCmd() cli.Command {
 	return cli.Command{
 		Name:  "put",
-		Usage: "put a local file object into s3",
-		Flags: baseS3Flags(s3opFlags()...),
+		Usage: "upload a local file object into s3",
+		Flags: baseS3Flags(s3opFlags(s3putFlags()...)...),
 		Action: func(c *cli.Context) error {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			return s3Put(ctx,
-				c.String("bucket"),
-				c.String("profile"),
+			opts := pail.S3Options{
+				SharedCredentialsProfile: c.String("profile"),
+				Region:                   c.String("region"),
+				Name:                     c.String("bucket"),
+				Permission:               c.String("permissions"),
+				ContentType:              c.String("type"),
+				DryRun:                   c.Bool("dry-run"),
+				MaxRetries:               defaultMaxRetries,
+			}
+			bucket, err := pail.NewS3Bucket(opts)
+			if err != nil {
+				return errors.Wrap(err, "problem getting new bucket")
+			}
+
+			return errors.Wrapf(
+				bucket.Upload(ctx, c.String("file"), c.String("name")),
+				"problem putting %s in s3",
 				c.String("file"),
-				c.String("name"))
+			)
 		},
 	}
 }
@@ -103,11 +122,23 @@ func s3GetCmd() cli.Command {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			return s3Get(ctx,
-				c.String("bucket"),
-				c.String("profile"),
+			opts := pail.S3Options{
+				SharedCredentialsProfile: c.String("profile"),
+				Region:                   c.String("region"),
+				Name:                     c.String("bucket"),
+				DryRun:                   c.Bool("dry-run"),
+				MaxRetries:               defaultMaxRetries,
+			}
+			bucket, err := pail.NewS3Bucket(opts)
+			if err != nil {
+				return errors.Wrap(err, "problem getting new bucket")
+			}
+
+			return errors.Wrapf(
+				bucket.Download(ctx, c.String("name"), c.String("file")),
+				"problem getting %s from s3",
 				c.String("name"),
-				c.String("file"))
+			)
 		},
 	}
 }
@@ -116,16 +147,32 @@ func s3DeleteCmd() cli.Command {
 	return cli.Command{
 		Name:    "delete",
 		Aliases: []string{"del", "rm"},
-		Flags:   baseS3Flags(s3deleteFlags()...),
+		Flags: baseS3Flags(
+			cli.StringFlag{
+				Name:  "name",
+				Usage: "the remote s3 resource name, may include the prefix",
+			}),
 		Action: func(c *cli.Context) error {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			return s3Delete(ctx,
-				c.String("bucket"),
-				c.String("profile"),
-				c.Bool("dry-run"),
-				c.StringSlice("name")...)
+			opts := pail.S3Options{
+				SharedCredentialsProfile: c.String("profile"),
+				Region:                   c.String("region"),
+				Name:                     c.String("bucket"),
+				DryRun:                   c.Bool("dry-run"),
+				MaxRetries:               defaultMaxRetries,
+			}
+			bucket, err := pail.NewS3Bucket(opts)
+			if err != nil {
+				return errors.Wrap(err, "problem getting new bucket")
+			}
+
+			return errors.Wrapf(
+				bucket.Remove(ctx, c.String("name")),
+				"problem removing %s from s3",
+				c.String("name"),
+			)
 		},
 	}
 }
@@ -134,16 +181,32 @@ func s3DeletePrefixCmd() cli.Command {
 	return cli.Command{
 		Name:    "delete-prefix",
 		Aliases: []string{"del-prefix", "rm-prefix"},
-		Flags:   s3deleteFlags(s3syncFlags()...),
+		Flags: baseS3Flags(
+			cli.StringFlag{
+				Name:  "prefix",
+				Usage: "prefix of s3 key names",
+			}),
 		Action: func(c *cli.Context) error {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			return s3DeletePrefix(ctx,
-				c.String("bucket"),
-				c.String("profile"),
-				c.Bool("dry-run"),
-				c.String("prefix"))
+			opts := pail.S3Options{
+				SharedCredentialsProfile: c.String("profile"),
+				Region:                   c.String("region"),
+				Name:                     c.String("bucket"),
+				DryRun:                   c.Bool("dry-run"),
+				MaxRetries:               defaultMaxRetries,
+			}
+			bucket, err := pail.NewS3Bucket(opts)
+			if err != nil {
+				return errors.Wrap(err, "problem getting new bucket")
+			}
+
+			return errors.Wrapf(
+				bucket.RemovePrefix(ctx, c.String("name")),
+				"problem removing %s from s3",
+				c.String("name"),
+			)
 		},
 	}
 }
@@ -153,21 +216,31 @@ func s3DeleteMatchingCmd() cli.Command {
 		Name:    "delete-match",
 		Aliases: []string{"del-match", "rm-match"},
 		Flags: baseS3Flags(
-			s3deleteFlags(
-				s3syncFlags(cli.StringFlag{
-					Name:  "match",
-					Usage: "a regular expression definition",
-				})...)...),
+			cli.StringFlag{
+				Name:  "match",
+				Usage: "a regular expression definition",
+			}),
 		Action: func(c *cli.Context) error {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			return s3DeleteMatching(ctx,
-				c.String("bucket"),
-				c.String("profile"),
-				c.Bool("dry-run"),
-				c.String("prefix"),
-				c.String("match"))
+			opts := pail.S3Options{
+				SharedCredentialsProfile: c.String("profile"),
+				Region:                   c.String("region"),
+				Name:                     c.String("bucket"),
+				DryRun:                   c.Bool("dry-run"),
+				MaxRetries:               defaultMaxRetries,
+			}
+			bucket, err := pail.NewS3Bucket(opts)
+			if err != nil {
+				return errors.Wrap(err, "problem getting new bucket")
+			}
+
+			return errors.Wrapf(
+				bucket.RemoveMatching(ctx, c.String("match")),
+				"problem removing objects matching %s in s3",
+				c.String("match"),
+			)
 		},
 	}
 }
@@ -182,13 +255,24 @@ func s3SyncToCmd() cli.Command {
 			ctx, cancel := ctxWithTimeout(c.Duration("timeout"))
 			defer cancel()
 
-			return s3SyncTo(ctx,
-				c.String("bucket"),
-				c.String("profile"),
+			opts := pail.S3Options{
+				SharedCredentialsProfile: c.String("profile"),
+				Region:                   c.String("region"),
+				Name:                     c.String("bucket"),
+				DryRun:                   c.Bool("dry-run"),
+				DeleteOnSync:             c.Bool("delete"),
+				MaxRetries:               defaultMaxRetries,
+			}
+			bucket, err := pail.NewS3Bucket(opts)
+			if err != nil {
+				return errors.Wrap(err, "problem getting new bucket")
+			}
+
+			return errors.Wrapf(
+				bucket.Push(ctx, c.String("local"), c.String("prefix")),
+				"problem syncing %s to s3",
 				c.String("local"),
-				c.String("prefix"),
-				c.Bool("delete"),
-				c.Bool("dry-run"))
+			)
 		},
 	}
 }
@@ -202,13 +286,25 @@ func s3SyncFromCmd() cli.Command {
 		Action: func(c *cli.Context) error {
 			ctx, cancel := ctxWithTimeout(c.Duration("timeout"))
 			defer cancel()
-			return s3SyncFrom(ctx,
-				c.String("bucket"),
-				c.String("profile"),
-				c.String("local"),
+
+			opts := pail.S3Options{
+				SharedCredentialsProfile: c.String("profile"),
+				Region:                   c.String("region"),
+				Name:                     c.String("bucket"),
+				DryRun:                   c.Bool("dry-run"),
+				DeleteOnSync:             c.Bool("delete"),
+				MaxRetries:               defaultMaxRetries,
+			}
+			bucket, err := pail.NewS3Bucket(opts)
+			if err != nil {
+				return errors.Wrap(err, "problem getting new bucket")
+			}
+
+			return errors.Wrapf(
+				bucket.Pull(ctx, c.String("local"), c.String("prefix")),
+				"problem syncing %s from  s3",
 				c.String("prefix"),
-				c.Bool("delete"),
-				c.Bool("dry-run"))
+			)
 		},
 	}
 }
@@ -227,157 +323,6 @@ func ctxWithTimeout(timeout time.Duration) (context.Context, context.CancelFunc)
 	return context.WithCancel(ctx)
 }
 
-func resolveBucket(name, profile string) *sthree.Bucket {
-	if profile == "" {
-		return sthree.GetBucket(name)
-	}
-
-	return sthree.GetBucketWithProfile(name, profile)
-}
-
-// these helpers exist to facilitate easier unittesting
-
-func s3Put(ctx context.Context, bucket, profile, file, remoteFile string) error {
-	b := resolveBucket(bucket, profile)
-
-	err := b.Open(ctx)
-	defer b.Close()
-
-	if err != nil {
-		return err
-	}
-
-	return b.Put(file, remoteFile)
-}
-
-func s3Get(ctx context.Context, bucket, profile, remoteFile, file string) error {
-	b := resolveBucket(bucket, profile)
-
-	err := b.Open(ctx)
-	defer b.Close()
-
-	if err != nil {
-		return err
-	}
-
-	return b.Get(remoteFile, file)
-}
-
-func s3Delete(ctx context.Context, bucket, profile string, dryRun bool, file ...string) error {
-	b := resolveBucket(bucket, profile)
-
-	err := b.Open(ctx)
-	defer b.Close()
-	if err != nil {
-		return err
-	}
-
-	if dryRun {
-		b, err = b.DryRunClone(ctx)
-		defer b.Close()
-		if err != nil {
-			return err
-		}
-	}
-
-	// DeleteMany handles the single-delete case gracefully, so
-	// there's no use in adding complexity here.
-	return b.DeleteMany(file...)
-}
-
-func s3DeletePrefix(ctx context.Context, bucket, profile string, dryRun bool, prefix string) error {
-	b := resolveBucket(bucket, profile)
-
-	err := b.Open(ctx)
-	defer b.Close()
-	if err != nil {
-		return err
-	}
-
-	if dryRun {
-		b, err = b.DryRunClone(ctx)
-		defer b.Close()
-		if err != nil {
-			return err
-		}
-	}
-
-	return b.DeletePrefix(prefix)
-}
-
-func s3DeleteMatching(ctx context.Context, bucket, profile string, dryRun bool, prefix string, expression string) error {
-	b := resolveBucket(bucket, profile)
-
-	err := b.Open(ctx)
-	defer b.Close()
-	if err != nil {
-		return err
-	}
-
-	if dryRun {
-		b, err = b.DryRunClone(ctx)
-		defer b.Close()
-		if err != nil {
-			return err
-		}
-	}
-
-	return b.DeleteMatching(prefix, expression)
-}
-
-func s3SyncTo(ctx context.Context, bucket, profile, local, prefix string, withDelete, dryRun bool) error {
-	b := resolveBucket(bucket, profile)
-
-	err := b.Open(ctx)
-	defer b.Close()
-	if err != nil {
-		return err
-	}
-
-	if dryRun {
-		b, err = b.DryRunClone(ctx)
-		defer b.Close()
-		if err != nil {
-			return err
-		}
-	}
-
-	opts := sthree.NewDefaultSyncOptions()
-	opts.WithDelete = withDelete
-	if deadline, ok := ctx.Deadline(); ok {
-		opts.Timeout = time.Until(deadline)
-	}
-
-	return b.SyncTo(ctx, local, prefix, opts)
-}
-
-func s3SyncFrom(ctx context.Context, bucket, profile, local, prefix string, withDelete, dryRun bool) error {
-	b := resolveBucket(bucket, profile)
-
-	err := b.Open(ctx)
-	defer b.Close()
-	if err != nil {
-		return err
-	}
-
-	if dryRun {
-		b, err = b.DryRunClone(ctx)
-		defer b.Close()
-		if err != nil {
-			return err
-		}
-	}
-
-	opts := sthree.NewDefaultSyncOptions()
-	opts.WithDelete = withDelete
-
-	if deadline, ok := ctx.Deadline(); ok {
-		opts.Timeout = time.Until(deadline)
-	}
-
-	return b.SyncFrom(ctx, local, prefix, opts)
-}
-
 /////////////////////////
 //
 // Option Generators
@@ -386,6 +331,11 @@ func s3SyncFrom(ctx context.Context, bucket, profile, local, prefix string, with
 
 func baseS3Flags(args ...cli.Flag) []cli.Flag {
 	flags := []cli.Flag{
+		cli.StringFlag{
+			Name:  "region",
+			Usage: "region to send requests to, defaults to us-east-1",
+			Value: "us-east-1",
+		},
 		cli.StringFlag{
 			Name:  "bucket",
 			Usage: "the name of an s3 bucket",
@@ -401,8 +351,7 @@ func baseS3Flags(args ...cli.Flag) []cli.Flag {
 		},
 	}
 
-	flags = append(flags, args...)
-	return flags
+	return append(flags, args...)
 }
 
 func s3syncFlags(args ...cli.Flag) []cli.Flag {
@@ -424,36 +373,37 @@ func s3syncFlags(args ...cli.Flag) []cli.Flag {
 		},
 		cli.DurationFlag{
 			Name:  "timeout",
-			Usage: "specify a timeout for operations. Defaults to unlimited timeout if not specified",
+			Usage: "specify a timeout for operations, defaults to unlimited timeout if not specified",
 		},
 	}
 
-	flags = append(flags, args...)
-	return flags
+	return append(flags, args...)
 }
 
-func s3opFlags() []cli.Flag {
-	return []cli.Flag{
+func s3opFlags(args ...cli.Flag) []cli.Flag {
+	flags := []cli.Flag{
 		cli.StringFlag{
 			Name:  "file",
-			Usage: "a local path (directory)",
+			Usage: "a local path",
 		},
 		cli.StringFlag{
 			Name:  "name",
 			Usage: "the remote s3 resource name. may include the prefix.",
 		},
 	}
+
+	return append(flags, args...)
 }
 
-func s3deleteFlags(args ...cli.Flag) []cli.Flag {
-	flags := []cli.Flag{
-		cli.StringSliceFlag{
-			Name:  "name",
-			Usage: "the name of an object in s3",
+func s3putFlags() []cli.Flag {
+	return []cli.Flag{
+		cli.StringFlag{
+			Name:  "type",
+			Usage: "standard MIME type describing the format of the data",
+		},
+		cli.StringFlag{
+			Name:  "permissions",
+			Usage: "canned ACL to apply to the file",
 		},
 	}
-
-	flags = append(flags, args...)
-
-	return flags
 }

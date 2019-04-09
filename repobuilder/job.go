@@ -10,12 +10,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/evergreen-ci/pail"
 	"github.com/goamz/goamz/s3"
 	"github.com/mongodb/amboy"
 	"github.com/mongodb/amboy/dependency"
 	"github.com/mongodb/amboy/job"
 	"github.com/mongodb/amboy/registry"
-	"github.com/mongodb/curator/sthree"
 	"github.com/mongodb/grip"
 	"github.com/pkg/errors"
 	"github.com/tychoish/bond"
@@ -260,39 +260,26 @@ func (j *Job) signFile(fileName, archiveExtension string, overwrite bool) error 
 
 // Run is the main execution entry point into repository building, and is a component
 func (j *Job) Run(ctx context.Context) {
-	bucket := sthree.GetBucketWithProfile(j.Distro.Bucket, j.Profile)
-	err := bucket.Open(ctx)
+	opts := pail.S3Options{
+		SharedCredentialsProfile: j.Profile,
+		Name:                     j.Distro.Bucket,
+		DryRun:                   j.DryRun,
+		Permission:               string(s3.PublicRead),
+	}
+	bucket, err := pail.NewS3Bucket(opts)
 	if err != nil {
-		j.AddError(errors.Wrapf(err, "opening bucket %s", bucket))
+		j.AddError(errors.Wrapf(err, "problem getting s3 bucket %s", j.Distro.Bucket))
 		return
 	}
-	defer bucket.Close()
 
-	if j.DryRun {
-		// the error (second argument) will be caught (when we
-		// run open below)
-		bucket, err = bucket.DryRunClone(ctx)
-		if err != nil {
-			j.AddError(errors.Wrapf(err,
-				"problem getting bucket '%s' in dry-mode", bucket))
-			return
-		}
-
-		err := bucket.Open(ctx)
-		if err != nil {
-			j.AddError(errors.Wrapf(err, "opening bucket %s [dry-run]", bucket))
-			return
-		}
-		defer bucket.Close()
-	}
-
-	bucket.NewFilePermission = s3.PublicRead
 	defer j.MarkComplete()
 
-	syncOpts := sthree.NewDefaultSyncOptions()
-	if deadline, ok := ctx.Deadline(); ok {
-		syncOpts.Timeout = time.Until(deadline)
+	var cancel context.CancelFunc
+	if _, ok := ctx.Deadline(); !ok {
+		ctx, cancel = context.WithDeadline(ctx, time.Now().Add(10*time.Minute))
+		defer cancel()
 	}
+
 	// at the moment there is only multiple repos for RPM distros
 	for _, remote := range j.Distro.Repos {
 		j.workingDirs = append(j.workingDirs, remote)
@@ -303,21 +290,21 @@ func (j *Job) Run(ctx context.Context) {
 		var err error
 
 		if err = os.MkdirAll(local, 0755); err != nil {
-			j.AddError(errors.Wrapf(err, "creating directory %s", local))
+			j.AddError(errors.Wrapf(err, "problem creating directory %s", local))
 			return
 		}
 
 		grip.Infof("downloading from %s to %s", remote, local)
 		pkgLocation := j.getPackageLocation()
-		if err = bucket.SyncFrom(ctx, filepath.Join(local, pkgLocation), filepath.Join(remote, pkgLocation), syncOpts); err != nil {
-			j.AddError(errors.Wrapf(err, "sync from %s to %s", remote, local))
+		if err = bucket.Pull(ctx, filepath.Join(local, pkgLocation), filepath.Join(remote, pkgLocation)); err != nil {
+			j.AddError(errors.Wrapf(err, "problem syncing from %s to %s", remote, local))
 			return
 		}
 
 		grip.Info("copying new packages into local staging area")
 		changed, err := j.injectNewPackages(local)
 		if err != nil {
-			j.AddError(errors.Wrap(err, "copying packages into staging repos"))
+			j.AddError(errors.Wrap(err, "problem copying packages into staging repos"))
 			return
 		}
 
@@ -345,7 +332,7 @@ func (j *Job) Run(ctx context.Context) {
 		}
 
 		// do the sync. It's ok,
-		err = bucket.SyncTo(ctx, syncSource, filepath.Join(remote, changedComponent), syncOpts)
+		err = bucket.Push(ctx, syncSource, filepath.Join(remote, changedComponent))
 		if err != nil {
 			j.AddError(errors.Wrapf(err, "problem uploading %s to %s/%s",
 				syncSource, bucket, changedComponent))
