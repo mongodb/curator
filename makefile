@@ -6,7 +6,7 @@ else
 	binary := $(name)
 endif
 buildDir := build
-packages := operations cmd-curator sthree repobuilder
+packages := operations cmd-curator repobuilder
 packages += greenbay greenbay-check
 orgPath := github.com/mongodb
 projectPath := $(orgPath)/$(name)
@@ -130,8 +130,6 @@ vendor-clean:
 	rm -rf vendor/github.com/evergreen-ci/gimlet/vendor/github.com/stretchr/testify/
 	rm -rf vendor/github.com/evergreen-ci/pail/vendor/github.com/mongodb/grip/
 	rm -rf vendor/github.com/evergreen-ci/pail/vendor/github.com/pkg/errors/
-	rm -rf vendor/github.com/evergreen-ci/pail/vendor/gopkg.in/mgo.v2/harness/
-	rm -rf vendor/github.com/evergreen-ci/pail/vendor/gopkg.in/mgo.v2/txn/
 	rm -rf vendor/github.com/evergreen-ci/pail/vendor/github.com/stretchr/
 	rm -rf vendor/github.com/evergreen-ci/pail/{scripts,cmd,evergreen.yaml}
 	rm -rf vendor/github.com/evergreen-ci/poplar/vendor/github.com/golang/protobuf

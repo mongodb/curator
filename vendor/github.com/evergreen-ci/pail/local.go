@@ -7,19 +7,33 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/mongodb/grip"
 	"github.com/pkg/errors"
 )
 
 type localFileSystem struct {
-	path string
+	path         string
+	dryRun       bool
+	deleteOnSync bool
+}
+
+// LocalOptions describes the configuration of a local Bucket.
+type LocalOptions struct {
+	Path         string
+	DryRun       bool
+	DeleteOnSync bool
 }
 
 // NewLocalBucket returns an implementation of the Bucket interface
 // that stores files in the local file system. Returns an error if the
 // directory doesn't exist.
-func NewLocalBucket(path string) (Bucket, error) {
-	b := &localFileSystem{path: path}
-	if err := b.Check(nil); err != nil {
+func NewLocalBucket(opts LocalOptions) (Bucket, error) {
+	b := &localFileSystem{
+		path:         opts.Path,
+		dryRun:       opts.DryRun,
+		deleteOnSync: opts.DeleteOnSync,
+	}
+	if err := b.Check(context.TODO()); err != nil {
 		return nil, errors.WithStack(err)
 
 	}
@@ -31,13 +45,13 @@ func NewLocalBucket(path string) (Bucket, error) {
 // directory created for this purpose. Returns an error if there were
 // issues creating the temporary directory. This implementation does
 // not provide a mechanism to delete the temporary directory.
-func NewLocalTemporaryBucket() (Bucket, error) {
+func NewLocalTemporaryBucket(opts LocalOptions) (Bucket, error) {
 	dir, err := ioutil.TempDir("", "pail-local-tmp-bucket")
 	if err != nil {
 		return nil, errors.Wrap(err, "problem creating temporary directory")
 	}
 
-	return &localFileSystem{path: dir}, nil
+	return &localFileSystem{path: dir, dryRun: opts.DryRun, deleteOnSync: opts.DeleteOnSync}, nil
 }
 
 func (b *localFileSystem) Check(_ context.Context) error {
@@ -49,6 +63,10 @@ func (b *localFileSystem) Check(_ context.Context) error {
 }
 
 func (b *localFileSystem) Writer(_ context.Context, name string) (io.WriteCloser, error) {
+	if b.dryRun {
+		return &mockWriteCloser{}, nil
+	}
+
 	path := filepath.Join(b.path, name)
 	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
 		return nil, errors.Wrap(err, "problem creating base directories")
@@ -82,6 +100,7 @@ func (b *localFileSystem) Put(ctx context.Context, name string, input io.Reader)
 		_ = f.Close()
 		return errors.Wrap(err, "problem copying data to file")
 	}
+
 	return errors.WithStack(f.Close())
 }
 
@@ -142,9 +161,29 @@ func (b *localFileSystem) Copy(ctx context.Context, options CopyOptions) error {
 }
 
 func (b *localFileSystem) Remove(ctx context.Context, key string) error {
+	if b.dryRun {
+		return nil
+	}
+
 	path := filepath.Join(b.path, key)
 
 	return errors.Wrapf(os.Remove(path), "problem removing path %s", path)
+}
+
+func (b *localFileSystem) RemoveMany(ctx context.Context, keys ...string) error {
+	catcher := grip.NewBasicCatcher()
+	for _, key := range keys {
+		catcher.Add(b.Remove(ctx, key))
+	}
+	return catcher.Resolve()
+}
+
+func (b *localFileSystem) RemovePrefix(ctx context.Context, prefix string) error {
+	return removePrefix(ctx, prefix, b)
+}
+
+func (b *localFileSystem) RemoveMatching(ctx context.Context, expression string) error {
+	return removeMatching(ctx, expression, b)
 }
 
 func (b *localFileSystem) Push(ctx context.Context, local, remote string) error {
@@ -180,6 +219,9 @@ func (b *localFileSystem) Push(ctx context.Context, local, remote string) error 
 		}
 	}
 
+	if b.deleteOnSync && !b.dryRun {
+		return errors.Wrapf(os.RemoveAll(local), "problem removing '%s' after push", local)
+	}
 	return nil
 }
 
@@ -189,8 +231,11 @@ func (b *localFileSystem) Pull(ctx context.Context, local, remote string) error 
 	if err != nil {
 		return errors.WithStack(err)
 	}
+
+	keys := []string{}
 	for _, fn := range files {
 		path := filepath.Join(local, fn)
+		keys = append(keys, fn)
 		if _, err := os.Stat(path); os.IsNotExist(err) {
 			if err := b.Download(ctx, fn, path); err != nil {
 				return errors.WithStack(err)
@@ -215,6 +260,9 @@ func (b *localFileSystem) Pull(ctx context.Context, local, remote string) error 
 		}
 	}
 
+	if b.deleteOnSync && !b.dryRun {
+		return errors.Wrapf(b.RemoveMany(ctx, keys...), "problem removing '%s' after pull", remote)
+	}
 	return nil
 }
 

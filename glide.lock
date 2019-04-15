@@ -50,7 +50,7 @@ imports:
 - name: github.com/evergreen-ci/poplar
   version: 3e80c7c66cc208bfd25d0e4012b5290bf2aa5f77
 - name: github.com/evergreen-ci/pail
-  version: 91478d8564989cc5aff7bf19f1ad2e1f6c03df55
+  version: 7b2f8e0b2d972ca621cad3777d68276a54da13d0
 - name: github.com/mongodb/mongo-go-driver
   version: e8f52c4942686e6f1d9f366fa1e84b016aae0762
 

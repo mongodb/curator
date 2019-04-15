@@ -4,12 +4,12 @@ import (
 	"context"
 	"time"
 
+	"github.com/evergreen-ci/pail"
 	"github.com/goamz/goamz/s3"
 	"github.com/mongodb/amboy"
 	"github.com/mongodb/amboy/dependency"
 	"github.com/mongodb/amboy/job"
 	"github.com/mongodb/amboy/registry"
-	"github.com/mongodb/curator/sthree"
 	"github.com/mongodb/grip"
 	"github.com/pkg/errors"
 )
@@ -56,45 +56,30 @@ func NewIndexBuildJob(conf *RepositoryConfig, workSpace, repoName, bucket string
 // Run downloads the repository, and generates index pages at all
 // levels of the repo.
 func (j *IndexBuildJob) Run(ctx context.Context) {
-	bucket := sthree.GetBucketWithProfile(j.Bucket, j.Profile)
-
-	err := bucket.Open(ctx)
+	opts := pail.S3Options{
+		Region:                   "us-east-1",
+		SharedCredentialsProfile: j.Profile,
+		Name:                     j.Bucket,
+		DryRun:                   j.DryRun,
+		Permission:               string(s3.PublicRead),
+	}
+	bucket, err := pail.NewS3Bucket(opts)
 	if err != nil {
-		j.AddError(errors.Wrapf(err, "opening bucket %s", bucket))
+		j.AddError(errors.Wrapf(err, "problem getting s3 bucket %s", j.Bucket))
 		return
 	}
-	defer bucket.Close()
-
-	if j.DryRun {
-		// the error (second argument) will be caught (when we
-		// run open below)
-		bucket, err = bucket.DryRunClone(ctx)
-		if err != nil {
-			j.AddError(errors.Wrapf(err,
-				"problem getting bucket '%s' in dry-mode", bucket))
-			return
-		}
-
-		err = bucket.Open(ctx)
-		if err != nil {
-			j.AddError(errors.Wrapf(err, "opening bucket %s [dry-run]", bucket))
-			return
-		}
-		defer bucket.Close()
-	}
-	bucket.NewFilePermission = s3.PublicRead
 
 	defer j.MarkComplete()
 
-	syncOpts := sthree.NewDefaultSyncOptions()
-	if deadline, ok := ctx.Deadline(); ok {
-		syncOpts.Timeout = time.Until(deadline)
+	var cancel context.CancelFunc
+	if _, ok := ctx.Deadline(); !ok {
+		ctx, cancel = context.WithDeadline(ctx, time.Now().Add(10*time.Minute))
+		defer cancel()
 	}
 
-	grip.Infof("downloading from %s to %s [timeout=%s]", bucket, j.WorkSpace, syncOpts.Timeout)
-	err = bucket.SyncFrom(ctx, j.WorkSpace, "", syncOpts)
-	if err != nil {
-		j.AddError(errors.Wrapf(err, "sync from %s to %s", bucket, j.WorkSpace))
+	grip.Infof("downloading from %s to %s", bucket, j.WorkSpace)
+	if err = bucket.Pull(ctx, j.WorkSpace, ""); err != nil {
+		j.AddError(errors.Wrapf(err, "problem syncing from %s to %s", bucket, j.WorkSpace))
 		return
 	}
 
@@ -104,12 +89,11 @@ func (j *IndexBuildJob) Run(ctx context.Context) {
 
 	err = j.Conf.BuildIndexPageForDirectory(j.WorkSpace, j.RepoName)
 	if err != nil {
-		j.AddError(errors.Wrapf(err, "building index.html pages for %s", j.WorkSpace))
+		j.AddError(errors.Wrapf(err, "problem building index.html pages for %s", j.WorkSpace))
 		return
 	}
 
-	err = bucket.SyncTo(ctx, j.WorkSpace, "", syncOpts)
-	if err != nil {
+	if err = bucket.Push(ctx, j.WorkSpace, ""); err != nil {
 		j.AddError(errors.Wrapf(err, "problem uploading %s to %s",
 			j.WorkSpace, bucket))
 	}
