@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net"
 
+	"github.com/evergreen-ci/aviation"
 	"github.com/evergreen-ci/poplar"
 	"github.com/evergreen-ci/poplar/rpc"
 	"github.com/mongodb/grip"
@@ -148,7 +149,10 @@ func poplarReport() cli.Command {
 				return errors.WithStack(err)
 			}
 
-			rpcOpts := []grpc.DialOption{}
+			rpcOpts := []grpc.DialOption{
+				grpc.WithUnaryInterceptor(aviation.MakeRetryUnaryClientInterceptor(10)),
+				grpc.WithStreamInterceptor(aviation.MakeRetryStreamClientInterceptor(10)),
+			}
 			if isInsecure {
 				rpcOpts = append(rpcOpts, grpc.WithInsecure())
 			} else {

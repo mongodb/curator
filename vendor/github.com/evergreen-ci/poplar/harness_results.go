@@ -78,23 +78,23 @@ func (res *BenchmarkResult) Export() Test {
 // Composer produces a grip/message.Composer implementation that
 // allows for easy logging of a results object. The message's string
 // form is the same as Report, but also includes a structured raw format.
-func (res *BenchmarkResult) Composer() message.Composer { return &resultComposer{res: res} }
+func (res *BenchmarkResult) Composer() message.Composer { return &resultComposer{Res: res} }
 
 type resultComposer struct {
-	res          *BenchmarkResult `bson:"result" json:"result" yaml:"result"`
+	Res          *BenchmarkResult `bson:"result" json:"result" yaml:"result"`
 	message.Base `bson:"metadata" json:"metadata" yaml:"metadata"`
 	hasLogged    bool
 }
 
-func (c *resultComposer) String() string { return c.res.Report() }
-func (c *resultComposer) Loggable() bool { return c.res != nil && c.res.Name != "" }
+func (c *resultComposer) String() string { return c.Res.Report() }
+func (c *resultComposer) Loggable() bool { return c.Res != nil && c.Res.Name != "" }
 func (c *resultComposer) Raw() interface{} {
 	if c.hasLogged {
 		return c
 	}
 
-	if c.res.Error != nil {
-		_ = c.Annotate("error", c.res.Error.Error()) // nolint: gosec
+	if c.Res.Error != nil {
+		_ = c.Annotate("error", c.Res.Error.Error()) // nolint: gosec
 	}
 
 	c.hasLogged = true

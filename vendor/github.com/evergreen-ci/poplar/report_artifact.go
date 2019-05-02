@@ -1,7 +1,6 @@
 package poplar
 
 import (
-	"bufio"
 	"compress/gzip"
 	"context"
 	"io"
@@ -12,22 +11,17 @@ import (
 	"github.com/mongodb/ftdc"
 	"github.com/mongodb/ftdc/bsonx"
 	"github.com/mongodb/grip"
-	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/pkg/errors"
 )
 
 const defaultChunkSize = 2048
 
-func (a *TestArtifact) hasConversion() bool {
-	return a.ConvertBSON2FTDC || a.ConvertJSON2FTDC || a.ConvertCSV2FTDC || a.ConvertGzip
-}
-
 // Convert translates a the artifact into a different format,
 // typically by converting JSON, BSON, or CSV to FTDC, and also
 // optionally gzipping the results.
 func (a *TestArtifact) Convert(ctx context.Context) error {
-	if !a.hasConversion() {
-		return nil
+	if err := a.Validate(); err != nil {
+		return errors.New("invalid test artifact")
 	}
 
 	if a.LocalFile == "" {
@@ -39,31 +33,29 @@ func (a *TestArtifact) Convert(ctx context.Context) error {
 	}
 
 	converted := false
-	if a.ConvertBSON2FTDC {
+	switch {
+	case a.ConvertBSON2FTDC:
 		converted = true
 		fn, err := a.bsonToFTDC(ctx, a.LocalFile)
 		if err != nil {
 			return errors.Wrap(err, "problem converting file")
 		}
 		a.LocalFile = fn
-	}
-	if a.ConvertJSON2FTDC {
+	case a.ConvertJSON2FTDC:
 		converted = true
 		fn, err := a.jsonToFTDC(ctx, a.LocalFile)
 		if err != nil {
 			return errors.Wrap(err, "problem converting file")
 		}
 		a.LocalFile = fn
-	}
-	if a.ConvertCSV2FTDC {
+	case a.ConvertCSV2FTDC:
 		converted = true
 		fn, err := a.csvToFTDC(ctx, a.LocalFile)
 		if err != nil {
 			return errors.Wrap(err, "problem converting file")
 		}
 		a.LocalFile = fn
-	}
-	if a.ConvertGzip {
+	case a.ConvertGzip:
 		converted = true
 		fn, err := a.gzip(a.LocalFile)
 		if err != nil {
@@ -84,16 +76,25 @@ func (a *TestArtifact) Upload(ctx context.Context, conf *BucketConfiguration) er
 	if a.LocalFile == "" {
 		return errors.New("cannot upload unspecified file")
 	}
+	if a.Path == "" {
+		return errors.New("must specify remote path")
+	}
+	if conf == nil {
+		return errors.New("bucket configruation cannot be nil")
+	}
 
 	var err error
 
 	if _, err = os.Stat(a.LocalFile); os.IsNotExist(err) {
-		return errors.New("cannot upload file that does not exist ")
+		return errors.New("cannot upload file that does not exist")
 	}
 
 	if conf.bucket == nil || conf.name != a.Bucket || conf.prefix != a.Prefix {
 		if a.Bucket == "" {
 			return errors.New("cannot upload file, no bucket specified")
+		}
+		if conf.Region == "" {
+			return errors.New("bucket configuration must specify a region")
 		}
 
 		opts := pail.S3Options{
@@ -193,7 +194,7 @@ func (a *TestArtifact) jsonToFTDC(ctx context.Context, path string) (string, err
 	}
 	defer srcFile.Close()
 
-	path = strings.TrimSuffix(path, ".csv") + ".ftdc"
+	path = strings.TrimSuffix(path, ".json") + ".ftdc"
 	catcher := grip.NewCatcher()
 	ftdcFile, err := os.Create(path)
 	if err != nil {
@@ -201,28 +202,11 @@ func (a *TestArtifact) jsonToFTDC(ctx context.Context, path string) (string, err
 	}
 	defer func() { catcher.Add(ftdcFile.Close()) }()
 
-	collector := ftdc.NewStreamingDynamicCollector(defaultChunkSize, ftdcFile)
-	defer func() { catcher.Add(ftdc.FlushCollector(collector, ftdcFile)) }()
-
-	stream := bufio.NewScanner(srcFile)
-	for stream.Scan() {
-		doc := &bsonx.Document{}
-		err := bson.UnmarshalExtJSON(stream.Bytes(), false, doc)
-		if err != nil {
-			catcher.Add(errors.Wrap(err, "problem reading json from source"))
-			break
-		}
-
-		err = collector.Add(doc)
-		if err != nil {
-			catcher.Add(errors.Wrap(err, "failed to write FTDC from BSON"))
-			break
-		}
+	opts := ftdc.CollectJSONOptions{
+		OutputFilePrefix: strings.TrimSuffix(path, ".json"),
+		FileName:         path,
 	}
-
-	catcher.Add(stream.Err())
-
-	return path, catcher.Resolve()
+	return path, ftdc.CollectJSONStream(ctx, opts)
 }
 
 func (a *TestArtifact) gzip(path string) (string, error) {

@@ -326,9 +326,9 @@ func TestCaseType(t *testing.T) {
 				IterationTimeout: 20 * time.Second,
 			}
 			require.NoError(t, c.Validate())
-			ctx, cancel := context.WithCancel(ctx)
-			cancel()
-			res := c.Run(ctx, recorder)
+			canceledCtx, canceled := context.WithCancel(ctx)
+			canceled()
+			res := c.Run(canceledCtx, recorder)
 			assert.NoError(t, res.Error)
 			assert.Zero(t, res.Iterations)
 			assert.True(t, res.CompletedAt.Sub(res.StartAt) < time.Second)
@@ -368,9 +368,9 @@ func TestResultType(t *testing.T) {
 		CompletedAt:  time.Now(),
 	}
 	t.Run("Zero", func(t *testing.T) {
-		res := BenchmarkResult{}
-		assert.Zero(t, res)
-		assert.NotZero(t, res.Report())
+		emptyRes := BenchmarkResult{}
+		assert.Zero(t, emptyRes)
+		assert.NotZero(t, emptyRes.Report())
 	})
 	t.Run("PassingContent", func(t *testing.T) {
 		report := res.Report()

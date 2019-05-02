@@ -1,8 +1,12 @@
 package internal
 
 import (
+	"time"
+
 	"github.com/evergreen-ci/poplar"
 	"github.com/golang/protobuf/ptypes"
+	timestamp "github.com/golang/protobuf/ptypes/timestamp"
+	"github.com/pkg/errors"
 )
 
 func ExportArtifactInfo(in *poplar.TestArtifact) *ArtifactInfo {
@@ -13,15 +17,22 @@ func ExportArtifactInfo(in *poplar.TestArtifact) *ArtifactInfo {
 		Tags:   in.Tags,
 	}
 
-	if ts, err := ptypes.TimestampProto(in.CreatedAt); err == nil {
+	ts, err := ExportTimestamp(in.CreatedAt)
+	if err == nil {
 		out.CreatedAt = ts
 	}
 
 	switch {
+	case in.PayloadTEXT:
+		out.Format = DataFormat_TEXT
 	case in.PayloadFTDC:
 		out.Format = DataFormat_FTDC
 	case in.PayloadBSON:
 		out.Format = DataFormat_BSON
+	case in.PayloadJSON:
+		out.Format = DataFormat_JSON
+	case in.PayloadCSV:
+		out.Format = DataFormat_CSV
 	}
 
 	switch {
@@ -75,4 +86,17 @@ func ExportRollup(in *poplar.TestMetrics) *RollupValue {
 	}
 
 	return out
+}
+
+func ExportTimestamp(t time.Time) (*timestamp.Timestamp, error) {
+	var ts *timestamp.Timestamp
+	var err error
+	if !t.IsZero() {
+		ts, err = ptypes.TimestampProto(t)
+		if err != nil {
+			return nil, errors.Wrap(err, "problem specifying timestamp")
+		}
+	}
+
+	return ts, nil
 }

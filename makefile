@@ -143,6 +143,8 @@ vendor-clean:
 	rm -rf vendor/github.com/evergreen-ci/poplar/vendor/google.golang.org/grpc
 	rm -rf vendor/github.com/evergreen-ci/poplar/vendor/golang.org/x/text/
 	rm -rf vendor/github.com/evergreen-ci/poplar/vendor/github.com/pkg/errors/
+	rm -rf vendor/github.com/evergreen-ci/poplar/vendor/github.com/papertrail/go-tail/
+	rm -rf vendor/github.com/evergreen-ci/poplar/vendor/gopkg.in/yaml.v2/
 	rm -rf vendor/github.com/mongodb/amboy/vendor/github.com/mongodb/grip/
 	rm -rf vendor/github.com/mongodb/amboy/vendor/github.com/mongodb/mongo-go-driver/
 	rm -rf vendor/github.com/mongodb/amboy/vendor/github.com/pkg/errors/
@@ -179,6 +181,12 @@ vendor-clean:
 	rm -rf vendor/github.com/tychoish/bond/vendor/github.com/stretchr/testify/
 	rm -rf vendor/github.com/tychoish/lru/vendor/github.com/mongodb/grip/
 	rm -rf vendor/github.com/tychoish/lru/vendor/github.com/pkg/errors/
+	rm -rf vendor/github.com/evergreen-ci/aviation/vendor/github.com/evergreen-ci/gimlet/
+	rm -rf vendor/github.com/evergreen-ci/aviation/vendor/github.com/jpillora/backoff/
+	rm -rf vendor/github.com/evergreen-ci/aviation/vendor/github.com/mongodb/grip/
+	rm -rf vendor/github.com/evergreen-ci/aviation/vendor/github.com/pkg/errors/
+	rm -rf vendor/github.com/evergreen-ci/aviation/vendor/github.com/stretchr/testify/
+	rm -rf vendor/github.com/evergreen-ci/aviation/vendor/google.golang.org/grpc/
 	find vendor/ -name "*.gif" -o -name "*.gz" -o -name "*.png" -o -name "*.ico" -o -name "*testdata*"| xargs rm -rf
 #   add phony targets
 phony += vendor-clean
