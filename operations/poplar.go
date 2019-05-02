@@ -101,6 +101,7 @@ func poplarReport() cli.Command {
 		caFileFlagName   = "ca"
 		certFileFlagName = "cert"
 		keyFileFlagName  = "key"
+		dryRunFlagName   = "dry-run"
 	)
 
 	return cli.Command{
@@ -131,6 +132,10 @@ func poplarReport() cli.Command {
 				Name:  pathFlagName,
 				Usage: "specify the path of the input file, may be the first positional argument",
 			},
+			cli.BoolFlag{
+				Name:  dryRunFlagName,
+				Usage: "enables dry run",
+			},
 		},
 		Before: mergeBeforeFuncs(
 			requireStringFlag(serviceFlagName),
@@ -143,38 +148,41 @@ func poplarReport() cli.Command {
 			certFile := c.String(certFileFlagName)
 			caFile := c.String(caFileFlagName)
 			keyFile := c.String(keyFileFlagName)
+			dryRun := c.Bool(dryRunFlagName)
 
 			report, err := poplar.LoadReport(fileName)
 			if err != nil {
 				return errors.WithStack(err)
 			}
 
-			rpcOpts := []grpc.DialOption{
-				grpc.WithUnaryInterceptor(aviation.MakeRetryUnaryClientInterceptor(10)),
-				grpc.WithStreamInterceptor(aviation.MakeRetryStreamClientInterceptor(10)),
-			}
-			if isInsecure {
-				rpcOpts = append(rpcOpts, grpc.WithInsecure())
-			} else {
-				var tlsConf *tls.Config
-				tlsConf, err = getTLSConfig(caFile, certFile, keyFile)
+			if !dryRun {
+				rpcOpts := []grpc.DialOption{
+					grpc.WithUnaryInterceptor(aviation.MakeRetryUnaryClientInterceptor(10)),
+					grpc.WithStreamInterceptor(aviation.MakeRetryStreamClientInterceptor(10)),
+				}
+				if isInsecure {
+					rpcOpts = append(rpcOpts, grpc.WithInsecure())
+				} else {
+					var tlsConf *tls.Config
+					tlsConf, err = getTLSConfig(caFile, certFile, keyFile)
+					if err != nil {
+						return errors.WithStack(err)
+					}
+
+					rpcOpts = append(rpcOpts, grpc.WithTransportCredentials(credentials.NewTLS(tlsConf)))
+				}
+
+				ctx, cancel := context.WithCancel(context.Background())
+				defer cancel()
+
+				conn, err := grpc.DialContext(ctx, addr, rpcOpts...)
 				if err != nil {
 					return errors.WithStack(err)
 				}
 
-				rpcOpts = append(rpcOpts, grpc.WithTransportCredentials(credentials.NewTLS(tlsConf)))
-			}
-
-			ctx, cancel := context.WithCancel(context.Background())
-			defer cancel()
-
-			conn, err := grpc.DialContext(ctx, addr, rpcOpts...)
-			if err != nil {
-				return errors.WithStack(err)
-			}
-
-			if err := rpc.UploadReport(ctx, report, conn); err != nil {
-				return errors.WithStack(err)
+				if err := rpc.UploadReport(ctx, report, conn); err != nil {
+					return errors.WithStack(err)
+				}
 			}
 
 			return nil
