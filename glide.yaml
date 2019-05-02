@@ -32,3 +32,4 @@ import:
 - package: golang.org/x/text
 - package: github.com/mongodb/ftdc
 - package: github.com/mongodb/mongo-go-driver
+- package: github.com/evergreen-ci/aviation

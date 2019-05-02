@@ -53,6 +53,8 @@ imports:
   version: 7b2f8e0b2d972ca621cad3777d68276a54da13d0
 - name: github.com/mongodb/mongo-go-driver
   version: e8f52c4942686e6f1d9f366fa1e84b016aae0762
+- name: github.com/evergreen-ci/aviation
+  version: 970463c1ba21b3d3b1ded3c30eea60806144b883
 
 # grpc and dependencies
 - name: google.golang.org/grpc
