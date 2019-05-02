@@ -40,13 +40,7 @@ func LoadReport(fn string) (*Report, error) {
 		return nil, errors.Errorf("cannot find unmarshler for input %s", fn)
 	}
 
-	file, err := os.Open(fn)
-	if err != nil {
-		return nil, errors.Wrapf(err, "problem opening file '%s'", fn)
-	}
-	defer file.Close()
-
-	data, err := ioutil.ReadAll(file)
+	data, err := ioutil.ReadFile(fn)
 	if err != nil {
 		return nil, errors.Wrapf(err, "problem reading data from %s", fn)
 	}

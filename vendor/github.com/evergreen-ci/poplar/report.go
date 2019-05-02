@@ -68,8 +68,11 @@ type TestArtifact struct {
 	Tags                  []string  `bson:"tags" json:"tags" yaml:"tags"`
 	CreatedAt             time.Time `bson:"created_at" json:"created_at" yaml:"created_at"`
 	LocalFile             string    `bson:"local_path,omitempty" json:"local_path,omitempty" yaml:"local_path,omitempty"`
+	PayloadTEXT           bool      `bson:"is_text,omitempty" json:"is_text,omitempty" yaml:"is_text,omitempty"`
 	PayloadFTDC           bool      `bson:"is_ftdc,omitempty" json:"is_ftdc,omitempty" yaml:"is_ftdc,omitempty"`
 	PayloadBSON           bool      `bson:"is_bson,omitempty" json:"is_bson,omitempty" yaml:"is_bson,omitempty"`
+	PayloadJSON           bool      `bson:"is_json,omitempty" json:"is_json,omitempty" yaml:"is_json,omitempty"`
+	PayloadCSV            bool      `bson:"is_csv,omitempty" json:"is_csv,omitempty" yaml:"is_csv,omitempty"`
 	DataUncompressed      bool      `bson:"is_uncompressed" json:"is_uncompressed" yaml:"is_uncompressed"`
 	DataGzipped           bool      `bson:"is_gzip,omitempty" json:"is_gzip,omitempty" yaml:"is_gzip,omitempty"`
 	DataTarball           bool      `bson:"is_tarball,omitempty" json:"is_tarball,omitempty" yaml:"is_tarball,omitempty"`
@@ -93,6 +96,7 @@ func (a *TestArtifact) Validate() error {
 	}
 
 	if a.ConvertCSV2FTDC {
+		a.PayloadCSV = false
 		a.PayloadFTDC = true
 
 	}
@@ -102,11 +106,16 @@ func (a *TestArtifact) Validate() error {
 		a.PayloadFTDC = true
 	}
 
-	if isMoreThanOneTrue([]bool{a.ConvertBSON2FTDC, a.ConvertCSV2FTDC, a.ConvertJSON2FTDC}) {
+	if a.ConvertJSON2FTDC {
+		a.PayloadJSON = false
+		a.PayloadFTDC = true
+	}
+
+	if isMoreThanOneTrue([]bool{a.ConvertBSON2FTDC, a.ConvertCSV2FTDC, a.ConvertJSON2FTDC, a.ConvertGzip}) {
 		catcher.Add(errors.New("cannot specify contradictory conversion requests"))
 	}
 
-	if isMoreThanOneTrue([]bool{a.PayloadBSON, a.PayloadFTDC}) {
+	if isMoreThanOneTrue([]bool{a.PayloadBSON, a.PayloadJSON, a.PayloadCSV, a.PayloadTEXT, a.PayloadFTDC}) {
 		catcher.Add(errors.New("must specify exactly one payload type"))
 	}
 

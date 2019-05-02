@@ -13,6 +13,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+// RecorderType represents the underlying recorder type.
 type RecorderType string
 
 const (
@@ -26,6 +27,7 @@ const (
 	CustomMetrics                        = "custom"
 )
 
+// Validate the underyling recorder type.
 func (t RecorderType) Validate() error {
 	switch t {
 	case RecorderPerf, RecorderPerfSingle, RecorderPerf100ms, RecorderPerf1s,
@@ -76,18 +78,21 @@ func (c *customEventTracker) Dump() events.Custom {
 	return c.Custom
 }
 
+// CustomMetricsCollector defines an interface for collecting metrics.
 type CustomMetricsCollector interface {
 	Add(string, interface{}) error
 	Dump() events.Custom
 	Reset()
 }
 
+// RecorderRegistry caches instances of recorders.
 type RecorderRegistry struct {
 	cache       map[string]*recorderInstance
 	benchPrefix string
 	mu          sync.Mutex
 }
 
+// NewRegistry returns a new (empty) RecorderRegistry.
 func NewRegistry() *RecorderRegistry {
 	return &RecorderRegistry{
 		cache: map[string]*recorderInstance{},
@@ -132,6 +137,8 @@ func (r *RecorderRegistry) GetRecorder(key string) (events.Recorder, bool) {
 	return impl.recorder, true
 }
 
+// GetCustomCollector returns the CustomMetricsCollector instance for this key.
+// Returns false when the collector does not exist.
 func (r *RecorderRegistry) GetCustomCollector(key string) (CustomMetricsCollector, bool) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -164,6 +171,7 @@ func (r *RecorderRegistry) GetCollector(key string) (ftdc.Collector, bool) {
 	return impl.collector, true
 }
 
+// SetBenchRecorderPrefix sets the bench prefix for this registry.
 func (r *RecorderRegistry) SetBenchRecorderPrefix(prefix string) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -224,6 +232,7 @@ func (r *RecorderRegistry) Close(key string) error {
 	return nil
 }
 
+// CreateOptions support the use and creation of a collector.
 type CreateOptions struct {
 	Path      string
 	ChunkSize int

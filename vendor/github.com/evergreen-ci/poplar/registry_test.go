@@ -166,6 +166,7 @@ func TestRegistry(t *testing.T) {
 
 		coll, ok = reg.GetCollector("foo")
 		require.True(t, ok)
+		assert.NotNil(t, coll)
 
 		cus, ok := reg.GetCustomCollector("foo")
 		require.False(t, ok)
