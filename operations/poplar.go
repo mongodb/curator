@@ -95,13 +95,14 @@ func poplarGRPC() cli.Command {
 
 func poplarReport() cli.Command {
 	const (
-		serviceFlagName  = "service"
-		pathFlagName     = "path"
-		insecureFlagName = "insecure"
-		caFileFlagName   = "ca"
-		certFileFlagName = "cert"
-		keyFileFlagName  = "key"
-		dryRunFlagName   = "dry-run"
+		serviceFlagName     = "service"
+		pathFlagName        = "path"
+		insecureFlagName    = "insecure"
+		caFileFlagName      = "ca"
+		certFileFlagName    = "cert"
+		keyFileFlagName     = "key"
+		dryRunFlagName      = "dry-run"
+		dryRunFlagNameShort = "n"
 	)
 
 	return cli.Command{
@@ -133,7 +134,7 @@ func poplarReport() cli.Command {
 				Usage: "specify the path of the input file, may be the first positional argument",
 			},
 			cli.BoolFlag{
-				Name:  dryRunFlagName,
+				Name:  dryRunFlagName + "," + dryRunFlagNameShort,
 				Usage: "enables dry run",
 			},
 		},
@@ -148,7 +149,7 @@ func poplarReport() cli.Command {
 			certFile := c.String(certFileFlagName)
 			caFile := c.String(caFileFlagName)
 			keyFile := c.String(keyFileFlagName)
-			dryRun := c.Bool(dryRunFlagName)
+			dryRun := c.Bool("dry-run") || c.Bool("n")
 
 			report, err := poplar.LoadReport(fileName)
 			if err != nil {
