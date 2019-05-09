@@ -156,34 +156,32 @@ func poplarReport() cli.Command {
 				return errors.WithStack(err)
 			}
 
-			if !dryRun {
-				rpcOpts := []grpc.DialOption{
-					grpc.WithUnaryInterceptor(aviation.MakeRetryUnaryClientInterceptor(10)),
-					grpc.WithStreamInterceptor(aviation.MakeRetryStreamClientInterceptor(10)),
-				}
-				if isInsecure {
-					rpcOpts = append(rpcOpts, grpc.WithInsecure())
-				} else {
-					var tlsConf *tls.Config
-					tlsConf, err = getTLSConfig(caFile, certFile, keyFile)
-					if err != nil {
-						return errors.WithStack(err)
-					}
-
-					rpcOpts = append(rpcOpts, grpc.WithTransportCredentials(credentials.NewTLS(tlsConf)))
-				}
-
-				ctx, cancel := context.WithCancel(context.Background())
-				defer cancel()
-
-				conn, err := grpc.DialContext(ctx, addr, rpcOpts...)
+			rpcOpts := []grpc.DialOption{
+				grpc.WithUnaryInterceptor(aviation.MakeRetryUnaryClientInterceptor(10)),
+				grpc.WithStreamInterceptor(aviation.MakeRetryStreamClientInterceptor(10)),
+			}
+			if isInsecure {
+				rpcOpts = append(rpcOpts, grpc.WithInsecure())
+			} else {
+				var tlsConf *tls.Config
+				tlsConf, err = getTLSConfig(caFile, certFile, keyFile)
 				if err != nil {
 					return errors.WithStack(err)
 				}
 
-				if err := rpc.UploadReport(ctx, report, conn); err != nil {
-					return errors.WithStack(err)
-				}
+				rpcOpts = append(rpcOpts, grpc.WithTransportCredentials(credentials.NewTLS(tlsConf)))
+			}
+
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			conn, err := grpc.DialContext(ctx, addr, rpcOpts...)
+			if err != nil {
+				return errors.WithStack(err)
+			}
+
+			if err := rpc.UploadReport(ctx, report, conn, dryRun); err != nil {
+				return errors.WithStack(err)
 			}
 
 			return nil
