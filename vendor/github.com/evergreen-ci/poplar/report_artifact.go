@@ -72,7 +72,7 @@ func (a *TestArtifact) Convert(ctx context.Context) error {
 }
 
 // Upload provides a way to upload an artifact using a bucket configuration.
-func (a *TestArtifact) Upload(ctx context.Context, conf *BucketConfiguration) error {
+func (a *TestArtifact) Upload(ctx context.Context, conf *BucketConfiguration, dryRun bool) error {
 	if a.LocalFile == "" {
 		return errors.New("cannot upload unspecified file")
 	}
@@ -89,7 +89,7 @@ func (a *TestArtifact) Upload(ctx context.Context, conf *BucketConfiguration) er
 		return errors.New("cannot upload file that does not exist")
 	}
 
-	if conf.bucket == nil || conf.name != a.Bucket || conf.prefix != a.Prefix {
+	if conf.bucket == nil || conf.name != a.Bucket || conf.prefix != a.Prefix || dryRun {
 		if a.Bucket == "" {
 			return errors.New("cannot upload file, no bucket specified")
 		}
@@ -102,6 +102,7 @@ func (a *TestArtifact) Upload(ctx context.Context, conf *BucketConfiguration) er
 			Prefix:     a.Prefix,
 			Region:     conf.Region,
 			Permission: a.Permissions,
+			DryRun:     dryRun,
 		}
 		if (conf.APIKey != "" && conf.APISecret != "") || conf.APIToken != "" {
 			opts.Credentials = pail.CreateAWSCredentials(conf.APIKey, conf.APISecret, conf.APIToken)
