@@ -21,6 +21,7 @@ message ResultID {
   map<string, int32> arguments = 11;
   bool mainline = 12;
   google.protobuf.Timestamp created_at = 13;
+  int32 order = 14;
 }
 
 message ResultData {

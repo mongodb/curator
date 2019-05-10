@@ -95,12 +95,14 @@ func poplarGRPC() cli.Command {
 
 func poplarReport() cli.Command {
 	const (
-		serviceFlagName  = "service"
-		pathFlagName     = "path"
-		insecureFlagName = "insecure"
-		caFileFlagName   = "ca"
-		certFileFlagName = "cert"
-		keyFileFlagName  = "key"
+		serviceFlagName     = "service"
+		pathFlagName        = "path"
+		insecureFlagName    = "insecure"
+		caFileFlagName      = "ca"
+		certFileFlagName    = "cert"
+		keyFileFlagName     = "key"
+		dryRunFlagName      = "dry-run"
+		dryRunFlagNameShort = "n"
 	)
 
 	return cli.Command{
@@ -131,6 +133,10 @@ func poplarReport() cli.Command {
 				Name:  pathFlagName,
 				Usage: "specify the path of the input file, may be the first positional argument",
 			},
+			cli.BoolFlag{
+				Name:  dryRunFlagName + "," + dryRunFlagNameShort,
+				Usage: "enables dry run",
+			},
 		},
 		Before: mergeBeforeFuncs(
 			requireStringFlag(serviceFlagName),
@@ -143,6 +149,7 @@ func poplarReport() cli.Command {
 			certFile := c.String(certFileFlagName)
 			caFile := c.String(caFileFlagName)
 			keyFile := c.String(keyFileFlagName)
+			dryRun := c.Bool("dry-run") || c.Bool("n")
 
 			report, err := poplar.LoadReport(fileName)
 			if err != nil {
@@ -173,7 +180,7 @@ func poplarReport() cli.Command {
 				return errors.WithStack(err)
 			}
 
-			if err := rpc.UploadReport(ctx, report, conn); err != nil {
+			if err := rpc.UploadReport(ctx, report, conn, dryRun); err != nil {
 				return errors.WithStack(err)
 			}
 

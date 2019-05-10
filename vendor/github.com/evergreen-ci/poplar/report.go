@@ -19,6 +19,7 @@ type Report struct {
 	// in Evergreen conventionally.
 	Project   string `bson:"project" json:"project" yaml:"project"`
 	Version   string `bson:"version" json:"version" yaml:"version"`
+	Order     int    `bson:"order" json:"order" yaml:"order"`
 	Variant   string `bson:"variant" json:"variant" yaml:"variant"`
 	TaskName  string `bson:"task_name" json:"task_name" yaml:"task_name"`
 	TaskID    string `bson:"task_id" json:"task_id" yaml:"task_id"`
