@@ -61,8 +61,9 @@ post:
     params:
       files:
         - "gopath/src/github.com/evergreen-ci/poplar/build/output.*"
-        - "gopath/src/github.com/evergreen-ci/poplar/build/test.*.out"
-        - "gopath/src/github.com/evergreen-ci/poplar/build/race.*.out"
+        - "gopath/src/github.com/evergreen-ci/poplar/build/test.out"
+        - "gopath/src/github.com/evergreen-ci/poplar/build/race.out"
+        - "gopath/src/github.com/evergreen-ci/poplar/build/cover*"
   - command: subprocess.exec
     type: setup
     params:
@@ -72,7 +73,7 @@ post:
     params:
       aws_key: ${aws_key}
       aws_secret: ${aws_secret}
-      local_files_include_filter: ["gopath/src/github.com/evergreen-ci/poplar/build/output.*.coverage.html"]
+      local_files_include_filter: ["gopath/src/github.com/evergreen-ci/poplar/build/cover.html"]
       remote_file: poplar/${task_id}/
       bucket: mciuploads
       content_type: text/html
@@ -83,7 +84,7 @@ post:
     params:
       aws_key: ${aws_key}
       aws_secret: ${aws_secret}
-      local_files_include_filter: ["gopath/src/github.com/evergreen-ci/poplar/build/output.*.coverage"]
+      local_files_include_filter: ["gopath/src/github.com/evergreen-ci/poplar/build/cover.out"]
       remote_file: poplar/${task_id}/
       bucket: mciuploads
       content_type: text/plain

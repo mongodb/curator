@@ -64,6 +64,7 @@ func TestClient(t *testing.T) {
 	testReport := &poplar.Report{
 		Project:   "project",
 		Version:   "version",
+		Order:     2,
 		Variant:   "variant",
 		TaskName:  "taskName",
 		TaskID:    "taskID",
@@ -191,6 +192,7 @@ func TestClient(t *testing.T) {
 		for i, result := range mc.resultData {
 			assert.Equal(t, testReport.Project, result.Id.Project)
 			assert.Equal(t, testReport.Version, result.Id.Version)
+			assert.Equal(t, testReport.Order, int(result.Id.Order))
 			assert.Equal(t, testReport.Variant, result.Id.Variant)
 			assert.Equal(t, testReport.TaskName, result.Id.TaskName)
 			assert.Equal(t, testReport.TaskID, result.Id.TaskId)
