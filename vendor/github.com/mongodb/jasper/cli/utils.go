@@ -9,6 +9,7 @@ import (
 	"math"
 	"net"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/mongodb/grip"
@@ -50,7 +51,7 @@ func validatePort(flagName string) func(*cli.Context) error {
 	return func(c *cli.Context) error {
 		port := c.Int(flagName)
 		if port < minPort || port > maxPort {
-			return errors.New("port must be between 0-65536 exclusive")
+			return errors.Errorf("port must be between %d-%d exclusive", minPort, maxPort)
 		}
 		return nil
 	}
@@ -66,7 +67,7 @@ func clientFlags() []cli.Flag {
 		},
 		cli.IntFlag{
 			Name:  portFlagName,
-			Usage: "the port running the Jasper service",
+			Usage: fmt.Sprintf("the port running the Jasper service (if service is '%s', default port is %d; if service is '%s', default port is %d)", restService, defaultRESTPort, rpcService, defaultRPCPort),
 		},
 		cli.StringFlag{
 			Name:  serviceFlagName,
@@ -78,13 +79,28 @@ func clientFlags() []cli.Flag {
 // clientBefore returns the cli.BeforeFunc used by all client commands.
 func clientBefore() func(c *cli.Context) error {
 	return mergeBeforeFuncs(
-		validatePort(portFlagName),
 		func(c *cli.Context) error {
 			service := c.String(serviceFlagName)
 			if service != restService && service != rpcService {
 				return errors.Errorf("service must be '%s' or '%s'", restService, rpcService)
 			}
 			return nil
+		},
+		func(c *cli.Context) error {
+			if c.Int(portFlagName) != 0 {
+				return nil
+			}
+			switch c.String(serviceFlagName) {
+			case restService:
+				if err := c.Set(portFlagName, strconv.Itoa(defaultRESTPort)); err != nil {
+					return err
+				}
+			case rpcService:
+				if err := c.Set(portFlagName, strconv.Itoa(defaultRPCPort)); err != nil {
+					return err
+				}
+			}
+			return validatePort(portFlagName)(c)
 		},
 	)
 }

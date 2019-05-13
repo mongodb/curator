@@ -50,7 +50,7 @@ func poplarGRPC() cli.Command {
 			},
 			cli.StringFlag{
 				Name:   "host",
-				EnvVar: envVarJasperRPCHost,
+				EnvVar: envVarPoplarRecorderRPCHost,
 				Value:  envVarPoplarRecorderRPCHost,
 			},
 		},

@@ -165,8 +165,11 @@ vendor-clean:
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/golang/protobuf
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/mongodb/amboy
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/mongodb/grip
+	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/satori/go.uuid/
+	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/stretchr/
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/tychoish/bond
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/tychoish/lru
+	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/urfave/
 	rm -rf vendor/github.com/mongodb/jasper/vendor/golang.org/x/net
 	rm -rf vendor/github.com/mongodb/jasper/vendor/golang.org/x/sys
 	rm -rf vendor/github.com/mongodb/jasper/vendor/golang.org/x/text/
