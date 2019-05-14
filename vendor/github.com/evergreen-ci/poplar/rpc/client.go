@@ -142,6 +142,7 @@ func extractArtifacts(ctx context.Context, report *poplar.Report, test poplar.Te
 			}
 		}
 		artifacts = append(artifacts, internal.ExportArtifactInfo(&a))
+		artifacts[len(artifacts)-1].Location = internal.StorageLocation_CEDAR_S3
 	}
 
 	return artifacts, nil
