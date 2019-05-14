@@ -536,7 +536,7 @@ func TestSuiteType(t *testing.T) {
 			assert.Error(t, err)
 			assert.Len(t, res, 3)
 			assert.Contains(t, err.Error(), "foo")
-			assert.True(t, counter > 200)
+			assert.True(t, counter > 100)
 		})
 		t.Run("CollectoError", func(t *testing.T) {
 			s := BenchmarkSuite{
