@@ -14,7 +14,6 @@ type User interface {
 	DisplayName() string
 	Email() string
 	Username() string
-	IsNil() bool
 	GetAPIKey() string
 	Roles() []string
 }
@@ -52,4 +51,7 @@ type UserManager interface {
 	// authenticator.
 	GetUserByID(string) (User, error)
 	GetOrCreateUser(User) (User, error)
+
+	// Log out user or all users
+	ClearUser(user User, all bool) error
 }

@@ -36,7 +36,7 @@ func TestUserCache(t *testing.T) {
 					test: func(t *testing.T, cache UserCache) {
 						c := cache.(*userCache)
 						c.cache["foo"] = cacheValue{
-							user: gimlet.NewBasicUser("foo", "", "", "", []string{}),
+							user: gimlet.NewBasicUser("foo", "", "", "", "", []string{}, false),
 							time: time.Now().Add(-time.Hour),
 						}
 						assert.Len(t, c.cache, 1)
@@ -49,7 +49,7 @@ func TestUserCache(t *testing.T) {
 					test: func(t *testing.T, cache UserCache) {
 						c := cache.(*userCache)
 						c.cache["foo"] = cacheValue{
-							user: gimlet.NewBasicUser("foo", "", "", "", []string{}),
+							user: gimlet.NewBasicUser("foo", "", "", "", "", []string{}, false),
 							time: time.Now().Add(-time.Hour),
 						}
 						assert.Len(t, c.cache, 1)
@@ -62,7 +62,7 @@ func TestUserCache(t *testing.T) {
 					test: func(t *testing.T, cache UserCache) {
 						c := cache.(*userCache)
 						c.cache["foo"] = cacheValue{
-							user: gimlet.NewBasicUser("foo", "", "", "", []string{}),
+							user: gimlet.NewBasicUser("foo", "", "", "", "", []string{}, false),
 							time: time.Now().Add(time.Hour),
 						}
 						assert.Len(t, c.cache, 1)
@@ -76,10 +76,10 @@ func TestUserCache(t *testing.T) {
 						c := cache.(*userCache)
 						c.userToToken["foo"] = "0"
 						c.cache["foo"] = cacheValue{
-							user: gimlet.NewBasicUser("foo", "", "", "", []string{}),
+							user: gimlet.NewBasicUser("foo", "", "", "", "", []string{}, false),
 							time: time.Now().Add(time.Hour),
 						}
-						_, err := cache.Find("foo")
+						_, _, err := cache.Find("foo")
 						assert.Error(t, err)
 					},
 				},
@@ -88,7 +88,7 @@ func TestUserCache(t *testing.T) {
 					test: func(t *testing.T, cache UserCache) {
 						c := cache.(*userCache)
 						c.cache["foo"] = cacheValue{
-							user: gimlet.NewBasicUser("foo", "", "", "", []string{}),
+							user: gimlet.NewBasicUser("foo", "", "", "", "", []string{}, false),
 							time: time.Now().Add(-time.Hour),
 						}
 						u, exists, err := cache.Get("foo")
@@ -114,16 +114,35 @@ func TestUserCache(t *testing.T) {
 						u, ok := cache[token]
 						return u, ok, nil
 					},
-					GetUser: func(id string) (gimlet.User, error) {
+					GetUser: func(id string) (gimlet.User, bool, error) {
 						u, ok := users[id]
 						if !ok {
-							return nil, errors.New("not found")
+							return nil, false, errors.New("not found")
 						}
-						return u, nil
+						return u, true, nil
 					},
 					GetCreateUser: func(u gimlet.User) (gimlet.User, error) {
 						users[u.Username()] = u
 						return u, nil
+					},
+					ClearCache: func(u gimlet.User, all bool) error {
+						if all {
+							users = make(map[string]gimlet.User)
+							cache = make(map[string]gimlet.User)
+							return nil
+						}
+
+						if _, ok := users[u.Username()]; !ok {
+							return errors.New("not found")
+						}
+						delete(users, u.Username())
+						for token, user := range cache {
+							if user.Username() == u.Username() {
+								delete(cache, token)
+								break
+							}
+						}
+						return nil
 					},
 				}.MakeUserCache()
 			},
@@ -150,16 +169,16 @@ func TestUserCache(t *testing.T) {
 			t.Run("AddUser", func(t *testing.T) {
 				cache := impl.factory()
 				const id = "username"
-				u := gimlet.NewBasicUser(id, "", "", "", []string{})
+				u := gimlet.NewBasicUser(id, "", "", "", "", []string{}, false)
 				assert.NoError(t, cache.Add(u))
-				cu, err := cache.Find(id)
+				cu, _, err := cache.Find(id)
 				assert.NoError(t, err)
 				assert.Equal(t, u, cu)
 			})
 			t.Run("PutGetRoundTrip", func(t *testing.T) {
 				cache := impl.factory()
 				const id = "username"
-				u := gimlet.NewBasicUser(id, "", "", "", []string{})
+				u := gimlet.NewBasicUser(id, "", "", "", "", []string{}, false)
 				token, err := cache.Put(u)
 				assert.NoError(t, err)
 				assert.NotZero(t, token)
@@ -171,7 +190,7 @@ func TestUserCache(t *testing.T) {
 			})
 			t.Run("FindErrorsForNotFound", func(t *testing.T) {
 				cache := impl.factory()
-				cu, err := cache.Find("foo")
+				cu, _, err := cache.Find("foo")
 				assert.Error(t, err)
 				assert.Nil(t, cu)
 			})
@@ -184,24 +203,24 @@ func TestUserCache(t *testing.T) {
 			})
 			t.Run("GetOrCreateNewUser", func(t *testing.T) {
 				cache := impl.factory()
-				_, err := cache.Find("usr")
+				_, _, err := cache.Find("usr")
 				assert.Error(t, err)
 
-				u := gimlet.NewBasicUser("usr", "", "", "", []string{})
+				u := gimlet.NewBasicUser("usr", "", "", "", "", []string{}, false)
 
 				cu, err := cache.GetOrCreate(u)
 				require.NoError(t, err)
 				assert.Equal(t, u, cu)
 
-				_, err = cache.Find("usr")
+				_, _, err = cache.Find("usr")
 				assert.NoError(t, err)
 			})
 			t.Run("GetOrCreateNewUser", func(t *testing.T) {
 				cache := impl.factory()
-				_, err := cache.Find("usr")
+				_, _, err := cache.Find("usr")
 				assert.Error(t, err)
 
-				u := gimlet.NewBasicUser("usr", "", "", "", []string{})
+				u := gimlet.NewBasicUser("usr", "", "", "", "", []string{}, false)
 
 				_, err = cache.Put(u)
 				require.NoError(t, err)
@@ -209,6 +228,36 @@ func TestUserCache(t *testing.T) {
 				cu, err := cache.GetOrCreate(u)
 				require.NoError(t, err)
 				assert.Equal(t, u, cu)
+			})
+			t.Run("ClearUser", func(t *testing.T) {
+				cache := impl.factory()
+				u := gimlet.NewBasicUser("usr", "", "", "", "", []string{}, false)
+				u, err := cache.GetOrCreate(u)
+				require.NoError(t, err)
+				require.NotNil(t, u)
+				token, err := cache.Put(u)
+				require.NoError(t, err)
+
+				// Clear just this user
+				err = cache.Clear(u, false)
+				assert.NoError(t, err)
+
+				noUser, isValidToken, err := cache.Get(token)
+				assert.Nil(t, noUser)
+				assert.False(t, isValidToken)
+				assert.NoError(t, err)
+
+				token, err = cache.Put(u)
+				require.NoError(t, err)
+
+				// Clear all users
+				err = cache.Clear(nil, true)
+				assert.NoError(t, err)
+
+				u, isValidToken, err = cache.Get(token)
+				assert.Nil(t, u)
+				assert.False(t, isValidToken)
+				assert.NoError(t, err)
 			})
 		})
 	}

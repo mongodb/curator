@@ -17,7 +17,7 @@ import (
 type Client struct {
 	Conf   *Configuration
 	Output *OutputOptions
-	client *rest.Client
+	client *rest.QueueClient
 	Tests  []string
 	Suites []string
 }
@@ -36,7 +36,7 @@ func NewClient(confPath, host string, port int, outFn, format string, quiet bool
 		return nil, errors.Wrap(err, "problem parsing config file")
 	}
 
-	c, err := rest.NewClient(host, port, "")
+	c, err := rest.NewQueueClient(host, port, "")
 	if err != nil {
 		return nil, errors.Wrap(err, "problem constructing amboy rest client")
 	}

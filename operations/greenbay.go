@@ -192,13 +192,15 @@ func service() cli.Command {
 				Usage: "disable the sysinfo and process tree stats endpoints",
 			}),
 		Action: func(c *cli.Context) error {
-			grip.CatchEmergencyFatal(greenbay.SetupLogging(c.String("logOutput"), c.String("file")))
+			grip.EmergencyFatal(greenbay.SetupLogging(c.String("logOutput"), c.String("file")))
 
-			ctx := context.Background()
-			info := rest.ServiceInfo{QueueSize: c.Int("cache"), NumWorkers: c.Int("jobs")}
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			info := rest.QueueServiceOptions{QueueSize: c.Int("cache"), NumWorkers: c.Int("jobs")}
 
 			s, err := greenbay.NewService(c.String("conf"), c.String("host"), c.Int("port"))
-			grip.CatchEmergencyFatal(err)
+			grip.EmergencyFatal(err)
 
 			s.DisableStats = c.Bool("disableStats")
 
@@ -207,7 +209,7 @@ func service() cli.Command {
 			defer s.Close()
 
 			grip.Infof("starting service on port %d", c.Int("port"))
-			s.Run()
+			s.Run(ctx)
 			grip.Info("service shutting down")
 
 			return nil

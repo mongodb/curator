@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const gracefulTimeout = 1000 * time.Millisecond
@@ -186,14 +187,15 @@ func TestBlockingProcess(t *testing.T) {
 				},
 				"WaitSomeBeforeCanceling": func(ctx context.Context, t *testing.T, proc *blockingProcess) {
 					proc.opts.Args = []string{"sleep", "1"}
+					proc.complete = make(chan struct{})
 					cctx, cancel := context.WithTimeout(ctx, 600*time.Millisecond)
 					defer cancel()
 
-					cmd, err := proc.opts.Resolve(ctx)
+					cmd, deadline, err := proc.opts.Resolve(ctx)
 					assert.NoError(t, err)
 					assert.NoError(t, cmd.Start())
 
-					go proc.reactor(ctx, cmd)
+					go proc.reactor(ctx, deadline, cmd)
 					_, err = proc.Wait(cctx)
 					assert.Error(t, err)
 					assert.Contains(t, err.Error(), "operation canceled")
@@ -202,7 +204,7 @@ func TestBlockingProcess(t *testing.T) {
 					proc.opts.Args = []string{"sleep", "10"}
 					proc.ops = make(chan func(*exec.Cmd))
 
-					cmd, err := proc.opts.Resolve(ctx)
+					cmd, _, err := proc.opts.Resolve(ctx)
 					assert.NoError(t, err)
 					assert.NoError(t, cmd.Start())
 					signal := make(chan struct{})
@@ -234,7 +236,7 @@ func TestBlockingProcess(t *testing.T) {
 					proc.opts.Args = []string{"sleep", "10"}
 					proc.ops = make(chan func(*exec.Cmd))
 
-					cmd, err := proc.opts.Resolve(ctx)
+					cmd, _, err := proc.opts.Resolve(ctx)
 					assert.NoError(t, err)
 					assert.NoError(t, cmd.Start())
 					signal := make(chan struct{})
@@ -267,7 +269,7 @@ func TestBlockingProcess(t *testing.T) {
 					proc.opts.Args = []string{"sleep", "10"}
 					proc.ops = make(chan func(*exec.Cmd))
 
-					cmd, err := proc.opts.Resolve(ctx)
+					cmd, _, err := proc.opts.Resolve(ctx)
 					assert.NoError(t, err)
 					assert.NoError(t, cmd.Start())
 					signal := make(chan struct{})
@@ -296,6 +298,86 @@ func TestBlockingProcess(t *testing.T) {
 						}
 					}()
 					<-signal
+				},
+				"InfoDoesNotWaitForContextTimeoutAfterProcessCompletes": func(ctx context.Context, t *testing.T, proc *blockingProcess) {
+					opts := &CreateOptions{
+						Args: []string{"ls"},
+					}
+
+					process, err := newBlockingProcess(ctx, opts)
+					require.NoError(t, err)
+
+					opCompleted := make(chan struct{})
+
+					go func() {
+						defer close(opCompleted)
+						_ = process.Info(ctx)
+					}()
+
+					_, err = process.Wait(ctx)
+					require.NoError(t, err)
+
+					longCtx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+					defer cancel()
+
+					select {
+					case <-opCompleted:
+					case <-longCtx.Done():
+						assert.Fail(t, "context timed out waiting for op to return")
+					}
+				},
+				"RunningDoesNotWaitForContextTimeoutAfterProcessCompletes": func(ctx context.Context, t *testing.T, proc *blockingProcess) {
+					opts := &CreateOptions{
+						Args: []string{"ls"},
+					}
+
+					process, err := newBlockingProcess(ctx, opts)
+					require.NoError(t, err)
+
+					opCompleted := make(chan struct{})
+
+					go func() {
+						defer close(opCompleted)
+						_ = process.Running(ctx)
+					}()
+
+					_, err = process.Wait(ctx)
+					require.NoError(t, err)
+
+					longCtx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+					defer cancel()
+
+					select {
+					case <-opCompleted:
+					case <-longCtx.Done():
+						assert.Fail(t, "context timed out waiting for op to return")
+					}
+				},
+				"SignalDoesNotWaitForContextTimeoutAfterProcessCompletes": func(ctx context.Context, t *testing.T, proc *blockingProcess) {
+					opts := &CreateOptions{
+						Args: []string{"ls"},
+					}
+
+					process, err := newBlockingProcess(ctx, opts)
+					require.NoError(t, err)
+
+					opCompleted := make(chan struct{})
+
+					go func() {
+						defer close(opCompleted)
+						_ = process.Signal(ctx, syscall.SIGKILL)
+					}()
+
+					_, _ = process.Wait(ctx)
+
+					longCtx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+					defer cancel()
+
+					select {
+					case <-opCompleted:
+					case <-longCtx.Done():
+						assert.Fail(t, "context timed out waiting for op to return")
+					}
 				},
 				// "": func(ctx context.Context, t *testing.T, proc *blockingProcess) {},
 			} {

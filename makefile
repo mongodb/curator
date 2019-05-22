@@ -147,15 +147,18 @@ vendor-clean:
 	rm -rf vendor/github.com/evergreen-ci/poplar/vendor/gopkg.in/yaml.v2/
 	rm -rf vendor/github.com/mongodb/amboy/vendor/github.com/mongodb/grip/
 	rm -rf vendor/github.com/mongodb/amboy/vendor/github.com/mongodb/mongo-go-driver/
+	rm -rf vendor/github.com/mongodb/amboy/vendor/go.mongodb.org/
 	rm -rf vendor/github.com/mongodb/amboy/vendor/github.com/pkg/errors/
 	rm -rf vendor/github.com/mongodb/amboy/vendor/github.com/stretchr/testify/
+	rm -rf vendor/github.com/mongodb/ftdc/vendor/go.mongodb.org/
 	rm -rf vendor/github.com/mongodb/ftdc/vendor/github.com/mongodb/grip
 	rm -rf vendor/github.com/mongodb/ftdc/vendor/github.com/mongodb/mongo-go-driver
 	rm -rf vendor/github.com/mongodb/ftdc/vendor/github.com/pkg/errors
 	rm -rf vendor/github.com/mongodb/ftdc/vendor/github.com/satori/go.uuid
 	rm -rf vendor/github.com/mongodb/ftdc/vendor/github.com/stretchr/testify
 	rm -rf vendor/github.com/mongodb/ftdc/vendor/github.com/stretchr/testify
-	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/stretchr/testify/
+	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/pkg/
+	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/stretchr/testify
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/evergreen-ci/gimlet
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/pkg/errors/
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/golang/
@@ -171,6 +174,15 @@ vendor-clean:
 	rm -rf vendor/github.com/mongodb/jasper/vendor/google.golang.org/grpc
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/stretchr/
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/satori/go.uuid/
+	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/urfave/
+	rm -rf vendor/go.mongodb.org/mongo-driver/data/
+	rm -rf vendor/go.mongodb.org/mongo-driver/vendor/github.com/davecgh
+	rm -rf vendor/go.mongodb.org/mongo-driver/vendor/github.com/montanaflynn
+	rm -rf vendor/go.mongodb.org/mongo-driver/vendor/github.com/pmezard
+	rm -rf vendor/go.mongodb.org/mongo-driver/vendor/github.com/stretchr
+	rm -rf vendor/go.mongodb.org/mongo-driver/vendor/golang.org/x/crypto
+	rm -rf vendor/go.mongodb.org/mongo-driver/vendor/golang.org/x/net
+	rm -rf vendor/go.mongodb.org/mongo-driver/vendor/golang.org/x/text
 	rm -rf vendor/github.com/papertrail/go-tail/main.go
 	rm -rf vendor/github.com/papertrail/go-tail/vendor/github.com/spf13/pflag/
 	rm -rf vendor/github.com/papertrail/go-tail/vendor/golang.org/x/sys/

@@ -16,28 +16,31 @@ import (
 // userService provides authentication and authorization of users against an LDAP service. It
 // implements the gimlet.Authenticator interface.
 type userService struct {
-	url         string
-	port        string
-	userPath    string
-	servicePath string
-	group       string
-	cache       UserCache
-	connect     connectFunc
-	conn        ldap.Client
+	url          string
+	port         string
+	userPath     string
+	servicePath  string
+	userGroup    string
+	serviceGroup string
+	cache        UserCache
+	connect      connectFunc
+	conn         ldap.Client
 }
 
 // CreationOpts are options to pass to the service constructor.
 type CreationOpts struct {
-	URL         string // URL of the LDAP server
-	Port        string // Port of the LDAP server
-	UserPath    string // Path to users LDAP OU
-	ServicePath string // Path to service users LDAP OU
-	Group       string // LDAP group to authorize users
+	URL          string // URL of the LDAP server
+	Port         string // Port of the LDAP server
+	UserPath     string // Path to users LDAP OU
+	ServicePath  string // Path to service users LDAP OU
+	UserGroup    string // LDAP userGroup to authorize users
+	ServiceGroup string // LDAP serviceGroup to authorize services
 
 	UserCache UserCache
 	// Functions to produce a UserCache
 	PutCache      PutUserGetToken // Put user to cache
 	GetCache      GetUserByToken  // Get user from cache
+	ClearCache    ClearUserToken  // Remove user(s) from cache
 	GetUser       GetUserByID     // Get user from storage
 	GetCreateUser GetOrCreateUser // Get or create user from storage
 
@@ -55,8 +58,12 @@ type PutUserGetToken func(gimlet.User) (string, error)
 // It returns (nil, false, nil) if the user is not present in the cache.
 type GetUserByToken func(string) (gimlet.User, bool, error)
 
+// ClearUserToken is a function provided by the client to remove users' tokens from
+// cache. Passing true will ignore the user passed and clear all users.
+type ClearUserToken func(gimlet.User, bool) error
+
 // GetUserByID is a function provided by the client to get a user from persistent storage.
-type GetUserByID func(string) (gimlet.User, error)
+type GetUserByID func(string) (gimlet.User, bool, error)
 
 // GetOrCreateUser is a function provided by the client to get a user from
 // persistent storage, or if the user does not exist, to create and save it.
@@ -71,13 +78,14 @@ func NewUserService(opts CreationOpts) (gimlet.UserManager, error) {
 		return nil, err
 	}
 	u := &userService{
-		cache:       opts.MakeUserCache(),
-		connect:     connect,
-		url:         opts.URL,
-		port:        opts.Port,
-		userPath:    opts.UserPath,
-		servicePath: opts.ServicePath,
-		group:       opts.Group,
+		cache:        opts.MakeUserCache(),
+		connect:      connect,
+		url:          opts.URL,
+		port:         opts.Port,
+		userPath:     opts.UserPath,
+		servicePath:  opts.ServicePath,
+		userGroup:    opts.UserGroup,
+		serviceGroup: opts.ServiceGroup,
 	}
 
 	// override, typically, for testing
@@ -96,13 +104,13 @@ func (opts CreationOpts) validate() error {
 			opts.URL, opts.Port, opts.UserPath, opts.ServicePath))
 	}
 
-	if opts.Group == "" {
-		catcher.Add(errors.New("LDAP group cannot be empty"))
+	if opts.UserGroup == "" {
+		catcher.Add(errors.New("LDAP user group cannot be empty"))
 	}
 
 	if opts.UserCache == nil {
-		if opts.PutCache == nil || opts.GetCache == nil {
-			catcher.Add(errors.New("PutCache and GetCache must not be nil"))
+		if opts.PutCache == nil || opts.GetCache == nil || opts.ClearCache == nil {
+			catcher.Add(errors.New("PutCache, GetCache, and ClearCache must not be nil"))
 		}
 		if opts.GetUser == nil || opts.GetCreateUser == nil {
 			catcher.Add(errors.New("GetUserByID and GetOrCreateUser must not be nil"))
@@ -123,15 +131,21 @@ func (u *userService) GetUserByToken(_ context.Context, token string) (gimlet.Us
 		return nil, errors.New("token is not present in cache")
 	}
 	if !valid {
-		if err := u.validateGroup(user.Username()); err != nil {
-			return nil, errors.Wrap(err, "could not authorize user")
-		}
-
-		if _, err := u.cache.Put(user); err != nil {
-			return nil, errors.Wrap(err, "problem putting user in cache")
+		if err = u.reauthorizeUser(user); err != nil {
+			return nil, errors.WithStack(err)
 		}
 	}
 	return user, nil
+}
+
+func (u *userService) reauthorizeUser(user gimlet.User) error {
+	if err := u.validateGroup(user.Username()); err != nil {
+		return errors.Wrap(err, "could not authorize user")
+	}
+	if _, err := u.cache.Put(user); err != nil {
+		return errors.Wrap(err, "problem putting user in cache")
+	}
+	return nil
 }
 
 // CreateUserToken creates and returns a new user token from a username and password.
@@ -168,12 +182,29 @@ func (u *userService) IsRedirect() bool { return false }
 
 // GetUserByID gets a user from persistent storage.
 func (u *userService) GetUserByID(id string) (gimlet.User, error) {
-	return u.cache.Find(id)
+	user, valid, err := u.cache.Find(id)
+	if err != nil {
+		return nil, errors.Wrap(err, "problem getting user by id")
+	}
+	if user == nil {
+		return nil, errors.New("user is not present in db")
+	}
+	if !valid {
+		if err = u.reauthorizeUser(user); err != nil {
+			return nil, errors.WithStack(err)
+		}
+	}
+	return user, nil
 }
 
 // GetOrCreateUser gets a user from persistent storage or creates one.
 func (u *userService) GetOrCreateUser(user gimlet.User) (gimlet.User, error) {
 	return u.cache.GetOrCreate(user)
+}
+
+// Clear users from the cache, forcibly logging them out
+func (u *userService) ClearUser(user gimlet.User, all bool) error {
+	return u.cache.Clear(user, all)
 }
 
 // bind wraps u.conn.Bind, reconnecting if the LDAP server has closed the connection.
@@ -232,8 +263,15 @@ func connect(url, port string) (ldap.Client, error) {
 }
 
 func (u *userService) login(username, password string) error {
-	fullPath := fmt.Sprintf("uid=%s,%s", username, u.userPath)
-	return errors.Wrapf(u.bind(fullPath, password), "could not validate user '%s'", username)
+	var err error
+	for _, path := range []string{u.userPath, u.servicePath} {
+		fullPath := fmt.Sprintf("uid=%s,%s", username, path)
+		err = u.bind(fullPath, password)
+		if err == nil {
+			return nil
+		}
+	}
+	return errors.Wrapf(err, "could not validate user '%s'", username)
 }
 
 func (u *userService) validateGroup(username string) error {
@@ -273,7 +311,10 @@ func (u *userService) validateGroup(username string) error {
 		}
 
 		for i := range result.Entries[0].Attributes[0].Values {
-			if result.Entries[0].Attributes[0].Values[i] == u.group {
+			if result.Entries[0].Attributes[0].Values[i] == u.userGroup {
+				return nil
+			}
+			if u.serviceGroup != "" && result.Entries[0].Attributes[0].Values[i] == u.serviceGroup {
 				return nil
 			}
 		}
@@ -285,17 +326,18 @@ func (u *userService) validateGroup(username string) error {
 		}
 	}
 
-	return errors.Errorf("user '%s' is not a member of group '%s'", username, u.group)
+	return errors.Errorf("user '%s' is not a member of user group '%s' or service group '%s'", username, u.userGroup, u.serviceGroup)
 }
 
 func (u *userService) getUserFromLDAP(username string) (gimlet.User, error) {
+	catcher := grip.NewBasicCatcher()
 	var (
-		errs   [2]error
+		found  bool
 		err    error
 		result *ldap.SearchResult
 	)
 
-	for idx, path := range []string{u.userPath, u.servicePath} {
+	for _, path := range []string{u.userPath, u.servicePath} {
 		result, err = u.search(
 			ldap.NewSearchRequest(
 				path,
@@ -308,28 +350,26 @@ func (u *userService) getUserFromLDAP(username string) (gimlet.User, error) {
 				[]string{},
 				nil))
 		if err != nil {
-			errs[idx] = errors.Wrap(err, "problem searching ldap")
+			catcher.Add(errors.Wrap(err, "problem searching ldap"))
 			continue
 		}
 		if len(result.Entries) == 0 {
-			errs[idx] = errors.Errorf("no entry returned for user '%s'", username)
+			catcher.Add(errors.Errorf("no entry returned for user '%s'", username))
 			continue
 		}
 		if len(result.Entries[0].Attributes) == 0 {
-			errs[idx] = errors.Errorf("entry's attributes empty for user '%s'", username)
+			catcher.Add(errors.Errorf("entry's attributes empty for user '%s'", username))
 			continue
 		}
 
+		found = true
 		break
 	}
 
-	for _, err = range errs {
-		if err != nil {
-			return nil, err
-		}
+	if found {
+		return makeUser(result), nil
 	}
-
-	return makeUser(result), nil
+	return nil, catcher.Resolve()
 }
 
 func makeUser(result *ldap.SearchResult) gimlet.User {
@@ -354,5 +394,5 @@ func makeUser(result *ldap.SearchResult) gimlet.User {
 			groups = append(groups, entry.Values...)
 		}
 	}
-	return gimlet.NewBasicUser(id, name, email, "", groups)
+	return gimlet.NewBasicUser(id, name, email, "", "", groups, false)
 }

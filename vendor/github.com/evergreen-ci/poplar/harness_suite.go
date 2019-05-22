@@ -19,7 +19,7 @@ type BenchmarkSuite []*BenchmarkCase
 // validation method for case may also modify a case to set better
 // defaults. Validate has continue-on-error semantics.
 func (s BenchmarkSuite) Validate() error {
-	catcher := grip.NewCatcher()
+	catcher := grip.NewBasicCatcher()
 
 	for _, c := range s {
 		catcher.Add(c.Validate())

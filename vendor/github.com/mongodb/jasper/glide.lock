@@ -8,11 +8,11 @@ imports:
   - name: github.com/stretchr/testify
     version: 890a5c3458b43e6104ff5da8dfa139d013d77544
   - name: github.com/mongodb/grip
-    version: 12c3fdeb2dbd5bc0b124a884f8f5bb3418c49cca
+    version: 8b8accd7a3ec9b31a2d3eea610d5bf906bddfd11
   - name: github.com/evergreen-ci/gimlet
-    version: 713b8d22b5e93a0c25a9f71ca944c86d7ecefe84
+    version: 179b5518bae02593ac2c0678cfbf675bdf27d379
   - name: github.com/tychoish/bond
-    version: a6a4ddb19d113c553f1ab0970d6292e0e95c7221
+    version: d08240643c676e2d06c340a41ce66f62988fcfa1
   - name: github.com/tychoish/lru
     version: f77a748d12a924cfbfcf396426dd58de5aa3a9e2
   - name: github.com/mholt/archiver
@@ -20,9 +20,25 @@ imports:
   - name: github.com/montanaflynn/stats
     version: db72e6cae808b936b0c01fd330ff1fcd2c86c95e
   - name: github.com/mongodb/amboy
-    version: ba41957778899cce2775284bfdb7155475794657
+    version: 2b8431d235ec6c322dba74eff51988ebd8ac1f7f
   - name: github.com/google/shlex
     version: 6f45313302b9c56850fc17f99e40caebce98c716
+  - name: github.com/urfave/cli
+    version: 693af58b4d51b8fcc7f9d89576da170765980581
+
+  # cgroup requirements
+  - name: github.com/containerd/cgroups
+    version: dbea6f2bd41658b84b00417ceefa416b979cbf10
+  - name: github.com/opencontainers/runtime-spec
+    version: ad53dcdc39f1f7f7472b10aa0a45648fe4865496
+  - name: github.com/docker/go-units
+    version: 2fb04c6466a548a03cb009c5569ee1ab1e35398e
+  - name: github.com/coreos/go-systemd
+    version: 95778dfbb74eb7e4dbaf43bf7d71809650ef8076
+  - name: github.com/godbus/dbus
+    version: f93dedc6ceb4596891d18bae4a2adf9258f0acfb
+  - name: github.com/gogo/protobuf
+    version: 382325bbbb4d1c850eec1f3ec92a1a16f502d68b
 
   # grpc and dependencies
   - name: google.golang.org/grpc

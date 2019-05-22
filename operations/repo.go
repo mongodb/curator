@@ -47,7 +47,7 @@ func Repo() cli.Command {
 
 func repoFlags() []cli.Flag {
 	confPath, err := filepath.Abs("repo_config.yaml")
-	grip.CatchEmergencyFatal(err)
+	grip.EmergencyFatal(err)
 
 	profile := os.Getenv("AWS_PROFILE")
 	if profile == "" {
@@ -55,7 +55,7 @@ func repoFlags() []cli.Flag {
 	}
 
 	pwd, err := os.Getwd()
-	grip.CatchEmergencyFatal(err)
+	grip.EmergencyFatal(err)
 	workingDir := filepath.Join(pwd, uuid.Must(uuid.NewV4()).String())
 
 	return []cli.Flag{
@@ -149,7 +149,7 @@ func buildRepo(ctx context.Context, packages, configPath, workingDir, distro, ed
 	// get configuration objects.
 	conf, err := repobuilder.GetConfig(configPath)
 	if err != nil {
-		grip.CatchError(err)
+		grip.Error(err)
 		return errors.Wrap(err, "problem getting repo config")
 	}
 	repo, ok := conf.GetRepositoryDefinition(distro, edition)

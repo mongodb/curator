@@ -2,10 +2,8 @@ package gimlet
 
 import (
 	"context"
-	"errors"
 	"net/http"
-
-	"github.com/mongodb/grip"
+	"net/url"
 )
 
 // RouteHandler provides an alternate method for defining routes with
@@ -24,7 +22,7 @@ type RouteHandler interface {
 	// populate the implementation of the RouteHandler. This also
 	// allows you to isolate your interaction with the request
 	// object.
-	Parse(context.Context, *http.Request) (context.Context, error)
+	Parse(context.Context, *http.Request) error
 
 	// Runs the core buinsess logic for the route, returning a
 	// Responder interface to provide structure around returning
@@ -38,46 +36,38 @@ type RouteHandler interface {
 // standard go http.HandlerFunc.
 func handleHandler(h RouteHandler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var err error
-
 		handler := h.Factory()
 		ctx, cancel := context.WithCancel(r.Context())
 		defer cancel()
 
-		ctx, err = handler.Parse(ctx, r)
-		if err != nil {
-			grip.Error(err)
-			WriteTextResponse(w, http.StatusBadRequest, err)
+		if err := handler.Parse(ctx, r); err != nil {
+			e := getError(err, http.StatusBadRequest)
+			WriteJSONResponse(w, e.StatusCode, e)
 			return
 		}
 
 		resp := handler.Run(ctx)
 		if resp == nil {
-			WriteTextResponse(w, http.StatusInternalServerError, errors.New("undefined response"))
+			e := ErrorResponse{
+				StatusCode: http.StatusInternalServerError,
+				Message:    "undefined response",
+			}
+			WriteJSONResponse(w, e.StatusCode, e)
 			return
 		}
 
 		if err := resp.Validate(); err != nil {
-			grip.Error(err)
-			WriteTextResponse(w, http.StatusInternalServerError, err)
+			e := getError(err, http.StatusBadRequest)
+			WriteJSONResponse(w, e.StatusCode, e)
 			return
 		}
 
 		// if this response is paginated, add the appropriate metadata.
 		if resp.Pages() != nil {
-			w.Header().Set("Link", resp.Pages().GetLinks(r.URL.Path))
+			routeURL := url.URL{Path: r.URL.Path, RawQuery: r.URL.RawQuery}
+			w.Header().Set("Link", resp.Pages().GetLinks(routeURL.String()))
 		}
 
-		// Write the response, based on the format specified.
-		switch resp.Format() {
-		case JSON:
-			WriteJSONResponse(w, resp.Status(), resp.Data())
-		case TEXT:
-			WriteTextResponse(w, resp.Status(), resp.Data())
-		case HTML:
-			WriteHTMLResponse(w, resp.Status(), resp.Data())
-		case BINARY:
-			WriteBinaryResponse(w, resp.Status(), resp.Data())
-		}
+		WriteResponse(w, resp)
 	}
 }

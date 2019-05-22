@@ -100,7 +100,7 @@ outerRetry:
 				return nil, -1
 			}
 			srv := NewManagerService(localManager)
-			app := srv.App()
+			app := srv.App(ctx)
 			app.SetPrefix("jasper")
 			if err := app.SetPort(port); err != nil {
 				continue outerRetry
@@ -162,7 +162,6 @@ type MockManager struct {
 	FailList     bool
 	FailGroup    bool
 	FailGet      bool
-	FailClear    bool
 	FailClose    bool
 	Process      *MockProcess
 	Array        []Process

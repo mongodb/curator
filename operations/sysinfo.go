@@ -229,14 +229,14 @@ func getLogger(fn string) (grip.Journaler, closer, error) {
 		if err != nil {
 			return nil, closer, errors.Wrap(err, "problem building logger")
 		}
-		closer = func() { grip.CatchCritical(sender.Close()) }
+		closer = func() { grip.Critical(sender.Close()) }
 
 		if err = logger.SetSender(sender); err != nil {
 			return nil, closer, errors.Wrap(err, "problem configuring logger")
 		}
 	} else {
 		sender = send.MakeJSONConsoleLogger()
-		closer = func() { grip.CatchCritical(sender.Close()) }
+		closer = func() { grip.Critical(sender.Close()) }
 
 		if err = logger.SetSender(sender); err != nil {
 			return nil, closer, errors.Wrap(err, "problem configuring logger")

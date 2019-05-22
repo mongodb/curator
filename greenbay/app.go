@@ -91,15 +91,15 @@ func (a *Application) Run(ctx context.Context) error {
 			catcher.Add(check.Err)
 			continue
 		}
-		catcher.Add(q.Put(check.Job))
+		catcher.Add(q.Put(ctx, check.Job))
 	}
 	if catcher.HasErrors() {
 		return errors.Wrap(catcher.Resolve(), "problem collecting and submitting jobs")
 	}
 
-	stats := q.Stats()
+	stats := q.Stats(ctx)
 	grip.Noticef("registered %d jobs, running checks now", stats.Total)
-	amboy.WaitCtxInterval(ctx, q, 10*time.Millisecond)
+	amboy.WaitInterval(ctx, q, 10*time.Millisecond)
 
 	grip.Noticef("checks complete in [num=%d, runtime=%s] ", stats.Total, time.Since(start))
 	if err := a.Output.ProduceResults(ctx, q); err != nil {

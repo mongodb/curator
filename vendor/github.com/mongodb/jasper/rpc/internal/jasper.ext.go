@@ -10,7 +10,8 @@ import (
 )
 
 // Export takes a protobuf RPC CreateOptions struct and returns the analogous
-// Jasper CreateOptions struct.
+// Jasper CreateOptions struct. It is not safe to concurrently access the
+// exported RPC CreateOptions and the returned Jasper CreateOptions.
 func (opts *CreateOptions) Export() *jasper.CreateOptions {
 	out := &jasper.CreateOptions{
 		Args:             opts.Args,
@@ -41,7 +42,9 @@ func (opts *CreateOptions) Export() *jasper.CreateOptions {
 
 // ConvertCreateOptions takes a Jasper CreateOptions struct and returns an
 // equivalent protobuf RPC *CreateOptions struct. ConvertCreateOptions is the
-// inverse of (*CreateOptions) Export().
+// inverse of (*CreateOptions) Export(). It is not safe to concurrently
+// access the converted Jasper CreateOptions and the returned RPC
+// CreateOptions.
 func ConvertCreateOptions(opts *jasper.CreateOptions) *CreateOptions {
 	if opts.TimeoutSecs == 0 && opts.Timeout != 0 {
 		opts.TimeoutSecs = int(opts.Timeout.Seconds())
@@ -433,19 +436,46 @@ func (opts *BuildOptions) Export() bond.BuildOptions {
 	}
 }
 
+// ConvertBuildOptions takes a bond BuildOptions struct and returns an
+// equivalent protobuf RPC BuildOptions struct. ConvertBuildOptions is the
+// inverse of (*BuildOptions) Export().
+func ConvertBuildOptions(opts bond.BuildOptions) *BuildOptions {
+	return &BuildOptions{
+		Target:  opts.Target,
+		Arch:    string(opts.Arch),
+		Edition: string(opts.Edition),
+		Debug:   opts.Debug,
+	}
+}
+
 // Export takes a protobuf RPC MongoDBDownloadOptions struct and returns the
 // analogous Jasper MongoDBDownloadOptions struct.
 func (opts *MongoDBDownloadOptions) Export() jasper.MongoDBDownloadOptions {
 	jopts := jasper.MongoDBDownloadOptions{
-		BuildOpts: opts.BuildOptions.Export(),
+		BuildOpts: opts.BuildOpts.Export(),
 		Path:      opts.Path,
+		Releases:  make([]string, 0, len(opts.Releases)),
 	}
-
-	jopts.Releases = make([]string, 0, len(opts.Releases))
 	for _, release := range opts.Releases {
 		jopts.Releases = append(jopts.Releases, release)
 	}
 	return jopts
+}
+
+// ConvertMongoDBDownloadOptions takes a Jasper MongoDBDownloadOptions struct
+// and returns an equivalent protobuf RPC MongoDBDownloadOptions struct.
+// ConvertMongoDBDownloadOptions is the
+// inverse of (*MongoDBDownloadOptions) Export().
+func ConvertMongoDBDownloadOptions(jopts jasper.MongoDBDownloadOptions) *MongoDBDownloadOptions {
+	opts := &MongoDBDownloadOptions{
+		BuildOpts: ConvertBuildOptions(jopts.BuildOpts),
+		Path:      jopts.Path,
+		Releases:  make([]string, 0, len(jopts.Releases)),
+	}
+	for _, release := range opts.Releases {
+		opts.Releases = append(opts.Releases, release)
+	}
+	return opts
 }
 
 // Export takes a protobuf RPC CacheOptions struct and returns the analogous
@@ -453,8 +483,19 @@ func (opts *MongoDBDownloadOptions) Export() jasper.MongoDBDownloadOptions {
 func (opts *CacheOptions) Export() jasper.CacheOptions {
 	return jasper.CacheOptions{
 		Disabled:   opts.Disabled,
-		PruneDelay: time.Duration(opts.PruneDelay),
+		PruneDelay: time.Duration(opts.PruneDelaySeconds) * time.Second,
 		MaxSize:    int(opts.MaxSize),
+	}
+}
+
+// ConvertCacheOptions takes a Jasper CacheOptions struct and returns an
+// equivalent protobuf RPC CacheOptions struct. ConvertCacheOptions is the
+// inverse of (*CacheOptions) Export().
+func ConvertCacheOptions(jopts jasper.CacheOptions) *CacheOptions {
+	return &CacheOptions{
+		Disabled:          jopts.Disabled,
+		PruneDelaySeconds: int64(jopts.PruneDelay / time.Second),
+		MaxSize:           int64(jopts.MaxSize),
 	}
 }
 

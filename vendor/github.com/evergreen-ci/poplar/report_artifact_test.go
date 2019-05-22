@@ -119,20 +119,11 @@ func TestUpload(t *testing.T) {
 	s3Name := "build-test-curator"
 	s3Prefix := "poplar-test"
 	s3Region := "us-east-1"
-	s3Opts := pail.S3Options{
-		Name:   s3Name,
-		Prefix: s3Prefix,
-		Region: s3Region,
-	}
-	s3Bucket, err := pail.NewS3Bucket(s3Opts)
-	require.NoError(t, err)
-
 	for _, test := range []struct {
 		name        string
 		artifact    *TestArtifact
-		bucketConf  *BucketConfiguration
+		bucketConf  BucketConfiguration
 		dryRunNoErr bool
-		newBucket   bool
 		hasErr      bool
 	}{
 		{
@@ -141,8 +132,8 @@ func TestUpload(t *testing.T) {
 				Bucket: "bucket",
 				Path:   "bson_example.bson",
 			},
-			bucketConf: &BucketConfiguration{
-				bucket: s3Bucket,
+			bucketConf: BucketConfiguration{
+				Region: s3Region,
 			},
 			hasErr: true,
 		},
@@ -152,8 +143,8 @@ func TestUpload(t *testing.T) {
 				Bucket:    "bucket",
 				LocalFile: "testdata/bson_example.bson",
 			},
-			bucketConf: &BucketConfiguration{
-				bucket: s3Bucket,
+			bucketConf: BucketConfiguration{
+				Region: s3Region,
 			},
 			hasErr: true,
 		},
@@ -173,8 +164,8 @@ func TestUpload(t *testing.T) {
 				Path:      "bson_example.bson",
 				LocalFile: "DNE",
 			},
-			bucketConf: &BucketConfiguration{
-				bucket: s3Bucket,
+			bucketConf: BucketConfiguration{
+				Region: s3Region,
 			},
 			hasErr: true,
 		},
@@ -184,8 +175,10 @@ func TestUpload(t *testing.T) {
 				Path:      "bson_example.bson",
 				LocalFile: "testdata/bson_example.bson",
 			},
-			bucketConf: &BucketConfiguration{},
-			hasErr:     true,
+			bucketConf: BucketConfiguration{
+				Region: s3Region,
+			},
+			hasErr: true,
 		},
 		{
 			name: "NoRegionSpecified",
@@ -195,11 +188,8 @@ func TestUpload(t *testing.T) {
 				Path:      "bson_example.bson",
 				LocalFile: "testdata/bson_example.bson",
 			},
-			bucketConf: &BucketConfiguration{
-				name:   s3Name,
-				prefix: s3Prefix,
-			},
-			hasErr: true,
+			bucketConf: BucketConfiguration{},
+			hasErr:     true,
 		},
 		{
 			name: "BadCredentialsKeyAndSecret",
@@ -209,7 +199,7 @@ func TestUpload(t *testing.T) {
 				Path:      "bson_example.bson",
 				LocalFile: "testdata/bson_example.bson",
 			},
-			bucketConf: &BucketConfiguration{
+			bucketConf: BucketConfiguration{
 				APIKey:    "asdf",
 				APISecret: "asdf",
 				Region:    s3Region,
@@ -225,70 +215,23 @@ func TestUpload(t *testing.T) {
 				Path:      "bson_example.bson",
 				LocalFile: "testdata/bson_example.bson",
 			},
-			bucketConf: &BucketConfiguration{
+			bucketConf: BucketConfiguration{
 				APIToken: "asdf",
 				Region:   s3Region,
 			},
 			hasErr: true,
 		},
 		{
-			name: "ExistingBucket",
-			artifact: &TestArtifact{
-				Bucket:    s3Name,
-				Prefix:    s3Prefix,
-				Path:      "bson_example1.bson",
-				LocalFile: "testdata/bson_example.bson",
-			},
-			bucketConf: &BucketConfiguration{
-				Region: s3Region,
-				name:   s3Name,
-				prefix: s3Prefix,
-				bucket: s3Bucket,
-			},
-		},
-		{
-			name: "EmptyBucketConfiguration",
+			name: "SuccessfulUpload",
 			artifact: &TestArtifact{
 				Bucket:    s3Name,
 				Prefix:    s3Prefix,
 				Path:      "bson_example2.bson",
 				LocalFile: "testdata/bson_example.bson",
 			},
-			bucketConf: &BucketConfiguration{
+			bucketConf: BucketConfiguration{
 				Region: s3Region,
 			},
-			newBucket: true,
-		},
-		{
-			name: "ExistingBucketNewName",
-			artifact: &TestArtifact{
-				Bucket:    s3Name,
-				Prefix:    s3Prefix,
-				Path:      "bson_example3.bson",
-				LocalFile: "testdata/bson_example.bson",
-			},
-			bucketConf: &BucketConfiguration{
-				Region: s3Region,
-				bucket: s3Bucket,
-				name:   "differentName",
-			},
-			newBucket: true,
-		},
-		{
-			name: "ExistingBucketNewPrefix",
-			artifact: &TestArtifact{
-				Bucket:    s3Name,
-				Prefix:    "differentPrefix",
-				Path:      "bson_example4.bson",
-				LocalFile: "testdata/bson_example.bson",
-			},
-			bucketConf: &BucketConfiguration{
-				Region: s3Region,
-				bucket: s3Bucket,
-				name:   s3Name,
-				prefix: s3Prefix,
-			},
-			newBucket: true,
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -299,32 +242,10 @@ func TestUpload(t *testing.T) {
 				require.Error(t, test.artifact.Upload(ctx, test.bucketConf, false))
 			} else {
 				for _, dryRun := range []bool{true, false} {
-					bucketConf := &BucketConfiguration{
-						APIKey:    test.bucketConf.APIKey,
-						APISecret: test.bucketConf.APISecret,
-						APIToken:  test.bucketConf.APIToken,
-						Region:    test.bucketConf.Region,
-						name:      test.bucketConf.name,
-						prefix:    test.bucketConf.prefix,
-						bucket:    test.bucketConf.bucket,
-					}
-					require.NoError(t, test.artifact.Upload(ctx, bucketConf, dryRun))
-					defer func() {
-						assert.NoError(t, bucketConf.bucket.Remove(ctx, test.artifact.Path))
-					}()
-
-					if test.newBucket || dryRun {
-						assert.NotEqual(t, test.bucketConf.bucket, bucketConf.bucket)
-					} else {
-						assert.Equal(t, test.bucketConf.bucket, bucketConf.bucket)
-					}
-					assert.Equal(t, test.artifact.Bucket, bucketConf.name)
-					assert.Equal(t, test.artifact.Prefix, bucketConf.prefix)
-
 					opts := pail.S3Options{
 						Name:   test.artifact.Bucket,
 						Prefix: test.artifact.Prefix,
-						Region: bucketConf.Region,
+						Region: test.bucketConf.Region,
 					}
 					if (test.bucketConf.APIKey != "" && test.bucketConf.APISecret != "") || test.bucketConf.APIToken != "" {
 						opts.Credentials = pail.CreateAWSCredentials(
@@ -335,6 +256,12 @@ func TestUpload(t *testing.T) {
 					}
 					bucket, err := pail.NewS3Bucket(opts)
 					require.NoError(t, err)
+
+					require.NoError(t, test.artifact.Upload(ctx, test.bucketConf, dryRun))
+					defer func() {
+						assert.NoError(t, bucket.Remove(ctx, test.artifact.Path))
+					}()
+
 					r, err := bucket.Get(ctx, test.artifact.Path)
 					if dryRun {
 						require.Error(t, err)

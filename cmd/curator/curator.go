@@ -19,7 +19,7 @@ func main() {
 	// environment.
 	app := buildApp()
 	err := app.Run(os.Args)
-	grip.CatchEmergencyFatal(err)
+	grip.EmergencyFatal(err)
 }
 
 // we build the app outside of main so that we can test the operation
