@@ -32,12 +32,12 @@ func (s *RepoJobSuite) SetupTest() {
 
 func (s *RepoJobSuite) TearDownTest() {
 	for _, path := range s.j.workingDirs {
-		grip.CatchError(os.RemoveAll(filepath.Join(s.j.WorkSpace, path)))
+		grip.Error(os.RemoveAll(filepath.Join(s.j.WorkSpace, path)))
 	}
 }
 
 func (s *RepoJobSuite) TestDependencyAccessorIsCorrect() {
-	s.Equal(dependency.AlwaysRun, s.j.Dependency().Type().Name)
+	s.Equal("always", s.j.Dependency().Type().Name)
 }
 
 func (s *RepoJobSuite) TestSetDependencyAcceptsDifferentAlwaysRunInstances() {

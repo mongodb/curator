@@ -13,6 +13,7 @@ import (
 	"github.com/mongodb/amboy/job"
 	"github.com/mongodb/amboy/queue"
 	"github.com/mongodb/grip"
+	"github.com/pkg/errors"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -90,13 +91,13 @@ func (s *ProducerSuite) SetupSuite() {
 		}
 
 		if i%2 == 0 {
-			c.Errors = []string{"even"}
+			c.AddError(errors.New("even"))
 		}
 
-		s.NoError(s.queue.Put(c))
+		s.NoError(s.queue.Put(ctx, c))
 	}
 
-	amboy.Wait(s.queue)
+	amboy.Wait(ctx, s.queue)
 }
 
 func (s *ProducerSuite) SetupTest() {
@@ -160,8 +161,8 @@ func (s *ProducerSuite) TestWithQueueAndInvalidJobs() {
 	q := queue.NewLocalUnordered(2)
 	s.require.NoError(q.Start(ctx))
 
-	s.NoError(q.Put(job.NewShellJob("echo foo", "")))
-	amboy.Wait(q)
+	s.NoError(q.Put(ctx, job.NewShellJob("echo foo", "")))
+	amboy.Wait(ctx, q)
 	s.Error(s.results.Populate(q.Results(ctx)))
 }
 

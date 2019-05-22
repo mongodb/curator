@@ -45,10 +45,10 @@ func (s *OptionsSuite) SetupSuite() {
 	for i := 0; i < num; i++ {
 		c := &mockCheck{}
 		c.SetID(fmt.Sprintf("mock-check-%d", i))
-		s.NoError(s.queue.Put(c))
+		s.NoError(s.queue.Put(ctx, c))
 	}
-	s.Equal(num, s.queue.Stats().Total)
-	amboy.Wait(s.queue)
+	s.Equal(num, s.queue.Stats(ctx).Total)
+	amboy.Wait(ctx, s.queue)
 }
 
 func (s *OptionsSuite) SetupTest() {
