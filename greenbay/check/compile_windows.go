@@ -182,7 +182,7 @@ func (c *compileVS) Compile(testBody string, cFlags ...string) error {
 	if err != nil {
 		return errors.Wrap(err, "problem compiling software")
 	}
-	defer grip.CatchWarning(os.Remove(fmt.Sprintf("%s.obj", outputName)))
+	defer grip.Warning(os.Remove(fmt.Sprintf("%s.obj", outputName)))
 
 	return nil
 }
