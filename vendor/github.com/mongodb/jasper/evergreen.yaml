@@ -94,7 +94,6 @@ buildvariants:
       - archlinux-test
     tasks: 
       - name: ".race"
-      - name: ".bench"
 
   - name: ubuntu1604
     display_name: Ubuntu 16.04
@@ -114,7 +113,6 @@ buildvariants:
       - ubuntu1604-test
     tasks: 
       - name: ".legacy-check"
-
 
   - name: macos
     display_name: macOS 10.12

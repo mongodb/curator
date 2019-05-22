@@ -233,7 +233,7 @@ func (j *Job) signFile(fileName, archiveExtension string, overwrite bool) error 
 		// with the signed file, then we should remove the
 		// signed artifact before. Unclear if this is needed,
 		// the cronjob did this.
-		grip.CatchWarning(os.Remove(fileName + "." + archiveExtension))
+		grip.Warning(os.Remove(fileName + "." + archiveExtension))
 	}
 
 	args = append(args, filepath.Base(fileName))

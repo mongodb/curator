@@ -79,7 +79,7 @@ func jasperCombined() cli.Command {
 			}
 
 			// assemble the rest service
-			rest := jasper.NewManagerService(mngr).App()
+			rest := jasper.NewManagerService(mngr).App(ctx)
 			rest.SetPrefix("jasper")
 			if err = rest.SetPort(restPort); err != nil {
 				return errors.WithStack(err)
@@ -216,7 +216,7 @@ func jasperREST() cli.Command {
 			}
 
 			mngr := jasper.NewManagerService(m)
-			app := mngr.App()
+			app := mngr.App(ctx)
 			app.SetPrefix("jasper")
 
 			if err := app.SetPort(port); err != nil {

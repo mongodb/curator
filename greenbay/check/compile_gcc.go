@@ -77,7 +77,7 @@ func (c compileGCC) Compile(testBody string, cFlags ...string) error {
 	}
 	defer func() { grip.Error(os.Remove(outputName)) }()
 
-	defer grip.CatchWarning(os.Remove(outputName))
+	defer grip.Warning(os.Remove(outputName))
 	argv := []string{"-Werror", "-o", outputName, "-c", sourceName}
 	argv = append(argv, cFlags...)
 

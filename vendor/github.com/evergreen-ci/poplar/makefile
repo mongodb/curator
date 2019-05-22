@@ -140,7 +140,7 @@ vendor:
 
 .PHONY:vendor
 vendor-clean:
-	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/montanaflynn/
+	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/montanaflynn/stats/
 	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/stretchr/testify/
 	rm -rf vendor/github.com/mongodb/grip/vendor/golang.org/x/sys/
 	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/pkg/errors/
@@ -158,6 +158,10 @@ vendor-clean:
 	rm -rf vendor/github.com/evergreen-ci/pail/vendor/github.com/pkg/errors/
 	rm -rf vendor/github.com/evergreen-ci/pail/vendor/github.com/stretchr/testify/
 	rm -rf vendor/github.com/papertrail/go-tail/vendor/golang.org/x/sys/
+	rm -rf vendor/github.com/mongodb/amboy/vendor/github.com/pkg/errors/
+	rm -rf vendor/github.com/mongodb/amboy/vendor/github.com/stretchr/testify/
+	rm -rf vendor/github.com/mongodb/amboy/vendor/github.com/mongodb/grip/
+	rm -rf vendor/github.com/mongodb/amboy/vendor/gopkg.in/yaml.v2/
 	find vendor/ -name "*.gif" -o -name "*.gz" -o -name "*.png" -o -name "*.ico" -o -name "*.dat" -o -name "*testdata" | xargs rm -rf
 
 # convenience targets for runing tests and coverage tasks on a

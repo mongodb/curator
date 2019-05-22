@@ -11,10 +11,11 @@ import (
 	"github.com/mongodb/ftdc/bsonx"
 	"github.com/mongodb/grip"
 	"github.com/mongodb/grip/message"
-	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/mongo"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // flag names
@@ -507,7 +508,7 @@ func toMDB() cli.Command {
 			}
 			defer func() { grip.Error(srcFile.Close()) }()
 
-			client, err := mongo.NewClient(mdburl)
+			client, err := mongo.NewClient(options.Client().ApplyURI(mdburl))
 			if err != nil {
 				return errors.Wrap(err, "problem creating mongodb client")
 			}
@@ -624,7 +625,7 @@ func fromMDB() cli.Command {
 			batchSize := c.Int("batchSize")
 			shouldContinue := c.Bool("continue")
 
-			client, err := mongo.NewClient(mdburl)
+			client, err := mongo.NewClient(options.Client().ApplyURI(mdburl))
 			if err != nil {
 				return errors.Wrap(err, "problem creating mongodb client")
 			}

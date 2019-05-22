@@ -3,7 +3,6 @@ package poplar
 import (
 	"time"
 
-	"github.com/evergreen-ci/pail"
 	"github.com/mongodb/grip"
 	"github.com/pkg/errors"
 )
@@ -148,8 +147,4 @@ type BucketConfiguration struct {
 	APISecret string `bson:"api_secret" json:"api_secret" yaml:"api_secret"`
 	APIToken  string `bson:"api_token" json:"api_token" yaml:"api_token"`
 	Region    string `bson:"region" json:"region" yaml:"region"`
-
-	name   string
-	prefix string
-	bucket pail.Bucket
 }

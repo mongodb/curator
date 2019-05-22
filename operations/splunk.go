@@ -89,7 +89,7 @@ func setupSplunkLogger(c *cli.Context) (*cmdLogger, error) {
 	}
 	out.logger = logging.MakeGrip(sender)
 	out.closer = func() {
-		grip.CatchError(sender.Close())
+		grip.Error(sender.Close())
 	}
 
 	return out, nil

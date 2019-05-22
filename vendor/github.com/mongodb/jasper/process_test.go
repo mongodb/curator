@@ -409,7 +409,8 @@ func TestProcessImplementations(t *testing.T) {
 					require.NoError(t, err)
 
 					newProc, err := proc.Respawn(ctx)
-					assert.NoError(t, err)
+					require.NoError(t, err)
+					require.NotNil(t, newProc)
 					_, err = newProc.Wait(ctx)
 					require.NoError(t, err)
 					assert.True(t, newProc.Info(ctx).Successful)
@@ -421,7 +422,8 @@ func TestProcessImplementations(t *testing.T) {
 					require.NotNil(t, proc)
 
 					newProc, err := proc.Respawn(ctx)
-					assert.NoError(t, err)
+					require.NoError(t, err)
+					require.NotNil(t, newProc)
 					_, err = newProc.Wait(ctx)
 					require.NoError(t, err)
 					assert.True(t, newProc.Info(ctx).Successful)
@@ -532,6 +534,22 @@ func TestProcessImplementations(t *testing.T) {
 						assert.Fail(t, "call to Wait() took too long to finish")
 					}
 					require.NoError(t, Terminate(ctx, proc)) // Clean up.
+				},
+				"InfoHasTimeoutWhenProcessTimesOut": func(ctx context.Context, t *testing.T, opts *CreateOptions, makep ProcessConstructor) {
+					opts = sleepCreateOpts(100)
+					opts.Timeout = time.Second
+					opts.TimeoutSecs = 1
+					proc, err := makep(ctx, opts)
+					require.NoError(t, err)
+
+					exitCode, err := proc.Wait(ctx)
+					assert.Error(t, err)
+					if runtime.GOOS == "windows" {
+						assert.Equal(t, 1, exitCode)
+					} else {
+						assert.Equal(t, int(syscall.SIGKILL), exitCode)
+					}
+					assert.True(t, proc.Info(ctx).Timeout)
 				},
 				// "": func(ctx context.Context, t *testing.T, opts *CreateOptions, makep ProcessConstructor) {},
 			} {

@@ -2,9 +2,13 @@ package jasper
 
 import (
 	"context"
+	"crypto/sha1"
 	"fmt"
+	"hash"
+	"io"
 	"os"
 	"os/exec"
+	"sort"
 	"time"
 
 	"github.com/google/shlex"
@@ -16,23 +20,23 @@ import (
 
 // CreateOptions contains options related to starting a process. This includes
 // execution configuration, post-execution triggers, and output configuration.
+// It is not safe for concurrent access.
 type CreateOptions struct {
-	Args             []string          `json:"args"`
-	Environment      map[string]string `json:"env,omitempty"`
-	Hostname         string            `json:"host,omitempty"`
-	WorkingDirectory string            `json:"working_directory,omitempty"`
-	Output           OutputOptions     `json:"output"`
-	OverrideEnviron  bool              `json:"override_env,omitempty"`
-	TimeoutSecs      int               `json:"timeout_secs,omitempty"`
-	Timeout          time.Duration     `json:"-"`
-	Tags             []string          `json:"tags"`
-	OnSuccess        []*CreateOptions  `json:"on_success"`
-	OnFailure        []*CreateOptions  `json:"on_failure"`
-	OnTimeout        []*CreateOptions  `json:"on_timeout"`
+	Args             []string          `bson:"args" json:"args" yaml:"args"`
+	Environment      map[string]string `bson:"env,omitempty" json:"env,omitempty" yaml:"env,omitempty"`
+	WorkingDirectory string            `bson:"working_directory,omitempty" json:"working_directory,omitempty" yaml:"working_directory,omitempty"`
+	Output           OutputOptions     `bson:"output" json:"output" yaml:"output"`
+	OverrideEnviron  bool              `bson:"override_env,omitempty" json:"override_env,omitempty" yaml:"override_env,omitempty"`
+	TimeoutSecs      int               `bson:"timeout_secs,omitempty" json:"timeout_secs,omitempty" yaml:"timeout_secs,omitempty"`
+	// On remote interfaces, TimeoutSecs must be set instead of Timeout.
+	Timeout       time.Duration    `bson:"timeout" json:"-" yaml:"-"`
+	Tags          []string         `bson:"tags" json:"tags" yaml:"tags"`
+	OnSuccess     []*CreateOptions `bson:"on_success" json:"on_success" yaml:"on_success"`
+	OnFailure     []*CreateOptions `bson:"on_failure" json:"on_failure" yaml:"on_failure"`
+	OnTimeout     []*CreateOptions `bson:"on_timeout" json:"on_timeout" yaml:"on_timeout"`
+	StandardInput io.Reader        `bson:"-" json:"-" yaml:"-"`
 
-	//
 	closers []func() error
-	started bool
 }
 
 // MakeCreationOptions takes a command string and returns an equivalent
@@ -64,7 +68,7 @@ func (opts *CreateOptions) Validate() error {
 	}
 
 	if opts.Timeout > 0 && opts.Timeout < time.Second {
-		return errors.New("when specifying a timeout you must use out greater than one second")
+		return errors.New("when specifying a timeout, it must be greater than one second")
 	}
 
 	if opts.Timeout != 0 && opts.TimeoutSecs != 0 {
@@ -99,15 +103,42 @@ func (opts *CreateOptions) Validate() error {
 	return nil
 }
 
-// Resolve creates the command object according to the create options.
-func (opts *CreateOptions) Resolve(ctx context.Context) (*exec.Cmd, error) {
+func (opts *CreateOptions) hash() hash.Hash {
+	hash := sha1.New()
+
+	_, _ = io.WriteString(hash, opts.WorkingDirectory)
+	for _, a := range opts.Args {
+		_, _ = io.WriteString(hash, a)
+	}
+
+	for _, t := range opts.Tags {
+		_, _ = io.WriteString(hash, t)
+	}
+
+	env := []string{}
+	for k, v := range opts.Environment {
+		env = append(env, fmt.Sprintf("%s=%s", k, v))
+	}
+
+	sort.Strings(env)
+	for _, e := range env {
+		_, _ = io.WriteString(hash, e)
+	}
+
+	return hash
+}
+
+// Resolve creates the command object according to the create options. It
+// returns the resolved command and the deadline when the command will be
+// terminated by timeout. If there is no deadline, it returns the zero time.
+func (opts *CreateOptions) Resolve(ctx context.Context) (*exec.Cmd, time.Time, error) {
 	var err error
 	if ctx.Err() != nil {
-		return nil, errors.New("cannot resolve command with canceled context")
+		return nil, time.Time{}, errors.New("cannot resolve command with canceled context")
 	}
 
 	if err = opts.Validate(); err != nil {
-		return nil, errors.WithStack(err)
+		return nil, time.Time{}, errors.WithStack(err)
 	}
 
 	if opts.WorkingDirectory == "" {
@@ -119,19 +150,19 @@ func (opts *CreateOptions) Resolve(ctx context.Context) (*exec.Cmd, error) {
 		env = os.Environ()
 	}
 
-	for k, v := range opts.Environment {
-		env = append(env, fmt.Sprintf("%s=%s", k, v))
-	}
+	env = append(env, opts.getEnvSlice()...)
 
 	var args []string
 	if len(opts.Args) > 1 {
 		args = opts.Args[1:]
 	}
 
+	var deadline time.Time
 	if opts.Timeout > 0 {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(ctx, opts.Timeout)
-		opts.closers = append(opts.closers, func() (_ error) { cancel(); return })
+		deadline, _ = ctx.Deadline()
+		opts.closers = append(opts.closers, func() error { cancel(); return nil })
 	}
 
 	cmd := exec.CommandContext(ctx, opts.Args[0], args...) // nolint
@@ -139,13 +170,17 @@ func (opts *CreateOptions) Resolve(ctx context.Context) (*exec.Cmd, error) {
 
 	cmd.Stdout, err = opts.Output.GetOutput()
 	if err != nil {
-		return nil, err
+		return nil, time.Time{}, errors.WithStack(err)
 	}
 	cmd.Stderr, err = opts.Output.GetError()
 	if err != nil {
-		return nil, err
+		return nil, time.Time{}, errors.WithStack(err)
 	}
 	cmd.Env = env
+
+	if opts.StandardInput != nil {
+		cmd.Stdin = opts.StandardInput
+	}
 
 	// Senders require Close() or else command output is not guaranteed to log.
 	opts.closers = append(opts.closers, func() error {
@@ -164,10 +199,20 @@ func (opts *CreateOptions) Resolve(ctx context.Context) (*exec.Cmd, error) {
 			catcher.Add(opts.Output.errorSender.Sender.Close())
 		}
 
-		return catcher.Resolve()
+		return errors.WithStack(catcher.Resolve())
 	})
 
-	return cmd, nil
+	return cmd, deadline, nil
+}
+
+// getEnvSlice returns the (CreateOptions).Environment as a slice of environment
+// variables in the form "key=value".
+func (opts *CreateOptions) getEnvSlice() []string {
+	env := []string{}
+	for k, v := range opts.Environment {
+		env = append(env, fmt.Sprintf("%s=%s", k, v))
+	}
+	return env
 }
 
 // AddEnvVar adds an environment variable to the CreateOptions struct on which
@@ -190,4 +235,48 @@ func (opts *CreateOptions) Close() error {
 		catcher.Add(c())
 	}
 	return catcher.Resolve()
+}
+
+// Copy returns a copy of the options for only the exported fields. Unexported
+// fields are cleared.
+func (opts *CreateOptions) Copy() *CreateOptions {
+	optsCopy := *opts
+
+	if opts.Args != nil {
+		optsCopy.Args = make([]string, len(opts.Args))
+		_ = copy(optsCopy.Args, opts.Args)
+	}
+
+	if opts.Tags != nil {
+		optsCopy.Tags = make([]string, len(opts.Tags))
+		_ = copy(optsCopy.Tags, opts.Tags)
+	}
+
+	if opts.Environment != nil {
+		optsCopy.Environment = make(map[string]string)
+		for key, val := range opts.Environment {
+			optsCopy.Environment[key] = val
+		}
+	}
+
+	if opts.OnSuccess != nil {
+		optsCopy.OnSuccess = make([]*CreateOptions, len(opts.OnSuccess))
+		_ = copy(optsCopy.OnSuccess, opts.OnSuccess)
+	}
+
+	if opts.OnFailure != nil {
+		optsCopy.OnFailure = make([]*CreateOptions, len(opts.OnFailure))
+		_ = copy(optsCopy.OnFailure, opts.OnFailure)
+	}
+
+	if opts.OnTimeout != nil {
+		optsCopy.OnTimeout = make([]*CreateOptions, len(opts.OnTimeout))
+		_ = copy(optsCopy.OnTimeout, opts.OnTimeout)
+	}
+
+	optsCopy.Output = *opts.Output.Copy()
+
+	optsCopy.closers = nil
+
+	return &optsCopy
 }

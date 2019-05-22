@@ -180,7 +180,13 @@ func poplarReport() cli.Command {
 				return errors.WithStack(err)
 			}
 
-			if err := rpc.UploadReport(ctx, report, conn, dryRun); err != nil {
+			opts := rpc.UploadReportOptions{
+				Report:          report,
+				ClientConn:      conn,
+				DryRun:          dryRun,
+				SerializeUpload: true,
+			}
+			if err := rpc.UploadReport(ctx, opts); err != nil {
 				return errors.WithStack(err)
 			}
 

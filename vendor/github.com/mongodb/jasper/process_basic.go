@@ -4,8 +4,10 @@ import (
 	"context"
 	"os"
 	"os/exec"
+	"runtime"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -28,9 +30,8 @@ type basicProcess struct {
 func newBasicProcess(ctx context.Context, opts *CreateOptions) (Process, error) {
 	id := uuid.Must(uuid.NewV4()).String()
 	opts.AddEnvVar(EnvironID, id)
-	opts.Hostname, _ = os.Hostname()
 
-	cmd, err := opts.Resolve(ctx)
+	cmd, deadline, err := opts.Resolve(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "problem building command from options")
 	}
@@ -52,23 +53,21 @@ func newBasicProcess(ctx context.Context, opts *CreateOptions) (Process, error) 
 		return nil, errors.Wrap(err, "problem registering options closer trigger")
 	}
 
-	err = cmd.Start()
-	if err != nil {
-		return nil, errors.Wrap(err, "problem creating command")
+	if err = cmd.Start(); err != nil {
+		return nil, errors.Wrap(err, "problem starting command")
 	}
 
 	p.info.ID = p.id
 	p.info.Options = p.opts
-	p.info.Host = p.opts.Hostname
+	p.info.Host, _ = os.Hostname()
+	p.info.IsRunning = true
 
-	go p.transition(ctx, cmd)
-
-	opts.started = true
+	go p.transition(ctx, deadline, cmd)
 
 	return p, nil
 }
 
-func (p *basicProcess) transition(ctx context.Context, cmd *exec.Cmd) {
+func (p *basicProcess) transition(ctx context.Context, deadline time.Time, cmd *exec.Cmd) {
 	waitFinished := make(chan error)
 
 	go func() {
@@ -80,7 +79,6 @@ func (p *basicProcess) transition(ctx context.Context, cmd *exec.Cmd) {
 		p.Lock()
 		defer p.Unlock()
 		defer close(p.initialized)
-		p.opts.started = true
 		p.info.IsRunning = true
 		p.info.PID = p.cmd.Process.Pid
 		p.cmd = cmd
@@ -91,14 +89,21 @@ func (p *basicProcess) transition(ctx context.Context, cmd *exec.Cmd) {
 		p.Lock()
 		defer p.Unlock()
 		defer close(p.waitProcessed)
+		finishTime := time.Now()
 		p.err = err
 		p.info.IsRunning = false
 		p.info.Complete = true
 		procWaitStatus := p.cmd.ProcessState.Sys().(syscall.WaitStatus)
 		if procWaitStatus.Signaled() {
 			p.info.ExitCode = int(procWaitStatus.Signal())
+			if !deadline.IsZero() {
+				p.info.Timeout = procWaitStatus.Signal() == syscall.SIGKILL && finishTime.After(deadline)
+			}
 		} else {
 			p.info.ExitCode = procWaitStatus.ExitStatus()
+			if runtime.GOOS == "windows" && !deadline.IsZero() {
+				p.info.Timeout = procWaitStatus.ExitStatus() == 1 && finishTime.After(deadline)
+			}
 		}
 		p.info.Successful = p.cmd.ProcessState.Success()
 		p.triggers.Run(p.info)
@@ -152,10 +157,8 @@ func (p *basicProcess) Respawn(ctx context.Context) (Process, error) {
 	p.RLock()
 	defer p.RUnlock()
 
-	opts := p.info.Options
-	opts.closers = []func() error{}
-
-	return newBasicProcess(ctx, &opts)
+	optsCopy := p.info.Options.Copy()
+	return newBasicProcess(ctx, optsCopy)
 }
 
 func (p *basicProcess) Wait(ctx context.Context) (int, error) {

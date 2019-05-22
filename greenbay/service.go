@@ -21,7 +21,7 @@ import (
 // a Greenbay service.
 type Service struct {
 	DisableStats bool
-	service      *rest.Service
+	service      *rest.QueueService
 	conf         *Configuration
 	output       *OutputOptions
 }
@@ -34,7 +34,7 @@ func NewService(confPath string, host string, port int) (*Service, error) {
 	s := &Service{
 		// this operation loads all job instance names from
 		// greenbay and and constructs the amboy.rest.Service object.
-		service: rest.NewService(),
+		service: rest.NewQueueService(),
 	}
 
 	if confPath != "" {
@@ -62,7 +62,7 @@ func NewService(confPath string, host string, port int) (*Service, error) {
 // Open starts the service, using the configuration structure from the
 // amboy.rest package to set the queue size, number of workers, and
 // timeout when restarting the service.
-func (s *Service) Open(ctx context.Context, info rest.ServiceInfo) error {
+func (s *Service) Open(ctx context.Context, opts rest.QueueServiceOptions) error {
 	app := s.service.App()
 
 	if !s.DisableStats {
@@ -78,7 +78,7 @@ func (s *Service) Open(ctx context.Context, info rest.ServiceInfo) error {
 		app.AddRoute("/check/test/{test_id}").Version(1).Get().Handler(s.runTestHandler)
 	}
 
-	if err := s.service.OpenInfo(ctx, info); err != nil {
+	if err := s.service.OpenWithOptions(ctx, opts); err != nil {
 		return errors.Wrap(err, "problem opening queue")
 	}
 
@@ -93,8 +93,8 @@ func (s *Service) Close() {
 
 // Run wraps the Run method from amboy.rest.Service, and is responsible for
 // starting the service. This method blocks until the service terminates.
-func (s *Service) Run() {
-	grip.CatchAlert(s.service.App().Run(context.TODO()))
+func (s *Service) Run(ctx context.Context) {
+	grip.Alert(s.service.App().Run(ctx))
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -113,7 +113,7 @@ func (s *Service) reloadConfig(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) runSuiteHandler(w http.ResponseWriter, r *http.Request) {
-	output, err := s.runAdhocTests(s.conf.TestsForSuites(gimlet.GetVars(r)["suite_id"]))
+	output, err := s.runAdhocTests(r.Context(), s.conf.TestsForSuites(gimlet.GetVars(r)["suite_id"]))
 
 	if err != nil {
 		gimlet.WriteJSONError(w, map[string]string{"error": err.Error()})
@@ -124,7 +124,7 @@ func (s *Service) runSuiteHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) runTestHandler(w http.ResponseWriter, r *http.Request) {
-	output, err := s.runAdhocTests(s.conf.TestsByName(gimlet.GetVars(r)["test_id"]))
+	output, err := s.runAdhocTests(r.Context(), s.conf.TestsByName(gimlet.GetVars(r)["test_id"]))
 
 	if err != nil {
 		gimlet.WriteJSONError(w, map[string]string{"error": err.Error()})
@@ -134,10 +134,10 @@ func (s *Service) runTestHandler(w http.ResponseWriter, r *http.Request) {
 	gimlet.WriteJSON(w, output)
 }
 
-func (s *Service) runAdhocTests(jobs <-chan JobWithError) (interface{}, error) {
+func (s *Service) runAdhocTests(ctx context.Context, jobs <-chan JobWithError) (interface{}, error) {
 	catcher := grip.NewCatcher()
 	q := queue.NewLocalUnordered(2)
-	defer q.Runner().Close()
+	defer q.Runner().Close(ctx)
 
 	for unit := range jobs {
 		if unit.Err != nil {
@@ -145,16 +145,17 @@ func (s *Service) runAdhocTests(jobs <-chan JobWithError) (interface{}, error) {
 			continue
 		}
 
-		catcher.Add(q.Put(unit.Job))
+		catcher.Add(q.Put(ctx, unit.Job))
 	}
 
 	if catcher.HasErrors() {
 		return nil, catcher.Resolve()
 	}
 
-	ctx, cancel := context.WithTimeout(context.TODO(), time.Minute)
+	var cancel context.CancelFunc
+	ctx, cancel = context.WithTimeout(ctx, time.Minute)
 	defer cancel()
-	amboy.WaitCtxInterval(ctx, q, 10*time.Millisecond)
+	amboy.WaitInterval(ctx, q, 10*time.Millisecond)
 	if ctx.Err() != nil {
 		return nil, errors.New("check operation timedout")
 	}

@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestInterfacesAteImplemented(t *testing.T) {
+func TestInterfacesAreImplemented(t *testing.T) {
 	assert := assert.New(t)
 
 	assert.Implements((*Authenticator)(nil), &MockAuthenticator{})
@@ -120,4 +120,8 @@ func (m *MockUserManager) GetOrCreateUser(u User) (User, error) {
 	}
 
 	return u, nil
+}
+
+func (m *MockUserManager) ClearUser(u User, all bool) error {
+	return errors.New("MockUserManager does not support Clear User")
 }

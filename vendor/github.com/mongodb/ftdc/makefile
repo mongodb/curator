@@ -74,19 +74,19 @@ $(buildDir)/cover.%.html:$(buildDir)/cover.%.out
 
 
 metrics.ftdc:
-	wget "https://whatfox.net/metrics.ftdc"
+	wget "https://ftdc-test-files.s3.amazonaws.com/metrics.ftdc"
 perf_metrics.ftdc:
-	wget "https://whatfox.net/perf_metrics.ftdc"
+	wget "https://ftdc-test-files.s3.amazonaws.com/perf_metrics.ftdc"
 perf_metrics_small.ftdc:
-	wget "https://whatfox.net/perf_metrics_small.ftdc"
+	wget "https://ftdc-test-files.s3.amazonaws.com/perf_metrics_small.ftdc"
 
 vendor-clean:
-	rm -rf vendor/github.com/mongodb/mongo-go-driver/vendor/github.com/davecgh/
-	rm -rf vendor/github.com/mongodb/mongo-go-driver/vendor/github.com/stretchr/testify/
-	rm -rf vendor/github.com/mongodb/mongo-go-driver/data/
-	rm -rf vendor/github.com/mongodb/mongo-go-driver/vendor/github.com/pmezard/
-	rm -rf vendor/github.com/mongodb/mongo-go-driver/vendor/github.com/google/go-cmp/
-	rm -rf vendor/github.com/mongodb/mongo-go-driver/vendor/github.com/kr/
+	rm -rf vendor/go.mongodb.org/mongo-driver/vendor/github.com/davecgh/
+	rm -rf vendor/go.mongodb.org/mongo-driver/vendor/github.com/stretchr/testify/
+	rm -rf vendor/go.mongodb.org/mongo-driver/data/
+	rm -rf vendor/go.mongodb.org/mongo-driver/vendor/github.com/pmezard/
+	rm -rf vendor/go.mongodb.org/mongo-driver/vendor/github.com/google/go-cmp/
+	rm -rf vendor/go.mongodb.org/mongo-driver/vendor/github.com/kr/
 	rm -rf vendor/gopkg.in/mgo.v2/harness/
 	rm -rf vendor/gopkg.in/mgo.v2/testdb/
 	rm -rf vendor/gopkg.in/mgo.v2/testserver/

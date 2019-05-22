@@ -27,15 +27,15 @@ imports:
   version: bea76d6a4713e18b7f5321a2b020738552def3ea
 
 - name: github.com/mongodb/grip
-  version: d6146c91d71cb4d53509d9d02b273aac156fc155
+  version: 8b8accd7a3ec9b31a2d3eea610d5bf906bddfd11
 - name: github.com/mongodb/amboy
-  version: d1e174d349e86cfe074824d06cc3d58018a27257
+  version: 2b8431d235ec6c322dba74eff51988ebd8ac1f7f
 - name: github.com/evergreen-ci/gimlet
-  version: 01bf4af5306cba138721427a04dfaefcbc0e9230
+  version: 179b5518bae02593ac2c0678cfbf675bdf27d379
 - name: github.com/tychoish/lru
   version: f77a748d12a924cfbfcf396426dd58de5aa3a9e2
 - name: github.com/tychoish/bond
-  version: 8c3b4999c625ce8a0a46eee52db168670c44af87
+  version: d08240643c676e2d06c340a41ce66f62988fcfa1
 
 - name: github.com/stretchr/testify
   version: 890a5c3458b43e6104ff5da8dfa139d013d77544
@@ -44,17 +44,17 @@ imports:
   version: 1b77c8dfcc6baca12dedfab119135396782b68a1
 
 - name: github.com/mongodb/ftdc
-  version: b73dcba72a67fa6e593e3979885b472f5d8e3370
+  version: 5a679be78545cb8aceb3f798b71518a4677d8475
 - name: github.com/mongodb/jasper
-  version: e87739f51f24dd39d5c72381d3fa353b39eea302
+  version: 6fe16b722988839f88a1a40537e06e88366735d3
 - name: github.com/evergreen-ci/poplar
-  version: e88f39dbc1252b032ce47e1d638572e7521f6c5e
+  version: 8739e722799f313626ab094351d5872e14d55a91
 - name: github.com/evergreen-ci/pail
   version: 7b2f8e0b2d972ca621cad3777d68276a54da13d0
-- name: github.com/mongodb/mongo-go-driver
-  version: e8f52c4942686e6f1d9f366fa1e84b016aae0762
 - name: github.com/evergreen-ci/aviation
   version: 970463c1ba21b3d3b1ded3c30eea60806144b883
+- name: go.mongodb.org/mongo-driver
+  version: 305bc4a5e4131420fe8ba5628e6faa9e6ade4e86
 
 # grpc and dependencies
 - name: google.golang.org/grpc
