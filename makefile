@@ -180,7 +180,6 @@ vendor-clean:
 	rm -rf vendor/go.mongodb.org/mongo-driver/vendor/github.com/montanaflynn
 	rm -rf vendor/go.mongodb.org/mongo-driver/vendor/github.com/pmezard
 	rm -rf vendor/go.mongodb.org/mongo-driver/vendor/github.com/stretchr
-	rm -rf vendor/go.mongodb.org/mongo-driver/vendor/golang.org/x/crypto
 	rm -rf vendor/go.mongodb.org/mongo-driver/vendor/golang.org/x/net
 	rm -rf vendor/go.mongodb.org/mongo-driver/vendor/golang.org/x/text
 	rm -rf vendor/github.com/papertrail/go-tail/main.go
