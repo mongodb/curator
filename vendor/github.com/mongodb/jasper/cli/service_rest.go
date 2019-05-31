@@ -2,7 +2,9 @@ package cli
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/kardianos/service"
 	"github.com/mongodb/grip"
 	"github.com/mongodb/jasper"
 	"github.com/pkg/errors"
@@ -10,60 +12,100 @@ import (
 )
 
 const (
-	envVarRESTHost  = "JASPER_REST_HOST"
-	envVarRESTPort  = "JASPER_REST_PORT"
+	restHostEnvVar  = "JASPER_REST_HOST"
+	restPortEnvVar  = "JASPER_REST_PORT"
 	defaultRESTPort = 2287
 )
 
-func serviceREST() cli.Command {
+func serviceCommandREST(cmd string, operation serviceOperation) cli.Command {
 	return cli.Command{
-		Name:  "rest",
-		Usage: "run a REST service",
+		Name:  restService,
+		Usage: fmt.Sprintf("%s a REST service", cmd),
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:   hostFlagName,
-				EnvVar: envVarRESTHost,
+				EnvVar: restHostEnvVar,
 				Usage:  "the host running the REST service",
 				Value:  defaultLocalHostName,
 			},
 			cli.IntFlag{
 				Name:   portFlagName,
-				EnvVar: envVarRESTPort,
+				EnvVar: restPortEnvVar,
 				Usage:  "the port running the REST service",
 				Value:  defaultRESTPort,
 			},
 		},
 		Before: validatePort(portFlagName),
 		Action: func(c *cli.Context) error {
-			ctx, cancel := context.WithCancel(context.Background())
-			go handleSignals(ctx, cancel)
-
 			manager, err := jasper.NewLocalManager(false)
 			if err != nil {
-				return errors.Wrap(err, "failed to construct manager")
+				return errors.Wrap(err, "error creating REST manager")
 			}
 
-			host := c.String(hostFlagName)
-			port := c.Int(portFlagName)
-			grip.Infof("starting REST service at '%s:%d'", host, port)
-			closeService, err := makeRESTService(ctx, host, port, manager)
-			if err != nil {
-				return errors.Wrap(err, "failed to create service")
-			}
-			defer func() {
-				grip.Warning(errors.Wrap(closeService(), "error stopping service"))
-			}()
+			daemon := newRESTDaemon(c.String(hostFlagName), c.Int(portFlagName), manager)
 
-			// Wait for service to shut down.
-			<-ctx.Done()
-			return nil
+			config := serviceConfig(restService, buildRunCommand(c, restService))
+
+			return operation(daemon, config)
 		},
 	}
 }
 
-// makeRESTService creates a REST service around the manager serving requests on
+type restDaemon struct {
+	Host string
+	Port int
+
+	Manager jasper.Manager
+	exit    chan struct{}
+}
+
+func newRESTDaemon(host string, port int, manager jasper.Manager) *restDaemon {
+	return &restDaemon{
+		Host:    host,
+		Port:    port,
+		Manager: manager,
+	}
+}
+
+func (d *restDaemon) Start(s service.Service) error {
+	d.exit = make(chan struct{})
+	if d.Manager == nil {
+		var err error
+		if d.Manager, err = jasper.NewLocalManager(false); err != nil {
+			return errors.Wrap(err, "failed to construct REST manager")
+		}
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	go handleDaemonSignals(ctx, cancel, d.exit)
+
+	go func(ctx context.Context, d *restDaemon) {
+		grip.Error(errors.Wrap(d.run(ctx), "error running REST service"))
+	}(ctx, d)
+
+	return nil
+}
+
+func (d *restDaemon) Stop(s service.Service) error {
+	close(d.exit)
+	return nil
+}
+
+func (d *restDaemon) run(ctx context.Context) error {
+	return errors.Wrap(runServices(ctx, d.newService), "error running REST service")
+}
+
+func (d *restDaemon) newService(ctx context.Context) (jasper.CloseFunc, error) {
+	if d.Manager == nil {
+		return nil, errors.New("manager is not set on REST service")
+	}
+	grip.Infof("starting REST service at '%s:%d'", d.Host, d.Port)
+	return newRESTService(ctx, d.Host, d.Port, d.Manager)
+}
+
+// newRESTService creates a REST service around the manager serving requests on
 // the host and port.
-func makeRESTService(ctx context.Context, host string, port int, manager jasper.Manager) (jasper.CloseFunc, error) {
+func newRESTService(ctx context.Context, host string, port int, manager jasper.Manager) (jasper.CloseFunc, error) {
 	service := jasper.NewManagerService(manager)
 	app := service.App(ctx)
 	app.SetPrefix("jasper")
@@ -73,8 +115,10 @@ func makeRESTService(ctx context.Context, host string, port int, manager jasper.
 	if err := app.SetPort(port); err != nil {
 		return nil, errors.Wrap(err, "error setting REST port")
 	}
+
 	go func() {
 		grip.Warning(errors.Wrap(app.Run(ctx), "error running REST app"))
 	}()
+
 	return func() error { return nil }, nil
 }

@@ -201,7 +201,7 @@ func execCLICommandOutput(t *testing.T, c *cli.Context, cmd cli.Command, output 
 // makeTestRESTService creates a REST service for testing purposes only on
 // localhost.
 func makeTestRESTService(ctx context.Context, t *testing.T, port int, manager jasper.Manager) jasper.CloseFunc {
-	closeService, err := makeRESTService(ctx, "localhost", port, manager)
+	closeService, err := newRESTService(ctx, "localhost", port, manager)
 	require.NoError(t, err)
 	waitForRESTService(ctx, t, fmt.Sprintf("http://localhost:%d/jasper/v1", port))
 	return closeService
@@ -211,7 +211,7 @@ func makeTestRESTService(ctx context.Context, t *testing.T, port int, manager ja
 // purposes on localhost.
 func makeTestRESTServiceAndClient(ctx context.Context, t *testing.T, port int, manager jasper.Manager) (jasper.CloseFunc, jasper.RemoteClient) {
 	closeService := makeTestRESTService(ctx, t, port, manager)
-	client, err := makeRemoteClient(ctx, restService, "localhost", port, "")
+	client, err := newRemoteClient(ctx, restService, "localhost", port, "")
 	require.NoError(t, err)
 	return closeService, client
 }
@@ -219,7 +219,7 @@ func makeTestRESTServiceAndClient(ctx context.Context, t *testing.T, port int, m
 // makeTestRPCService creates an RPC service for testing purposes only on
 // localhost with no credentials.
 func makeTestRPCService(ctx context.Context, t *testing.T, port int, manager jasper.Manager) jasper.CloseFunc {
-	closeService, err := makeRPCService(ctx, "localhost", port, manager, "", "")
+	closeService, err := newRPCService(ctx, "localhost", port, manager, "", "")
 	require.NoError(t, err)
 	return closeService
 }
@@ -228,7 +228,7 @@ func makeTestRPCService(ctx context.Context, t *testing.T, port int, manager jas
 // purposes on localhost with no credentials.
 func makeTestRPCServiceAndClient(ctx context.Context, t *testing.T, port int, manager jasper.Manager) (jasper.CloseFunc, jasper.RemoteClient) {
 	closeService := makeTestRPCService(ctx, t, port, manager)
-	client, err := makeRemoteClient(ctx, rpcService, "localhost", port, "")
+	client, err := newRemoteClient(ctx, rpcService, "localhost", port, "")
 	require.NoError(t, err)
 	return closeService, client
 }

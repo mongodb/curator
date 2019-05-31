@@ -1,8 +1,9 @@
 package cli
 
 import (
-	"context"
+	"fmt"
 
+	"github.com/kardianos/service"
 	"github.com/mongodb/grip"
 	"github.com/mongodb/jasper"
 	"github.com/pkg/errors"
@@ -15,36 +16,36 @@ const (
 
 	rpcHostFlagName         = "rpc_host"
 	rpcPortFlagName         = "rpc_port"
-	rpcKeyFilePathFlagName  = "rpc_key_path"
-	rpcCertFilePathFlagName = "rpc_cert_path"
+	rpcCertFilePathFlagName = "rpc_cert_file_path"
+	rpcKeyFilePathFlagName  = "rpc_key_file_path"
 )
 
-func serviceCombined() cli.Command {
+func serviceCommandCombined(cmd string, operation serviceOperation) cli.Command {
 	return cli.Command{
-		Name:  "combined",
-		Usage: "start a combined multiprotocol service",
+		Name:  combinedService,
+		Usage: fmt.Sprintf("%s a combined service", cmd),
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:   restHostFlagName,
-				EnvVar: envVarRESTHost,
+				EnvVar: restHostEnvVar,
 				Usage:  "the host running the REST service ",
 				Value:  defaultLocalHostName,
 			},
 			cli.IntFlag{
 				Name:   restPortFlagName,
-				EnvVar: envVarRPCPort,
+				EnvVar: restPortEnvVar,
 				Usage:  "the port running the REST service ",
 				Value:  defaultRESTPort,
 			},
 			cli.StringFlag{
 				Name:   rpcHostFlagName,
-				EnvVar: envVarRPCHost,
+				EnvVar: rpcHostEnvVar,
 				Usage:  "the host running the RPC service ",
 				Value:  defaultLocalHostName,
 			},
 			cli.IntFlag{
 				Name:   rpcPortFlagName,
-				EnvVar: envVarRPCPort,
+				EnvVar: rpcPortEnvVar,
 				Usage:  "the port running the RPC service",
 				Value:  defaultRPCPort,
 			},
@@ -62,41 +63,45 @@ func serviceCombined() cli.Command {
 			validatePort(rpcPortFlagName),
 		),
 		Action: func(c *cli.Context) error {
-			ctx, cancel := context.WithCancel(context.Background())
-			go handleSignals(ctx, cancel)
-
 			manager, err := jasper.NewLocalManager(false)
 			if err != nil {
-				return errors.Wrap(err, "failed to construct manager")
+				return errors.Wrap(err, "error creating combined manager")
 			}
 
-			// Assemble the REST service.
-			restHost := c.String(restHostFlagName)
-			restPort := c.Int(restPortFlagName)
-			grip.Infof("start REST service at '%s:%d'", restHost, restPort)
-			closeRESTService, err := makeRESTService(ctx, restHost, restPort, manager)
-			if err != nil {
-				return errors.Wrap(err, "failed to create REST service")
-			}
-			defer func() {
-				grip.Warning(errors.Wrap(closeRESTService(), "error stopping REST service"))
-			}()
+			daemon := newCombinedDaemon(
+				newRESTDaemon(c.String(restHostFlagName), c.Int(restPortFlagName), manager),
+				newRPCDaemon(c.String(rpcHostFlagName), c.Int(rpcPortFlagName), c.String(rpcCertFilePathFlagName), c.String(rpcKeyFilePathFlagName), manager),
+			)
 
-			// Assemble the RPC service.
-			rpcHost := c.String(rpcHostFlagName)
-			rpcPort := c.Int(rpcPortFlagName)
-			grip.Infof("start RPC service at '%s:%d'", rpcHost, rpcPort)
-			closeRPCService, err := makeRPCService(ctx, rpcHost, rpcPort, manager, c.String(rpcCertFilePathFlagName), c.String(rpcKeyFilePathFlagName))
-			if err != nil {
-				return errors.Wrap(err, "failed to create RPC service")
-			}
-			defer func() {
-				grip.Warning(errors.Wrap(closeRPCService(), "error stopping RPC service"))
-			}()
+			config := serviceConfig(combinedService, buildRunCommand(c, combinedService))
 
-			// Wait for both services to shut down.
-			<-ctx.Done()
-			return nil
+			return operation(daemon, config)
 		},
 	}
+}
+
+type combinedDaemon struct {
+	RESTDaemon *restDaemon
+	RPCDaemon  *rpcDaemon
+}
+
+func newCombinedDaemon(rest *restDaemon, rpc *rpcDaemon) *combinedDaemon {
+	return &combinedDaemon{
+		RESTDaemon: rest,
+		RPCDaemon:  rpc,
+	}
+}
+
+func (d *combinedDaemon) Start(s service.Service) error {
+	catcher := grip.NewBasicCatcher()
+	catcher.Add(errors.Wrap(d.RPCDaemon.Start(s), "error starting RPC service"))
+	catcher.Add(errors.Wrap(d.RESTDaemon.Start(s), "error starting REST service"))
+	return catcher.Resolve()
+}
+
+func (d *combinedDaemon) Stop(s service.Service) error {
+	catcher := grip.NewBasicCatcher()
+	catcher.Add(errors.Wrap(d.RPCDaemon.Stop(s), "error stopping RPC service"))
+	catcher.Add(errors.Wrap(d.RESTDaemon.Stop(s), "error stopping REST service"))
+	return catcher.Resolve()
 }

@@ -9,8 +9,10 @@ import (
 	"math"
 	"net"
 	"os"
+	"strconv"
 	"strings"
 
+	"github.com/kardianos/service"
 	"github.com/mongodb/grip"
 	"github.com/mongodb/jasper"
 	"github.com/mongodb/jasper/rpc"
@@ -19,8 +21,9 @@ import (
 )
 
 const (
-	restService = "rest"
-	rpcService  = "rpc"
+	restService     = "rest"
+	rpcService      = "rpc"
+	combinedService = "combined"
 )
 
 // mergeBeforeFuncs returns a cli.BeforeFunc that runs all funcs and accumulates
@@ -40,21 +43,23 @@ func joinFlagNames(names ...string) string {
 	return strings.Join(names, ", ")
 }
 
+// unparseFlagSet returns all flags set in the given context in the form
+// --flag=value.
+func unparseFlagSet(c *cli.Context) []string {
+	args := []string{}
+	for _, flagName := range c.FlagNames() {
+		if !c.IsSet(flagName) {
+			continue
+		}
+		args = append(args, fmt.Sprintf("--%s=%s", flagName, c.String(flagName)))
+	}
+	return args
+}
+
 const (
 	minPort = 1 << 10
 	maxPort = math.MaxUint16 - 1
 )
-
-// validatePort validates that the flag given by the name is a valid port value.
-func validatePort(flagName string) func(*cli.Context) error {
-	return func(c *cli.Context) error {
-		port := c.Int(flagName)
-		if port < minPort || port > maxPort {
-			return errors.New("port must be between 0-65536 exclusive")
-		}
-		return nil
-	}
-}
 
 // clientFlags returns flags used by all client commands.
 func clientFlags() []cli.Flag {
@@ -66,19 +71,18 @@ func clientFlags() []cli.Flag {
 		},
 		cli.IntFlag{
 			Name:  portFlagName,
-			Usage: "the port running the Jasper service",
+			Usage: fmt.Sprintf("the port running the Jasper service (if service is '%s', default port is %d; if service is '%s', default port is %d)", restService, defaultRESTPort, rpcService, defaultRPCPort),
 		},
 		cli.StringFlag{
 			Name:  serviceFlagName,
-			Usage: fmt.Sprintf("the type of Jasper service ('%s', or '%s')", restService, rpcService),
+			Usage: fmt.Sprintf("the type of Jasper service ('%s' or '%s')", restService, rpcService),
 		},
 	}
 }
 
 // clientBefore returns the cli.BeforeFunc used by all client commands.
-func clientBefore() func(c *cli.Context) error {
+func clientBefore() func(*cli.Context) error {
 	return mergeBeforeFuncs(
-		validatePort(portFlagName),
 		func(c *cli.Context) error {
 			service := c.String(serviceFlagName)
 			if service != restService && service != rpcService {
@@ -86,7 +90,34 @@ func clientBefore() func(c *cli.Context) error {
 			}
 			return nil
 		},
+		func(c *cli.Context) error {
+			if c.Int(portFlagName) != 0 {
+				return nil
+			}
+			switch c.String(serviceFlagName) {
+			case restService:
+				if err := c.Set(portFlagName, strconv.Itoa(defaultRESTPort)); err != nil {
+					return err
+				}
+			case rpcService:
+				if err := c.Set(portFlagName, strconv.Itoa(defaultRPCPort)); err != nil {
+					return err
+				}
+			}
+			return validatePort(portFlagName)(c)
+		},
 	)
+}
+
+// validatePort validates that the flag given by the name is a valid port value.
+func validatePort(flagName string) func(*cli.Context) error {
+	return func(c *cli.Context) error {
+		port := c.Int(flagName)
+		if port < minPort || port > maxPort {
+			return errors.Errorf("port must be between %d-%d exclusive", minPort, maxPort)
+		}
+		return nil
+	}
 }
 
 // readInput reads JSON from the input and decodes it to the output.
@@ -111,10 +142,10 @@ func writeOutput(output io.Writer, input interface{}) error {
 	return nil
 }
 
-// makeRemoteClient returns a remote client that connects to the service at the
+// newRemoteClient returns a remote client that connects to the service at the
 // given host and port, with the optional SSL/TLS credentials file specified at
 // the given location.
-func makeRemoteClient(ctx context.Context, service, host string, port int, certFilePath string) (jasper.RemoteClient, error) {
+func newRemoteClient(ctx context.Context, service, host string, port int, certFilePath string) (jasper.RemoteClient, error) {
 	addr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("%s:%d", host, port))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to resolve address")
@@ -166,7 +197,7 @@ func withConnection(ctx context.Context, c *cli.Context, operation func(jasper.R
 	service := c.String(serviceFlagName)
 	certFilePath := c.String(certFilePathFlagName)
 
-	client, err := makeRemoteClient(ctx, service, host, port, certFilePath)
+	client, err := newRemoteClient(ctx, service, host, port, certFilePath)
 	if err != nil {
 		return errors.Wrap(err, "error setting up remote client")
 	}
@@ -176,4 +207,40 @@ func withConnection(ctx context.Context, c *cli.Context, operation func(jasper.R
 	catcher.Add(client.CloseConnection())
 
 	return catcher.Resolve()
+}
+
+// withService runs the operation with a new service.
+func withService(daemon service.Interface, config *service.Config, operation func(service.Service) error) error {
+	svc, err := service.New(daemon, config)
+	if err != nil {
+		return errors.Wrap(err, "error initializing new service")
+	}
+	return operation(svc)
+}
+
+// runServices starts the given services, waits until the context is done, and
+// closes all the running services.
+func runServices(ctx context.Context, makeServices ...func(context.Context) (jasper.CloseFunc, error)) error {
+	closeServices := []jasper.CloseFunc{}
+	closeAllServices := func(closeServices []jasper.CloseFunc) error {
+		catcher := grip.NewBasicCatcher()
+		for _, closeService := range closeServices {
+			catcher.Add(errors.Wrap(closeService(), "error closing service"))
+		}
+		return catcher.Resolve()
+	}
+
+	for _, makeService := range makeServices {
+		closeService, err := makeService(ctx)
+		if err != nil {
+			catcher := grip.NewBasicCatcher()
+			catcher.Wrap(err, "failed to create service")
+			catcher.Add(closeAllServices(closeServices))
+			return catcher.Resolve()
+		}
+		closeServices = append(closeServices, closeService)
+	}
+
+	<-ctx.Done()
+	return closeAllServices(closeServices)
 }

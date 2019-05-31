@@ -8,8 +8,11 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
+	"github.com/kardianos/service"
 	"github.com/mongodb/jasper"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli"
@@ -84,7 +87,7 @@ func TestWriteOutputInvalidOutput(t *testing.T) {
 
 func TestMakeRemoteClientInvalidService(t *testing.T) {
 	ctx := context.Background()
-	client, err := makeRemoteClient(ctx, "invalid", "localhost", getNextPort(), "")
+	client, err := newRemoteClient(ctx, "invalid", "localhost", getNextPort(), "")
 	require.Error(t, err)
 	require.Nil(t, client)
 }
@@ -212,4 +215,88 @@ func TestCLICommon(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestWithService(t *testing.T) {
+	svcFuncRan := false
+	svcFunc := func(svc service.Service) error {
+		svcFuncRan = true
+		return nil
+	}
+	assert.Error(t, withService(&rpcDaemon{}, &service.Config{}, svcFunc))
+	assert.False(t, svcFuncRan)
+
+	assert.NoError(t, withService(&rpcDaemon{}, &service.Config{Name: "foo"}, svcFunc))
+	assert.True(t, svcFuncRan)
+}
+
+func TestRunServices(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+	defer cancel()
+
+	assert.NoError(t, runServices(ctx))
+	assert.Equal(t, context.DeadlineExceeded, ctx.Err())
+
+	ctx, cancel = context.WithCancel(context.Background())
+	cancel()
+
+	assert.Error(t, runServices(ctx, func(ctx context.Context) (jasper.CloseFunc, error) {
+		return nil, ctx.Err()
+	}))
+
+	ctx, cancel = context.WithTimeout(context.Background(), 10*time.Millisecond)
+	defer cancel()
+	assert.NoError(t, runServices(ctx, func(ctx context.Context) (jasper.CloseFunc, error) {
+		return func() error { return nil }, nil
+	}))
+
+	ctx, cancel = context.WithCancel(context.Background())
+	defer cancel()
+
+	closeFuncCalled := false
+	closeFunc := func() error {
+		closeFuncCalled = true
+		return nil
+	}
+
+	assert.Error(t, runServices(ctx, func(ctx context.Context) (jasper.CloseFunc, error) {
+		return closeFunc, errors.New("fail to make service")
+	}))
+	assert.False(t, closeFuncCalled)
+
+	ctx, cancel = context.WithTimeout(context.Background(), 10*time.Millisecond)
+	defer cancel()
+	closeFuncCalled = false
+
+	assert.NoError(t, runServices(ctx, func(ctx context.Context) (jasper.CloseFunc, error) {
+		return closeFunc, nil
+	}))
+	assert.True(t, closeFuncCalled)
+
+	anotherCloseFuncCalled := false
+	anotherCloseFunc := func() error {
+		anotherCloseFuncCalled = true
+		return nil
+	}
+
+	assert.Error(t, runServices(ctx, func(ctx context.Context) (jasper.CloseFunc, error) {
+		return closeFunc, nil
+	}, func(ctx context.Context) (jasper.CloseFunc, error) {
+		return anotherCloseFunc, errors.New("fail to make another service")
+	}))
+	assert.True(t, closeFuncCalled)
+	assert.False(t, anotherCloseFuncCalled)
+
+	ctx, cancel = context.WithTimeout(context.Background(), 10*time.Millisecond)
+	defer cancel()
+	closeFuncCalled = false
+	anotherCloseFuncCalled = false
+
+	assert.NoError(t, runServices(ctx, func(ctx context.Context) (jasper.CloseFunc, error) {
+		return closeFunc, nil
+	}, func(ctx context.Context) (jasper.CloseFunc, error) {
+		return anotherCloseFunc, nil
+	}))
+	assert.True(t, closeFuncCalled)
+	assert.True(t, anotherCloseFuncCalled)
 }
