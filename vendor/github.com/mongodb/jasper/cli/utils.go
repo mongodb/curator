@@ -181,7 +181,7 @@ func doPassthroughInputOutput(c *cli.Context, input Validator, request func(cont
 // doPassthroughOutput runs the request and writes the output of the request to
 // standard output.
 func doPassthroughOutput(c *cli.Context, request func(context.Context, jasper.RemoteClient) (response interface{})) error {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), clientConnectionTimeout)
 	defer cancel()
 
 	return withConnection(ctx, c, func(client jasper.RemoteClient) error {
