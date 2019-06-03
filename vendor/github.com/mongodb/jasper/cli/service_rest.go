@@ -14,7 +14,7 @@ import (
 const (
 	restHostEnvVar  = "JASPER_REST_HOST"
 	restPortEnvVar  = "JASPER_REST_PORT"
-	defaultRESTPort = 2287
+	defaultRESTPort = 2487
 )
 
 func serviceCommandREST(cmd string, operation serviceOperation) cli.Command {
