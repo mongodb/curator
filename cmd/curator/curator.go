@@ -8,6 +8,7 @@ import (
 	"github.com/mongodb/grip"
 	"github.com/mongodb/grip/level"
 	"github.com/mongodb/grip/send"
+	jaspercli "github.com/mongodb/jasper/cli"
 	"github.com/urfave/cli"
 )
 
@@ -43,7 +44,7 @@ func buildApp() *cli.App {
 		operations.Splunk(),
 		operations.Notify(),
 		operations.Greenbay(),
-		operations.Jasper(),
+		jaspercli.Jasper(),
 		operations.Poplar(),
 		operations.FTDC(),
 	}

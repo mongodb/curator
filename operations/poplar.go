@@ -23,6 +23,7 @@ const (
 	envVarPoplarRecorderRPCPort  = "POPLAR_RPC_PORT"
 	envVarPoplarRecorderRPCHost  = "POPLAR_RPC_HOST"
 	defaultPoplarRecorderRPCPort = 2288
+	defaultLocalHostName         = "localhost"
 )
 
 // Poplar command line function.
@@ -50,8 +51,8 @@ func poplarGRPC() cli.Command {
 			},
 			cli.StringFlag{
 				Name:   "host",
-				EnvVar: envVarJasperRPCHost,
-				Value:  envVarPoplarRecorderRPCHost,
+				EnvVar: envVarPoplarRecorderRPCHost,
+				Value:  defaultLocalHostName,
 			},
 		},
 		Action: func(c *cli.Context) error {
