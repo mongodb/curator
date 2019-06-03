@@ -18,7 +18,7 @@ const (
 
 	rpcHostEnvVar  = "JASPER_RPC_HOST"
 	rpcPortEnvVar  = "JASPER_RPC_PORT"
-	defaultRPCPort = 2286
+	defaultRPCPort = 2486
 )
 
 func serviceCommandRPC(cmd string, operation serviceOperation) cli.Command {
