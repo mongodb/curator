@@ -9,6 +9,7 @@ import (
 
 	"github.com/kardianos/service"
 	"github.com/mongodb/grip"
+	"github.com/mongodb/grip/message"
 	"github.com/mongodb/grip/recovery"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
@@ -22,6 +23,7 @@ func Service() cli.Command {
 		Usage: "tools for running Jasper services",
 		Flags: []cli.Flag{},
 		Subcommands: []cli.Command{
+			serviceCommand("force-reinstall", forceReinstall),
 			serviceCommand("install", install),
 			serviceCommand("uninstall", uninstall),
 			serviceCommand("start", start),
@@ -95,6 +97,30 @@ func serviceCommand(cmd string, operation serviceOperation) cli.Command {
 			serviceCommandCombined(cmd, operation),
 		},
 	}
+}
+
+// forceReinstall stops the service if it is running, reinstalls the service
+// with the new configuration, and starts the newly-configured service. It only
+// returns an error if there is an error while installing or starting the new
+// service.
+func forceReinstall(daemon service.Interface, config *service.Config) error {
+	return errors.Wrap(withService(daemon, config, func(svc service.Service) error {
+		grip.Debug(message.WrapError(svc.Stop(), message.Fields{
+			"msg":    "error stopping service",
+			"cmd":    "force-reinstall",
+			"config": *config,
+		}))
+		grip.Debug(message.WrapError(svc.Uninstall(), message.Fields{
+			"msg":    "error uninstalling service",
+			"cmd":    "force-reinstall",
+			"config": *config,
+		}))
+
+		catcher := grip.NewBasicCatcher()
+		catcher.Wrap(svc.Install(), "error installing service")
+		catcher.Wrap(svc.Start(), "error starting service")
+		return catcher.Resolve()
+	}), "error force reinstalling service")
 }
 
 // install registers the service with the given configuration in the service
