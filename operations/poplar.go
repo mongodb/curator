@@ -3,9 +3,7 @@ package operations
 import (
 	"context"
 	"crypto/tls"
-	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"net"
 
 	"github.com/evergreen-ci/aviation"
@@ -165,7 +163,7 @@ func poplarReport() cli.Command {
 				rpcOpts = append(rpcOpts, grpc.WithInsecure())
 			} else {
 				var tlsConf *tls.Config
-				tlsConf, err = getTLSConfig(caFile, certFile, keyFile)
+				tlsConf, err = aviation.GetClientTLSConfig(caFile, certFile, keyFile)
 				if err != nil {
 					return errors.WithStack(err)
 				}
@@ -194,25 +192,4 @@ func poplarReport() cli.Command {
 			return nil
 		},
 	}
-}
-
-func getTLSConfig(caFile, certFile, keyFile string) (*tls.Config, error) {
-	ca, err := ioutil.ReadFile(caFile)
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-	cp := x509.NewCertPool()
-	if !cp.AppendCertsFromPEM(ca) {
-		return nil, errors.New("credentials: failed to append certificates")
-	}
-
-	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
-	if err != nil {
-		return nil, errors.Wrap(err, "problem reading client cert")
-	}
-
-	return &tls.Config{
-		Certificates: []tls.Certificate{cert},
-		RootCAs:      cp,
-	}, nil
 }
