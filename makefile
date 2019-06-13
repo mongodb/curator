@@ -175,6 +175,7 @@ vendor-clean:
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/stretchr/
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/satori/go.uuid/
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/urfave/
+	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/jpillora/backoff/
 	rm -rf vendor/go.mongodb.org/mongo-driver/data/
 	rm -rf vendor/go.mongodb.org/mongo-driver/vendor/github.com/davecgh
 	rm -rf vendor/go.mongodb.org/mongo-driver/vendor/github.com/montanaflynn
