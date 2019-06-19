@@ -46,7 +46,7 @@ imports:
 - name: github.com/mongodb/ftdc
   version: 5a679be78545cb8aceb3f798b71518a4677d8475
 - name: github.com/mongodb/jasper
-  version: 47924113b64212e4cadd54bd57d93c9a4bfaea5f
+  version: d66a86b5049476c5b1cc9bb032c53123f347363f
 - name: github.com/evergreen-ci/poplar
   version: 8739e722799f313626ab094351d5872e14d55a91
 - name: github.com/evergreen-ci/pail

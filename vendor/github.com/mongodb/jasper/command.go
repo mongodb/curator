@@ -211,6 +211,24 @@ func (c *Command) IgnoreError(ignore bool) *Command { c.ignoreError = ignore; re
 // discard all standard error content.
 func (c *Command) SuppressStandardError(v bool) *Command { c.opts.Output.SuppressError = v; return c }
 
+// SetLoggers sets the logging output on this command to the specified
+// slice. This removes any loggers previously configured.
+func (c *Command) SetLoggers(l []Logger) *Command { c.opts.Output.Loggers = l; return c }
+
+// AppendLoggers adds one or more loggers to the existing configured
+// loggers in the command.
+func (c *Command) AppendLoggers(l ...Logger) *Command {
+	c.opts.Output.Loggers = append(c.opts.Output.Loggers, l...)
+	return c
+}
+
+// ExtendLoggers takes the existing slice of loggers and adds that to any
+// existing configuration.
+func (c *Command) ExtendLoggers(l []Logger) *Command {
+	c.opts.Output.Loggers = append(c.opts.Output.Loggers, l...)
+	return c
+}
+
 // SuppressStandardOutput sets a flag for determining if the Command should
 // discard all standard output content.
 func (c *Command) SuppressStandardOutput(v bool) *Command { c.opts.Output.SuppressOutput = v; return c }
@@ -277,7 +295,7 @@ func (c *Command) ShellScript(shell, script string) *Command {
 	return c
 }
 
-// Bash adds a script using "bash -c", as syntactic sugar for the ShellScript
+// Bash adds a script using "bash -c", as syntactic sugar for the ShellScript2
 // method.
 func (c *Command) Bash(script string) *Command { return c.ShellScript("bash", script) }
 

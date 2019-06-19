@@ -35,7 +35,6 @@ func Service() cli.Command {
 	return cli.Command{
 		Name:  ServiceCommand,
 		Usage: "tools for running Jasper services",
-		Flags: []cli.Flag{},
 		Subcommands: []cli.Command{
 			serviceCommand(ForceReinstallCommand, forceReinstall),
 			serviceCommand(InstallCommand, install),

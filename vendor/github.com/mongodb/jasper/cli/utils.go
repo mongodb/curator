@@ -7,10 +7,12 @@ import (
 	"io"
 	"io/ioutil"
 	"math"
+	"math/rand"
 	"net"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/kardianos/service"
 	"github.com/mongodb/grip"
@@ -247,4 +249,8 @@ func runServices(ctx context.Context, makeServices ...func(context.Context) (jas
 
 	<-ctx.Done()
 	return closeAllServices(closeServices)
+}
+
+func randDur(window time.Duration) time.Duration {
+	return window + time.Duration(rand.Int63n(int64(window)))
 }
