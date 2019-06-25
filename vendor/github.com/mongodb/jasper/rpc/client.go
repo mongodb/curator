@@ -311,14 +311,11 @@ func (p *rpcProcess) Wait(ctx context.Context) (int, error) {
 		return -1, errors.WithStack(err)
 	}
 
-	if resp.Success {
-		if resp.ExitCode != 0 {
-			return int(resp.ExitCode), errors.Wrap(errors.New(resp.Text), "operation failed")
-		}
-		return int(resp.ExitCode), nil
+	if !resp.Success {
+		return int(resp.ExitCode), errors.Wrapf(errors.New(resp.Text), "process exited with error")
 	}
 
-	return -1, errors.New(resp.Text)
+	return int(resp.ExitCode), nil
 }
 
 func (p *rpcProcess) Respawn(ctx context.Context) (jasper.Process, error) {

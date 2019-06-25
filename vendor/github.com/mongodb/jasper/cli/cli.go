@@ -31,6 +31,7 @@ func Jasper() cli.Command {
 			ClearCMD(),
 			KillCMD(),
 			KillAllCMD(),
+			DownloadCMD(),
 		},
 	}
 }

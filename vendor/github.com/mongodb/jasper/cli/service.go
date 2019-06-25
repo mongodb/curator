@@ -118,20 +118,24 @@ func serviceCommand(cmd string, operation serviceOperation) cli.Command {
 // service.
 func forceReinstall(daemon service.Interface, config *service.Config) error {
 	return errors.Wrap(withService(daemon, config, func(svc service.Service) error {
-		grip.Debug(message.WrapError(svc.Stop(), message.Fields{
+		stopErr := message.WrapError(svc.Stop(), message.Fields{
 			"msg":    "error stopping service",
 			"cmd":    "force-reinstall",
 			"config": *config,
-		}))
-		grip.Debug(message.WrapError(svc.Uninstall(), message.Fields{
+		})
+		uninstallErr := message.WrapError(svc.Uninstall(), message.Fields{
 			"msg":    "error uninstalling service",
 			"cmd":    "force-reinstall",
 			"config": *config,
-		}))
+		})
 
 		catcher := grip.NewBasicCatcher()
 		catcher.Wrap(svc.Install(), "error installing service")
 		catcher.Wrap(svc.Start(), "error starting service")
+		if catcher.HasErrors() {
+			grip.Debug(stopErr)
+			grip.Debug(uninstallErr)
+		}
 		return catcher.Resolve()
 	}), "error force reinstalling service")
 }
@@ -184,8 +188,33 @@ func status(daemon service.Interface, config *service.Config) error {
 	return errors.Wrap(withService(daemon, config, func(svc service.Service) error {
 		status, err := svc.Status()
 		if err != nil {
-			return err
+			return errors.Wrapf(writeOutput(os.Stdout, &ServiceStatusResponse{OutcomeResponse: *makeOutcomeResponse(errors.Wrapf(err, "error getting status from service"))}), "error writing to standard output")
 		}
-		return errors.Wrap(writeOutput(os.Stdout, status), "error writing status")
+		return errors.Wrapf(writeOutput(os.Stdout, &ServiceStatusResponse{Status: statusToString(status), OutcomeResponse: *makeOutcomeResponse(nil)}), "error writing status to standard output")
 	}), "error getting service status")
+}
+
+// ServiceStatus represents the state of the service.
+type ServiceStatus string
+
+// Constants representing the status of the service.
+const (
+	ServiceRunning ServiceStatus = "running"
+	ServiceStopped ServiceStatus = "stopped"
+	ServiceInvalid ServiceStatus = "invalid"
+	ServiceUnknown ServiceStatus = "unknown"
+)
+
+// statusToString converts a service.Status code into a string ServiceStatus.
+func statusToString(status service.Status) ServiceStatus {
+	switch status {
+	case service.StatusUnknown:
+		return ServiceUnknown
+	case service.StatusRunning:
+		return ServiceRunning
+	case service.StatusStopped:
+		return ServiceStopped
+	default:
+		return ServiceInvalid
+	}
 }

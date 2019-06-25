@@ -170,6 +170,21 @@ func ExtractWaitResponse(input []byte) (WaitResponse, error) {
 	return resp, resp.successOrError()
 }
 
+type ServiceStatusResponse struct {
+	OutcomeResponse `json:"outcome"`
+	Status          ServiceStatus `json:"status"`
+}
+
+// ExtractServiceStatusResponse unmarshals the input bytes into a
+// ServiceStatusResponse and checks if the request was successful.
+func ExtractServiceStatusResponse(input []byte) (ServiceStatusResponse, error) {
+	resp := ServiceStatusResponse{}
+	if err := json.Unmarshal(input, &resp); err != nil {
+		return resp, errors.Wrap(err, unmarshalFailed)
+	}
+	return resp, resp.successOrError()
+}
+
 // IDInput represents CLI-specific input representing a Jasper process ID.
 type IDInput struct {
 	ID string `json:"id"`

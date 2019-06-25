@@ -31,7 +31,6 @@ type Command struct {
 	runBackground   bool
 	sudo            bool
 	sudoUser        string
-	tags            []string
 
 	cmds   [][]string
 	id     string
@@ -183,16 +182,16 @@ func (c *Command) ID(id string) *Command { c.id = id; return c }
 
 // SetTags overrides any existing tags for a process with the
 // specified list. Tags are used to filter process with the manager.
-func (c *Command) SetTags(tags []string) *Command { c.tags = tags; return c }
+func (c *Command) SetTags(tags []string) *Command { c.opts.Tags = tags; return c }
 
 // AppendTags adds the specified tags to the existing tag slice. Tags
 // are used to filter process with the manager.
-func (c *Command) AppendTags(t ...string) *Command { c.tags = append(c.tags, t...); return c }
+func (c *Command) AppendTags(t ...string) *Command { c.opts.Tags = append(c.opts.Tags, t...); return c }
 
 // ExtendTags adds all tags in the specified slice to the tags will be
 // added to the process after creation. Tags are used to filter
 // process with the manager.
-func (c *Command) ExtendTags(t []string) *Command { c.tags = append(c.tags, t...); return c }
+func (c *Command) ExtendTags(t []string) *Command { c.opts.Tags = append(c.opts.Tags, t...); return c }
 
 // Background allows you to set the command to run in the background
 // when you call Run(), the command will begin executing but will not
@@ -629,12 +628,12 @@ func (c *Command) getCreateOpts(ctx context.Context) ([]*CreateOptions, error) {
 
 func (c *Command) exec(ctx context.Context, opts *CreateOptions, idx int) error {
 	msg := message.Fields{
-		"id":  c.id,
-		"cmd": strings.Join(opts.Args, " "),
-		"idx": idx,
-		"len": len(c.cmds),
-		"bkg": c.runBackground,
-		"tag": c.tags,
+		"id":   c.id,
+		"cmd":  strings.Join(opts.Args, " "),
+		"idx":  idx,
+		"len":  len(c.cmds),
+		"bkg":  c.runBackground,
+		"tags": c.opts.Tags,
 	}
 
 	var err error
