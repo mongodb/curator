@@ -246,6 +246,7 @@ func TestClient(t *testing.T) {
 					localData, err := ioutil.ReadAll(f)
 					require.NoError(t, err)
 					assert.Equal(t, localData, remoteData)
+					require.NoError(t, f.Close())
 				}
 
 				require.Len(t, result.Rollups, len(expectedTests[i].Metrics))

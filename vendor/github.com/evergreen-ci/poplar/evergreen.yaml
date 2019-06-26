@@ -11,6 +11,7 @@ variables:
     # correspond to a make target for the build operation.
     name: test
     commands:
+      - func: git-config-windows-api-length
       - command: git.get_project
         type: system
         params:
@@ -23,18 +24,34 @@ variables:
 #              Functions              #
 #######################################
 functions:
+  #TODO: remove this function once BUILD-8571 is complete.
+  git-config-windows-api-length:
+    command: shell.exec
+    type: setup
+    params:
+      silent: true
+      script: |
+        if [ "Windows_NT" == "$OS" ]; then
+          git config --system core.longpaths true
+        fi
   setup-credentials:
     command: shell.exec
     type: setup
     params:
       silent: true
       script: |
-        mkdir ~/.aws
-        cat <<EOF > ~/.aws/config
+        if [ "Windows_NT" == "$OS" ]; then
+          export AWS_DIR=/cygdrive/c/Users/$USER/.aws
+        else
+          export AWS_DIR=$HOME/.aws
+        fi
+
+        mkdir $AWS_DIR
+        cat <<EOF > $AWS_DIR/config
         [default]
         region = us-east-1
         EOF
-        cat <<EOF > ~/.aws/credentials
+        cat <<EOF > $AWS_DIR/credentials
         [default]
         aws_access_key_id = ${aws_key}
         aws_secret_access_key = ${aws_secret}
@@ -51,6 +68,7 @@ functions:
         DISABLE_COVERAGE: ${disable_coverage}
         GOROOT: ${goroot}
         GOPATH: ${workdir}/gopath
+        USERPROFILE: C:\\Users\\Administrator
 
 #######################################
 #                Tasks                #
@@ -169,7 +187,7 @@ buildvariants:
       - windows-64-vs2015-small
     expansions:
       mongodb_url: https://fastdl.mongodb.org/win32/mongodb-win32-x86_64-2008plus-ssl-4.0.1.zip
-      goroot: c:/golang/go1.9/
+      goroot: c:/golang/go1.9
       gobin: /cygdrive/c/golang/go1.9/bin/go
       disable_coverage: true
       extension: ".exe"
