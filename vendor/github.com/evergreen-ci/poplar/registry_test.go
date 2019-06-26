@@ -127,6 +127,12 @@ func TestRegistry(t *testing.T) {
 		r, err = reg.Create("bar", opts)
 		require.NoError(t, err)
 		assert.NotNil(t, r)
+		defer func() {
+			impl, ok := reg.cache["bar"]
+			if ok {
+				assert.NoError(t, impl.file.Close())
+			}
+		}()
 
 		_, err = reg.Create("bar", opts)
 		require.Error(t, err)
@@ -148,6 +154,12 @@ func TestRegistry(t *testing.T) {
 		r, err := reg.Create("bar", opts)
 		require.NoError(t, err)
 		assert.NotNil(t, r)
+		defer func() {
+			impl, ok := reg.cache["bar"]
+			if ok {
+				assert.NoError(t, impl.file.Close())
+			}
+		}()
 
 		coll, ok := reg.GetCollector("baz")
 		require.False(t, ok)
@@ -163,6 +175,13 @@ func TestRegistry(t *testing.T) {
 		r, err = reg.Create("foo", opts)
 		require.NoError(t, err)
 		assert.NotNil(t, r)
+		defer func() {
+			var impl *recorderInstance
+			impl, ok = reg.cache["foo"]
+			if ok {
+				assert.NoError(t, impl.file.Close())
+			}
+		}()
 
 		coll, ok = reg.GetCollector("foo")
 		require.True(t, ok)
@@ -183,6 +202,12 @@ func TestRegistry(t *testing.T) {
 		rec, err := reg.Create("custom", opts)
 		assert.NoError(t, err)
 		assert.Nil(t, rec)
+		defer func() {
+			impl, ok := reg.cache["custom"]
+			if ok {
+				assert.NoError(t, impl.file.Close())
+			}
+		}()
 
 		require.Error(t, ((*customEventTracker)(nil)).Add("foo", 1))
 

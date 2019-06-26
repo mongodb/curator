@@ -108,6 +108,7 @@ func TestConvert(t *testing.T) {
 				f, err := os.Open(test.artifact.LocalFile)
 				require.NoError(t, err)
 				assert.True(t, test.conversionCheck(f))
+				require.NoError(t, f.Close())
 			}
 		})
 	}
@@ -275,6 +276,7 @@ func TestUpload(t *testing.T) {
 						localData, err := ioutil.ReadAll(f)
 						require.NoError(t, err)
 						assert.Equal(t, localData, remoteData)
+						require.NoError(t, f.Close())
 					}
 				}
 			}

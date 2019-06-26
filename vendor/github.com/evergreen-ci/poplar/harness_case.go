@@ -85,11 +85,11 @@ func (bench Benchmark) standard(recorder events.Recorder, closer func() error) f
 // Standard produces a standard library test function, and configures
 // a recorder from the registry.
 func (c *BenchmarkCase) Standard(registry *RecorderRegistry) func(*testing.B) {
-	test := registry.MakeBenchmark(c)
 	return func(b *testing.B) {
 		if err := c.Validate(); err != nil {
 			b.Fatal(errors.Wrap(err, "benchmark validation failed"))
 		}
+		test := registry.MakeBenchmark(c)
 		test(b)
 	}
 }

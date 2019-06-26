@@ -605,7 +605,6 @@ func TestSuiteType(t *testing.T) {
 			assert.Equal(t, 1, res.N)
 			assert.True(t, res.T < time.Millisecond)
 			assert.Equal(t, first, counter)
-
 		})
 	})
 
