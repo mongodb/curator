@@ -28,6 +28,13 @@ const (
 	ForceReinstallCommand = "force-reinstall"
 )
 
+// Constants representing the supported Jasper service types.
+const (
+	RPCService      = "rpc"
+	RESTService     = "rest"
+	CombinedService = "combined"
+)
+
 // Service encapsulates the functionality to set up Jasper services.
 // Except for run, the subcommands will generally require elevated privileges to
 // execute.

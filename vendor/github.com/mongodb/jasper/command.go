@@ -34,24 +34,10 @@ type Command struct {
 
 	cmds   [][]string
 	id     string
-	remote remoteCommandOptions
+	remote RemoteOptions
 	makep  ProcessConstructor
 
 	procs []Process
-}
-
-type remoteCommandOptions struct {
-	host string
-	user string
-	args []string
-}
-
-func (rco *remoteCommandOptions) hostString() string {
-	if rco.user == "" {
-		return rco.host
-	}
-
-	return fmt.Sprintf("%s@%s", rco.user, rco.host)
 }
 
 func (c *Command) sudoCmd() []string {
@@ -93,7 +79,7 @@ func (c *Command) getRemoteCreateOpt(ctx context.Context, args []string) (*Creat
 		remoteCmd += strings.Join(args, " ")
 	}
 
-	opts.Args = append(append([]string{"ssh"}, c.remote.args...), c.remote.hostString(), remoteCmd)
+	opts.Args = append(append([]string{"ssh"}, c.remote.Args...), c.remote.hostString(), remoteCmd)
 	return opts, nil
 }
 
@@ -151,33 +137,44 @@ func (c *Command) String() string {
 	return fmt.Sprintf("id='%s', remote='%s', cmd='%s'", c.id, c.remote.hostString(), c.getCmd())
 }
 
+// Export returns all of the CreateOptions that will be used to spawn the
+// processes that run all subcommands.
+func (c *Command) Export(ctx context.Context) ([]*CreateOptions, error) {
+	opts, err := c.getCreateOpts(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "problem getting create options")
+	}
+	return opts, nil
+}
+
 // Directory sets the working directory. If this is a remote command, it sets
 // the working directory of the command being run remotely.
 func (c *Command) Directory(d string) *Command { c.opts.WorkingDirectory = d; return c }
 
 // Host sets the hostname. A blank hostname implies local execution of the
 // command, a non-blank hostname is treated as a remotely executed command.
-func (c *Command) Host(h string) *Command { c.remote.host = h; return c }
+func (c *Command) Host(h string) *Command { c.remote.Host = h; return c }
 
 // User sets the username for remote operations. Host name must be set
 // to execute as a remote command.
-func (c *Command) User(u string) *Command { c.remote.user = u; return c }
+func (c *Command) User(u string) *Command { c.remote.User = u; return c }
 
-// SetSSHArgs sets the arguments, if any, that are passed to the
+// SetRemoteArgs sets the arguments, if any, that are passed to the
 // underlying ssh command, for remote commands.
-func (c *Command) SetSSHArgs(args []string) *Command { c.remote.args = args; return c }
+func (c *Command) SetRemoteArgs(args []string) *Command { c.remote.Args = args; return c }
 
-// ExtendSSHArgs allows you to add arguments, when needed, to the
+// ExtendRemoteArgs allows you to add arguments, when needed, to the
 // underlying ssh command, for remote commands.
-func (c *Command) ExtendSSHArgs(a ...string) *Command {
-	c.remote.args = append(c.remote.args, a...)
+func (c *Command) ExtendRemoteArgs(args ...string) *Command {
+	c.remote.Args = append(c.remote.Args, args...)
 	return c
 }
 
 // Priority sets the logging priority.
 func (c *Command) Priority(l level.Priority) *Command { c.priority = l; return c }
 
-// ID sets the ID.
+// ID sets the ID of the Command, which is independent of the IDs of the
+// subcommands that are executed.
 func (c *Command) ID(id string) *Command { c.id = id; return c }
 
 // SetTags overrides any existing tags for a process with the
@@ -422,6 +419,10 @@ func (c *Command) Close() error {
 	return c.opts.Close()
 }
 
+func (c *Command) SetInput(r io.Reader) {
+	c.opts.StandardInput = r
+}
+
 // SetErrorSender sets a Sender to be used by this Command for its output to
 // stderr.
 func (c *Command) SetErrorSender(l level.Priority, s send.Sender) *Command {
@@ -598,7 +599,7 @@ func (c *Command) getCreateOpt(ctx context.Context, args []string) (*CreateOptio
 func (c *Command) getCreateOpts(ctx context.Context) ([]*CreateOptions, error) {
 	out := []*CreateOptions{}
 	catcher := grip.NewBasicCatcher()
-	if c.remote.host != "" {
+	if c.remote.Host != "" {
 		for _, args := range c.cmds {
 			cmd, err := c.getRemoteCreateOpt(ctx, args)
 			if err != nil {
