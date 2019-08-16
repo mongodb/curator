@@ -77,6 +77,7 @@ func setupSplunkLogger(c *cli.Context) (*cmdLogger, error) {
 	out := &cmdLogger{
 		logJSON:     c.Parent().Bool("json"),
 		annotations: getAnnotations(c.Parent().StringSlice("annotation")),
+		closer:      func() {},
 	}
 
 	if !info.Populated() {
