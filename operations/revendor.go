@@ -1,24 +1,31 @@
 package operations
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/Masterminds/glide/action"
 	gpath "github.com/Masterminds/glide/path"
 	"github.com/Masterminds/glide/repo"
+	shlex "github.com/anmitsu/go-shlex"
 	"github.com/mongodb/grip"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
 
+// Revendor returns a cli.Command that upgrades a vendored dependency using
+// glide.
 func Revendor() cli.Command {
 	const (
 		packageFlagName  = "package"
 		revisionFlagName = "revision"
+		cleanCommandFlag = "clean"
 	)
 	return cli.Command{
 		Name: "revendor",
@@ -31,7 +38,15 @@ func Revendor() cli.Command {
 				Name:  revisionFlagName,
 				Usage: "the updated package revision",
 			},
+			cli.StringFlag{
+				Name:  cleanCommandFlag,
+				Usage: "command to run to perform clean up",
+			},
 		},
+		Before: mergeBeforeFuncs(
+			requireStringFlag(packageFlagName),
+			requireStringFlag(revisionFlagName),
+		),
 		Action: func(c *cli.Context) error {
 			pkg := c.String(packageFlagName)
 			rev := c.String(revisionFlagName)
@@ -41,20 +56,23 @@ func Revendor() cli.Command {
 			}
 
 			wd, err := os.Getwd()
-			grip.EmergencyFatal(errors.Wrap(err, "error getting working directory"))
+			if err != nil {
+				return errors.Wrap(err, "error getting working directory")
+			}
 
 			vendorPath := filepath.Join(wd, gpath.VendorDir, pkg)
 
 			glidePath := filepath.Join(wd, gpath.LockFile)
-			_, err = os.Stat(glidePath)
-			grip.EmergencyFatal(errors.Wrapf(err, "glide file %s not found", glidePath))
-
 			glideFile, err := os.Open(glidePath)
-			grip.EmergencyFatal(errors.Wrap(err, "error opening glide file"))
-			glide, err := ioutil.ReadAll(glideFile)
-			grip.EmergencyFatal(errors.Wrap(err, "error reading glide file"))
+			if err != nil {
+				return errors.Wrapf(err, "glide file %s could not be opened", glidePath)
+			}
+			glideContent, err := ioutil.ReadAll(glideFile)
+			if err != nil {
+				return errors.Wrapf(err, "error reading glide file %s", glidePath)
+			}
 
-			lines := strings.Split(string(glide), "\n")
+			lines := strings.Split(string(glideContent), "\n")
 			found := false
 			for i, line := range lines {
 				if strings.Contains(line, pkg) {
@@ -64,25 +82,45 @@ func Revendor() cli.Command {
 				}
 			}
 			if !found {
-				grip.EmergencyFatalf("package %s not found in glide file", pkg)
+				return errors.Errorf("package %s not found in glide file %s", pkg, glidePath)
 			}
 
-			grip.EmergencyFatal(errors.Wrap(ioutil.WriteFile(glidePath, []byte(strings.Join(lines, "\n")), 0777), "error writing glide file"))
+			if err := ioutil.WriteFile(glidePath, []byte(strings.Join(lines, "\n")), 0777); err != nil {
+				return errors.Wrapf(err, "error writing glide file %s", glidePath)
+			}
 
-			grip.EmergencyFatal(errors.Wrap(os.RemoveAll(vendorPath), "error removing vendor directory"))
+			if err := os.RemoveAll(vendorPath); err != nil {
+				return errors.Wrapf(err, "error removing vendored package directory %s", vendorPath)
+			}
 
 			installer := repo.NewInstaller()
 			action.EnsureGoVendor()
+			// We can't strip the VCS in this call because of a bug in this
+			// glide version that doesn't handle concurrent directory walking
+			// and removal properly.
 			action.Install(installer, false, false)
 
-			stat, err := os.Stat(vendorPath)
-			grip.EmergencyFatal(errors.Wrapf(err, "vendor directory %s not found", vendorPath))
-			if !stat.IsDir() {
-				grip.EmergencyFatalf("'%s' is not a directory", vendorPath)
-			}
 			gitPath := filepath.Join(vendorPath, ".git")
-			grip.EmergencyFatal(errors.Wrap(os.RemoveAll(gitPath), "error removing .git directory"))
-			return nil
+			if err := os.RemoveAll(gitPath); err != nil {
+				return errors.Wrapf(err, "could not remove package VCS directory %s", gitPath)
+			}
+
+			cmdStr := c.String(cleanCommandFlag)
+			if cmdStr == "" {
+				return nil
+			}
+
+			splitCmd, err := shlex.Split(cmdStr, true)
+			if err != nil {
+				return errors.Wrapf(err, "could not parse clean command %s", cmdStr)
+			}
+
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+
+			cmd := exec.CommandContext(ctx, splitCmd[0], splitCmd[1:]...)
+			cmd.Stdout = os.Stdout
+			return errors.Wrapf(cmd.Run(), "could not run clean command %s", cmdStr)
 		},
 	}
 }
