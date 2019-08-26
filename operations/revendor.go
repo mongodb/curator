@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/Masterminds/glide/action"
 	gpath "github.com/Masterminds/glide/path"
@@ -76,7 +77,19 @@ func Revendor() cli.Command {
 			found := false
 			for i, line := range lines {
 				if strings.Contains(line, pkg) {
-					lines[i+1] = fmt.Sprintf("  version: %s", rev)
+					if i+1 >= len(lines) {
+						return errors.Wrapf(err, "no version specified for package %s", pkg)
+					}
+					// The whitespace has to be consistent with the current
+					// amount of whitespace
+					firstNonWhitespaceIdx := strings.IndexFunc(lines[i+1], func(r rune) bool {
+						return !unicode.IsSpace(r)
+					})
+					if firstNonWhitespaceIdx == -1 {
+						return errors.Wrapf(err, "missing version string on line following package")
+					}
+					whitespace := lines[i+1][:firstNonWhitespaceIdx]
+					lines[i+1] = fmt.Sprintf("%sversion: %s", whitespace, rev)
 					found = true
 					break
 				}
