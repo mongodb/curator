@@ -261,7 +261,7 @@ func (j *Job) signFile(fileName, archiveExtension string, overwrite bool) error 
 // Run is the main execution entry point into repository building, and is a component
 func (j *Job) Run(ctx context.Context) {
 	opts := pail.S3Options{
-		Region:                   "us-east-1",
+		Region:                   j.Distro.Region,
 		SharedCredentialsProfile: j.Profile,
 		Name:                     j.Distro.Bucket,
 		DryRun:                   j.DryRun,

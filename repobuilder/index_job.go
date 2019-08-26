@@ -57,7 +57,7 @@ func NewIndexBuildJob(conf *RepositoryConfig, workSpace, repoName, bucket string
 // levels of the repo.
 func (j *IndexBuildJob) Run(ctx context.Context) {
 	opts := pail.S3Options{
-		Region:                   "us-east-1",
+		Region:                   j.Conf.Region,
 		SharedCredentialsProfile: j.Profile,
 		Name:                     j.Bucket,
 		DryRun:                   j.DryRun,
