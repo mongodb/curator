@@ -54,6 +54,17 @@ lintArgs += --exclude="should check returned error before deferring.*Close()"
 
 # start dependency installation tools
 #   implementation details for being able to lazily install dependencies
+run-glide:$(buildDir)/run-glide
+$(buildDir)/run-glide:cmd/run-glide/run-glide.go
+	go build -o $@ $<
+revendor:$(buildDir)/run-glide
+	$(buildDir)/run-glide $(if $(VENDOR_REVISION),--revision $(VENDOR_REVISION),) $(if $(VENDOR_PKG),--package $(VENDOR_PKG) ,)
+revendor:
+ifneq ($(VENDOR_REVISION),)
+ifneq ($(VENDOR_PKG),)
+revendor:run-glide vendor-clean
+endif
+endif
 .DEFAULT_GOAL := $(binary)
 gopath := $(shell go env GOPATH)
 lintDeps := $(addprefix $(gopath)/src/,$(lintDeps))

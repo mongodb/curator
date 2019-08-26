@@ -15,6 +15,8 @@ imports:
   version: 02d5144a587b982e33b95f484a34164ce6923c99
 - name: github.com/urfave/cli
   version: 01857ac33766ce0c93856370626f9799281c14f4
+- name: github.com/Masterminds/glide
+  version: 23f6a9d8e774f597faabae8b58b8c6020b3f79ef
 
 - name: github.com/vaughan0/go-ini
   version: a98ad7ee00ec53921f08832bc06ecf7fd600e6a1
