@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 
 	"github.com/mongodb/grip"
+	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 )
 
@@ -28,6 +29,7 @@ type RepositoryConfig struct {
 		Index string            `bson:"index_page" json:"index_page" yaml:"index_page"`
 		Deb   map[string]string `bson:"deb" json:"deb" yaml:"deb"`
 	} `bson:"templates" json:"templates" yaml:"templates"`
+	Region           string `bson:"region" json:"region" yaml:"region"`
 	fileName         string
 	definitionLookup map[string]map[string]*RepositoryDefinition
 }
@@ -49,6 +51,7 @@ type RepositoryDefinition struct {
 	Type          RepoType `bson:"type" json:"type" yaml:"type"`
 	CodeName      string   `bson:"code_name" json:"code_name" yaml:"code_name"`
 	Bucket        string   `bson:"bucket" json:"bucket" yaml:"bucket"`
+	Region        string   `bson:"region" json:"region" yaml:"region"`
 	Repos         []string `bson:"repos" json:"repos" yaml:"repos"`
 	Edition       string   `bson:"edition" json:"edition" yaml:"edition"`
 	Architectures []string `bson:"architectures,omitempty" json:"architectures,omitempty" yaml:"architectures,omitempty"`
@@ -94,11 +97,25 @@ func (c *RepositoryConfig) read(fileName string) error {
 
 	data, err := ioutil.ReadFile(fileName)
 	if err != nil {
-		grip.Infof("could not read file %v", fileName)
-		return err
+		return errors.Wrapf(err, "could not read file %v", fileName)
 	}
 
-	return yaml.Unmarshal(data, c)
+	if err = yaml.Unmarshal(data, c); err != nil {
+		return errors.WithStack(err)
+	}
+
+	return errors.WithStack(c.Validate())
+}
+
+// Validate ensures that the configuration file is correct, sets any
+// unset defaults, and returns an error if there are any remaining
+// errors.
+func (c *RepositoryConfig) Validate() error {
+	if c.Region == "" {
+		c.Region = "us-east-1"
+	}
+
+	return nil
 }
 
 func (c *RepositoryConfig) processRepos() error {
@@ -127,6 +144,10 @@ func (c *RepositoryConfig) processRepos() error {
 			catcher.Add(fmt.Errorf("debian distro %s does not specify architecture list",
 				dfn.Name))
 			continue
+		}
+
+		if dfn.Region == "" {
+			dfn.Region = c.Region
 		}
 
 		c.definitionLookup[dfn.Edition][dfn.Name] = dfn
