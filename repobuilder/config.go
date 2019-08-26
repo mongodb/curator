@@ -107,6 +107,9 @@ func (c *RepositoryConfig) read(fileName string) error {
 	return errors.WithStack(c.Validate())
 }
 
+// Validate ensures that the configuration file is correct, sets any
+// unset defaults, and returns an error if there are any remaining
+// errors.
 func (c *RepositoryConfig) Validate() error {
 	if c.Region == "" {
 		c.Region = "us-east-1"
