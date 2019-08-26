@@ -3,7 +3,6 @@ package internal
 import (
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"strings"
 	"sync"
@@ -71,7 +70,6 @@ func getProcInfoNoHang(ctx context.Context, p jasper.Process) *ProcessInfo {
 type jasperService struct {
 	hostID     string
 	manager    jasper.Manager
-	client     http.Client
 	cache      *lru.Cache
 	cacheOpts  jasper.CacheOptions
 	cacheMutex sync.RWMutex
@@ -94,29 +92,23 @@ func (s *jasperService) Create(ctx context.Context, opts *CreateOptions) (*Proce
 	// Spawn a new context so that the process' context is not potentially
 	// canceled by the request's. See how rest_service.go's createProcess() does
 	// this same thing.
-	var cctx context.Context
-	var cancel context.CancelFunc
-	if jopts.Timeout > 0 {
-		cctx, cancel = context.WithTimeout(context.Background(), jopts.Timeout)
-	} else {
-		cctx, cancel = context.WithCancel(context.Background())
-	}
+	pctx, cancel := context.WithCancel(context.Background())
 
-	proc, err := s.manager.CreateProcess(cctx, jopts)
+	proc, err := s.manager.CreateProcess(pctx, jopts)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 
-	if err := proc.RegisterTrigger(cctx, func(_ jasper.ProcessInfo) {
+	if err := proc.RegisterTrigger(ctx, func(_ jasper.ProcessInfo) {
 		cancel()
 	}); err != nil {
-		if !proc.Info(cctx).Complete {
-			return ConvertProcessInfo(proc.Info(cctx)), nil
+		if !proc.Info(ctx).Complete {
+			return ConvertProcessInfo(proc.Info(ctx)), nil
 		}
 		cancel()
 	}
 
-	return getProcInfoNoHang(cctx, proc), nil
+	return getProcInfoNoHang(ctx, proc), nil
 }
 
 func (s *jasperService) List(f *Filter, stream JasperProcessManager_ListServer) error {
@@ -375,9 +367,8 @@ func (s *jasperService) DownloadFile(ctx context.Context, info *DownloadInfo) (*
 	}
 
 	return &OperationOutcome{
-		Success:  true,
-		Text:     fmt.Sprintf("downloaded file %s to path %s", jinfo.URL, jinfo.Path),
-		ExitCode: 0,
+		Success: true,
+		Text:    fmt.Sprintf("downloaded file %s to path %s", jinfo.URL, jinfo.Path),
 	}, nil
 }
 
@@ -472,4 +463,66 @@ func (s *jasperService) SignalEvent(ctx context.Context, name *EventName) (*Oper
 		Text:     fmt.Sprintf("signaled event named '%s'", eventName),
 		ExitCode: 0,
 	}, nil
+}
+
+func (s *jasperService) WriteFile(stream JasperProcessManager_WriteFileServer) error {
+	var jinfo jasper.WriteFileInfo
+
+	numRecvs := 0
+	for info, err := stream.Recv(); err == nil; info, err = stream.Recv() {
+		numRecvs++
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			if sendErr := stream.SendAndClose(&OperationOutcome{
+				Success:  false,
+				Text:     errors.Wrap(err, "error receiving from client stream").Error(),
+				ExitCode: -2,
+			}); sendErr != nil {
+				return errors.Wrapf(sendErr, "could not send error response to client: %s", err.Error())
+			}
+			return nil
+		}
+
+		jinfo = info.Export()
+
+		if err := jinfo.Validate(); err != nil {
+			if sendErr := stream.SendAndClose(&OperationOutcome{
+				Success:  false,
+				Text:     errors.Wrap(err, "problem validating file write info").Error(),
+				ExitCode: -3,
+			}); sendErr != nil {
+				return errors.Wrapf(sendErr, "could not send error response to client: %s", err.Error())
+			}
+			return nil
+		}
+
+		if err := jinfo.DoWrite(); err != nil {
+			if sendErr := stream.SendAndClose(&OperationOutcome{
+				Success:  false,
+				Text:     errors.Wrap(err, "problem validating file write info").Error(),
+				ExitCode: -4,
+			}); sendErr != nil {
+				return errors.Wrapf(sendErr, "could not send error response to client: %s", err.Error())
+			}
+			return nil
+		}
+	}
+
+	if err := jinfo.SetPerm(); err != nil {
+		if sendErr := stream.SendAndClose(&OperationOutcome{
+			Success:  false,
+			Text:     errors.Wrapf(err, "problem setting permissions for file %s", jinfo.Path).Error(),
+			ExitCode: -5,
+		}); sendErr != nil {
+			return errors.Wrapf(sendErr, "could not send error response to client: %s", err.Error())
+		}
+		return nil
+	}
+
+	return errors.Wrap(stream.SendAndClose(&OperationOutcome{
+		Success: true,
+		Text:    fmt.Sprintf("file %s successfully written", jinfo.Path),
+	}), "could not send success response to client")
 }

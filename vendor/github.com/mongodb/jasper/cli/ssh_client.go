@@ -23,6 +23,10 @@ func NewSSHClient(remoteOpts jasper.RemoteOptions, clientOpts ClientOptions, tra
 	if err := remoteOpts.Validate(); err != nil {
 		return nil, errors.Wrap(err, "problem validating remote options")
 	}
+	// We have to suppress logs from SSH, because it will prevent the JSON
+	// output from the Jasper CLI from being parsed correctly (e.g. adding a
+	// host to the known hosts file generates a warning).
+	remoteOpts.Args = append([]string{"-o", "LogLevel=QUIET"}, remoteOpts.Args...)
 
 	if err := clientOpts.Validate(); err != nil {
 		return nil, errors.Wrap(err, "problem validating client options")
@@ -157,7 +161,7 @@ func (c *sshClient) Close(ctx context.Context) error {
 }
 
 func (c *sshClient) CloseConnection() error {
-	return errors.New("cannot close connection on an SSH client")
+	return nil
 }
 
 func (c *sshClient) ConfigureCache(ctx context.Context, opts jasper.CacheOptions) error {
@@ -184,6 +188,22 @@ func (c *sshClient) DownloadFile(ctx context.Context, info jasper.DownloadInfo) 
 	}
 
 	return nil
+}
+
+func (c *sshClient) WriteFile(ctx context.Context, info jasper.WriteFileInfo) error {
+	sendInfo := func(info jasper.WriteFileInfo) error {
+		output, err := c.runRemoteCommand(ctx, WriteFileCommand, &info)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+
+		if _, err := ExtractOutcomeResponse(output); err != nil {
+			return errors.WithStack(err)
+		}
+
+		return nil
+	}
+	return info.WriteBufferedContent(sendInfo)
 }
 
 func (c *sshClient) DownloadMongoDB(ctx context.Context, opts jasper.MongoDBDownloadOptions) error {
@@ -268,12 +288,12 @@ func (c *sshClient) runClientCommand(ctx context.Context, subcommand []string, s
 
 // newCommand creates the command that runs the Jasper CLI client command
 // over SSH.
-func (c *sshClient) newCommand(ctx context.Context, clientSubcommand []string, input io.Reader, output io.WriteCloser) *jasper.Command {
+func (c *sshClient) newCommand(ctx context.Context, clientSubcommand []string, input []byte, output io.WriteCloser) *jasper.Command {
 	cmd := c.manager.CreateCommand(ctx).Host(c.opts.Machine.Host).User(c.opts.Machine.User).ExtendRemoteArgs(c.opts.Machine.Args...).
 		Add(c.opts.buildCommand(clientSubcommand...))
 
-	if input != nil {
-		cmd.SetInput(input)
+	if len(input) != 0 {
+		cmd.SetInputBytes(input)
 	}
 
 	if output != nil {
@@ -292,7 +312,7 @@ func clientOutput() *CappedWriter {
 }
 
 // clientInput constructs the JSON input to the CLI from the struct.
-func clientInput(input interface{}) (*bytes.Buffer, error) {
+func clientInput(input interface{}) ([]byte, error) {
 	if input == nil {
 		return nil, nil
 	}
@@ -302,5 +322,5 @@ func clientInput(input interface{}) (*bytes.Buffer, error) {
 		return nil, errors.Wrap(err, "could not encode input as JSON")
 	}
 
-	return bytes.NewBuffer(inputBytes), nil
+	return inputBytes, nil
 }

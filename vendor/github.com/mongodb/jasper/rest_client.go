@@ -22,7 +22,7 @@ import (
 func NewRESTClient(addr net.Addr) RemoteClient {
 	return &restClient{
 		prefix: fmt.Sprintf("http://%s/jasper/v1", addr.String()),
-		client: http.DefaultClient,
+		client: GetHTTPClient(),
 	}
 }
 
@@ -32,6 +32,7 @@ type restClient struct {
 }
 
 func (c *restClient) CloseConnection() error {
+	PutHTTPClient(c.client)
 	return nil
 }
 
@@ -277,7 +278,7 @@ func (c *restClient) DownloadFile(ctx context.Context, info DownloadInfo) error 
 
 	resp, err := c.doRequest(ctx, http.MethodPost, c.getURL("/download"), body)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "problem downloading file")
 	}
 	defer resp.Body.Close()
 
@@ -326,10 +327,25 @@ func (c *restClient) SignalEvent(ctx context.Context, name string) error {
 	return nil
 }
 
+func (c *restClient) WriteFile(ctx context.Context, info WriteFileInfo) error {
+	sendInfo := func(info WriteFileInfo) error {
+		body, err := makeBody(info)
+		if err != nil {
+			return errors.Wrap(err, "problem building request")
+		}
+		resp, err := c.doRequest(ctx, http.MethodPut, c.getURL("/file/write"), body)
+		if err != nil {
+			return errors.Wrap(err, "problem writing file")
+		}
+		return errors.Wrap(resp.Body.Close(), "problem closing response body")
+	}
+
+	return info.WriteBufferedContent(sendInfo)
+}
+
 type restProcess struct {
-	id              string
-	client          *restClient
-	buildloggerURLs []string
+	id     string
+	client *restClient
 }
 
 func (p *restProcess) ID() string { return p.id }

@@ -1,6 +1,7 @@
 package jasper
 
 import (
+	"bytes"
 	"context"
 	"io/ioutil"
 	"os"
@@ -87,6 +88,29 @@ func TestCreateOptions(t *testing.T) {
 		"LargeTimeoutShouldValidate": func(t *testing.T, opts *CreateOptions) {
 			opts.Timeout = time.Hour
 			assert.NoError(t, opts.Validate())
+		},
+		"StandardInputBytesSetsStandardInput": func(t *testing.T, opts *CreateOptions) {
+			stdinBytesStr := "foo"
+			opts.StandardInputBytes = []byte(stdinBytesStr)
+
+			require.NoError(t, opts.Validate())
+
+			out, err := ioutil.ReadAll(opts.StandardInput)
+			require.NoError(t, err)
+			assert.EqualValues(t, stdinBytesStr, out)
+		},
+		"StandardInputBytesTakePrecedenceOverStandardInput": func(t *testing.T, opts *CreateOptions) {
+			stdinStr := "foo"
+			opts.StandardInput = bytes.NewBufferString(stdinStr)
+
+			stdinBytesStr := "bar"
+			opts.StandardInputBytes = []byte(stdinBytesStr)
+
+			require.NoError(t, opts.Validate())
+
+			out, err := ioutil.ReadAll(opts.StandardInput)
+			require.NoError(t, err)
+			assert.EqualValues(t, stdinBytesStr, out)
 		},
 		"NonExistingWorkingDirectoryShouldNotValidate": func(t *testing.T, opts *CreateOptions) {
 			opts.WorkingDirectory = "foo"
@@ -266,7 +290,10 @@ func TestFileLogging(t *testing.T) {
 	// Ensure good file exists and has data
 	goodFile, err := ioutil.TempFile("build", "this_file_exists")
 	require.NoError(t, err)
-	defer os.Remove(goodFile.Name())
+	defer func() {
+		assert.NoError(t, goodFile.Close())
+		assert.NoError(t, os.RemoveAll(goodFile.Name()))
+	}()
 
 	goodFileName := goodFile.Name()
 	numBytes, err := goodFile.Write([]byte(catOutputMessage))
@@ -373,7 +400,10 @@ func TestFileLogging(t *testing.T) {
 			for i := 0; i < testParams.numLogs; i++ {
 				file, err := ioutil.TempFile("build", "out.txt")
 				require.NoError(t, err)
-				defer os.Remove(file.Name())
+				defer func() {
+					assert.NoError(t, file.Close())
+					assert.NoError(t, os.RemoveAll(file.Name()))
+				}()
 				info, err := file.Stat()
 				require.NoError(t, err)
 				assert.Zero(t, info.Size())

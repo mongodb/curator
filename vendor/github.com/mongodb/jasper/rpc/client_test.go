@@ -1,10 +1,12 @@
 package rpc
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io/ioutil"
 	"net"
+	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -422,6 +424,146 @@ func TestRPCClient(t *testing.T) {
 								assert.Equal(t, 9, exitCode)
 							}
 						},
+						"StandardInput": func(ctx context.Context, t *testing.T, client jasper.RemoteClient) {
+							for subTestName, subTestCase := range map[string]func(ctx context.Context, t *testing.T, opts *jasper.CreateOptions, expectedOutput string, stdin []byte){
+								"ReaderIsIgnored": func(ctx context.Context, t *testing.T, opts *jasper.CreateOptions, expectedOutput string, stdin []byte) {
+									opts.StandardInput = bytes.NewBuffer(stdin)
+
+									proc, err := client.CreateProcess(ctx, opts)
+									require.NoError(t, err)
+
+									_, err = proc.Wait(ctx)
+									require.NoError(t, err)
+
+									logs, err := client.GetLogStream(ctx, proc.ID(), 1)
+									require.NoError(t, err)
+									assert.Empty(t, logs.Logs)
+								},
+								"BytesSetsStandardInput": func(ctx context.Context, t *testing.T, opts *jasper.CreateOptions, expectedOutput string, stdin []byte) {
+									opts.StandardInputBytes = stdin
+
+									proc, err := client.CreateProcess(ctx, opts)
+									require.NoError(t, err)
+
+									_, err = proc.Wait(ctx)
+									require.NoError(t, err)
+
+									logs, err := client.GetLogStream(ctx, proc.ID(), 1)
+									require.NoError(t, err)
+
+									require.Len(t, logs.Logs, 1)
+									assert.Equal(t, expectedOutput, strings.TrimSpace(logs.Logs[0]))
+								},
+								"BytesCopiedByRespawnedProcess": func(ctx context.Context, t *testing.T, opts *jasper.CreateOptions, expectedOutput string, stdin []byte) {
+									opts.StandardInputBytes = stdin
+
+									proc, err := client.CreateProcess(ctx, opts)
+									require.NoError(t, err)
+
+									_, err = proc.Wait(ctx)
+									require.NoError(t, err)
+
+									logs, err := client.GetLogStream(ctx, proc.ID(), 1)
+									require.NoError(t, err)
+
+									require.Len(t, logs.Logs, 1)
+									assert.Equal(t, expectedOutput, strings.TrimSpace(logs.Logs[0]))
+
+									newProc, err := proc.Respawn(ctx)
+									require.NoError(t, err)
+
+									_, err = newProc.Wait(ctx)
+									require.NoError(t, err)
+
+									logs, err = client.GetLogStream(ctx, newProc.ID(), 1)
+									require.NoError(t, err)
+
+									require.Len(t, logs.Logs, 1)
+									assert.Equal(t, expectedOutput, strings.TrimSpace(logs.Logs[0]))
+								},
+							} {
+								t.Run(subTestName, func(t *testing.T) {
+									opts := &jasper.CreateOptions{
+										Args: []string{"bash", "-s"},
+										Output: jasper.OutputOptions{
+											Loggers: []jasper.Logger{jasper.NewInMemoryLogger(1)},
+										},
+									}
+									expectedOutput := "foobar"
+									stdin := []byte("echo " + expectedOutput)
+									subTestCase(ctx, t, opts, expectedOutput, stdin)
+								})
+							}
+						},
+						"WriteFileSucceeds": func(ctx context.Context, t *testing.T, client jasper.RemoteClient) {
+							tmpFile, err := ioutil.TempFile(buildDir(t), filepath.Base(t.Name()))
+							require.NoError(t, err)
+							defer func() {
+								assert.NoError(t, tmpFile.Close())
+								assert.NoError(t, os.RemoveAll(tmpFile.Name()))
+							}()
+
+							info := jasper.WriteFileInfo{Path: tmpFile.Name(), Content: []byte("foo")}
+							require.NoError(t, client.WriteFile(ctx, info))
+
+							content, err := ioutil.ReadFile(tmpFile.Name())
+							require.NoError(t, err)
+
+							assert.Equal(t, info.Content, content)
+						},
+						"WriteFileAcceptsContentFromReader": func(ctx context.Context, t *testing.T, client jasper.RemoteClient) {
+							tmpFile, err := ioutil.TempFile(buildDir(t), filepath.Base(t.Name()))
+							require.NoError(t, err)
+							defer func() {
+								assert.NoError(t, tmpFile.Close())
+								assert.NoError(t, os.RemoveAll(tmpFile.Name()))
+							}()
+
+							buf := []byte("foo")
+							info := jasper.WriteFileInfo{Path: tmpFile.Name(), Reader: bytes.NewBuffer(buf)}
+							require.NoError(t, client.WriteFile(ctx, info))
+
+							content, err := ioutil.ReadFile(tmpFile.Name())
+							require.NoError(t, err)
+
+							assert.Equal(t, buf, content)
+						},
+						"WriteFileSucceedsWithLargeContent": func(ctx context.Context, t *testing.T, client jasper.RemoteClient) {
+							tmpFile, err := ioutil.TempFile(buildDir(t), filepath.Base(t.Name()))
+							require.NoError(t, err)
+							defer func() {
+								assert.NoError(t, tmpFile.Close())
+								assert.NoError(t, os.RemoveAll(tmpFile.Name()))
+							}()
+
+							const mb = 1024 * 1024
+							info := jasper.WriteFileInfo{Path: tmpFile.Name(), Content: bytes.Repeat([]byte("foo"), mb)}
+							require.NoError(t, client.WriteFile(ctx, info))
+
+							content, err := ioutil.ReadFile(tmpFile.Name())
+							require.NoError(t, err)
+
+							assert.Equal(t, info.Content, content)
+						},
+						"WriteFileFailsWithInvalidPath": func(ctx context.Context, t *testing.T, client jasper.RemoteClient) {
+							info := jasper.WriteFileInfo{Content: []byte("foo")}
+							assert.Error(t, client.WriteFile(ctx, info))
+						},
+						"WriteFileSucceedsWithNoContent": func(ctx context.Context, t *testing.T, client jasper.RemoteClient) {
+							path := filepath.Join(buildDir(t), filepath.Base(t.Name()))
+							require.NoError(t, os.RemoveAll(path))
+							defer func() {
+								assert.NoError(t, os.RemoveAll(path))
+							}()
+
+							info := jasper.WriteFileInfo{Path: path}
+							require.NoError(t, client.WriteFile(ctx, info))
+
+							stat, err := os.Stat(path)
+							require.NoError(t, err)
+
+							assert.Zero(t, stat.Size())
+						},
 						// "": func(ctx context.Context, t *testing.T, client jasper.RemoteClient) {},
 					} {
 						t.Run(name, func(t *testing.T) {
@@ -710,6 +852,23 @@ func TestRPCProcess(t *testing.T) {
 								assert.Fail(t, "call to Wait() took too long to finish")
 							}
 							require.NoError(t, jasper.Terminate(ctx, proc)) // Clean up.
+						},
+						"InfoHasTimeoutWhenProcessTimesOut": func(ctx context.Context, t *testing.T, opts *jasper.CreateOptions, makep processConstructor) {
+							opts = sleepCreateOpts(100)
+							opts.Timeout = time.Second
+							opts.TimeoutSecs = 1
+							proc, err := makep(ctx, opts)
+							require.NoError(t, err)
+
+							exitCode, err := proc.Wait(ctx)
+							assert.Error(t, err)
+							if runtime.GOOS == "windows" {
+								assert.Equal(t, 1, exitCode)
+							} else {
+								assert.Equal(t, int(syscall.SIGKILL), exitCode)
+							}
+							info := proc.Info(ctx)
+							assert.True(t, info.Timeout)
 						},
 						"CallingSignalOnDeadProcessDoesError": func(ctx context.Context, t *testing.T, opts *jasper.CreateOptions, makep processConstructor) {
 							proc, err := makep(ctx, opts)

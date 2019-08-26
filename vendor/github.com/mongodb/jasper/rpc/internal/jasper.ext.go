@@ -1,9 +1,12 @@
 package internal
 
 import (
+	"bytes"
+	"os"
 	"syscall"
 	"time"
 
+	"github.com/mongodb/grip/level"
 	"github.com/mongodb/grip/send"
 	"github.com/mongodb/jasper"
 	"github.com/tychoish/bond"
@@ -14,13 +17,17 @@ import (
 // exported RPC CreateOptions and the returned Jasper CreateOptions.
 func (opts *CreateOptions) Export() *jasper.CreateOptions {
 	out := &jasper.CreateOptions{
-		Args:             opts.Args,
-		Environment:      opts.Environment,
-		WorkingDirectory: opts.WorkingDirectory,
-		Timeout:          time.Duration(opts.TimeoutSeconds) * time.Second,
-		TimeoutSecs:      int(opts.TimeoutSeconds),
-		OverrideEnviron:  opts.OverrideEnviron,
-		Tags:             opts.Tags,
+		Args:               opts.Args,
+		Environment:        opts.Environment,
+		WorkingDirectory:   opts.WorkingDirectory,
+		Timeout:            time.Duration(opts.TimeoutSeconds) * time.Second,
+		TimeoutSecs:        int(opts.TimeoutSeconds),
+		OverrideEnviron:    opts.OverrideEnviron,
+		Tags:               opts.Tags,
+		StandardInputBytes: opts.StandardInputBytes,
+	}
+	if len(opts.StandardInputBytes) != 0 {
+		out.StandardInput = bytes.NewBuffer(opts.StandardInputBytes)
 	}
 
 	if opts.Output != nil {
@@ -49,16 +56,18 @@ func ConvertCreateOptions(opts *jasper.CreateOptions) *CreateOptions {
 	if opts.TimeoutSecs == 0 && opts.Timeout != 0 {
 		opts.TimeoutSecs = int(opts.Timeout.Seconds())
 	}
+
 	output := ConvertOutputOptions(opts.Output)
 
 	co := &CreateOptions{
-		Args:             opts.Args,
-		Environment:      opts.Environment,
-		WorkingDirectory: opts.WorkingDirectory,
-		TimeoutSeconds:   int64(opts.TimeoutSecs),
-		OverrideEnviron:  opts.OverrideEnviron,
-		Tags:             opts.Tags,
-		Output:           &output,
+		Args:               opts.Args,
+		Environment:        opts.Environment,
+		WorkingDirectory:   opts.WorkingDirectory,
+		TimeoutSeconds:     int64(opts.TimeoutSecs),
+		OverrideEnviron:    opts.OverrideEnviron,
+		Tags:               opts.Tags,
+		Output:             &output,
+		StandardInputBytes: opts.StandardInputBytes,
 	}
 
 	for _, opt := range opts.OnSuccess {
@@ -282,6 +291,9 @@ func (opts LogOptions) Export() jasper.LogOptions {
 	if opts.BuildloggerOptions != nil {
 		out.BuildloggerOptions = opts.BuildloggerOptions.Export()
 	}
+	if opts.Level != nil {
+		out.Level = opts.Level.Export()
+	}
 
 	return out
 }
@@ -297,6 +309,7 @@ func ConvertLogOptions(opts jasper.LogOptions) *LogOptions {
 		FileName:           opts.FileName,
 		Format:             ConvertLogFormat(opts.Format),
 		InMemoryCap:        int64(opts.InMemoryCap),
+		Level:              ConvertLogLevel(opts.Level),
 		SplunkOptions:      ConvertSplunkOptions(opts.SplunkOptions),
 		SumoEndpoint:       opts.SumoEndpoint,
 	}
@@ -355,11 +368,7 @@ func ConvertBuildloggerOptions(opts send.BuildloggerConfig) *BuildloggerOptions 
 // Export takes a protobuf RPC BuildloggerURLs struct and returns the analogous
 // []string.
 func (u *BuildloggerURLs) Export() []string {
-	urls := []string{}
-	for _, url := range u.Urls {
-		urls = append(urls, url)
-	}
-	return urls
+	return append([]string{}, u.Urls...)
 }
 
 // ConvertBuildloggerURLs takes a []string and returns the analogous protobuf
@@ -367,9 +376,7 @@ func (u *BuildloggerURLs) Export() []string {
 // inverse of (*BuildloggerURLs) Export().
 func ConvertBuildloggerURLs(urls []string) *BuildloggerURLs {
 	u := &BuildloggerURLs{Urls: []string{}}
-	for _, url := range urls {
-		u.Urls = append(u.Urls, url)
-	}
+	u.Urls = append(u.Urls, urls...)
 	return u
 }
 
@@ -425,6 +432,19 @@ func ConvertLogFormat(f jasper.LogFormat) LogFormat {
 	}
 }
 
+// Export takes a protobuf RPC LogLevel struct and returns the analogous send
+// LevelInfo struct.
+func (l *LogLevel) Export() send.LevelInfo {
+	return send.LevelInfo{Threshold: level.Priority(l.Threshold), Default: level.Priority(l.Default)}
+}
+
+// ConvertLogLevel takes a send LevelInfo struct and returns an equivalent
+// protobuf RPC LogLevel struct. ConvertLogLevel is the inverse of
+// (*LogLevel) Export().
+func ConvertLogLevel(l send.LevelInfo) *LogLevel {
+	return &LogLevel{Threshold: int32(l.Threshold), Default: int32(l.Default)}
+}
+
 // Export takes a protobuf RPC BuildOptions struct and returns the analogous
 // bond.BuildOptions struct.
 func (opts *BuildOptions) Export() bond.BuildOptions {
@@ -456,9 +476,7 @@ func (opts *MongoDBDownloadOptions) Export() jasper.MongoDBDownloadOptions {
 		Path:      opts.Path,
 		Releases:  make([]string, 0, len(opts.Releases)),
 	}
-	for _, release := range opts.Releases {
-		jopts.Releases = append(jopts.Releases, release)
-	}
+	jopts.Releases = append(jopts.Releases, opts.Releases...)
 	return jopts
 }
 
@@ -472,9 +490,7 @@ func ConvertMongoDBDownloadOptions(jopts jasper.MongoDBDownloadOptions) *MongoDB
 		Path:      jopts.Path,
 		Releases:  make([]string, 0, len(jopts.Releases)),
 	}
-	for _, release := range opts.Releases {
-		opts.Releases = append(opts.Releases, release)
-	}
+	opts.Releases = append(opts.Releases, jopts.Releases...)
 	return opts
 }
 
@@ -517,6 +533,29 @@ func ConvertDownloadInfo(info jasper.DownloadInfo) *DownloadInfo {
 		Path:        info.Path,
 		Url:         info.URL,
 		ArchiveOpts: ConvertArchiveOptions(info.ArchiveOpts),
+	}
+}
+
+// Export takes a protobuf RPC WriteFileInfo struct and returns the analogous
+// Jasper WriteFileInfo struct.
+func (info *WriteFileInfo) Export() jasper.WriteFileInfo {
+	return jasper.WriteFileInfo{
+		Path:    info.Path,
+		Content: info.Content,
+		Append:  info.Append,
+		Perm:    os.FileMode(info.Perm),
+	}
+}
+
+// ConvertWriteFileInfo takes a Jasper WriteFileInfo struct and returns an
+// equivalent protobuf RPC WriteFileInfo struct. ConvertWriteFileInfo is the
+// inverse of (*WriteFileInfo) Export().
+func ConvertWriteFileInfo(info jasper.WriteFileInfo) *WriteFileInfo {
+	return &WriteFileInfo{
+		Path:    info.Path,
+		Content: info.Content,
+		Append:  info.Append,
+		Perm:    uint32(info.Perm),
 	}
 }
 

@@ -113,7 +113,7 @@ func withMockStdin(t *testing.T, input string, operation func(*os.File) error) e
 	require.NoError(t, err)
 	defer func() {
 		assert.NoError(t, tmpFile.Close())
-		assert.NoError(t, os.Remove(tmpFile.Name()))
+		assert.NoError(t, os.RemoveAll(tmpFile.Name()))
 	}()
 	_, err = tmpFile.WriteString(input)
 	require.NoError(t, err)
@@ -134,7 +134,7 @@ func withMockStdout(t *testing.T, operation func(*os.File) error) error {
 	require.NoError(t, err)
 	defer func() {
 		assert.NoError(t, tmpFile.Close())
-		assert.NoError(t, os.Remove(tmpFile.Name()))
+		assert.NoError(t, os.RemoveAll(tmpFile.Name()))
 	}()
 	os.Stdout = tmpFile
 	return operation(os.Stdout)
@@ -143,6 +143,9 @@ func withMockStdout(t *testing.T, operation func(*os.File) error) error {
 // waitForRESTService waits until the REST service becomes available to serve
 // requests or the context times out.
 func waitForRESTService(ctx context.Context, t *testing.T, url string) {
+	client := jasper.GetHTTPClient()
+	defer jasper.PutHTTPClient(client)
+
 	// Block until the service comes up
 	timeoutInterval := 10 * time.Millisecond
 	timer := time.NewTimer(timeoutInterval)
@@ -158,7 +161,7 @@ func waitForRESTService(ctx context.Context, t *testing.T, url string) {
 				continue
 			}
 			req = req.WithContext(ctx)
-			resp, err := http.DefaultClient.Do(req)
+			resp, err := client.Do(req)
 			if err != nil {
 				timer.Reset(timeoutInterval)
 				continue
