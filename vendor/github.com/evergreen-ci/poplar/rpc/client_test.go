@@ -75,7 +75,126 @@ func TestClient(t *testing.T) {
 	s3Bucket, err := pail.NewS3Bucket(s3Opts)
 	require.NoError(t, err)
 
-	testReport := &poplar.Report{
+	report := generateTestReport(testdataDir, s3Name, s3Prefix)
+	expectedTests := []poplar.Test{
+		report.Tests[0],
+		report.Tests[0].SubTests[0],
+		report.Tests[1],
+		report.Tests[1].SubTests[0],
+	}
+	expectedParents := map[string]string{
+		"test0":  "",
+		"test00": "test0",
+		"test1":  "",
+		"test10": "test1",
+	}
+	for i := range expectedTests {
+		for j := range expectedTests[i].Artifacts {
+			require.NoError(t, expectedTests[i].Artifacts[j].Convert(ctx))
+			require.NoError(t, expectedTests[i].Artifacts[j].SetBucketInfo(report.BucketConf))
+			require.NoError(t, os.RemoveAll(filepath.Join(testdataDir, expectedTests[i].Artifacts[j].Path)))
+		}
+	}
+
+	defer func() {
+		for _, test := range expectedTests {
+			for _, artifact := range test.Artifacts {
+				assert.NoError(t, s3Bucket.Remove(ctx, artifact.Path))
+				assert.NoError(t, os.RemoveAll(filepath.Join(testdataDir, artifact.Path)))
+			}
+		}
+	}()
+
+	t.Run("WetRun", func(t *testing.T) {
+		for _, serialize := range []bool{true, false} {
+			testReport := generateTestReport(testdataDir, s3Name, s3Prefix)
+			mc := NewMockClient()
+			require.NoError(t, mockUploadReport(ctx, &testReport, mc, serialize, false))
+			require.Len(t, mc.resultData, len(expectedTests))
+			require.Equal(t, len(mc.resultData), len(mc.endData))
+			for i, result := range mc.resultData {
+				assert.Equal(t, testReport.Project, result.Id.Project)
+				assert.Equal(t, testReport.Version, result.Id.Version)
+				assert.Equal(t, testReport.Order, int(result.Id.Order))
+				assert.Equal(t, testReport.Variant, result.Id.Variant)
+				assert.Equal(t, testReport.TaskName, result.Id.TaskName)
+				assert.Equal(t, testReport.TaskID, result.Id.TaskId)
+				assert.Equal(t, testReport.Mainline, result.Id.Mainline)
+				assert.Equal(t, testReport.Execution, int(result.Id.Execution))
+				assert.Equal(t, expectedTests[i].Info.TestName, result.Id.TestName)
+				assert.Equal(t, expectedTests[i].Info.Trial, int(result.Id.Trial))
+				assert.Equal(t, expectedTests[i].Info.Tags, result.Id.Tags)
+				assert.Equal(t, expectedTests[i].Info.Arguments, result.Id.Arguments)
+				assert.Equal(t, expectedParents[expectedTests[i].Info.TestName], result.Id.Parent)
+				var expectedCreatedAt *timestamp.Timestamp
+				var expectedCompletedAt *timestamp.Timestamp
+				if !expectedTests[i].CreatedAt.IsZero() {
+					expectedCreatedAt, err = ptypes.TimestampProto(expectedTests[i].CreatedAt)
+					require.NoError(t, err)
+				}
+				if !expectedTests[i].CompletedAt.IsZero() {
+					expectedCompletedAt, err = ptypes.TimestampProto(expectedTests[i].CompletedAt)
+					require.NoError(t, err)
+				}
+				assert.Equal(t, expectedCreatedAt, result.Id.CreatedAt)
+				assert.Equal(t, expectedCompletedAt, mc.endData[result.Id.TestName].CompletedAt)
+
+				require.Len(t, result.Artifacts, len(expectedTests[i].Artifacts))
+				for j, artifact := range expectedTests[i].Artifacts {
+					require.NoError(t, artifact.Validate())
+					expectedArtifact := internal.ExportArtifactInfo(&artifact)
+					expectedArtifact.Location = internal.StorageLocation_CEDAR_S3
+					assert.Equal(t, expectedArtifact, result.Artifacts[j])
+					r, err := s3Bucket.Get(ctx, artifact.Path)
+					require.NoError(t, err)
+					remoteData, err := ioutil.ReadAll(r)
+					require.NoError(t, err)
+					f, err := os.Open(filepath.Join(testdataDir, artifact.Path))
+					require.NoError(t, err)
+					localData, err := ioutil.ReadAll(f)
+					require.NoError(t, err)
+					assert.Equal(t, localData, remoteData)
+					require.NoError(t, f.Close())
+				}
+
+				require.Len(t, result.Rollups, len(expectedTests[i].Metrics))
+				for k, metric := range expectedTests[i].Metrics {
+					assert.Equal(t, internal.ExportRollup(&metric), result.Rollups[k])
+				}
+			}
+		}
+	})
+
+	for _, test := range expectedTests {
+		for _, artifact := range test.Artifacts {
+			require.NoError(t, s3Bucket.Remove(ctx, artifact.Path))
+			require.NoError(t, os.RemoveAll(filepath.Join(testdataDir, artifact.Path)))
+		}
+	}
+
+	t.Run("DryRun", func(t *testing.T) {
+		for _, serialize := range []bool{true, false} {
+			testReport := generateTestReport(testdataDir, s3Name, s3Prefix)
+			mc := NewMockClient()
+			require.NoError(t, mockUploadReport(ctx, &testReport, mc, serialize, true))
+			assert.Empty(t, mc.resultData)
+			assert.Empty(t, mc.endData)
+			for _, expectedTest := range expectedTests {
+				for _, artifact := range expectedTest.Artifacts {
+					require.NoError(t, artifact.Validate())
+					r, err := s3Bucket.Get(ctx, artifact.Path)
+					assert.Error(t, err)
+					assert.Nil(t, r)
+					_, err = os.Stat(filepath.Join(testdataDir, artifact.Path))
+					require.NoError(t, err)
+				}
+			}
+		}
+	})
+}
+
+func generateTestReport(testdataDir, s3Name, s3Prefix string) poplar.Report {
+	return poplar.Report{
 		Project:   "project",
 		Version:   "version",
 		Order:     2,
@@ -86,6 +205,7 @@ func TestClient(t *testing.T) {
 		Execution: 2,
 
 		BucketConf: poplar.BucketConfiguration{
+			Name:   s3Name,
 			Region: "us-east-1",
 		},
 
@@ -106,9 +226,7 @@ func TestClient(t *testing.T) {
 						ConvertBSON2FTDC: true,
 					},
 					{
-						Bucket:      s3Name,
 						Prefix:      s3Prefix,
-						Path:        "bson_example.bson.gz",
 						LocalFile:   filepath.Join(testdataDir, "bson_example.bson"),
 						ConvertGzip: true,
 					},
@@ -175,111 +293,4 @@ func TestClient(t *testing.T) {
 			},
 		},
 	}
-
-	expectedTests := []poplar.Test{
-		testReport.Tests[0],
-		testReport.Tests[0].SubTests[0],
-		testReport.Tests[1],
-		testReport.Tests[1].SubTests[0],
-	}
-	expectedParents := map[string]string{
-		"test0":  "",
-		"test00": "test0",
-		"test1":  "",
-		"test10": "test1",
-	}
-
-	defer func() {
-		for _, test := range expectedTests {
-			for _, artifact := range test.Artifacts {
-				assert.NoError(t, s3Bucket.Remove(ctx, artifact.Path))
-				assert.NoError(t, os.RemoveAll(filepath.Join(testdataDir, artifact.Path)))
-			}
-		}
-	}()
-
-	t.Run("WetRun", func(t *testing.T) {
-		for _, serialize := range []bool{true, false} {
-			mc := NewMockClient()
-			require.NoError(t, mockUploadReport(ctx, testReport, mc, serialize, false))
-			require.Len(t, mc.resultData, len(expectedTests))
-			require.Equal(t, len(mc.resultData), len(mc.endData))
-			for i, result := range mc.resultData {
-				assert.Equal(t, testReport.Project, result.Id.Project)
-				assert.Equal(t, testReport.Version, result.Id.Version)
-				assert.Equal(t, testReport.Order, int(result.Id.Order))
-				assert.Equal(t, testReport.Variant, result.Id.Variant)
-				assert.Equal(t, testReport.TaskName, result.Id.TaskName)
-				assert.Equal(t, testReport.TaskID, result.Id.TaskId)
-				assert.Equal(t, testReport.Mainline, result.Id.Mainline)
-				assert.Equal(t, testReport.Execution, int(result.Id.Execution))
-				assert.Equal(t, expectedTests[i].Info.TestName, result.Id.TestName)
-				assert.Equal(t, expectedTests[i].Info.Trial, int(result.Id.Trial))
-				assert.Equal(t, expectedTests[i].Info.Tags, result.Id.Tags)
-				assert.Equal(t, expectedTests[i].Info.Arguments, result.Id.Arguments)
-				assert.Equal(t, expectedParents[expectedTests[i].Info.TestName], result.Id.Parent)
-				var expectedCreatedAt *timestamp.Timestamp
-				var expectedCompletedAt *timestamp.Timestamp
-				if !expectedTests[i].CreatedAt.IsZero() {
-					expectedCreatedAt, err = ptypes.TimestampProto(expectedTests[i].CreatedAt)
-					require.NoError(t, err)
-				}
-				if !expectedTests[i].CompletedAt.IsZero() {
-					expectedCompletedAt, err = ptypes.TimestampProto(expectedTests[i].CompletedAt)
-					require.NoError(t, err)
-				}
-				assert.Equal(t, expectedCreatedAt, result.Id.CreatedAt)
-				assert.Equal(t, expectedCompletedAt, mc.endData[result.Id.TestName].CompletedAt)
-
-				require.Len(t, result.Artifacts, len(expectedTests[i].Artifacts))
-				for j, artifact := range expectedTests[i].Artifacts {
-					require.NoError(t, artifact.Validate())
-					expectedArtifact := internal.ExportArtifactInfo(&artifact)
-					expectedArtifact.Location = internal.StorageLocation_CEDAR_S3
-					assert.Equal(t, expectedArtifact, result.Artifacts[j])
-					r, err := s3Bucket.Get(ctx, artifact.Path)
-					require.NoError(t, err)
-					remoteData, err := ioutil.ReadAll(r)
-					require.NoError(t, err)
-					f, err := os.Open(filepath.Join(testdataDir, artifact.Path))
-					require.NoError(t, err)
-					localData, err := ioutil.ReadAll(f)
-					require.NoError(t, err)
-					assert.Equal(t, localData, remoteData)
-					require.NoError(t, f.Close())
-				}
-
-				require.Len(t, result.Rollups, len(expectedTests[i].Metrics))
-				for k, metric := range expectedTests[i].Metrics {
-					assert.Equal(t, internal.ExportRollup(&metric), result.Rollups[k])
-				}
-			}
-		}
-	})
-
-	for _, test := range expectedTests {
-		for _, artifact := range test.Artifacts {
-			require.NoError(t, s3Bucket.Remove(ctx, artifact.Path))
-			require.NoError(t, os.RemoveAll(filepath.Join(testdataDir, artifact.Path)))
-		}
-	}
-
-	t.Run("DryRun", func(t *testing.T) {
-		for _, serialize := range []bool{true, false} {
-			mc := NewMockClient()
-			require.NoError(t, mockUploadReport(ctx, testReport, mc, serialize, true))
-			assert.Empty(t, mc.resultData)
-			assert.Empty(t, mc.endData)
-			for _, expectedTest := range expectedTests {
-				for _, artifact := range expectedTest.Artifacts {
-					require.NoError(t, artifact.Validate())
-					r, err := s3Bucket.Get(ctx, artifact.Path)
-					assert.Error(t, err)
-					assert.Nil(t, r)
-					_, err = os.Stat(filepath.Join(testdataDir, artifact.Path))
-					require.NoError(t, err)
-				}
-			}
-		}
-	})
 }

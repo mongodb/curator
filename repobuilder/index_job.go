@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/evergreen-ci/pail"
-	"github.com/goamz/goamz/s3"
 	"github.com/mongodb/amboy"
 	"github.com/mongodb/amboy/dependency"
 	"github.com/mongodb/amboy/job"
@@ -61,7 +60,7 @@ func (j *IndexBuildJob) Run(ctx context.Context) {
 		SharedCredentialsProfile: j.Profile,
 		Name:                     j.Bucket,
 		DryRun:                   j.DryRun,
-		Permission:               string(s3.PublicRead),
+		Permissions:              pail.S3PermissionsPublicRead,
 	}
 	bucket, err := pail.NewS3Bucket(opts)
 	if err != nil {

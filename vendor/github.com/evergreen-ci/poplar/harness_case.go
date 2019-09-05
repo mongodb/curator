@@ -41,6 +41,10 @@ type BenchmarkCase struct {
 	Recorder         RecorderType
 }
 
+// Recorder is an alias for events.Recorder, eliminating any dependency on ftdc
+// for external users of poplar.
+type Recorder events.Recorder
+
 // Benchmark defines a function signature for running a benchmark
 // test.
 //
@@ -60,7 +64,7 @@ type BenchmarkCase struct {
 //         }
 //    }
 //
-type Benchmark func(context.Context, events.Recorder, int) error
+type Benchmark func(context.Context, Recorder, int) error
 
 func (bench Benchmark) standard(recorder events.Recorder, closer func() error) func(*testing.B) {
 	return func(b *testing.B) {
@@ -275,6 +279,7 @@ func (c *BenchmarkCase) Validate() error {
 // timeout, the tests can choose to propagate that error.
 func (c *BenchmarkCase) Run(ctx context.Context, recorder events.Recorder) BenchmarkResult {
 	res := &BenchmarkResult{
+		Name:       c.Name(),
 		Iterations: 0,
 		Count:      c.Count,
 		StartAt:    time.Now(),

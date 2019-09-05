@@ -2,6 +2,7 @@ package pail
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"crypto/rand"
 	"encoding/hex"
@@ -127,9 +128,9 @@ func TestBucket(t *testing.T) {
 		{
 			name: "Local",
 			constructor: func(t *testing.T) Bucket {
-				path := filepath.Join(tempdir, uuid, newUUID())
+				path := filepath.Join(tempdir, uuid)
 				require.NoError(t, os.MkdirAll(path, 0777))
-				return &localFileSystem{path: path}
+				return &localFileSystem{path: path, prefix: newUUID()}
 			},
 			tests: []bucketTestCase{
 				{
@@ -227,6 +228,7 @@ func TestBucket(t *testing.T) {
 						cancel()
 						bucket := b.(*localFileSystem)
 						bucket.path = ""
+						bucket.prefix = ""
 						err := b.Pull(tctx, "", filepath.Dir(file))
 						assert.Error(t, err)
 					},
@@ -247,6 +249,7 @@ func TestBucket(t *testing.T) {
 			constructor: func(t *testing.T) Bucket {
 				require.NoError(t, client.Database(uuid).Drop(ctx))
 				b, err := NewGridFSBucketWithClient(ctx, client, GridFSOptions{
+					Name:     newUUID(),
 					Prefix:   newUUID(),
 					Database: uuid,
 				})
@@ -259,6 +262,7 @@ func TestBucket(t *testing.T) {
 			constructor: func(t *testing.T) Bucket {
 				require.NoError(t, client.Database(uuid).Drop(ctx))
 				b, err := NewLegacyGridFSBucketWithSession(ses.Clone(), GridFSOptions{
+					Name:     newUUID(),
 					Prefix:   newUUID(),
 					Database: uuid,
 				})
@@ -414,7 +418,6 @@ func TestBucket(t *testing.T) {
 						assert.Error(t, err)
 					},
 				},
-
 				{
 					id: "TestPermissions",
 					test: func(t *testing.T, b Bucket) {
@@ -437,10 +440,10 @@ func TestBucket(t *testing.T) {
 
 						// explicitly set permissions
 						openOptions := S3Options{
-							Region:     s3Region,
-							Name:       s3BucketName,
-							Prefix:     s3Prefix + newUUID(),
-							Permission: "public-read",
+							Region:      s3Region,
+							Name:        s3BucketName,
+							Prefix:      s3Prefix + newUUID(),
+							Permissions: S3PermissionsPublicRead,
 						}
 						openBucket, err := NewS3Bucket(openOptions)
 						require.NoError(t, err)
@@ -471,6 +474,17 @@ func TestBucket(t *testing.T) {
 						require.NoError(t, err)
 						require.Equal(t, 2, len(objectACLOutput.Grants))
 						assert.Equal(t, "READ", *objectACLOutput.Grants[1].Permission)
+
+						// invalid permissions
+						invalidOptions := S3Options{
+							Region:      s3Region,
+							Name:        s3BucketName,
+							Prefix:      s3Prefix + newUUID(),
+							Permissions: "INVALID",
+						}
+						bucket, err := NewS3Bucket(invalidOptions)
+						assert.Error(t, err)
+						assert.Nil(t, bucket)
 					},
 				},
 				{
@@ -516,6 +530,60 @@ func TestBucket(t *testing.T) {
 						require.NoError(t, err)
 						require.NotNil(t, getObjectOutput.ContentType)
 						assert.Equal(t, "html/text", *getObjectOutput.ContentType)
+					},
+				},
+				{
+					id: "TestCompressingWriter",
+					test: func(t *testing.T, b Bucket) {
+						rawBucket := b.(*s3BucketSmall)
+						s3Options := S3Options{
+							Region:     s3Region,
+							Name:       s3BucketName,
+							Prefix:     rawBucket.prefix,
+							MaxRetries: 20,
+							Compress:   true,
+						}
+						cb, err := NewS3Bucket(s3Options)
+						require.NoError(t, err)
+
+						data := []byte{}
+						for i := 0; i < 300; i++ {
+							data = append(data, []byte(newUUID())...)
+						}
+
+						uncompressedKey := newUUID()
+						w, err := b.Writer(ctx, uncompressedKey)
+						require.NoError(t, err)
+						n, err := w.Write(data)
+						require.NoError(t, err)
+						require.NoError(t, w.Close())
+						assert.Equal(t, len(data), n)
+
+						compressedKey := newUUID()
+						cw, err := cb.Writer(ctx, compressedKey)
+						require.NoError(t, err)
+						n, err = cw.Write(data)
+						require.NoError(t, err)
+						require.NoError(t, cw.Close())
+						assert.Equal(t, len(data), n)
+						compressedData := cw.(*compressingWriteCloser).s3Writer.(*smallWriteCloser).buffer
+
+						reader, err := gzip.NewReader(bytes.NewReader(compressedData))
+						require.NoError(t, err)
+						decompressedData, err := ioutil.ReadAll(reader)
+						require.NoError(t, err)
+						assert.Equal(t, data, decompressedData)
+
+						cr, err := cb.Get(ctx, compressedKey)
+						require.NoError(t, err)
+						s3CompressedData, err := ioutil.ReadAll(cr)
+						require.NoError(t, err)
+						assert.Equal(t, data, s3CompressedData)
+						r, err := cb.Get(ctx, uncompressedKey)
+						require.NoError(t, err)
+						s3UncompressedData, err := ioutil.ReadAll(r)
+						require.NoError(t, err)
+						assert.Equal(t, data, s3UncompressedData)
 					},
 				},
 			},
@@ -564,10 +632,10 @@ func TestBucket(t *testing.T) {
 
 						// explicitly set permissions
 						openOptions := S3Options{
-							Region:     s3Region,
-							Name:       s3BucketName,
-							Prefix:     s3Prefix + newUUID(),
-							Permission: "public-read",
+							Region:      s3Region,
+							Name:        s3BucketName,
+							Prefix:      s3Prefix + newUUID(),
+							Permissions: S3PermissionsPublicRead,
 						}
 						openBucket, err := NewS3MultiPartBucket(openOptions)
 						require.NoError(t, err)
@@ -586,6 +654,17 @@ func TestBucket(t *testing.T) {
 						require.NoError(t, err)
 						require.Equal(t, 2, len(objectACLOutput.Grants))
 						assert.Equal(t, "READ", *objectACLOutput.Grants[1].Permission)
+
+						// invalid permissions
+						invalidOptions := S3Options{
+							Region:      s3Region,
+							Name:        s3BucketName,
+							Prefix:      s3Prefix + newUUID(),
+							Permissions: "INVALID",
+						}
+						bucket, err := NewS3Bucket(invalidOptions)
+						assert.Error(t, err)
+						assert.Nil(t, bucket)
 					},
 				},
 				{
@@ -651,6 +730,55 @@ func TestBucket(t *testing.T) {
 						fi, err := os.Stat(path)
 						require.NoError(t, err)
 						assert.Equal(t, size, fi.Size())
+					},
+				},
+				{
+					id: "TestCompressingWriter",
+					test: func(t *testing.T, b Bucket) {
+						rawBucket := b.(*s3BucketLarge)
+						s3Options := S3Options{
+							Region:     s3Region,
+							Name:       s3BucketName,
+							Prefix:     rawBucket.prefix,
+							MaxRetries: 20,
+							Compress:   true,
+						}
+						cb, err := NewS3MultiPartBucket(s3Options)
+						require.NoError(t, err)
+
+						data := []byte{}
+						for i := 0; i < 300; i++ {
+							data = append(data, []byte(newUUID())...)
+						}
+
+						uncompressedKey := newUUID()
+						w, err := b.Writer(ctx, uncompressedKey)
+						require.NoError(t, err)
+						n, err := w.Write(data)
+						require.NoError(t, err)
+						require.NoError(t, w.Close())
+						assert.Equal(t, len(data), n)
+
+						compressedKey := newUUID()
+						cw, err := cb.Writer(ctx, compressedKey)
+						require.NoError(t, err)
+						n, err = cw.Write(data)
+						require.NoError(t, err)
+						require.NoError(t, cw.Close())
+						assert.Equal(t, len(data), n)
+						_, ok := cw.(*compressingWriteCloser).s3Writer.(*largeWriteCloser)
+						assert.True(t, ok)
+
+						cr, err := cb.Get(ctx, compressedKey)
+						require.NoError(t, err)
+						s3CompressedData, err := ioutil.ReadAll(cr)
+						require.NoError(t, err)
+						assert.Equal(t, data, s3CompressedData)
+						r, err := cb.Get(ctx, uncompressedKey)
+						require.NoError(t, err)
+						s3UncompressedData, err := ioutil.ReadAll(r)
+						require.NoError(t, err)
+						assert.Equal(t, data, s3UncompressedData)
 					},
 				},
 			},
@@ -1182,34 +1310,61 @@ func TestBucket(t *testing.T) {
 			})
 			t.Run("PushToBucket", func(t *testing.T) {
 				prefix := filepath.Join(tempdir, newUUID())
+				filenames := map[string]bool{}
 				for i := 0; i < 100; i++ {
+					fn := newUUID()
+					filenames[fn] = true
 					require.NoError(t, writeDataToDisk(prefix,
-						newUUID(), strings.Join([]string{newUUID(), newUUID(), newUUID()}, "\n")))
+						fn, strings.Join([]string{newUUID(), newUUID(), newUUID()}, "\n")))
 				}
 
 				bucket := impl.constructor(t)
 				t.Run("NoPrefix", func(t *testing.T) {
 					assert.NoError(t, bucket.Push(ctx, prefix, ""))
 					assert.NoError(t, bucket.Push(ctx, prefix, ""))
+
+					iter, err := bucket.List(ctx, "")
+					require.NoError(t, err)
+					counter := 0
+					for iter.Next(ctx) {
+						assert.True(t, filenames[iter.Item().Name()])
+						counter++
+					}
+					assert.NoError(t, iter.Err())
+					assert.Equal(t, 100, counter)
 				})
 				t.Run("ShortPrefix", func(t *testing.T) {
-					assert.NoError(t, bucket.Push(ctx, prefix, "foo"))
-					assert.NoError(t, bucket.Push(ctx, prefix, "foo"))
+					remotePrefix := "foo"
+					assert.NoError(t, bucket.Push(ctx, prefix, remotePrefix))
+					assert.NoError(t, bucket.Push(ctx, prefix, remotePrefix))
+
+					iter, err := bucket.List(ctx, remotePrefix)
+					require.NoError(t, err)
+					counter := 0
+					for iter.Next(ctx) {
+						fn, err := filepath.Rel(remotePrefix, iter.Item().Name())
+						require.NoError(t, err)
+						assert.True(t, filenames[fn])
+						counter++
+					}
+					assert.NoError(t, iter.Err())
+					assert.Equal(t, 100, counter)
 				})
 				t.Run("DryRunBucketDoesNotPush", func(t *testing.T) {
+					remotePrefix := "bar"
 					setDryRun(bucket, true)
-					assert.NoError(t, bucket.Push(ctx, prefix, "bar"))
-					setDryRun(bucket, false)
-				})
-				t.Run("BucketContents", func(t *testing.T) {
-					iter, err := bucket.List(ctx, "")
+					assert.NoError(t, bucket.Push(ctx, prefix, remotePrefix))
+
+					iter, err := bucket.List(ctx, remotePrefix)
 					require.NoError(t, err)
 					counter := 0
 					for iter.Next(ctx) {
 						counter++
 					}
 					assert.NoError(t, iter.Err())
-					assert.Equal(t, 200, counter)
+					assert.Equal(t, 0, counter)
+
+					setDryRun(bucket, false)
 				})
 				t.Run("DeleteOnSync", func(t *testing.T) {
 					setDeleteOnSync(bucket, true)

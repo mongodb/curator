@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/evergreen-ci/pail"
@@ -13,6 +14,117 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestSetBucketInfo(t *testing.T) {
+	s3Name := "build-test-curator"
+	s3Prefix := "poplar-test"
+	s3Region := "us-east-1"
+	for _, test := range []struct {
+		name       string
+		artifact   *TestArtifact
+		bucketConf BucketConfiguration
+		hasErr     bool
+	}{
+		{
+			name: "NoLocalFile",
+			artifact: &TestArtifact{
+				Bucket: "bucket",
+				Path:   "bson_example.bson",
+			},
+			bucketConf: BucketConfiguration{
+				Region: s3Region,
+			},
+			hasErr: true,
+		},
+		{
+			name: "NoRemotePath",
+			artifact: &TestArtifact{
+				Bucket:    s3Name,
+				LocalFile: "testdata/bson_example.bson",
+			},
+			bucketConf: BucketConfiguration{
+				Region: s3Region,
+			},
+		},
+		{
+			name: "NilBucketConfiguration",
+			artifact: &TestArtifact{
+				Bucket:    "bucket",
+				Path:      "bson_example.bson",
+				LocalFile: "testdata/bson_example.bson",
+			},
+			hasErr: true,
+		},
+		{
+			name: "NoBucketSpecified",
+			artifact: &TestArtifact{
+				Path:      "bson_example.bson",
+				LocalFile: "testdata/bson_example.bson",
+			},
+			bucketConf: BucketConfiguration{
+				Region: s3Region,
+			},
+			hasErr: true,
+		},
+		{
+			name: "BucketSpecifiedFromConfiguration",
+			artifact: &TestArtifact{
+				Path:      "bson_example1.bson",
+				LocalFile: "testdata/bson_example.bson",
+			},
+			bucketConf: BucketConfiguration{
+				Name:   s3Name,
+				Region: s3Region,
+			},
+		},
+		{
+			name: "NoRegionSpecified",
+			artifact: &TestArtifact{
+				Bucket:    s3Name,
+				Prefix:    s3Prefix,
+				Path:      "bson_example.bson",
+				LocalFile: "testdata/bson_example.bson",
+			},
+			bucketConf: BucketConfiguration{},
+			hasErr:     true,
+		},
+		{
+			name: "ArtifactAlreadySet",
+			artifact: &TestArtifact{
+				Bucket:    s3Name,
+				Prefix:    s3Prefix,
+				Path:      "bson_example2.bson",
+				LocalFile: "testdata/bson_example.bson",
+			},
+			bucketConf: BucketConfiguration{
+				Region: s3Region,
+			},
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if test.hasErr {
+				require.Error(t, test.artifact.SetBucketInfo(test.bucketConf))
+			} else {
+				bucketName := test.artifact.Bucket
+				if bucketName == "" {
+					bucketName = test.bucketConf.Name
+				}
+				prefix := test.artifact.Prefix
+				path := test.artifact.Path
+				if path == "" {
+					path = filepath.Base(test.artifact.LocalFile)
+				}
+				localFile := test.artifact.LocalFile
+
+				require.NoError(t, test.artifact.SetBucketInfo(test.bucketConf))
+				assert.Equal(t, bucketName, test.artifact.Bucket)
+				assert.Equal(t, prefix, test.artifact.Prefix)
+				assert.Equal(t, path, test.artifact.Path)
+				assert.Equal(t, localFile, test.artifact.LocalFile)
+			}
+		})
+	}
+}
 
 func TestConvert(t *testing.T) {
 	for _, test := range []struct {
@@ -128,37 +240,6 @@ func TestUpload(t *testing.T) {
 		hasErr      bool
 	}{
 		{
-			name: "NoLocalFile",
-			artifact: &TestArtifact{
-				Bucket: "bucket",
-				Path:   "bson_example.bson",
-			},
-			bucketConf: BucketConfiguration{
-				Region: s3Region,
-			},
-			hasErr: true,
-		},
-		{
-			name: "NoRemotePath",
-			artifact: &TestArtifact{
-				Bucket:    "bucket",
-				LocalFile: "testdata/bson_example.bson",
-			},
-			bucketConf: BucketConfiguration{
-				Region: s3Region,
-			},
-			hasErr: true,
-		},
-		{
-			name: "NilBucketConfiguration",
-			artifact: &TestArtifact{
-				Bucket:    "bucket",
-				Path:      "bson_example.bson",
-				LocalFile: "testdata/bson_example.bson",
-			},
-			hasErr: true,
-		},
-		{
 			name: "NonExistentLocalFile",
 			artifact: &TestArtifact{
 				Bucket:    "bucket",
@@ -169,28 +250,6 @@ func TestUpload(t *testing.T) {
 				Region: s3Region,
 			},
 			hasErr: true,
-		},
-		{
-			name: "NoBucketSpecified",
-			artifact: &TestArtifact{
-				Path:      "bson_example.bson",
-				LocalFile: "testdata/bson_example.bson",
-			},
-			bucketConf: BucketConfiguration{
-				Region: s3Region,
-			},
-			hasErr: true,
-		},
-		{
-			name: "NoRegionSpecified",
-			artifact: &TestArtifact{
-				Bucket:    s3Name,
-				Prefix:    s3Prefix,
-				Path:      "bson_example.bson",
-				LocalFile: "testdata/bson_example.bson",
-			},
-			bucketConf: BucketConfiguration{},
-			hasErr:     true,
 		},
 		{
 			name: "BadCredentialsKeyAndSecret",
@@ -243,8 +302,12 @@ func TestUpload(t *testing.T) {
 				require.Error(t, test.artifact.Upload(ctx, test.bucketConf, false))
 			} else {
 				for _, dryRun := range []bool{true, false} {
+					bucketName := test.artifact.Bucket
+					if bucketName == "" {
+						bucketName = test.bucketConf.Name
+					}
 					opts := pail.S3Options{
-						Name:   test.artifact.Bucket,
+						Name:   bucketName,
 						Prefix: test.artifact.Prefix,
 						Region: test.bucketConf.Region,
 					}
@@ -267,7 +330,6 @@ func TestUpload(t *testing.T) {
 					if dryRun {
 						require.Error(t, err)
 					} else {
-
 						require.NoError(t, err)
 						remoteData, err := ioutil.ReadAll(r)
 						require.NoError(t, err)

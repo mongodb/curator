@@ -52,15 +52,25 @@ func (opts *UploadReportOptions) convertAndUploadArtifacts(ctx context.Context) 
 			queue = append(queue, subtest)
 		}
 
-		for _, a := range test.Artifacts {
+		for i := range test.Artifacts {
 			var err error
-			job := NewUploadJob(a, opts.Report.BucketConf, opts.DryRun)
+
+			if err := test.Artifacts[i].Convert(ctx); err != nil {
+				return errors.Wrap(err, "problem converting artifact")
+			}
+
+			err = test.Artifacts[i].SetBucketInfo(opts.Report.BucketConf)
+			if err != nil {
+				return errors.Wrap(err, "problem setting bucket info")
+			}
+
+			job := NewUploadJob(test.Artifacts[i], opts.Report.BucketConf, opts.DryRun)
 			if opts.SerializeUpload {
 				job.Run(ctx)
-				if job.Error() != nil {
+				if err = job.Error(); err != nil {
 					return errors.Wrap(err, "problem converting and uploading artifacts")
 				}
-			} else if err := jobQueue.Put(ctx, job); err != nil {
+			} else if err = jobQueue.Put(ctx, job); err != nil {
 				return errors.Wrap(err, "problem adding artifact job to upload queue")
 			}
 		}
@@ -79,7 +89,7 @@ func (opts *UploadReportOptions) convertAndUploadArtifacts(ctx context.Context) 
 		catcher.Add(job.Error())
 	}
 
-	return errors.Wrap(catcher.Resolve(), "problem converting and uploading artifacts")
+	return errors.Wrap(catcher.Resolve(), "problem uploading artifacts")
 }
 
 func uploadTests(ctx context.Context, client internal.CedarPerformanceMetricsClient, report *poplar.Report, tests []poplar.Test, dryRun bool) error {

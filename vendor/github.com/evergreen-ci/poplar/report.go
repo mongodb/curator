@@ -146,5 +146,6 @@ type BucketConfiguration struct {
 	APIKey    string `bson:"api_key" json:"api_key" yaml:"api_key"`
 	APISecret string `bson:"api_secret" json:"api_secret" yaml:"api_secret"`
 	APIToken  string `bson:"api_token" json:"api_token" yaml:"api_token"`
+	Name      string `bson:"name" json:"name" yaml:"name"`
 	Region    string `bson:"region" json:"region" yaml:"region"`
 }
