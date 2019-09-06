@@ -4,10 +4,6 @@ import:
   version: ^3.1.0
 - package: github.com/urfave/cli
   version: ^1.17.0
-- package: github.com/goamz/goamz
-  subpackages:
-  - aws
-  - s3
 - package: github.com/mongodb/amboy
 - package: github.com/mongodb/grip
 - package: github.com/evergreen-ci/gimlet

@@ -251,6 +251,7 @@ func (b *localFileSystem) Pull(ctx context.Context, local, remote string) error 
 	keys := []string{}
 	for _, fn := range files {
 		path := filepath.Join(local, fn)
+		fn = filepath.Join(remote, fn)
 		keys = append(keys, filepath.Join(remote, fn))
 		if _, err := os.Stat(path); os.IsNotExist(err) {
 			if err := b.Download(ctx, fn, path); err != nil {

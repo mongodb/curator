@@ -1307,6 +1307,31 @@ func TestBucket(t *testing.T) {
 
 					setDeleteOnSync(bucket, false)
 				})
+				t.Run("LargePull", func(t *testing.T) {
+					prefix := newUUID()
+					largeData := map[string]string{}
+					for i := 0; i < 1050; i++ {
+						largeData[newUUID()] = strings.Join([]string{newUUID(), newUUID(), newUUID()}, "\n")
+					}
+					for k, v := range largeData {
+						require.NoError(t, writeDataToFile(ctx, bucket, prefix+"/"+k, v))
+					}
+
+					mirror := filepath.Join(tempdir, "pull-one", newUUID())
+					require.NoError(t, os.MkdirAll(mirror, 0700))
+
+					assert.NoError(t, bucket.Pull(ctx, mirror, prefix))
+					files, err := walkLocalTree(ctx, mirror)
+					require.NoError(t, err)
+					assert.Len(t, files, len(largeData))
+
+					if !strings.Contains(impl.name, "GridFS") {
+						for _, fn := range files {
+							_, ok := largeData[fn]
+							require.True(t, ok)
+						}
+					}
+				})
 			})
 			t.Run("PushToBucket", func(t *testing.T) {
 				prefix := filepath.Join(tempdir, newUUID())

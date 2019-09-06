@@ -56,7 +56,7 @@ $(buildDir)/.lintSetup:$(lintDeps)
 # end dependency installation tools
 
 
-testArgs := -v
+testArgs := -v -timeout=20m
 ifneq (,$(RUN_TEST))
 testArgs += -run='$(RUN_TEST)'
 endif

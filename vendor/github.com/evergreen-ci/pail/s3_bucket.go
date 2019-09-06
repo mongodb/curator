@@ -740,7 +740,7 @@ func (s *s3BucketLarge) RemoveMatching(ctx context.Context, expression string) e
 }
 
 func (s *s3Bucket) listHelper(ctx context.Context, b Bucket, prefix string) (BucketIterator, error) {
-	contents, isTruncated, err := getObjectsWrapper(ctx, s, prefix)
+	contents, isTruncated, err := getObjectsWrapper(ctx, s, prefix, "")
 	if err != nil {
 		return nil, err
 	}
@@ -750,6 +750,7 @@ func (s *s3Bucket) listHelper(ctx context.Context, b Bucket, prefix string) (Buc
 		isTruncated: isTruncated,
 		s:           s,
 		b:           b,
+		prefix:      prefix,
 	}, nil
 }
 
@@ -761,10 +762,11 @@ func (s *s3BucketLarge) List(ctx context.Context, prefix string) (BucketIterator
 	return s.listHelper(ctx, s, s.normalizeKey(prefix))
 }
 
-func getObjectsWrapper(ctx context.Context, s *s3Bucket, prefix string) ([]*s3.Object, bool, error) {
+func getObjectsWrapper(ctx context.Context, s *s3Bucket, prefix, marker string) ([]*s3.Object, bool, error) {
 	input := &s3.ListObjectsInput{
 		Bucket: aws.String(s.name),
 		Prefix: aws.String(prefix),
+		Marker: aws.String(marker),
 	}
 
 	result, err := s.svc.ListObjectsWithContext(ctx, input)
@@ -782,6 +784,7 @@ type s3BucketIterator struct {
 	item        *bucketItemImpl
 	s           *s3Bucket
 	b           Bucket
+	prefix      string
 }
 
 func (iter *s3BucketIterator) Err() error { return iter.err }
@@ -792,8 +795,12 @@ func (iter *s3BucketIterator) Next(ctx context.Context) bool {
 	iter.idx++
 	if iter.idx > len(iter.contents)-1 {
 		if iter.isTruncated {
-			contents, isTruncated, err := getObjectsWrapper(ctx, iter.s,
-				*iter.contents[iter.idx-1].Key)
+			contents, isTruncated, err := getObjectsWrapper(
+				ctx,
+				iter.s,
+				iter.prefix,
+				*iter.contents[iter.idx-1].Key,
+			)
 			if err != nil {
 				iter.err = err
 				return false
