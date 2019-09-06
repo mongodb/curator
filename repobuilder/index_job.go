@@ -2,7 +2,6 @@ package repobuilder
 
 import (
 	"context"
-	"time"
 
 	"github.com/evergreen-ci/pail"
 	"github.com/mongodb/amboy"
@@ -69,12 +68,6 @@ func (j *IndexBuildJob) Run(ctx context.Context) {
 	}
 
 	defer j.MarkComplete()
-
-	var cancel context.CancelFunc
-	if _, ok := ctx.Deadline(); !ok {
-		ctx, cancel = context.WithDeadline(ctx, time.Now().Add(10*time.Minute))
-		defer cancel()
-	}
 
 	grip.Infof("downloading from %s to %s", bucket, j.WorkSpace)
 	if err = bucket.Pull(ctx, j.WorkSpace, ""); err != nil {
