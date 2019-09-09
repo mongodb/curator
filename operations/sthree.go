@@ -94,7 +94,7 @@ func s3PutCmd() cli.Command {
 				SharedCredentialsProfile: c.String("profile"),
 				Region:                   c.String("region"),
 				Name:                     c.String("bucket"),
-				Permission:               c.String("permissions"),
+				Permissions:              pail.S3Permissions(c.String("permissions")),
 				ContentType:              c.String("type"),
 				DryRun:                   c.Bool("dry-run"),
 				MaxRetries:               defaultMaxRetries,

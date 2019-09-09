@@ -11,8 +11,6 @@ imports:
 - name: github.com/jpillora/backoff
   version: a6f64285fd4072883335339357436b78d62c96a4
 
-- name: github.com/goamz/goamz
-  version: 02d5144a587b982e33b95f484a34164ce6923c99
 - name: github.com/urfave/cli
   version: 01857ac33766ce0c93856370626f9799281c14f4
 
@@ -48,9 +46,9 @@ imports:
 - name: github.com/mongodb/jasper
   version: b869a39b085d55e0a93bf4bb7d925e68e54ff433
 - name: github.com/evergreen-ci/poplar
-  version: cd1756f8088e7a6bbac3ac01d5f7f730612ce39c
+  version: c4e7b98776461a13c59814f046747853ac81d05b
 - name: github.com/evergreen-ci/pail
-  version: 7b2f8e0b2d972ca621cad3777d68276a54da13d0
+  version: 4ecd1a5acdce2036c9de5f77e07eaedbf46be97f
 - name: github.com/evergreen-ci/aviation
   version: b5b1a9f93a1d0bd95769b3106971aaeca615a7b2
 - name: go.mongodb.org/mongo-driver

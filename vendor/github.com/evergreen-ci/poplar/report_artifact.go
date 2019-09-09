@@ -5,6 +5,7 @@ import (
 	"context"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/evergreen-ci/pail"
@@ -15,6 +16,29 @@ import (
 )
 
 const defaultChunkSize = 2048
+
+// SetBucketInfo sets any missing fields related to uploading an artifact using
+// the passed in `BucketConfiguration`. An error is returned if any required
+// fields are blank. This method should be used before calling `Upload`.
+func (a *TestArtifact) SetBucketInfo(conf BucketConfiguration) error {
+	if a.LocalFile == "" {
+		return errors.New("cannot upload unspecified file")
+	}
+	if a.Path == "" {
+		a.Path = filepath.Base(a.LocalFile)
+	}
+	if a.Bucket == "" {
+		if conf.Name == "" {
+			return errors.New("cannot upload file, no bucket specified")
+		}
+		a.Bucket = conf.Name
+	}
+	if conf.Region == "" {
+		return errors.New("bucket configuration must specify a region")
+	}
+
+	return nil
+}
 
 // Convert translates a the artifact into a different format,
 // typically by converting JSON, BSON, or CSV to FTDC, and also
@@ -29,7 +53,7 @@ func (a *TestArtifact) Convert(ctx context.Context) error {
 	}
 
 	if _, err := os.Stat(a.LocalFile); os.IsNotExist(err) {
-		return errors.New("cannot convert non existant file")
+		return errors.New("cannot convert non existent file")
 	}
 
 	converted := false
@@ -73,33 +97,19 @@ func (a *TestArtifact) Convert(ctx context.Context) error {
 
 // Upload provides a way to upload an artifact using a bucket configuration.
 func (a *TestArtifact) Upload(ctx context.Context, conf BucketConfiguration, dryRun bool) error {
-	if a.LocalFile == "" {
-		return errors.New("cannot upload unspecified file")
-	}
-	if a.Path == "" {
-		return errors.New("must specify remote path")
-	}
-
 	var err error
 
 	if _, err = os.Stat(a.LocalFile); os.IsNotExist(err) {
 		return errors.New("cannot upload file that does not exist")
 	}
 
-	if a.Bucket == "" {
-		return errors.New("cannot upload file, no bucket specified")
-	}
-	if conf.Region == "" {
-		return errors.New("bucket configuration must specify a region")
-	}
-
 	opts := pail.S3Options{
-		Name:       a.Bucket,
-		Prefix:     a.Prefix,
-		Region:     conf.Region,
-		MaxRetries: 10,
-		Permission: a.Permissions,
-		DryRun:     dryRun,
+		Name:        a.Bucket,
+		Prefix:      a.Prefix,
+		Region:      conf.Region,
+		MaxRetries:  10,
+		Permissions: pail.S3Permissions(a.Permissions),
+		DryRun:      dryRun,
 	}
 	if (conf.APIKey != "" && conf.APISecret != "") || conf.APIToken != "" {
 		opts.Credentials = pail.CreateAWSCredentials(conf.APIKey, conf.APISecret, conf.APIToken)

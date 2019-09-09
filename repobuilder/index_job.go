@@ -2,10 +2,8 @@ package repobuilder
 
 import (
 	"context"
-	"time"
 
 	"github.com/evergreen-ci/pail"
-	"github.com/goamz/goamz/s3"
 	"github.com/mongodb/amboy"
 	"github.com/mongodb/amboy/dependency"
 	"github.com/mongodb/amboy/job"
@@ -61,7 +59,7 @@ func (j *IndexBuildJob) Run(ctx context.Context) {
 		SharedCredentialsProfile: j.Profile,
 		Name:                     j.Bucket,
 		DryRun:                   j.DryRun,
-		Permission:               string(s3.PublicRead),
+		Permissions:              pail.S3PermissionsPublicRead,
 	}
 	bucket, err := pail.NewS3Bucket(opts)
 	if err != nil {
@@ -70,12 +68,6 @@ func (j *IndexBuildJob) Run(ctx context.Context) {
 	}
 
 	defer j.MarkComplete()
-
-	var cancel context.CancelFunc
-	if _, ok := ctx.Deadline(); !ok {
-		ctx, cancel = context.WithDeadline(ctx, time.Now().Add(10*time.Minute))
-		defer cancel()
-	}
 
 	grip.Infof("downloading from %s to %s", bucket, j.WorkSpace)
 	if err = bucket.Pull(ctx, j.WorkSpace, ""); err != nil {

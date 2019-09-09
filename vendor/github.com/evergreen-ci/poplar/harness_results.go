@@ -52,6 +52,7 @@ func (res *BenchmarkResult) Export() Test {
 		Artifacts: []TestArtifact{
 			{
 				LocalFile:        res.ArtifactPath,
+				CreatedAt:        res.CompletedAt,
 				PayloadFTDC:      true,
 				EventsRaw:        true,
 				DataUncompressed: true,

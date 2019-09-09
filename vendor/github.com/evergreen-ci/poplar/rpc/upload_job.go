@@ -71,10 +71,5 @@ func (j *uploadJob) Run(ctx context.Context) {
 		"file":   j.Artifact.LocalFile,
 	})
 
-	if err := j.Artifact.Convert(ctx); err != nil {
-		j.AddError(errors.Wrapf(err, "problem converting artifact"))
-		return
-	}
-
 	j.AddError(errors.Wrapf(j.Artifact.Upload(ctx, j.Conf, j.DryRun), "problem uploading artifact"))
 }

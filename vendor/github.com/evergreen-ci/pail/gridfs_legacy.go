@@ -19,6 +19,20 @@ type gridfsLegacyBucket struct {
 	session *mgo.Session
 }
 
+func (b *gridfsLegacyBucket) normalizeKey(key string) string {
+	if key == "" {
+		return b.opts.Prefix
+	}
+	return consistentJoin(b.opts.Prefix, key)
+}
+
+func (b *gridfsLegacyBucket) denormalizeKey(key string) string {
+	if b.opts.Prefix != "" && len(key) > len(b.opts.Prefix)+1 {
+		key = key[len(b.opts.Prefix)+1:]
+	}
+	return key
+}
+
 // NewLegacyGridFSBucket creates a Bucket implementation backed by
 // GridFS as implemented by the legacy "mgo" MongoDB driver. This
 // constructor creates a new connection and mgo session.
@@ -68,7 +82,7 @@ func (b *gridfsLegacyBucket) Check(_ context.Context) error {
 }
 
 func (b *gridfsLegacyBucket) gridFS() *mgo.GridFS {
-	return b.session.DB(b.opts.Database).GridFS(b.opts.Prefix)
+	return b.session.DB(b.opts.Database).GridFS(b.opts.Name)
 }
 
 func (b *gridfsLegacyBucket) openFile(ctx context.Context, name string, create bool) (io.ReadWriteCloser, error) {
@@ -77,6 +91,7 @@ func (b *gridfsLegacyBucket) openFile(ctx context.Context, name string, create b
 	ctx, out.cancel = context.WithCancel(ctx)
 
 	gridfs := b.gridFS()
+	normalizedName := b.normalizeKey(name)
 
 	var (
 		err  error
@@ -84,13 +99,13 @@ func (b *gridfsLegacyBucket) openFile(ctx context.Context, name string, create b
 	)
 
 	if create {
-		file, err = gridfs.Create(name)
+		file, err = gridfs.Create(normalizedName)
 	} else {
-		file, err = gridfs.Open(name)
+		file, err = gridfs.Open(normalizedName)
 	}
 	if err != nil {
 		ses.Close()
-		return nil, errors.Wrapf(err, "couldn't open %s/%s", b.opts.Prefix, name)
+		return nil, errors.Wrapf(err, "couldn't open %s/%s", b.opts.Name, normalizedName)
 	}
 
 	out.GridFile = file
@@ -185,8 +200,8 @@ func (b *gridfsLegacyBucket) Push(ctx context.Context, local, remote string) err
 
 	gridfs := b.gridFS()
 	for _, path := range localPaths {
-		target := filepath.Join(remote, path)
-		file, err := gridfs.Open(target)
+		target := consistentJoin(remote, path)
+		file, err := gridfs.Open(b.normalizeKey(target))
 		if err == mgo.ErrNotFound {
 			if err = b.Upload(ctx, target, filepath.Join(local, path)); err != nil {
 				return errors.Wrapf(err, "problem uploading '%s' to '%s'", path, target)
@@ -230,11 +245,12 @@ func (b *gridfsLegacyBucket) Pull(ctx context.Context, local, remote string) err
 	var checksum string
 	keys := []string{}
 	for gridfs.OpenNext(iterimpl.iter, &f) {
-		name := filepath.Join(local, f.Name()[len(remote)+1:])
-		keys = append(keys, f.Name())
+		denormalizedName := b.denormalizeKey(f.Name())
+		name := filepath.Join(local, denormalizedName[len(remote)+1:])
+		keys = append(keys, denormalizedName)
 		checksum, err = md5sum(name)
 		if os.IsNotExist(errors.Cause(err)) {
-			if err = b.Download(ctx, f.Name(), name); err != nil {
+			if err = b.Download(ctx, denormalizedName, name); err != nil {
 				return errors.WithStack(err)
 			}
 			continue
@@ -245,7 +261,7 @@ func (b *gridfsLegacyBucket) Pull(ctx context.Context, local, remote string) err
 		// NOTE: it doesn't seem like the md5 sums are being
 		// populated, so this always happens
 		if f.MD5() != checksum {
-			if err = b.Download(ctx, f.Name(), name); err != nil {
+			if err = b.Download(ctx, denormalizedName, name); err != nil {
 				return errors.WithStack(err)
 			}
 		}
@@ -283,7 +299,7 @@ func (b *gridfsLegacyBucket) Remove(ctx context.Context, key string) error {
 	if b.opts.DryRun {
 		return nil
 	}
-	return errors.Wrapf(b.gridFS().Remove(key), "problem removing file %s", key)
+	return errors.Wrapf(b.gridFS().Remove(b.normalizeKey(key)), "problem removing file %s", key)
 }
 
 func (b *gridfsLegacyBucket) RemoveMany(ctx context.Context, keys ...string) error {
@@ -317,7 +333,7 @@ func (b *gridfsLegacyBucket) List(ctx context.Context, prefix string) (BucketIte
 
 	return &legacyGridFSIterator{
 		ctx:    ctx,
-		iter:   b.gridFS().Find(bson.M{"filename": bson.RegEx{Pattern: fmt.Sprintf("^%s.*", prefix)}}).Iter(),
+		iter:   b.gridFS().Find(bson.M{"filename": bson.RegEx{Pattern: fmt.Sprintf("^%s.*", b.normalizeKey(prefix))}}).Iter(),
 		bucket: b,
 	}, nil
 }
@@ -351,7 +367,7 @@ func (iter *legacyGridFSIterator) Next(ctx context.Context) bool {
 
 	iter.item = &bucketItemImpl{
 		bucket: iter.bucket.opts.Prefix,
-		key:    f.Name(),
+		key:    iter.bucket.denormalizeKey(f.Name()),
 		b:      iter.bucket,
 	}
 

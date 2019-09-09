@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/mongodb/grip"
+	"github.com/pkg/errors"
 )
 
 // BenchmarkSuite is a convenience wrapper around a group of suites.
@@ -50,6 +51,10 @@ func (s BenchmarkSuite) Run(ctx context.Context, prefix string) (BenchmarkResult
 	registry := NewRegistry()
 	catcher := grip.NewBasicCatcher()
 	res := make(BenchmarkResultGroup, 0, len(s))
+
+	if err := s.Validate(); err != nil {
+		return res, errors.Wrap(err, "invalid benchmark suite")
+	}
 
 	for _, test := range s {
 		name := test.Name()

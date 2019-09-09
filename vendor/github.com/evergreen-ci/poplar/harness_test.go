@@ -166,7 +166,7 @@ func TestCaseType(t *testing.T) {
 		} {
 			t.Run(test.Name, func(t *testing.T) {
 				c := BenchmarkCase{
-					Bench:         func(_ context.Context, _ events.Recorder, _ int) error { return nil },
+					Bench:         func(_ context.Context, _ Recorder, _ int) error { return nil },
 					MinIterations: 10,
 					MinRuntime:    time.Minute,
 					MaxRuntime:    time.Hour,
@@ -205,7 +205,7 @@ func TestCaseType(t *testing.T) {
 			{
 				Name: "Benchmark",
 				Case: func(t *testing.T, c *BenchmarkCase) {
-					assert.NotZero(t, c.SetBench(func(_ context.Context, _ events.Recorder, _ int) error { return nil }).Bench)
+					assert.NotZero(t, c.SetBench(func(_ context.Context, _ Recorder, _ int) error { return nil }).Bench)
 				},
 			},
 			{
@@ -293,7 +293,7 @@ func TestCaseType(t *testing.T) {
 
 		t.Run("NoopBenchmark", func(t *testing.T) {
 			c := BenchmarkCase{
-				Bench:            func(ctx context.Context, _ events.Recorder, count int) error { return nil },
+				Bench:            func(ctx context.Context, _ Recorder, count int) error { return nil },
 				MinIterations:    2,
 				MaxIterations:    4,
 				MinRuntime:       time.Millisecond,
@@ -315,7 +315,7 @@ func TestCaseType(t *testing.T) {
 		})
 		t.Run("CanceledContext", func(t *testing.T) {
 			c := BenchmarkCase{
-				Bench: func(ctx context.Context, _ events.Recorder, count int) error {
+				Bench: func(ctx context.Context, _ Recorder, count int) error {
 					return nil
 				},
 				MinIterations:    2,
@@ -336,7 +336,7 @@ func TestCaseType(t *testing.T) {
 		t.Run("Error", func(t *testing.T) {
 			err := errors.New("foo")
 			c := BenchmarkCase{
-				Bench: func(ctx context.Context, _ events.Recorder, count int) error {
+				Bench: func(ctx context.Context, _ Recorder, count int) error {
 					return err
 				},
 				MinIterations:    2,
@@ -478,7 +478,7 @@ func TestSuiteType(t *testing.T) {
 		})
 		t.Run("NoopTest", func(t *testing.T) {
 			c := &BenchmarkCase{
-				Bench:            func(ctx context.Context, _ events.Recorder, count int) error { return nil },
+				Bench:            func(ctx context.Context, _ Recorder, count int) error { return nil },
 				MinIterations:    2,
 				MaxIterations:    4,
 				MinRuntime:       time.Millisecond,
@@ -499,7 +499,7 @@ func TestSuiteType(t *testing.T) {
 			s := BenchmarkSuite{
 				{
 					CaseName:         "firstErr",
-					Bench:            func(ctx context.Context, _ events.Recorder, count int) error { counter++; return nil },
+					Bench:            func(ctx context.Context, _ Recorder, count int) error { counter++; return nil },
 					MinIterations:    2,
 					MaxIterations:    4,
 					MinRuntime:       time.Millisecond,
@@ -510,7 +510,7 @@ func TestSuiteType(t *testing.T) {
 				},
 				{
 					CaseName:         "errorerrror",
-					Bench:            func(ctx context.Context, _ events.Recorder, count int) error { return errors.New("foo") },
+					Bench:            func(ctx context.Context, _ Recorder, count int) error { return errors.New("foo") },
 					MinIterations:    2,
 					MaxIterations:    4,
 					MinRuntime:       time.Millisecond,
@@ -521,7 +521,7 @@ func TestSuiteType(t *testing.T) {
 				},
 				{
 					CaseName:         "seconderr",
-					Bench:            func(ctx context.Context, _ events.Recorder, count int) error { counter += 2; return nil },
+					Bench:            func(ctx context.Context, _ Recorder, count int) error { counter += 2; return nil },
 					MinIterations:    2,
 					MaxIterations:    4,
 					MinRuntime:       time.Millisecond,
@@ -542,7 +542,7 @@ func TestSuiteType(t *testing.T) {
 			s := BenchmarkSuite{
 				{
 					CaseName:         "one",
-					Bench:            func(ctx context.Context, _ events.Recorder, count int) error { return nil },
+					Bench:            func(ctx context.Context, _ Recorder, count int) error { return nil },
 					MinIterations:    2,
 					MaxIterations:    4,
 					MinRuntime:       time.Millisecond,
@@ -553,7 +553,7 @@ func TestSuiteType(t *testing.T) {
 				},
 				{
 					CaseName:         "one",
-					Bench:            func(ctx context.Context, _ events.Recorder, count int) error { return nil },
+					Bench:            func(ctx context.Context, _ Recorder, count int) error { return nil },
 					MinIterations:    2,
 					MaxIterations:    4,
 					MinRuntime:       time.Millisecond,
@@ -580,7 +580,7 @@ func TestSuiteType(t *testing.T) {
 			counter := 0
 			c := &BenchmarkCase{
 				CaseName:         "one-" + randomString(),
-				Bench:            func(ctx context.Context, _ events.Recorder, count int) error { counter++; return nil },
+				Bench:            func(ctx context.Context, _ Recorder, count int) error { counter++; return nil },
 				MinIterations:    2,
 				MaxIterations:    4,
 				MinRuntime:       time.Millisecond,
