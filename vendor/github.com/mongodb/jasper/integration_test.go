@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/mongodb/jasper/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tychoish/bond"
@@ -75,7 +76,7 @@ func setupMongods(numProcs int, mongodPath string) ([]CreateOptions, []string, e
 	optslist := make([]CreateOptions, numProcs)
 	for i := 0; i < numProcs; i++ {
 		procName := "mongod"
-		port := getPortNumber()
+		port := testutil.GetPortNumber()
 
 		dbPath, err := ioutil.TempDir("build", procName)
 		if err != nil {

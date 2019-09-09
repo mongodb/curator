@@ -8,6 +8,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/mongodb/jasper/testutil"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -110,7 +111,7 @@ func TestWindowsProcessTracker(t *testing.T) {
 				t.Skip("Evergreen makes its own job object, so these will not pass in Evergreen tests ",
 					"(although they will pass if locally run).")
 			}
-			ctx, cancel := context.WithTimeout(context.Background(), taskTimeout)
+			ctx, cancel := context.WithTimeout(context.Background(), testutil.TestTimeout)
 			defer cancel()
 
 			tracker, err := makeTracker()
@@ -119,7 +120,7 @@ func TestWindowsProcessTracker(t *testing.T) {
 			}()
 			require.NoError(t, err)
 			require.NotNil(t, tracker)
-			opts := yesCreateOpts(taskTimeout)
+			opts := yesCreateOpts(testutil.TestTimeout)
 
 			testCase(ctx, t, tracker, &opts)
 		})

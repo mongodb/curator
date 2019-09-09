@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/mongodb/grip/send"
+	"github.com/mongodb/jasper/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -477,7 +478,7 @@ func TestGetInMemoryLogStream(t *testing.T) {
 				// "": func(ctx context.Context, t *testing.T, opts *CreateOptions, output string) {},
 			} {
 				t.Run(testName, func(t *testing.T) {
-					tctx, tcancel := context.WithTimeout(ctx, processTestTimeout)
+					tctx, tcancel := context.WithTimeout(ctx, testutil.ProcessTestTimeout)
 					defer tcancel()
 
 					output := "foo"

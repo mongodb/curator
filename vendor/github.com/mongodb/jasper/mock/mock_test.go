@@ -1,4 +1,4 @@
-package jasper
+package mock
 
 import (
 	"testing"
@@ -7,15 +7,15 @@ import (
 )
 
 func TestMockInterfaces(t *testing.T) {
-	manager := &MockManager{}
+	manager := &Manager{}
 	_, ok := interface{}(manager).(Manager)
 	assert.True(t, ok)
 
-	process := &MockProcess{}
+	process := &Process{}
 	_, ok = interface{}(process).(Process)
 	assert.True(t, ok)
 
-	remoteClient := &MockRemoteClient{}
+	remoteClient := &RemoteClient{}
 	_, ok = interface{}(remoteClient).(RemoteClient)
 	assert.True(t, ok)
 }

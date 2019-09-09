@@ -3,7 +3,6 @@ package jasper
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"runtime"
@@ -12,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pkg/errors"
+	"github.com/mongodb/jasper/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -21,27 +20,11 @@ func TestProcessImplementations(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	httpClient := GetHTTPClient()
-	defer PutHTTPClient(httpClient)
-
 	for cname, makeProc := range map[string]ProcessConstructor{
 		"BlockingNoLock":   newBlockingProcess,
 		"BlockingWithLock": makeLockingProcess(newBlockingProcess),
 		"BasicNoLock":      newBasicProcess,
 		"BasicWithLock":    makeLockingProcess(newBasicProcess),
-		"REST": func(ctx context.Context, opts *CreateOptions) (Process, error) {
-			_, port, err := startRESTService(ctx, httpClient)
-			if err != nil {
-				return nil, errors.WithStack(err)
-			}
-
-			client := &restClient{
-				prefix: fmt.Sprintf("http://localhost:%d/jasper/v1", port),
-				client: httpClient,
-			}
-
-			return client.CreateProcess(ctx, opts)
-		},
 	} {
 		t.Run(cname, func(t *testing.T) {
 			for name, testCase := range map[string]func(context.Context, *testing.T, *CreateOptions, ProcessConstructor){
@@ -58,9 +41,6 @@ func TestProcessImplementations(t *testing.T) {
 					assert.Nil(t, proc)
 				},
 				"WithCanceledContextProcessCreationFails": func(ctx context.Context, t *testing.T, opts *CreateOptions, makep ProcessConstructor) {
-					if cname == "REST" {
-						t.Skip("context cancellation in test also stops REST service")
-					}
 					pctx, pcancel := context.WithCancel(ctx)
 					pcancel()
 					proc, err := makep(pctx, opts)
@@ -176,17 +156,11 @@ func TestProcessImplementations(t *testing.T) {
 					assert.NoError(t, proc.RegisterSignalTriggerID(ctx, CleanTerminationSignalTrigger))
 				},
 				"DefaultTriggerSucceeds": func(ctx context.Context, t *testing.T, opts *CreateOptions, makep ProcessConstructor) {
-					if cname == "REST" {
-						t.Skip("remote triggers are not supported on rest processes")
-					}
 					proc, err := makep(ctx, opts)
 					assert.NoError(t, err)
 					assert.NoError(t, proc.RegisterTrigger(ctx, makeDefaultTrigger(ctx, nil, opts, "foo")))
 				},
 				"OptionsCloseTriggerRegisteredByDefault": func(ctx context.Context, t *testing.T, opts *CreateOptions, makep ProcessConstructor) {
-					if cname == "REST" {
-						t.Skip("remote triggers are not supported on rest processes")
-					}
 					count := 0
 					countIncremented := make(chan bool, 1)
 					opts.closers = append(opts.closers, func() (_ error) {
@@ -210,9 +184,6 @@ func TestProcessImplementations(t *testing.T) {
 					}
 				},
 				"SignalTriggerRunsBeforeSignal": func(ctx context.Context, t *testing.T, _ *CreateOptions, makep ProcessConstructor) {
-					if cname == "REST" {
-						t.Skip("remote signal triggers are not supported on rest processes")
-					}
 					opts := yesCreateOpts(0)
 					proc, err := makep(ctx, &opts)
 					require.NoError(t, err)
@@ -238,9 +209,6 @@ func TestProcessImplementations(t *testing.T) {
 					assert.True(t, proc.Complete(ctx))
 				},
 				"SignalTriggerCanSkipSignal": func(ctx context.Context, t *testing.T, _ *CreateOptions, makep ProcessConstructor) {
-					if cname == "REST" {
-						t.Skip("remote signal triggers are not supported on rest processes")
-					}
 					opts := yesCreateOpts(0)
 					proc, err := makep(ctx, &opts)
 					require.NoError(t, err)
@@ -272,10 +240,6 @@ func TestProcessImplementations(t *testing.T) {
 					assert.True(t, proc.Complete(ctx))
 				},
 				"ProcessLogDefault": func(ctx context.Context, t *testing.T, opts *CreateOptions, makep ProcessConstructor) {
-					if cname == "REST" {
-						t.Skip("remote triggers are not supported on rest processes")
-					}
-
 					file, err := ioutil.TempFile("build", "out.txt")
 					require.NoError(t, err)
 					defer func() {
@@ -296,10 +260,6 @@ func TestProcessImplementations(t *testing.T) {
 					assert.NoError(t, err)
 				},
 				"ProcessWritesToLog": func(ctx context.Context, t *testing.T, opts *CreateOptions, makep ProcessConstructor) {
-					if cname == "REST" {
-						t.Skip("remote triggers are not supported on rest processes")
-					}
-
 					file, err := ioutil.TempFile("build", "out.txt")
 					require.NoError(t, err)
 					defer func() {
@@ -343,9 +303,6 @@ func TestProcessImplementations(t *testing.T) {
 					}
 				},
 				"ProcessWritesToBufferedLog": func(ctx context.Context, t *testing.T, opts *CreateOptions, makep ProcessConstructor) {
-					if cname == "REST" {
-						t.Skip("remote triggers are not supported on rest processes")
-					}
 					file, err := ioutil.TempFile("build", "out.txt")
 					require.NoError(t, err)
 					defer func() {
@@ -443,9 +400,6 @@ func TestProcessImplementations(t *testing.T) {
 					assert.True(t, newProc.Info(ctx).Successful)
 				},
 				"TriggersFireOnRespawnedProcessExit": func(ctx context.Context, t *testing.T, opts *CreateOptions, makep ProcessConstructor) {
-					if cname == "REST" {
-						t.Skip("remote triggers are not supported on rest processes")
-					}
 					count := 0
 					opts = sleepCreateOpts(2)
 					proc, err := makep(ctx, opts)
@@ -577,9 +531,6 @@ func TestProcessImplementations(t *testing.T) {
 					assert.True(t, strings.Contains(err.Error(), "cannot signal a process that has terminated"))
 				},
 				"StandardInput": func(ctx context.Context, t *testing.T, opts *CreateOptions, makep ProcessConstructor) {
-					if cname == "REST" {
-						t.Skip("standard input behavior should be tested separately on remote interfaces")
-					}
 					for subTestName, subTestCase := range map[string]func(ctx context.Context, t *testing.T, opts *CreateOptions, expectedOutput string, stdin []byte, output *bytes.Buffer){
 						"ReaderSetsProcessStandardInput": func(ctx context.Context, t *testing.T, opts *CreateOptions, expectedOutput string, stdin []byte, output *bytes.Buffer) {
 							opts.StandardInput = bytes.NewBuffer(stdin)
@@ -665,7 +616,7 @@ func TestProcessImplementations(t *testing.T) {
 				// "": func(ctx context.Context, t *testing.T, opts *CreateOptions, makep ProcessConstructor) {},
 			} {
 				t.Run(name, func(t *testing.T) {
-					tctx, cancel := context.WithTimeout(ctx, processTestTimeout)
+					tctx, cancel := context.WithTimeout(ctx, testutil.ProcessTestTimeout)
 					defer cancel()
 
 					opts := &CreateOptions{Args: []string{"ls"}}

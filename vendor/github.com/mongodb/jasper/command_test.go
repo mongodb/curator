@@ -13,6 +13,7 @@ import (
 
 	"github.com/mongodb/grip/level"
 	"github.com/mongodb/grip/send"
+	"github.com/mongodb/jasper/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -528,7 +529,7 @@ func TestCommandImplementation(t *testing.T) {
 						// "": func(ctx context.Context, t *testing.T, cmd Command) {},
 					} {
 						t.Run(name, func(t *testing.T) {
-							ctx, cancel := context.WithTimeout(context.Background(), taskTimeout)
+							ctx, cancel := context.WithTimeout(context.Background(), testutil.TestTimeout)
 							defer cancel()
 
 							cmd := NewCommand().ProcConstructor(makep)

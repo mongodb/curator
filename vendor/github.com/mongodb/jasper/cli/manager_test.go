@@ -6,6 +6,9 @@ import (
 	"testing"
 
 	"github.com/mongodb/jasper"
+	"github.com/mongodb/jasper/mock"
+	"github.com/mongodb/jasper/testutil"
+	"github.com/mongodb/jasper/testutil/jasperutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli"
@@ -25,7 +28,7 @@ func TestCLIManager(t *testing.T) {
 					assert.NotEmpty(t, resp.ID)
 				},
 				"CommandsWithInputFailWithInvalidInput": func(ctx context.Context, t *testing.T, c *cli.Context, jasperProcID string) {
-					input, err := json.Marshal(jasper.MockProcess{})
+					input, err := json.Marshal(mock.Process{})
 					require.NoError(t, err)
 					assert.Error(t, execCLICommandInputOutput(t, c, managerCreateProcess(), input, &InfoResponse{}))
 					assert.Error(t, execCLICommandInputOutput(t, c, managerCreateCommand(), input, &OutcomeResponse{}))
@@ -34,7 +37,7 @@ func TestCLIManager(t *testing.T) {
 					assert.Error(t, execCLICommandInputOutput(t, c, managerGroup(), input, &InfosResponse{}))
 				},
 				"CommandsWithoutInputPassWithInvalidInput": func(ctx context.Context, t *testing.T, c *cli.Context, jasperProcID string) {
-					input, err := json.Marshal(jasper.MockProcess{})
+					input, err := json.Marshal(mock.Process{})
 					require.NoError(t, err)
 					resp := &OutcomeResponse{}
 					assert.NoError(t, execCLICommandInputOutput(t, c, managerClear(), input, resp))
@@ -130,9 +133,9 @@ func TestCLIManager(t *testing.T) {
 				},
 			} {
 				t.Run(testName, func(t *testing.T) {
-					ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
+					ctx, cancel := context.WithTimeout(context.Background(), testutil.TestTimeout)
 					defer cancel()
-					port := getNextPort()
+					port := testutil.GetPortNumber()
 					c := mockCLIContext(remoteType, port)
 					manager, err := jasper.NewLocalManager(false)
 					require.NoError(t, err)
@@ -143,7 +146,7 @@ func TestCLIManager(t *testing.T) {
 					}()
 
 					resp := &InfoResponse{}
-					input, err := json.Marshal(trueCreateOpts())
+					input, err := json.Marshal(jasperutil.TrueCreateOpts())
 					require.NoError(t, err)
 					require.NoError(t, execCLICommandInputOutput(t, c, managerCreateProcess(), input, resp))
 					require.True(t, resp.Successful())

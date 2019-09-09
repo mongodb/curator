@@ -3,6 +3,7 @@ package jasper
 import (
 	"context"
 	"syscall"
+	"time"
 )
 
 const (
@@ -14,6 +15,11 @@ const (
 	// all managed process that always identifies the process'
 	// manager. Used for process tracking and forensics.
 	ManagerEnvironID = "JASPER_MANAGER"
+
+	// DefaultCachePruneDelay is the duration between LRU cache prunes.
+	DefaultCachePruneDelay = 10 * time.Second
+	// DefaultMaxCacheSize is the maximum allowed size of the LRU cache.
+	DefaultMaxCacheSize = 1024 * 1024 * 1024
 )
 
 // Manager provides a basic, high level process management interface

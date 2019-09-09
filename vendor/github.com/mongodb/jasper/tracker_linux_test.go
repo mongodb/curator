@@ -8,6 +8,7 @@ import (
 	"syscall"
 	"testing"
 
+	"github.com/mongodb/jasper/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -135,10 +136,10 @@ func TestLinuxProcessTrackerWithCgroups(t *testing.T) {
 				},
 			} {
 				t.Run(name, func(t *testing.T) {
-					ctx, cancel := context.WithTimeout(context.Background(), taskTimeout)
+					ctx, cancel := context.WithTimeout(context.Background(), testutil.TestTimeout)
 					defer cancel()
 
-					opts := yesCreateOpts(taskTimeout)
+					opts := yesCreateOpts(testutil.TestTimeout)
 					proc, err := makeProc(ctx, &opts)
 					require.NoError(t, err)
 
@@ -204,12 +205,12 @@ func TestLinuxProcessTrackerWithEnvironmentVariables(t *testing.T) {
 				// "": func(ctx, context.Context, t *testing.T, tracker *linuxProcessTracker, envVarName string, envVarValue string) {},
 			} {
 				t.Run(testName, func(t *testing.T) {
-					ctx, cancel := context.WithTimeout(context.Background(), taskTimeout)
+					ctx, cancel := context.WithTimeout(context.Background(), testutil.TestTimeout)
 					defer cancel()
 
 					envVarValue := "bar"
 
-					opts := yesCreateOpts(taskTimeout)
+					opts := yesCreateOpts(testutil.TestTimeout)
 
 					tracker, err := NewProcessTracker(envVarValue)
 					require.NoError(t, err)
@@ -255,7 +256,7 @@ func TestManagerSetsEnvironmentVariables(t *testing.T) {
 		t.Run(managerName, func(t *testing.T) {
 			for testName, testCase := range map[string]func(context.Context, *testing.T, *basicProcessManager){
 				"CreateProcessSetsManagerEnvironmentVariables": func(ctx context.Context, t *testing.T, manager *basicProcessManager) {
-					opts := yesCreateOpts(managerTestTimeout)
+					opts := yesCreateOpts(testutil.ManagerTestTimeout)
 					proc, err := manager.CreateProcess(ctx, &opts)
 					require.NoError(t, err)
 
@@ -285,7 +286,7 @@ func TestManagerSetsEnvironmentVariables(t *testing.T) {
 				},
 			} {
 				t.Run(testName, func(t *testing.T) {
-					tctx, cancel := context.WithTimeout(ctx, managerTestTimeout)
+					tctx, cancel := context.WithTimeout(ctx, testutil.ManagerTestTimeout)
 					defer cancel()
 					testCase(tctx, t, makeManager())
 				})

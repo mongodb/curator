@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/mongodb/jasper/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -77,7 +78,7 @@ func TestSelfClearingManager(t *testing.T) {
 				//"": func(ctx context.Context, t *testing.T, manager *selfClearingProcessManager) {},
 			} {
 				t.Run(name, func(t *testing.T) {
-					tctx, cancel := context.WithTimeout(context.Background(), managerTestTimeout)
+					tctx, cancel := context.WithTimeout(context.Background(), testutil.ManagerTestTimeout)
 					defer cancel()
 
 					selfClearingManager, err := NewSelfClearingProcessManager(5, false)

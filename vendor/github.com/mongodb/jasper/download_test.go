@@ -14,6 +14,7 @@ import (
 	"github.com/mholt/archiver"
 	"github.com/mongodb/amboy/queue"
 	"github.com/mongodb/grip"
+	"github.com/mongodb/jasper/testutil"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -45,44 +46,8 @@ func validMongoDBDownloadOptions() MongoDBDownloadOptions {
 	}
 }
 
-func addFileToDirectory(dir string, fileName string, fileContents string) error {
-	if format := archiver.MatchingFormat(fileName); format != nil {
-		tmpFile, err := ioutil.TempFile(dir, "tmp.txt")
-		if err != nil {
-			return err
-		}
-		defer os.RemoveAll(tmpFile.Name())
-		if _, err := tmpFile.Write([]byte(fileContents)); err != nil {
-			catcher := grip.NewBasicCatcher()
-			catcher.Add(err)
-			catcher.Add(tmpFile.Close())
-			return catcher.Resolve()
-		}
-		if err := tmpFile.Close(); err != nil {
-			return err
-		}
-
-		if err := format.Make(filepath.Join(dir, fileName), []string{tmpFile.Name()}); err != nil {
-			return err
-		}
-		return nil
-	}
-
-	file, err := os.Create(filepath.Join(dir, fileName))
-	if err != nil {
-		return err
-	}
-	if _, err := file.Write([]byte(fileContents)); err != nil {
-		catcher := grip.NewBasicCatcher()
-		catcher.Add(err)
-		catcher.Add(file.Close())
-		return catcher.Resolve()
-	}
-	return file.Close()
-}
-
 func TestSetupDownloadMongoDBReleasesFailsWithZeroOptions(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), taskTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), testutil.TestTimeout)
 	defer cancel()
 
 	opts := MongoDBDownloadOptions{}
@@ -92,7 +57,7 @@ func TestSetupDownloadMongoDBReleasesFailsWithZeroOptions(t *testing.T) {
 }
 
 func TestSetupDownloadMongoDBReleasesWithInvalidPath(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), taskTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), testutil.TestTimeout)
 	defer cancel()
 
 	opts := validMongoDBDownloadOptions()
@@ -108,7 +73,7 @@ func TestSetupDownloadMongoDBReleasesWithInvalidPath(t *testing.T) {
 }
 
 func TestSetupDownloadMongoDBReleasesWithInvalidArtifactsFeed(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), taskTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), testutil.TestTimeout)
 	defer cancel()
 
 	dir, err := ioutil.TempDir("build", "out")
@@ -171,7 +136,7 @@ func TestCreateDownloadJobsWithInvalidPath(t *testing.T) {
 }
 
 func TestProcessDownloadJobs(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), longTaskTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), testutil.LongTestTimeout)
 	defer cancel()
 
 	downloadDir, err := ioutil.TempDir("build", "download_test")
@@ -184,9 +149,9 @@ func TestProcessDownloadJobs(t *testing.T) {
 
 	fileName := "foo.zip"
 	fileContents := "foo"
-	require.NoError(t, addFileToDirectory(fileServerDir, fileName, fileContents))
+	require.NoError(t, testutil.AddFileToDirectory(fileServerDir, fileName, fileContents))
 
-	port := getPortNumber()
+	port := testutil.GetPortNumber()
 	fileServerAddr := fmt.Sprintf("localhost:%d", port)
 	fileServer := &http.Server{Addr: fileServerAddr, Handler: http.FileServer(http.Dir(fileServerDir))}
 	defer func() {
@@ -199,12 +164,12 @@ func TestProcessDownloadJobs(t *testing.T) {
 	}()
 
 	baseURL := fmt.Sprintf("http://%s", fileServerAddr)
-	require.NoError(t, waitForRESTService(ctx, baseURL))
+	require.NoError(t, testutil.WaitForRESTService(ctx, baseURL))
 
 	job, err := recall.NewDownloadJob(fmt.Sprintf("%s/%s", baseURL, fileName), downloadDir, true)
 	require.NoError(t, err)
 
-	q := queue.NewLocalUnordered(2)
+	q := queue.NewLocalLimitedSize(2, 1048)
 	require.NoError(t, q.Start(ctx))
 	require.NoError(t, q.Put(ctx, job))
 

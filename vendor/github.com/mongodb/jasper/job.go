@@ -16,6 +16,9 @@ import (
 	"github.com/mongodb/grip/send"
 )
 
+// Job is an alias for an amboy.Job
+type Job amboy.Job
+
 type amboyJob struct {
 	CmdString        string            `bson:"cmd" json:"cmd" yaml:"cmd"`
 	Environment      map[string]string `bson:"env" json:"env" yaml:"env"`
@@ -64,21 +67,21 @@ func amboyJobFactory(pc ProcessConstructor) *amboyJob {
 	return j
 }
 
-func NewJob(pc ProcessConstructor, cmd string) amboy.Job {
+func NewJob(pc ProcessConstructor, cmd string) Job {
 	j := amboyJobFactory(pc)
 	j.CmdString = cmd
 	j.SetID(fmt.Sprintf("%s.%x", amboyJobName, sha1.Sum([]byte(cmd))))
 	return j
 }
 
-func NewJobBasic(cmd string) amboy.Job {
+func NewJobBasic(cmd string) Job {
 	j := amboyJobFactory(newBasicProcess)
 	j.CmdString = cmd
 	j.SetID(fmt.Sprintf("%s.basic.%x", amboyJobName, sha1.Sum([]byte(cmd))))
 	return j
 }
 
-func NewJobExtended(pc ProcessConstructor, cmd string, env map[string]string, wd string) amboy.Job {
+func NewJobExtended(pc ProcessConstructor, cmd string, env map[string]string, wd string) Job {
 	j := amboyJobFactory(pc)
 	j.CmdString = cmd
 	j.Environment = env
@@ -87,7 +90,7 @@ func NewJobExtended(pc ProcessConstructor, cmd string, env map[string]string, wd
 	return j
 }
 
-func NewJobBasicExtended(cmd string, env map[string]string, wd string) amboy.Job {
+func NewJobBasicExtended(cmd string, env map[string]string, wd string) Job {
 	j := amboyJobFactory(newBasicProcess)
 	j.CmdString = cmd
 	j.Environment = env
@@ -162,7 +165,7 @@ func amboySimpleCapturedOutputJobFactory(pc ProcessConstructor) *amboySimpleCapt
 	return j
 }
 
-func NewJobOptions(pc ProcessConstructor, opts *CreateOptions) amboy.Job {
+func NewJobOptions(pc ProcessConstructor, opts *CreateOptions) Job {
 	j := amboySimpleCapturedOutputJobFactory(pc)
 	j.Options = opts
 	j.SetID(fmt.Sprintf("%s.%x", j.Type().Name, opts.hash()))
@@ -217,14 +220,14 @@ func amboyForegroundOutputJobFactory(pc ProcessConstructor) *amboyForegroundOutp
 	return j
 }
 
-func NewJobForeground(pc ProcessConstructor, opts *CreateOptions) amboy.Job {
+func NewJobForeground(pc ProcessConstructor, opts *CreateOptions) Job {
 	j := amboyForegroundOutputJobFactory(pc)
 	j.SetID(fmt.Sprintf("%s.%x", j.Type().Name, opts.hash()))
 	j.Options = opts
 	return j
 }
 
-func NewJobBasicForeground(opts *CreateOptions) amboy.Job {
+func NewJobBasicForeground(opts *CreateOptions) Job {
 	j := amboyForegroundOutputJobFactory(newBasicProcess)
 	j.SetID(fmt.Sprintf("%s.basic.%x", j.Type().Name, opts.hash()))
 	j.Options = opts

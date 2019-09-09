@@ -2,10 +2,10 @@ package jasper
 
 import (
 	"context"
-	"fmt"
 	"runtime"
 	"testing"
 
+	"github.com/mongodb/jasper/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -14,9 +14,6 @@ var echoSubCmd = []string{"echo", "foo"}
 
 func TestManagerInterface(t *testing.T) {
 	t.Parallel()
-
-	httpClient := GetHTTPClient()
-	defer PutHTTPClient(httpClient)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -55,16 +52,6 @@ func TestManagerInterface(t *testing.T) {
 			selfClearingBlockingManager, err := NewSelfClearingProcessManagerBlockingProcesses(10, false)
 			require.NoError(t, err)
 			return selfClearingBlockingManager
-		},
-		"REST": func(ctx context.Context, t *testing.T) Manager {
-			srv, port, err := startRESTService(ctx, httpClient)
-			require.NoError(t, err)
-			require.NotNil(t, srv)
-
-			return &restClient{
-				prefix: fmt.Sprintf("http://localhost:%d/jasper/v1", port),
-				client: httpClient,
-			}
 		},
 	} {
 		t.Run(mname, func(t *testing.T) {
@@ -234,10 +221,6 @@ func TestManagerInterface(t *testing.T) {
 					assert.NoError(t, manager.Close(ctx))
 				},
 				"CloseExecutesClosersForProcesses": func(ctx context.Context, t *testing.T, manager Manager) {
-					if mname == "REST" {
-						t.Skip("not supported on rest interfaces")
-					}
-
 					if runtime.GOOS == "windows" {
 						t.Skip("manager close tests will error due to process termination on Windows")
 					}
@@ -265,19 +248,11 @@ func TestManagerInterface(t *testing.T) {
 					}
 				},
 				"RegisterProcessErrorsForNilProcess": func(ctx context.Context, t *testing.T, manager Manager) {
-					if mname == "REST" {
-						t.Skip("not supported on rest interfaces")
-					}
-
 					err := manager.Register(ctx, nil)
 					require.Error(t, err)
 					assert.Contains(t, err.Error(), "not defined")
 				},
 				"RegisterProcessErrorsForCanceledContext": func(ctx context.Context, t *testing.T, manager Manager) {
-					if mname == "REST" {
-						t.Skip("not supported on rest interfaces")
-					}
-
 					cctx, cancel := context.WithCancel(ctx)
 					cancel()
 					proc, err := newBlockingProcess(ctx, trueCreateOpts())
@@ -287,10 +262,6 @@ func TestManagerInterface(t *testing.T) {
 					assert.Contains(t, err.Error(), context.Canceled.Error())
 				},
 				"RegisterProcessErrorsWhenMissingID": func(ctx context.Context, t *testing.T, manager Manager) {
-					if mname == "REST" {
-						t.Skip("not supported on rest interfaces")
-					}
-
 					proc := &blockingProcess{}
 					assert.Equal(t, proc.ID(), "")
 					err := manager.Register(ctx, proc)
@@ -298,10 +269,6 @@ func TestManagerInterface(t *testing.T) {
 					assert.Contains(t, err.Error(), "malformed")
 				},
 				"RegisterProcessModifiesManagerState": func(ctx context.Context, t *testing.T, manager Manager) {
-					if mname == "REST" {
-						t.Skip("not supported on rest interfaces")
-					}
-
 					proc, err := newBlockingProcess(ctx, trueCreateOpts())
 					require.NoError(t, err)
 					err = manager.Register(ctx, proc)
@@ -314,10 +281,6 @@ func TestManagerInterface(t *testing.T) {
 					assert.Equal(t, procs[0].ID(), proc.ID())
 				},
 				"RegisterProcessErrorsForDuplicateProcess": func(ctx context.Context, t *testing.T, manager Manager) {
-					if mname == "REST" {
-						t.Skip("not supported on rest interfaces")
-					}
-
 					proc, err := newBlockingProcess(ctx, trueCreateOpts())
 					require.NoError(t, err)
 					assert.NotEmpty(t, proc)
@@ -327,10 +290,6 @@ func TestManagerInterface(t *testing.T) {
 					assert.Error(t, err)
 				},
 				"ManagerCallsOptionsCloseByDefault": func(ctx context.Context, t *testing.T, manager Manager) {
-					if mname == "REST" {
-						t.Skip("cannot register trigger on rest interfaces")
-					}
-
 					opts := &CreateOptions{}
 					opts.Args = []string{"echo", "foobar"}
 					count := 0
@@ -442,7 +401,7 @@ func TestManagerInterface(t *testing.T) {
 				// "": func(ctx context.Context, t *testing.T, manager Manager) {},
 			} {
 				t.Run(name, func(t *testing.T) {
-					tctx, cancel := context.WithTimeout(ctx, managerTestTimeout)
+					tctx, cancel := context.WithTimeout(ctx, testutil.ManagerTestTimeout)
 					defer cancel()
 					test(tctx, t, factory(tctx, t))
 				})
@@ -558,9 +517,9 @@ func TestTrackedManager(t *testing.T) {
 				// "": func(ctx context.Context, t *testing.T, manager Manager) {},
 			} {
 				t.Run(name, func(t *testing.T) {
-					tctx, cancel := context.WithTimeout(ctx, managerTestTimeout)
+					tctx, cancel := context.WithTimeout(ctx, testutil.ManagerTestTimeout)
 					defer cancel()
-					opts := yesCreateOpts(managerTestTimeout)
+					opts := yesCreateOpts(testutil.ManagerTestTimeout)
 					test(tctx, t, makeManager(), &opts)
 				})
 			}

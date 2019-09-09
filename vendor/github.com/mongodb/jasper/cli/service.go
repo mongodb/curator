@@ -40,7 +40,8 @@ const (
 
 // Constants representing service flags.
 const (
-	userFlagName = "user"
+	quietFlagName = "quiet"
+	userFlagName  = "user"
 
 	logNameFlagName = "log_name"
 	defaultLogName  = "jasper"
@@ -91,8 +92,16 @@ func handleDaemonSignals(ctx context.Context, cancel context.CancelFunc, exit ch
 	}
 }
 
-func serviceLoggingFlags() []cli.Flag {
+func serviceFlags() []cli.Flag {
 	return []cli.Flag{
+		cli.BoolFlag{
+			Name:  quietFlagName,
+			Usage: "quiet mode - suppress errors when running the command",
+		},
+		cli.StringFlag{
+			Name:  userFlagName,
+			Usage: "the user who running the service",
+		},
 		cli.StringFlag{
 			Name:  logNameFlagName,
 			Value: defaultLogName,
@@ -118,13 +127,6 @@ func serviceLoggingFlags() []cli.Flag {
 			EnvVar: "GRIP_SPLUNK_CHANNEL",
 		},
 	}
-}
-
-func serviceBefore() func(*cli.Context) error {
-	return mergeBeforeFuncs(
-		validatePort(portFlagName),
-		validateLogLevel(logLevelFlagName),
-	)
 }
 
 func validateLogLevel(flagName string) func(*cli.Context) error {
