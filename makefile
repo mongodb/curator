@@ -81,6 +81,8 @@ test:$(foreach target,$(packages),test-$(target))
 race:$(foreach target,$(packages),race-$(target))
 coverage:$(coverageOutput)
 coverage-html:$(coverageHtmlOutput)
+revendor:$(buildDir)/$(binary)
+	$(buildDir)/$(binary) revendor $(if $(VENDOR_REVISION),--revision $(VENDOR_REVISION),) $(if $(VENDOR_PKG),--package $(VENDOR_PKG) ,) $(if $(VENDOR_CLEAN),--clean "$(MAKE) vendor-clean",)
 phony := lint build build-race race test coverage coverage-html
 .PRECIOUS:$(testOutput) $(raceOutput) $(coverageOutput) $(coverageHtmlOutput)
 .PRECIOUS:$(foreach target,$(packages),$(buildDir)/test.$(target))
