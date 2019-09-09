@@ -2,14 +2,13 @@ package operations
 
 import (
 	"context"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
-	"unicode"
 
 	"github.com/Masterminds/glide/action"
 	gpath "github.com/Masterminds/glide/path"
@@ -44,6 +43,7 @@ func Revendor() cli.Command {
 				Usage: "command to run to perform clean up",
 			},
 		},
+		Usage: "revendor an existing package in glide.lock",
 		Before: mergeBeforeFuncs(
 			requireStringFlag(packageFlagName),
 			requireStringFlag(revisionFlagName),
@@ -61,79 +61,168 @@ func Revendor() cli.Command {
 				return errors.Wrap(err, "error getting working directory")
 			}
 
-			vendorPath := filepath.Join(wd, gpath.VendorDir, pkg)
-
 			glidePath := filepath.Join(wd, gpath.LockFile)
-			glideFile, err := os.Open(glidePath)
+			newGlideContent, err := updatedGlideFile(glidePath, pkg, rev)
 			if err != nil {
-				return errors.Wrapf(err, "glide file %s could not be opened", glidePath)
+				return errors.Wrapf(err, "error getting updated glide file content from %s", glidePath)
 			}
-			glideContent, err := ioutil.ReadAll(glideFile)
-			if err != nil {
-				return errors.Wrapf(err, "error reading glide file %s", glidePath)
-			}
-
-			lines := strings.Split(string(glideContent), "\n")
-			found := false
-			for i, line := range lines {
-				if strings.Contains(line, pkg) {
-					if i+1 >= len(lines) {
-						return errors.Wrapf(err, "no version specified for package %s", pkg)
-					}
-					// The whitespace has to be consistent with the current
-					// amount of whitespace
-					firstNonWhitespaceIdx := strings.IndexFunc(lines[i+1], func(r rune) bool {
-						return !unicode.IsSpace(r)
-					})
-					if firstNonWhitespaceIdx == -1 {
-						return errors.Wrapf(err, "missing version string on line following package")
-					}
-					whitespace := lines[i+1][:firstNonWhitespaceIdx]
-					lines[i+1] = fmt.Sprintf("%sversion: %s", whitespace, rev)
-					found = true
-					break
-				}
-			}
-			if !found {
-				return errors.Errorf("package %s not found in glide file %s", pkg, glidePath)
-			}
-
-			if err := ioutil.WriteFile(glidePath, []byte(strings.Join(lines, "\n")), 0777); err != nil {
+			if err := ioutil.WriteFile(glidePath, []byte(newGlideContent), 0777); err != nil {
 				return errors.Wrapf(err, "error writing glide file %s", glidePath)
 			}
 
-			if err := os.RemoveAll(vendorPath); err != nil {
-				return errors.Wrapf(err, "error removing vendored package directory %s", vendorPath)
+			vendorPath := filepath.Join(wd, gpath.VendorDir, pkg)
+			if err := installDependencies(vendorPath); err != nil {
+				return errors.Wrapf(err, "error installing dependencies")
 			}
 
-			installer := repo.NewInstaller()
-			action.EnsureGoVendor()
-			// We can't strip the VCS in this call because of a bug in this
-			// glide version that doesn't handle concurrent directory walking
-			// and removal properly.
-			action.Install(installer, false, false)
+			return errors.Wrapf(cleanupDependencies(vendorPath, c.String(cleanCommandFlag)), "error cleaning up dependencies")
 
-			gitPath := filepath.Join(vendorPath, ".git")
-			if err := os.RemoveAll(gitPath); err != nil {
-				return errors.Wrapf(err, "could not remove package VCS directory %s", gitPath)
-			}
+			// glideFile, err := os.Open(glidePath)
+			// if err != nil {
+			//     return errors.Wrapf(err, "glide file %s could not be opened", glidePath)
+			// }
+			// glideContent, err := ioutil.ReadAll(glideFile)
+			// if err != nil {
+			//     return errors.Wrapf(err, "error reading glide file %s", glidePath)
+			// }
+			//
+			// lines := strings.Split(string(glideContent), "\n")
+			// found := false
+			// for i, line := range lines {
+			//     if strings.Contains(line, pkg) {
+			//         if i+1 >= len(lines) {
+			//             return errors.Wrapf(err, "no version specified for package %s", pkg)
+			//         }
+			//         // The whitespace has to be consistent with the current
+			//         // amount of whitespace
+			//         firstNonWhitespaceIdx := strings.IndexFunc(lines[i+1], func(r rune) bool {
+			//             return !unicode.IsSpace(r)
+			//         })
+			//         if firstNonWhitespaceIdx == -1 {
+			//             return errors.Wrapf(err, "missing version string on line following package")
+			//         }
+			//         whitespace := lines[i+1][:firstNonWhitespaceIdx]
+			//         lines[i+1] = fmt.Sprintf("%sversion: %s", whitespace, rev)
+			//         found = true
+			//         break
+			//     }
+			// }
+			// if !found {
+			//     return errors.Errorf("package %s not found in glide file %s", pkg, glidePath)
+			// }
 
-			cmdStr := c.String(cleanCommandFlag)
-			if cmdStr == "" {
-				return nil
-			}
+			// if err := ioutil.WriteFile(glidePath, []byte(strings.Join(lines, "\n")), 0777); err != nil {
+			//     return errors.Wrapf(err, "error writing glide file %s", glidePath)
+			// }
 
-			splitCmd, err := shlex.Split(cmdStr, true)
-			if err != nil {
-				return errors.Wrapf(err, "could not parse clean command %s", cmdStr)
-			}
+			// if err := os.RemoveAll(vendorPath); err != nil {
+			//     return errors.Wrapf(err, "error removing vendored package directory %s", vendorPath)
+			// }
+			//
+			// installer := repo.NewInstaller()
+			// action.EnsureGoVendor()
+			// // We can't strip the VCS in this call because of a bug in this
+			// // glide version that doesn't handle concurrent directory walking
+			// // and removal properly.
+			// action.Install(installer, false, false)
 
-			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-			defer cancel()
-
-			cmd := exec.CommandContext(ctx, splitCmd[0], splitCmd[1:]...)
-			cmd.Stdout = os.Stdout
-			return errors.Wrapf(cmd.Run(), "could not run clean command %s", cmdStr)
+			// gitPath := filepath.Join(vendorPath, ".git")
+			// if err := os.RemoveAll(gitPath); err != nil {
+			//     return errors.Wrapf(err, "could not remove package VCS directory %s", gitPath)
+			// }
+			//
+			// cmdStr := c.String(cleanCommandFlag)
+			// if cmdStr == "" {
+			//     return nil
+			// }
+			//
+			// splitCmd, err := shlex.Split(cmdStr, true)
+			// if err != nil {
+			//     return errors.Wrapf(err, "could not parse clean command %s", cmdStr)
+			// }
+			//
+			// ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			// defer cancel()
+			//
+			// cmd := exec.CommandContext(ctx, splitCmd[0], splitCmd[1:]...)
+			// cmd.Stdout = os.Stdout
+			// return errors.Wrapf(cmd.Run(), "could not run clean command %s", cmdStr)
 		},
 	}
+}
+
+// updatedGlideFile returns the glide file content with the package version
+// changed to the given revision.
+func updatedGlideFile(path, pkg, rev string) (string, error) {
+	content, err := ioutil.ReadFile(path)
+	if err != nil {
+		return "", errors.Wrapf(err, "error reading file %s", path)
+	}
+
+	lines := strings.Split(string(content), "\n")
+	found := false
+	for i, line := range lines {
+		if strings.Contains(line, pkg) {
+			if i+1 >= len(lines) {
+				return "", errors.Errorf("no version specified for package %s", pkg)
+			}
+			// The whitespace has to be consistent with the current
+			// amount of whitespace
+			versionExpr := "^\\s+version:(.*)"
+			versionRegex, err := regexp.Compile(versionExpr)
+			if err != nil {
+				return "", errors.Wrapf(err, "invalid regex %s given", versionExpr)
+			}
+			groups := versionRegex.FindStringSubmatch(lines[i+1])
+			if groups == nil || len(groups) < 2 {
+				return "", errors.Errorf("could not match version regex %s", versionRegex)
+			}
+			oldRev := groups[1]
+			lines[i+1] = lines[i+1][:len(lines[i+1])-len(oldRev)]
+			lines[i+1] = lines[i+1] + " " + rev
+			found = true
+			break
+		}
+	}
+	if !found {
+		return "", errors.Errorf("package %s not found in glide file %s", pkg, path)
+	}
+
+	return strings.Join(lines, "\n"), nil
+}
+
+func installDependencies(vendorPath string) error {
+	if err := os.RemoveAll(vendorPath); err != nil {
+		return errors.Wrapf(err, "error removing vendored package directory %s", vendorPath)
+	}
+
+	installer := repo.NewInstaller()
+	action.EnsureGoVendor()
+	// We can't strip the VCS in this call because of a bug in this
+	// glide version that doesn't handle concurrent directory walking
+	// and removal properly.
+	action.Install(installer, false, false)
+
+	return nil
+}
+
+func cleanupDependencies(vendorPath string, cleanCmd string) error {
+	gitPath := filepath.Join(vendorPath, ".git")
+	if err := os.RemoveAll(gitPath); err != nil {
+		return errors.Wrapf(err, "could not remove package VCS directory %s", gitPath)
+	}
+
+	if cleanCmd == "" {
+		return nil
+	}
+
+	splitCmd, err := shlex.Split(cleanCmd, true)
+	if err != nil {
+		return errors.Wrapf(err, "could not parse clean command %s", cleanCmd)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, splitCmd[0], splitCmd[1:]...)
+	cmd.Stdout = os.Stdout
+	return errors.Wrapf(cmd.Run(), "could not run clean command %s", cleanCmd)
 }
