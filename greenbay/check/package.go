@@ -64,6 +64,6 @@ func (c *packageInstalled) Run(_ context.Context) {
 
 	if !exists {
 		c.setMessage(msg)
-		c.AddError(errors.Errorf("package %s does note exist and should", c.Package))
+		c.AddError(errors.Errorf("package %s does not exist and should", c.Package))
 	}
 }
