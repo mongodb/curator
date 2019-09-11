@@ -371,6 +371,8 @@ func TestBucket(t *testing.T) {
 						require.NoError(t, err)
 
 						sharedCredsOptions := S3Options{
+							// should override this
+							Credentials:               CreateAWSCredentials("asdf", "asdf", "asdf"),
 							SharedCredentialsFilepath: filepath.Join(tempdir, "creds"),
 							SharedCredentialsProfile:  "my_profile",
 							Region:                    s3Region,
@@ -382,9 +384,15 @@ func TestBucket(t *testing.T) {
 					},
 				},
 				{
-					id: "TestSharedCredentialsUsesCorrectDefaultFile",
+					id: "TestSharedCredentialsProfileSetBack",
 					test: func(t *testing.T, b Bucket) {
 						require.NoError(t, b.Check(ctx))
+
+						prev := "not_default"
+						require.NoError(t, os.Setenv("AWS_PROFILE", prev))
+						defer func() {
+							require.NoError(t, os.Setenv("AWS_PROFILE", "default"))
+						}()
 
 						sharedCredsOptions := S3Options{
 							SharedCredentialsProfile: "default",
@@ -398,10 +406,13 @@ func TestBucket(t *testing.T) {
 						fileName := filepath.Join(homeDir, ".aws", "credentials")
 						_, err = os.Stat(fileName)
 						if err == nil {
-							assert.NoError(t, sharedCredsBucket.Check(ctx))
+							_, err = sharedCredsBucket.List(ctx, "")
+							assert.NoError(t, err)
 						} else {
 							assert.True(t, os.IsNotExist(err))
 						}
+
+						assert.Equal(t, prev, os.Getenv("AWS_PROFILE"))
 					},
 				},
 				{
@@ -414,7 +425,9 @@ func TestBucket(t *testing.T) {
 							Region:                   s3Region,
 							Name:                     s3BucketName,
 						}
-						_, err := NewS3Bucket(sharedCredsOptions)
+						sharedCredsBucket, err := NewS3Bucket(sharedCredsOptions)
+						assert.NoError(t, err)
+						_, err = sharedCredsBucket.List(ctx, "")
 						assert.Error(t, err)
 					},
 				},

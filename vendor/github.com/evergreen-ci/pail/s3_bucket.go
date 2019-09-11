@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -15,7 +14,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
-	homedir "github.com/mitchellh/go-homedir"
 	"github.com/mongodb/grip"
 	"github.com/pkg/errors"
 )
@@ -74,18 +72,41 @@ type s3Bucket struct {
 
 // S3Options support the use and creation of S3 backed buckets.
 type S3Options struct {
-	DryRun                    bool
-	DeleteOnSync              bool
-	Compress                  bool
-	MaxRetries                int
-	Credentials               *credentials.Credentials
+	// DryRun enables running in a mode that will not execute any
+	// operations that modify the bucket.
+	DryRun bool
+	// DeleteOnSync will delete, either locally or remotely, all objects
+	// that were part of the sync operation (Push/Pull) from the source.
+	DeleteOnSync bool
+	// Compress enables gzipping of uploaded objects.
+	Compress bool
+	// MaxRetries sets the number of retry attemps for s3 operations.
+	MaxRetries int
+	// Credentials allows the passing in of explicit AWS credentials. These
+	// will override the default credentials chain. (Optional)
+	Credentials *credentials.Credentials
+	// SharedCredentialsFilepath, when not empty, will override the default
+	// credentials chain and the Credentials value (see above). (Optional)
 	SharedCredentialsFilepath string
-	SharedCredentialsProfile  string
-	Region                    string
-	Name                      string
-	Prefix                    string
-	Permissions               S3Permissions
-	ContentType               string
+	// SharedCredentialsProfile, when not empty, will temporarily set the
+	// AWS_PROFILE environment variable to its value. (Optional)
+	SharedCredentialsProfile string
+	// Region specifies the AWS region.
+	Region string
+	// Name specifies the name of the bucket.
+	Name string
+	// Prefix specifies the prefix to use. (Optional)
+	Prefix string
+	// Permissions sets the S3 permissions to use for each object. Defaults
+	// to FULL_CONTROL. See
+	// `https://docs.aws.amazon.com/AmazonS3/latest/dev/acl-overview.html`
+	// for more information.
+	Permissions S3Permissions
+	// ContentType sets the standard MIME type of the objet data. Defaults
+	// to nil. See
+	//`https://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.17`
+	// for more information.
+	ContentType string
 }
 
 // CreateAWSCredentials is a wrapper for creating AWS credentials.
@@ -119,24 +140,20 @@ func newS3BucketBase(client *http.Client, options S3Options) (*s3Bucket, error) 
 		HTTPClient: client,
 		MaxRetries: aws.Int(options.MaxRetries),
 	}
-	// if options.SharedCredentialsProfile is set, will override any credentials passed in
+
 	if options.SharedCredentialsProfile != "" {
-		fp := options.SharedCredentialsFilepath
-		if fp == "" {
-			// if options.SharedCredentialsFilepath is not set, use default filepath
-			var homeDir string
-			var err error
-			if runtime.GOOS == "windows" {
-				homeDir = os.Getenv("USERPROFILE")
-			} else {
-				homeDir, err = homedir.Dir()
-			}
-			if err != nil {
-				return nil, errors.Wrap(err, "failed to detect home directory when getting default credentials file")
-			}
-			fp = filepath.Join(homeDir, ".aws", "credentials")
+		prev := os.Getenv("AWS_PROFILE")
+		if err := os.Setenv("AWS_PROFILE", options.SharedCredentialsProfile); err != nil {
+			return nil, errors.Wrap(err, "problem setting AWS_PROFILE env var")
 		}
-		sharedCredentials := credentials.NewSharedCredentials(fp, options.SharedCredentialsProfile)
+		defer func() {
+			if err := os.Setenv("AWS_PROFILE", prev); err != nil {
+				grip.Error(errors.Wrap(err, "problem setting back AWS_PROFILE env var"))
+			}
+		}()
+	}
+	if options.SharedCredentialsFilepath != "" {
+		sharedCredentials := credentials.NewSharedCredentials(options.SharedCredentialsFilepath, options.SharedCredentialsProfile)
 		_, err := sharedCredentials.Get()
 		if err != nil {
 			return nil, errors.Wrapf(err, "invalid credentials from profile '%s'", options.SharedCredentialsProfile)
@@ -149,6 +166,7 @@ func newS3BucketBase(client *http.Client, options S3Options) (*s3Bucket, error) 
 		}
 		config.Credentials = options.Credentials
 	}
+
 	sess, err := session.NewSession(config)
 	if err != nil {
 		return nil, errors.Wrap(err, "problem connecting to AWS")
