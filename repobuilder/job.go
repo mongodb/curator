@@ -276,13 +276,13 @@ func (j *Job) Run(ctx context.Context) {
 
 	var cancel context.CancelFunc
 	if _, ok := ctx.Deadline(); !ok {
-		timeout := 10 * time.Minute
+		timeout := 20 * time.Minute
 
 		// in the future, we should have a method for removing
 		// builds from the repo, but for the moment, we'll
-		// just wait longer for these builds.
+		// just wait longer for these builds. See MAKE-793.
 		if j.release.IsDevelopmentSeries() || j.release.IsDevelopmentBuild() {
-			timeout = 20 * time.Minute
+			timeout = 40 * time.Minute
 		}
 
 		ctx, cancel = context.WithTimeout(ctx, timeout)
