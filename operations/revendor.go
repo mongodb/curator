@@ -14,6 +14,7 @@ import (
 	"github.com/Masterminds/glide/repo"
 	"github.com/mongodb/grip"
 	"github.com/mongodb/jasper"
+	"github.com/mongodb/jasper/options"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -151,6 +152,6 @@ func cleanupDependencies(vendorPath string, cleanCmd string) error {
 		return errors.Wrap(err, "problem creating process manager")
 	}
 
-	output := jasper.OutputOptions{Output: os.Stdout, SendErrorToOutput: true}
+	output := options.Output{Output: os.Stdout, SendErrorToOutput: true}
 	return errors.Wrapf(mgr.CreateCommand(ctx).Append(cleanCmd).SetOutputOptions(output).Run(ctx), "could not run clean command %s", cleanCmd)
 }

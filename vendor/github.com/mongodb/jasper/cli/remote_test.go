@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"github.com/mongodb/jasper"
+	"github.com/mongodb/jasper/options"
 	"github.com/mongodb/jasper/testutil"
-	"github.com/mongodb/jasper/testutil/jasperutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli"
@@ -23,7 +23,7 @@ func TestCLIRemote(t *testing.T) {
 		t.Run(remoteType, func(t *testing.T) {
 			for testName, testCase := range map[string]func(ctx context.Context, t *testing.T, c *cli.Context){
 				"ConfigureCacheSucceeds": func(ctx context.Context, t *testing.T, c *cli.Context) {
-					input, err := json.Marshal(jasper.CacheOptions{})
+					input, err := json.Marshal(options.Cache{})
 					require.NoError(t, err)
 					resp := &OutcomeResponse{}
 					require.NoError(t, execCLICommandInputOutput(t, c, remoteConfigureCache(), input, resp))
@@ -37,7 +37,7 @@ func TestCLIRemote(t *testing.T) {
 						assert.NoError(t, os.RemoveAll(tmpFile.Name()))
 					}()
 
-					input, err := json.Marshal(jasper.DownloadInfo{
+					input, err := json.Marshal(options.Download{
 						URL:  "https://example.com",
 						Path: tmpFile.Name(),
 					})
@@ -57,7 +57,7 @@ func TestCLIRemote(t *testing.T) {
 						assert.NoError(t, os.RemoveAll(tmpDir))
 					}()
 
-					opts := jasperutil.ValidMongoDBDownloadOptions()
+					opts := testutil.ValidMongoDBDownloadOptions()
 					opts.Path = tmpDir
 					input, err := json.Marshal(opts)
 					require.NoError(t, err)
@@ -72,8 +72,8 @@ func TestCLIRemote(t *testing.T) {
 					assert.False(t, resp.Successful())
 				},
 				"GetLogStreamSucceeds": func(ctx context.Context, t *testing.T, c *cli.Context) {
-					opts := jasperutil.TrueCreateOpts()
-					opts.Output.Loggers = []jasper.Logger{jasper.NewInMemoryLogger(10)}
+					opts := testutil.TrueCreateOpts()
+					opts.Output.Loggers = []options.Logger{jasper.NewInMemoryLogger(10)}
 					createInput, err := json.Marshal(opts)
 					require.NoError(t, err)
 					createResp := &InfoResponse{}
@@ -94,7 +94,7 @@ func TestCLIRemote(t *testing.T) {
 						assert.NoError(t, os.RemoveAll(tmpFile.Name()))
 					}()
 
-					info := jasper.WriteFileInfo{Path: tmpFile.Name(), Content: []byte("foo")}
+					info := options.WriteFile{Path: tmpFile.Name(), Content: []byte("foo")}
 					input, err := json.Marshal(info)
 					require.NoError(t, err)
 					resp := &OutcomeResponse{}

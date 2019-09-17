@@ -7,6 +7,7 @@ import (
 	"github.com/kardianos/service"
 	"github.com/mongodb/grip"
 	"github.com/mongodb/jasper"
+	"github.com/mongodb/jasper/options"
 	"github.com/mongodb/jasper/rest"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
@@ -61,12 +62,12 @@ type restDaemon struct {
 	Host    string
 	Port    int
 	Manager jasper.Manager
-	Logger  *jasper.Logger
+	Logger  *options.Logger
 
 	exit chan struct{}
 }
 
-func newRESTDaemon(host string, port int, manager jasper.Manager, logger *jasper.Logger) *restDaemon {
+func newRESTDaemon(host string, port int, manager jasper.Manager, logger *options.Logger) *restDaemon {
 	return &restDaemon{
 		Host:    host,
 		Port:    port,

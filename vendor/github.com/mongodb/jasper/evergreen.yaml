@@ -70,6 +70,14 @@ tasks:
 
   - <<: *run-build
     tags: ["test"]
+    name: test-options
+
+  - <<: *run-build
+    tags: ["test"]
+    name: test-mock
+
+  - <<: *run-build
+    tags: ["test"]
     name: test-rest
 
   - <<: *run-build

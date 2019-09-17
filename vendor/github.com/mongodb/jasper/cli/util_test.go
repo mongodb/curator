@@ -12,7 +12,6 @@ import (
 	"github.com/kardianos/service"
 	"github.com/mongodb/jasper"
 	"github.com/mongodb/jasper/testutil"
-	"github.com/mongodb/jasper/testutil/jasperutil"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -118,7 +117,7 @@ func TestCLICommon(t *testing.T) {
 			for testName, testCase := range map[string]func(ctx context.Context, t *testing.T, c *cli.Context, client jasper.RemoteClient){
 				"CreateProcessWithConnection": func(ctx context.Context, t *testing.T, c *cli.Context, client jasper.RemoteClient) {
 					withConnection(ctx, c, func(client jasper.RemoteClient) error {
-						proc, err := client.CreateProcess(ctx, jasperutil.TrueCreateOpts())
+						proc, err := client.CreateProcess(ctx, testutil.TrueCreateOpts())
 						require.NoError(t, err)
 						require.NotNil(t, proc)
 						assert.NotZero(t, proc.Info(ctx).PID)

@@ -7,6 +7,7 @@ import (
 
 	"github.com/kardianos/service"
 	"github.com/mongodb/jasper"
+	"github.com/mongodb/jasper/options"
 	"github.com/mongodb/jasper/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -88,7 +89,7 @@ func TestDaemon(t *testing.T) {
 				assert.NoError(t, closeDaemon())
 			}()
 
-			opts := &jasper.CreateOptions{
+			opts := &options.Create{
 				Args: []string{"echo", "hello", "world"},
 			}
 			proc, err := client.CreateProcess(ctx, opts)

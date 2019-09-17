@@ -7,8 +7,8 @@ import (
 
 	"github.com/mongodb/jasper"
 	"github.com/mongodb/jasper/mock"
+	"github.com/mongodb/jasper/options"
 	"github.com/mongodb/jasper/testutil"
-	"github.com/mongodb/jasper/testutil/jasperutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli"
@@ -44,7 +44,7 @@ func TestCLIManager(t *testing.T) {
 					assert.NoError(t, execCLICommandInputOutput(t, c, managerClose(), input, resp))
 				},
 				"CreateProcessPasses": func(ctx context.Context, t *testing.T, c *cli.Context, jasperProcID string) {
-					input, err := json.Marshal(jasper.CreateOptions{
+					input, err := json.Marshal(options.Create{
 						Args: []string{"echo", "hello", "world"},
 					})
 					require.NoError(t, err)
@@ -53,8 +53,8 @@ func TestCLIManager(t *testing.T) {
 					require.True(t, resp.Successful())
 				},
 				"CreateCommandPasses": func(ctx context.Context, t *testing.T, c *cli.Context, jasperProcID string) {
-					input, err := json.Marshal(CommandInput{
-						Commands: [][]string{[]string{"echo", "hello", "world"}},
+					input, err := json.Marshal(options.Command{
+						Commands: [][]string{[]string{"true"}},
 					})
 					require.NoError(t, err)
 					resp := &OutcomeResponse{}
@@ -83,7 +83,7 @@ func TestCLIManager(t *testing.T) {
 					assert.Error(t, execCLICommandInputOutput(t, c, managerGet(), input, &InfoResponse{}))
 				},
 				"ListValidFilterPasses": func(ctx context.Context, t *testing.T, c *cli.Context, jasperProcID string) {
-					input, err := json.Marshal(FilterInput{jasper.All})
+					input, err := json.Marshal(FilterInput{options.All})
 					require.NoError(t, err)
 					resp := &InfosResponse{}
 					require.NoError(t, execCLICommandInputOutput(t, c, managerList(), input, resp))
@@ -92,7 +92,7 @@ func TestCLIManager(t *testing.T) {
 					assert.Equal(t, jasperProcID, resp.Infos[0].ID)
 				},
 				"ListInvalidFilterFails": func(ctx context.Context, t *testing.T, c *cli.Context, jasperProcID string) {
-					input, err := json.Marshal(FilterInput{jasper.Filter("foo")})
+					input, err := json.Marshal(FilterInput{options.Filter("foo")})
 					require.NoError(t, err)
 					assert.Error(t, execCLICommandInputOutput(t, c, managerList(), input, &InfosResponse{}))
 				},
@@ -146,7 +146,7 @@ func TestCLIManager(t *testing.T) {
 					}()
 
 					resp := &InfoResponse{}
-					input, err := json.Marshal(jasperutil.TrueCreateOpts())
+					input, err := json.Marshal(testutil.TrueCreateOpts())
 					require.NoError(t, err)
 					require.NoError(t, execCLICommandInputOutput(t, c, managerCreateProcess(), input, resp))
 					require.True(t, resp.Successful())

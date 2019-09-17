@@ -8,6 +8,7 @@ import (
 	"github.com/kardianos/service"
 	"github.com/mongodb/grip"
 	"github.com/mongodb/jasper"
+	"github.com/mongodb/jasper/options"
 	"github.com/mongodb/jasper/rpc"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
@@ -67,12 +68,12 @@ type rpcDaemon struct {
 	Port          int
 	CredsFilePath string
 	Manager       jasper.Manager
-	Logger        *jasper.Logger
+	Logger        *options.Logger
 
 	exit chan struct{}
 }
 
-func newRPCDaemon(host string, port int, manager jasper.Manager, credsFilePath string, logger *jasper.Logger) *rpcDaemon {
+func newRPCDaemon(host string, port int, manager jasper.Manager, credsFilePath string, logger *options.Logger) *rpcDaemon {
 	return &rpcDaemon{
 		Host:          host,
 		Port:          port,

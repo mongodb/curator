@@ -11,9 +11,9 @@ import (
 
 	empty "github.com/golang/protobuf/ptypes/empty"
 	"github.com/mongodb/jasper"
+	"github.com/mongodb/jasper/options"
 	"github.com/mongodb/jasper/rpc/internal"
 	"github.com/mongodb/jasper/testutil"
-	"github.com/mongodb/jasper/testutil/jasperutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
@@ -34,18 +34,18 @@ func TestRPCService(t *testing.T) {
 						assert.NoError(t, os.RemoveAll(file.Name()))
 					}()
 
-					logger := jasper.Logger{
-						Type: jasper.LogFile,
-						Options: jasper.LogOptions{
+					logger := options.Logger{
+						Type: options.LogFile,
+						Options: options.Log{
 							FileName: file.Name(),
-							Format:   jasper.LogFormatPlain,
+							Format:   options.LogFormatPlain,
 						},
 					}
 					output := "foobar"
-					opts := jasper.CreateOptions{
+					opts := options.Create{
 						Args: []string{"echo", output},
-						Output: jasper.OutputOptions{
-							Loggers: []jasper.Logger{logger},
+						Output: options.Output{
+							Loggers: []options.Logger{logger},
 						},
 					}
 
@@ -73,7 +73,7 @@ func TestRPCService(t *testing.T) {
 						assert.NoError(t, os.RemoveAll(file.Name()))
 					}()
 
-					info := jasper.DownloadInfo{
+					info := options.Download{
 						URL:  "http://example.com",
 						Path: file.Name(),
 					}
@@ -88,12 +88,12 @@ func TestRPCService(t *testing.T) {
 				"DownloadFileFailsForInvalidArchiveFormat": func(ctx context.Context, t *testing.T, client internal.JasperProcessManagerClient) {
 					fileName := filepath.Join(buildDir(t), "out.txt")
 
-					info := jasper.DownloadInfo{
+					info := options.Download{
 						URL:  "https://example.com",
 						Path: fileName,
-						ArchiveOpts: jasper.ArchiveOptions{
+						ArchiveOpts: options.Archive{
 							ShouldExtract: true,
-							Format:        jasper.ArchiveFormat("foo"),
+							Format:        options.ArchiveFormat("foo"),
 						},
 					}
 					outcome, err := client.DownloadFile(ctx, internal.ConvertDownloadInfo(info))
@@ -103,7 +103,7 @@ func TestRPCService(t *testing.T) {
 				"DownloadFileFailsForInvalidURL": func(ctx context.Context, t *testing.T, client internal.JasperProcessManagerClient) {
 					fileName := filepath.Join(buildDir(t), "out.txt")
 
-					info := jasper.DownloadInfo{
+					info := options.Download{
 						URL:  "://example.com",
 						Path: fileName,
 					}
@@ -114,7 +114,7 @@ func TestRPCService(t *testing.T) {
 				"DownloadFileFailsForNonexistentURL": func(ctx context.Context, t *testing.T, client internal.JasperProcessManagerClient) {
 					fileName := filepath.Join(buildDir(t), "out.txt")
 
-					info := jasper.DownloadInfo{
+					info := options.Download{
 						URL:  "http://example.com/foo",
 						Path: fileName,
 					}
@@ -128,14 +128,14 @@ func TestRPCService(t *testing.T) {
 					assert.Nil(t, urls)
 				},
 				"GetBuildloggerURLsFailsWithoutBuildlogger": func(ctx context.Context, t *testing.T, client internal.JasperProcessManagerClient) {
-					logger := jasper.Logger{
-						Type:    jasper.LogDefault,
-						Options: jasper.LogOptions{Format: jasper.LogFormatPlain},
+					logger := options.Logger{
+						Type:    options.LogDefault,
+						Options: options.Log{Format: options.LogFormatPlain},
 					}
-					opts := jasper.CreateOptions{
+					opts := options.Create{
 						Args: []string{"echo", "foobar"},
-						Output: jasper.OutputOptions{
-							Loggers: []jasper.Logger{logger},
+						Output: options.Output{
+							Loggers: []options.Logger{logger},
 						},
 					}
 
@@ -152,7 +152,7 @@ func TestRPCService(t *testing.T) {
 					assert.False(t, outcome.Success)
 				},
 				"RegisterSignalTriggerIDFailsForInvalidTriggerID": func(ctx context.Context, t *testing.T, client internal.JasperProcessManagerClient) {
-					opts := jasperutil.SleepCreateOpts(10)
+					opts := testutil.SleepCreateOpts(10)
 					info, err := client.Create(ctx, internal.ConvertCreateOptions(opts))
 					require.NoError(t, err)
 
@@ -165,7 +165,7 @@ func TestRPCService(t *testing.T) {
 					assert.True(t, outcome.Success)
 				},
 				"RegisterSignalTriggerIDPassesWithValidArgs": func(ctx context.Context, t *testing.T, client internal.JasperProcessManagerClient) {
-					opts := jasperutil.SleepCreateOpts(10)
+					opts := testutil.SleepCreateOpts(10)
 					info, err := client.Create(ctx, internal.ConvertCreateOptions(opts))
 					require.NoError(t, err)
 

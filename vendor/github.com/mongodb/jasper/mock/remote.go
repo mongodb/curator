@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/mongodb/jasper"
+	"github.com/mongodb/jasper/options"
 )
 
 // RemoteClient implements the RemoteClient interface with exported fields
@@ -20,16 +21,16 @@ type RemoteClient struct {
 	FailWriteFile          bool
 
 	// ConfigureCache input
-	CacheOptions jasper.CacheOptions
+	CacheOptions options.Cache
 
 	// DownloadFile input
-	DownloadInfo jasper.DownloadInfo
+	DownloadInfo options.Download
 
 	// WriteFile input
-	WriteFileInfo jasper.WriteFileInfo
+	WriteFileInfo options.WriteFile
 
 	// DownloadMongoDB input
-	MongoDBDownloadOptions jasper.MongoDBDownloadOptions
+	MongoDBDownloadOptions options.MongoDBDownload
 
 	// LogStream input/output
 	LogStreamID    string
@@ -49,7 +50,7 @@ func (c *RemoteClient) CloseConnection() error {
 	return nil
 }
 
-func (c *RemoteClient) ConfigureCache(ctx context.Context, opts jasper.CacheOptions) error {
+func (c *RemoteClient) ConfigureCache(ctx context.Context, opts options.Cache) error {
 	if c.FailConfigureCache {
 		return mockFail()
 	}
@@ -59,7 +60,7 @@ func (c *RemoteClient) ConfigureCache(ctx context.Context, opts jasper.CacheOpti
 	return nil
 }
 
-func (c *RemoteClient) DownloadFile(ctx context.Context, info jasper.DownloadInfo) error {
+func (c *RemoteClient) DownloadFile(ctx context.Context, info options.Download) error {
 	if c.FailDownloadFile {
 		return mockFail()
 	}
@@ -69,7 +70,7 @@ func (c *RemoteClient) DownloadFile(ctx context.Context, info jasper.DownloadInf
 	return nil
 }
 
-func (c *RemoteClient) DownloadMongoDB(ctx context.Context, opts jasper.MongoDBDownloadOptions) error {
+func (c *RemoteClient) DownloadMongoDB(ctx context.Context, opts options.MongoDBDownload) error {
 	if c.FailDownloadMongoDB {
 		return mockFail()
 	}
@@ -107,7 +108,7 @@ func (c *RemoteClient) SignalEvent(ctx context.Context, name string) error {
 	return nil
 }
 
-func (c *RemoteClient) WriteFile(ctx context.Context, info jasper.WriteFileInfo) error {
+func (c *RemoteClient) WriteFile(ctx context.Context, info options.WriteFile) error {
 	if c.FailWriteFile {
 		return mockFail()
 	}

@@ -5,6 +5,7 @@ import (
 	"runtime"
 
 	"github.com/mongodb/jasper"
+	"github.com/mongodb/jasper/options"
 	"github.com/pkg/errors"
 )
 
@@ -13,7 +14,7 @@ import (
 type Manager struct {
 	ManagerID    string
 	FailCreate   bool
-	Create       func(*jasper.CreateOptions) Process
+	Create       func(*options.Create) Process
 	CreateConfig Process
 	FailRegister bool
 	FailList     bool
@@ -39,7 +40,7 @@ func (m *Manager) ID() string {
 // invoked to create the mock Process. Otherwise, CreateConfig is used as a
 // template to create the mock Process. The new mock Process is put in Procs. If
 // FailCreate is set, it returns an error.
-func (m *Manager) CreateProcess(ctx context.Context, opts *jasper.CreateOptions) (jasper.Process, error) {
+func (m *Manager) CreateProcess(ctx context.Context, opts *options.Create) (jasper.Process, error) {
 	if m.FailCreate {
 		return nil, mockFail()
 	}
@@ -77,7 +78,7 @@ func (m *Manager) Register(ctx context.Context, proc jasper.Process) error {
 
 // List returns all processes that match the given filter. If FailList is set,
 // it returns an error.
-func (m *Manager) List(ctx context.Context, f jasper.Filter) ([]jasper.Process, error) {
+func (m *Manager) List(ctx context.Context, f options.Filter) ([]jasper.Process, error) {
 	if m.FailList {
 		return nil, mockFail()
 	}
@@ -87,21 +88,21 @@ func (m *Manager) List(ctx context.Context, f jasper.Filter) ([]jasper.Process, 
 	for _, proc := range m.Procs {
 		info := proc.Info(ctx)
 		switch f {
-		case jasper.All:
+		case options.All:
 			filteredProcs = append(filteredProcs, proc)
-		case jasper.Running:
+		case options.Running:
 			if info.IsRunning {
 				filteredProcs = append(filteredProcs, proc)
 			}
-		case jasper.Terminated:
+		case options.Terminated:
 			if !info.IsRunning {
 				filteredProcs = append(filteredProcs, proc)
 			}
-		case jasper.Failed:
+		case options.Failed:
 			if info.Complete && !info.Successful {
 				filteredProcs = append(filteredProcs, proc)
 			}
-		case jasper.Successful:
+		case options.Successful:
 			if info.Successful {
 				filteredProcs = append(filteredProcs, proc)
 			}

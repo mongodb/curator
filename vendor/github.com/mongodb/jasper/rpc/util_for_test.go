@@ -7,7 +7,9 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/mongodb/grip"
 	"github.com/mongodb/jasper"
+	"github.com/mongodb/jasper/options"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 )
@@ -49,4 +51,20 @@ func buildDir(t *testing.T) string {
 	cwd, err := os.Getwd()
 	require.NoError(t, err)
 	return filepath.Join(filepath.Dir(cwd), "build")
+}
+
+func createProcs(ctx context.Context, opts *options.Create, manager jasper.Manager, num int) ([]jasper.Process, error) {
+	catcher := grip.NewBasicCatcher()
+	out := []jasper.Process{}
+	for i := 0; i < num; i++ {
+		optsCopy := *opts
+
+		proc, err := manager.CreateProcess(ctx, &optsCopy)
+		catcher.Add(err)
+		if proc != nil {
+			out = append(out, proc)
+		}
+	}
+
+	return out, catcher.Resolve()
 }

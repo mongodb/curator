@@ -14,43 +14,20 @@ import (
 	"github.com/mholt/archiver"
 	"github.com/mongodb/amboy/queue"
 	"github.com/mongodb/grip"
+	"github.com/mongodb/jasper/options"
 	"github.com/mongodb/jasper/testutil"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/tychoish/bond"
 	"github.com/tychoish/bond/recall"
 	"github.com/tychoish/lru"
 )
-
-// Caller is responsible for giving a valid path.
-func validMongoDBDownloadOptions() MongoDBDownloadOptions {
-	target := runtime.GOOS
-	if target == "darwin" {
-		target = "osx"
-	}
-
-	edition := "enterprise"
-	if target == "linux" {
-		edition = "base"
-	}
-
-	return MongoDBDownloadOptions{
-		BuildOpts: bond.BuildOptions{
-			Target:  target,
-			Arch:    bond.MongoDBArch("x86_64"),
-			Edition: bond.MongoDBEdition(edition),
-			Debug:   false,
-		},
-		Releases: []string{"4.0-current"},
-	}
-}
 
 func TestSetupDownloadMongoDBReleasesFailsWithZeroOptions(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), testutil.TestTimeout)
 	defer cancel()
 
-	opts := MongoDBDownloadOptions{}
+	opts := options.MongoDBDownload{}
 	err := SetupDownloadMongoDBReleases(ctx, lru.NewCache(), opts)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "problem creating enclosing directories")
@@ -60,7 +37,7 @@ func TestSetupDownloadMongoDBReleasesWithInvalidPath(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), testutil.TestTimeout)
 	defer cancel()
 
-	opts := validMongoDBDownloadOptions()
+	opts := testutil.ValidMongoDBDownloadOptions()
 	_, path, _, ok := runtime.Caller(0)
 	require.True(t, ok)
 	absPath, err := filepath.Abs(path)
@@ -80,7 +57,7 @@ func TestSetupDownloadMongoDBReleasesWithInvalidArtifactsFeed(t *testing.T) {
 	require.NoError(t, err)
 	defer os.RemoveAll(dir)
 
-	opts := validMongoDBDownloadOptions()
+	opts := testutil.ValidMongoDBDownloadOptions()
 	absDir, err := filepath.Abs(dir)
 	require.NoError(t, err)
 	opts.Path = filepath.Join(absDir, "full.json")
@@ -204,37 +181,37 @@ func TestDoExtract(t *testing.T) {
 		archiveMaker  archiver.Archiver
 		expectSuccess bool
 		fileExtension string
-		format        ArchiveFormat
+		format        options.ArchiveFormat
 	}{
 		"Auto": {
 			archiveMaker:  archiver.TarGz,
 			expectSuccess: true,
 			fileExtension: ".tar.gz",
-			format:        ArchiveAuto,
+			format:        options.ArchiveAuto,
 		},
 		"TarGz": {
 			archiveMaker:  archiver.TarGz,
 			expectSuccess: true,
 			fileExtension: ".tar.gz",
-			format:        ArchiveTarGz,
+			format:        options.ArchiveTarGz,
 		},
 		"Zip": {
 			archiveMaker:  archiver.Zip,
 			expectSuccess: true,
 			fileExtension: ".zip",
-			format:        ArchiveZip,
+			format:        options.ArchiveZip,
 		},
 		"InvalidArchiveFormat": {
 			archiveMaker:  archiver.TarGz,
 			expectSuccess: false,
 			fileExtension: ".foo",
-			format:        ArchiveFormat("foo"),
+			format:        options.ArchiveFormat("foo"),
 		},
 		"MismatchedArchiveFileAndFormat": {
 			archiveMaker:  archiver.TarGz,
 			expectSuccess: false,
 			fileExtension: ".tar.gz",
-			format:        ArchiveZip,
+			format:        options.ArchiveZip,
 		},
 	} {
 		t.Run(testName, func(t *testing.T) {
@@ -250,19 +227,19 @@ func TestDoExtract(t *testing.T) {
 
 			require.NoError(t, testCase.archiveMaker.Make(archiveFile.Name(), []string{file.Name()}))
 
-			info := DownloadInfo{
+			info := options.Download{
 				Path: archiveFile.Name(),
-				ArchiveOpts: ArchiveOptions{
+				ArchiveOpts: options.Archive{
 					ShouldExtract: true,
 					Format:        testCase.format,
 					TargetPath:    extractDir,
 				},
 			}
 			if !testCase.expectSuccess {
-				assert.Error(t, doExtract(info))
+				assert.Error(t, info.Extract())
 				return
 			}
-			assert.NoError(t, doExtract(info))
+			assert.NoError(t, info.Extract())
 
 			fileInfo, err := os.Stat(archiveFile.Name())
 			require.NoError(t, err)
@@ -280,16 +257,16 @@ func TestDoExtractUnarchivedFile(t *testing.T) {
 	require.NoError(t, err)
 	defer os.Remove(file.Name())
 
-	info := DownloadInfo{
+	info := options.Download{
 		URL:  "https://example.com",
 		Path: file.Name(),
-		ArchiveOpts: ArchiveOptions{
+		ArchiveOpts: options.Archive{
 			ShouldExtract: true,
-			Format:        ArchiveAuto,
+			Format:        options.ArchiveAuto,
 			TargetPath:    "build",
 		},
 	}
-	err = doExtract(info)
+	err = info.Extract()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "could not detect archive format")
 }

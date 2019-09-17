@@ -2,13 +2,13 @@ package jasper
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/mongodb/grip"
+	"github.com/mongodb/jasper/options"
 )
 
 func makeLockingProcess(pmake ProcessConstructor) ProcessConstructor {
-	return func(ctx context.Context, opts *CreateOptions) (Process, error) {
+	return func(ctx context.Context, opts *options.Create) (Process, error) {
 		proc, err := pmake(ctx, opts)
 		if err != nil {
 			return nil, err
@@ -17,28 +17,7 @@ func makeLockingProcess(pmake ProcessConstructor) ProcessConstructor {
 	}
 }
 
-// this file contains tools and constants used throughout the test
-// suite.
-
-func trueCreateOpts() *CreateOptions {
-	return &CreateOptions{
-		Args: []string{"true"},
-	}
-}
-
-func falseCreateOpts() *CreateOptions {
-	return &CreateOptions{
-		Args: []string{"false"},
-	}
-}
-
-func sleepCreateOpts(num int) *CreateOptions {
-	return &CreateOptions{
-		Args: []string{"sleep", fmt.Sprint(num)},
-	}
-}
-
-func createProcs(ctx context.Context, opts *CreateOptions, manager Manager, num int) ([]Process, error) {
+func createProcs(ctx context.Context, opts *options.Create, manager Manager, num int) ([]Process, error) {
 	catcher := grip.NewBasicCatcher()
 	out := []Process{}
 	for i := 0; i < num; i++ {

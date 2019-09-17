@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/mongodb/jasper"
+	"github.com/mongodb/jasper/options"
 	"github.com/mongodb/jasper/testutil"
-	"github.com/mongodb/jasper/testutil/jasperutil"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -25,7 +25,7 @@ func TestProcessImplementations(t *testing.T) {
 	defer testutil.PutHTTPClient(httpClient)
 
 	for cname, makeProc := range map[string]jasper.ProcessConstructor{
-		"REST": func(ctx context.Context, opts *jasper.CreateOptions) (jasper.Process, error) {
+		"REST": func(ctx context.Context, opts *options.Create) (jasper.Process, error) {
 			_, port, err := startRESTService(ctx, httpClient)
 			if err != nil {
 				return nil, errors.WithStack(err)
@@ -40,24 +40,24 @@ func TestProcessImplementations(t *testing.T) {
 		},
 	} {
 		t.Run(cname, func(t *testing.T) {
-			for name, testCase := range map[string]func(context.Context, *testing.T, *jasper.CreateOptions, jasper.ProcessConstructor){
-				"WithPopulatedArgsCommandCreationPasses": func(ctx context.Context, t *testing.T, opts *jasper.CreateOptions, makep jasper.ProcessConstructor) {
+			for name, testCase := range map[string]func(context.Context, *testing.T, *options.Create, jasper.ProcessConstructor){
+				"WithPopulatedArgsCommandCreationPasses": func(ctx context.Context, t *testing.T, opts *options.Create, makep jasper.ProcessConstructor) {
 					assert.NotZero(t, opts.Args)
 					proc, err := makep(ctx, opts)
 					require.NoError(t, err)
 					assert.NotNil(t, proc)
 				},
-				"ErrorToCreateWithInvalidArgs": func(ctx context.Context, t *testing.T, opts *jasper.CreateOptions, makep jasper.ProcessConstructor) {
+				"ErrorToCreateWithInvalidArgs": func(ctx context.Context, t *testing.T, opts *options.Create, makep jasper.ProcessConstructor) {
 					opts.Args = []string{}
 					proc, err := makep(ctx, opts)
 					assert.Error(t, err)
 					assert.Nil(t, proc)
 				},
-				"CanceledContextTimesOutEarly": func(ctx context.Context, t *testing.T, opts *jasper.CreateOptions, makep jasper.ProcessConstructor) {
+				"CanceledContextTimesOutEarly": func(ctx context.Context, t *testing.T, opts *options.Create, makep jasper.ProcessConstructor) {
 					pctx, pcancel := context.WithTimeout(ctx, 5*time.Second)
 					defer pcancel()
 					startAt := time.Now()
-					opts = jasperutil.SleepCreateOpts(20)
+					opts = testutil.SleepCreateOpts(20)
 					proc, err := makep(pctx, opts)
 					require.NoError(t, err)
 					require.NotNil(t, proc)
@@ -66,27 +66,27 @@ func TestProcessImplementations(t *testing.T) {
 					assert.False(t, proc.Info(ctx).Successful)
 					assert.True(t, time.Since(startAt) < 20*time.Second)
 				},
-				"ProcessLacksTagsByDefault": func(ctx context.Context, t *testing.T, opts *jasper.CreateOptions, makep jasper.ProcessConstructor) {
+				"ProcessLacksTagsByDefault": func(ctx context.Context, t *testing.T, opts *options.Create, makep jasper.ProcessConstructor) {
 					proc, err := makep(ctx, opts)
 					require.NoError(t, err)
 					tags := proc.GetTags()
 					assert.Empty(t, tags)
 				},
-				"ProcessTagsPersist": func(ctx context.Context, t *testing.T, opts *jasper.CreateOptions, makep jasper.ProcessConstructor) {
+				"ProcessTagsPersist": func(ctx context.Context, t *testing.T, opts *options.Create, makep jasper.ProcessConstructor) {
 					opts.Tags = []string{"foo"}
 					proc, err := makep(ctx, opts)
 					require.NoError(t, err)
 					tags := proc.GetTags()
 					assert.Contains(t, tags, "foo")
 				},
-				"InfoHasMatchingID": func(ctx context.Context, t *testing.T, opts *jasper.CreateOptions, makep jasper.ProcessConstructor) {
+				"InfoHasMatchingID": func(ctx context.Context, t *testing.T, opts *options.Create, makep jasper.ProcessConstructor) {
 					proc, err := makep(ctx, opts)
 					require.NoError(t, err)
 					_, err = proc.Wait(ctx)
 					require.NoError(t, err)
 					assert.Equal(t, proc.ID(), proc.Info(ctx).ID)
 				},
-				"ResetTags": func(ctx context.Context, t *testing.T, opts *jasper.CreateOptions, makep jasper.ProcessConstructor) {
+				"ResetTags": func(ctx context.Context, t *testing.T, opts *options.Create, makep jasper.ProcessConstructor) {
 					proc, err := makep(ctx, opts)
 					require.NoError(t, err)
 					proc.Tag("foo")
@@ -94,7 +94,7 @@ func TestProcessImplementations(t *testing.T) {
 					proc.ResetTags()
 					assert.Len(t, proc.GetTags(), 0)
 				},
-				"TagsAreSetLike": func(ctx context.Context, t *testing.T, opts *jasper.CreateOptions, makep jasper.ProcessConstructor) {
+				"TagsAreSetLike": func(ctx context.Context, t *testing.T, opts *options.Create, makep jasper.ProcessConstructor) {
 					proc, err := makep(ctx, opts)
 					require.NoError(t, err)
 
@@ -106,7 +106,7 @@ func TestProcessImplementations(t *testing.T) {
 					proc.Tag("bar")
 					assert.Len(t, proc.GetTags(), 2)
 				},
-				"CompleteIsTrueAfterWait": func(ctx context.Context, t *testing.T, opts *jasper.CreateOptions, makep jasper.ProcessConstructor) {
+				"CompleteIsTrueAfterWait": func(ctx context.Context, t *testing.T, opts *options.Create, makep jasper.ProcessConstructor) {
 					proc, err := makep(ctx, opts)
 					require.NoError(t, err)
 					time.Sleep(10 * time.Millisecond) // give the process time to start background machinery
@@ -114,7 +114,7 @@ func TestProcessImplementations(t *testing.T) {
 					assert.NoError(t, err)
 					assert.True(t, proc.Complete(ctx))
 				},
-				"WaitReturnsWithCanceledContext": func(ctx context.Context, t *testing.T, opts *jasper.CreateOptions, makep jasper.ProcessConstructor) {
+				"WaitReturnsWithCanceledContext": func(ctx context.Context, t *testing.T, opts *options.Create, makep jasper.ProcessConstructor) {
 					opts.Args = []string{"sleep", "20"}
 					pctx, pcancel := context.WithCancel(ctx)
 					proc, err := makep(ctx, opts)
@@ -125,43 +125,43 @@ func TestProcessImplementations(t *testing.T) {
 					_, err = proc.Wait(pctx)
 					assert.Error(t, err)
 				},
-				"RegisterTriggerErrorsForNil": func(ctx context.Context, t *testing.T, opts *jasper.CreateOptions, makep jasper.ProcessConstructor) {
+				"RegisterTriggerErrorsForNil": func(ctx context.Context, t *testing.T, opts *options.Create, makep jasper.ProcessConstructor) {
 					proc, err := makep(ctx, opts)
 					require.NoError(t, err)
 					assert.Error(t, proc.RegisterTrigger(ctx, nil))
 				},
-				"RegisterSignalTriggerErrorsForNil": func(ctx context.Context, t *testing.T, opts *jasper.CreateOptions, makep jasper.ProcessConstructor) {
+				"RegisterSignalTriggerErrorsForNil": func(ctx context.Context, t *testing.T, opts *options.Create, makep jasper.ProcessConstructor) {
 					proc, err := makep(ctx, opts)
 					require.NoError(t, err)
 					assert.Error(t, proc.RegisterSignalTrigger(ctx, nil))
 				},
-				"RegisterSignalTriggerErrorsForExitedProcess": func(ctx context.Context, t *testing.T, opts *jasper.CreateOptions, makep jasper.ProcessConstructor) {
+				"RegisterSignalTriggerErrorsForExitedProcess": func(ctx context.Context, t *testing.T, opts *options.Create, makep jasper.ProcessConstructor) {
 					proc, err := makep(ctx, opts)
 					require.NoError(t, err)
 					_, err = proc.Wait(ctx)
 					assert.NoError(t, err)
 					assert.Error(t, proc.RegisterSignalTrigger(ctx, func(_ jasper.ProcessInfo, _ syscall.Signal) bool { return false }))
 				},
-				"RegisterSignalTriggerIDErrorsForExitedProcess": func(ctx context.Context, t *testing.T, opts *jasper.CreateOptions, makep jasper.ProcessConstructor) {
+				"RegisterSignalTriggerIDErrorsForExitedProcess": func(ctx context.Context, t *testing.T, opts *options.Create, makep jasper.ProcessConstructor) {
 					proc, err := makep(ctx, opts)
 					require.NoError(t, err)
 					_, err = proc.Wait(ctx)
 					assert.NoError(t, err)
 					assert.Error(t, proc.RegisterSignalTriggerID(ctx, jasper.CleanTerminationSignalTrigger))
 				},
-				"RegisterSignalTriggerIDFailsWithInvalidTriggerID": func(ctx context.Context, t *testing.T, opts *jasper.CreateOptions, makep jasper.ProcessConstructor) {
-					opts = jasperutil.SleepCreateOpts(3)
+				"RegisterSignalTriggerIDFailsWithInvalidTriggerID": func(ctx context.Context, t *testing.T, opts *options.Create, makep jasper.ProcessConstructor) {
+					opts = testutil.SleepCreateOpts(3)
 					proc, err := makep(ctx, opts)
 					require.NoError(t, err)
 					assert.Error(t, proc.RegisterSignalTriggerID(ctx, jasper.SignalTriggerID("foo")))
 				},
-				"RegisterSignalTriggerIDPassesWithValidTriggerID": func(ctx context.Context, t *testing.T, opts *jasper.CreateOptions, makep jasper.ProcessConstructor) {
-					opts = jasperutil.SleepCreateOpts(3)
+				"RegisterSignalTriggerIDPassesWithValidTriggerID": func(ctx context.Context, t *testing.T, opts *options.Create, makep jasper.ProcessConstructor) {
+					opts = testutil.SleepCreateOpts(3)
 					proc, err := makep(ctx, opts)
 					require.NoError(t, err)
 					assert.NoError(t, proc.RegisterSignalTriggerID(ctx, jasper.CleanTerminationSignalTrigger))
 				},
-				"WaitOnRespawnedProcessDoesNotError": func(ctx context.Context, t *testing.T, opts *jasper.CreateOptions, makep jasper.ProcessConstructor) {
+				"WaitOnRespawnedProcessDoesNotError": func(ctx context.Context, t *testing.T, opts *options.Create, makep jasper.ProcessConstructor) {
 					proc, err := makep(ctx, opts)
 					require.NoError(t, err)
 					require.NotNil(t, proc)
@@ -173,7 +173,7 @@ func TestProcessImplementations(t *testing.T) {
 					_, err = newProc.Wait(ctx)
 					assert.NoError(t, err)
 				},
-				"RespawnedProcessGivesSameResult": func(ctx context.Context, t *testing.T, opts *jasper.CreateOptions, makep jasper.ProcessConstructor) {
+				"RespawnedProcessGivesSameResult": func(ctx context.Context, t *testing.T, opts *options.Create, makep jasper.ProcessConstructor) {
 					proc, err := makep(ctx, opts)
 					require.NoError(t, err)
 					require.NotNil(t, proc)
@@ -188,7 +188,7 @@ func TestProcessImplementations(t *testing.T) {
 					require.NoError(t, err)
 					assert.Equal(t, procExitCode, proc.Info(ctx).ExitCode)
 				},
-				"RespawningFinishedProcessIsOK": func(ctx context.Context, t *testing.T, opts *jasper.CreateOptions, makep jasper.ProcessConstructor) {
+				"RespawningFinishedProcessIsOK": func(ctx context.Context, t *testing.T, opts *options.Create, makep jasper.ProcessConstructor) {
 					proc, err := makep(ctx, opts)
 					require.NoError(t, err)
 					require.NotNil(t, proc)
@@ -202,8 +202,8 @@ func TestProcessImplementations(t *testing.T) {
 					require.NoError(t, err)
 					assert.True(t, newProc.Info(ctx).Successful)
 				},
-				"RespawningRunningProcessIsOK": func(ctx context.Context, t *testing.T, opts *jasper.CreateOptions, makep jasper.ProcessConstructor) {
-					opts = jasperutil.SleepCreateOpts(2)
+				"RespawningRunningProcessIsOK": func(ctx context.Context, t *testing.T, opts *options.Create, makep jasper.ProcessConstructor) {
+					opts = testutil.SleepCreateOpts(2)
 					proc, err := makep(ctx, opts)
 					require.NoError(t, err)
 					require.NotNil(t, proc)
@@ -215,8 +215,8 @@ func TestProcessImplementations(t *testing.T) {
 					require.NoError(t, err)
 					assert.True(t, newProc.Info(ctx).Successful)
 				},
-				"RespawnShowsConsistentStateValues": func(ctx context.Context, t *testing.T, opts *jasper.CreateOptions, makep jasper.ProcessConstructor) {
-					opts = jasperutil.SleepCreateOpts(2)
+				"RespawnShowsConsistentStateValues": func(ctx context.Context, t *testing.T, opts *options.Create, makep jasper.ProcessConstructor) {
+					opts = testutil.SleepCreateOpts(2)
 					proc, err := makep(ctx, opts)
 					require.NoError(t, err)
 					require.NotNil(t, proc)
@@ -230,24 +230,24 @@ func TestProcessImplementations(t *testing.T) {
 					require.NoError(t, err)
 					assert.True(t, newProc.Complete(ctx))
 				},
-				"WaitGivesSuccessfulExitCode": func(ctx context.Context, t *testing.T, opts *jasper.CreateOptions, makep jasper.ProcessConstructor) {
-					proc, err := makep(ctx, jasperutil.TrueCreateOpts())
+				"WaitGivesSuccessfulExitCode": func(ctx context.Context, t *testing.T, opts *options.Create, makep jasper.ProcessConstructor) {
+					proc, err := makep(ctx, testutil.TrueCreateOpts())
 					require.NoError(t, err)
 					require.NotNil(t, proc)
 					exitCode, err := proc.Wait(ctx)
 					assert.NoError(t, err)
 					assert.Equal(t, 0, exitCode)
 				},
-				"WaitGivesFailureExitCode": func(ctx context.Context, t *testing.T, opts *jasper.CreateOptions, makep jasper.ProcessConstructor) {
-					proc, err := makep(ctx, jasperutil.FalseCreateOpts())
+				"WaitGivesFailureExitCode": func(ctx context.Context, t *testing.T, opts *options.Create, makep jasper.ProcessConstructor) {
+					proc, err := makep(ctx, testutil.FalseCreateOpts())
 					require.NoError(t, err)
 					require.NotNil(t, proc)
 					exitCode, err := proc.Wait(ctx)
 					assert.Error(t, err)
 					assert.Equal(t, 1, exitCode)
 				},
-				"WaitGivesProperExitCodeOnSignalDeath": func(ctx context.Context, t *testing.T, opts *jasper.CreateOptions, makep jasper.ProcessConstructor) {
-					proc, err := makep(ctx, jasperutil.SleepCreateOpts(100))
+				"WaitGivesProperExitCodeOnSignalDeath": func(ctx context.Context, t *testing.T, opts *options.Create, makep jasper.ProcessConstructor) {
+					proc, err := makep(ctx, testutil.SleepCreateOpts(100))
 					require.NoError(t, err)
 					require.NotNil(t, proc)
 					sig := syscall.SIGTERM
@@ -260,9 +260,9 @@ func TestProcessImplementations(t *testing.T) {
 						assert.Equal(t, int(sig), exitCode)
 					}
 				},
-				"WaitGivesNegativeOneOnAlternativeError": func(ctx context.Context, t *testing.T, opts *jasper.CreateOptions, makep jasper.ProcessConstructor) {
+				"WaitGivesNegativeOneOnAlternativeError": func(ctx context.Context, t *testing.T, opts *options.Create, makep jasper.ProcessConstructor) {
 					cctx, cancel := context.WithCancel(ctx)
-					proc, err := makep(ctx, jasperutil.SleepCreateOpts(100))
+					proc, err := makep(ctx, testutil.SleepCreateOpts(100))
 					require.NoError(t, err)
 					require.NotNil(t, proc)
 
@@ -282,8 +282,8 @@ func TestProcessImplementations(t *testing.T) {
 					}
 					require.NoError(t, jasper.Terminate(ctx, proc)) // Clean up.
 				},
-				"InfoHasTimeoutWhenProcessTimesOut": func(ctx context.Context, t *testing.T, opts *jasper.CreateOptions, makep jasper.ProcessConstructor) {
-					opts = jasperutil.SleepCreateOpts(100)
+				"InfoHasTimeoutWhenProcessTimesOut": func(ctx context.Context, t *testing.T, opts *options.Create, makep jasper.ProcessConstructor) {
+					opts = testutil.SleepCreateOpts(100)
 					opts.Timeout = time.Second
 					opts.TimeoutSecs = 1
 					proc, err := makep(ctx, opts)
@@ -298,7 +298,7 @@ func TestProcessImplementations(t *testing.T) {
 					}
 					assert.True(t, proc.Info(ctx).Timeout)
 				},
-				"CallingSignalOnDeadProcessDoesError": func(ctx context.Context, t *testing.T, opts *jasper.CreateOptions, makep jasper.ProcessConstructor) {
+				"CallingSignalOnDeadProcessDoesError": func(ctx context.Context, t *testing.T, opts *options.Create, makep jasper.ProcessConstructor) {
 					proc, err := makep(ctx, opts)
 					require.NoError(t, err)
 
@@ -309,13 +309,13 @@ func TestProcessImplementations(t *testing.T) {
 					require.Error(t, err)
 					assert.True(t, strings.Contains(err.Error(), "cannot signal a process that has terminated"))
 				},
-				// "": func(ctx context.Context, t *testing.T, opts *jasper.CreateOptions, makep jasper.ProcessConstructor) {},
+				// "": func(ctx context.Context, t *testing.T, opts *options.Create, makep jasper.ProcessConstructor) {},
 			} {
 				t.Run(name, func(t *testing.T) {
 					tctx, cancel := context.WithTimeout(ctx, testutil.ProcessTestTimeout)
 					defer cancel()
 
-					opts := &jasper.CreateOptions{Args: []string{"ls"}}
+					opts := &options.Create{Args: []string{"ls"}}
 					testCase(tctx, t, opts, makeProc)
 				})
 			}

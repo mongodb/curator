@@ -14,6 +14,7 @@ import (
 	"github.com/mongodb/grip"
 	"github.com/mongodb/grip/level"
 	"github.com/mongodb/grip/send"
+	"github.com/mongodb/jasper/options"
 )
 
 // Job is an alias for an amboy.Job
@@ -107,7 +108,7 @@ func (j *amboyJob) Run(ctx context.Context) {
 		return
 	}
 
-	opts, err := MakeCreationOptions(j.CmdString)
+	opts, err := options.MakeCreation(j.CmdString)
 	if err != nil {
 		j.AddError(err)
 		return
@@ -138,7 +139,7 @@ func (j *amboyJob) Run(ctx context.Context) {
 }
 
 type amboySimpleCapturedOutputJob struct {
-	Options *CreateOptions `bson:"options" json:"options" yaml:"options"`
+	Options *options.Create `bson:"options" json:"options" yaml:"options"`
 	Output  struct {
 		Error  string `bson:"error," json:"error," yaml:"error,"`
 		Output string `bson:"output" json:"output" yaml:"output"`
@@ -165,10 +166,10 @@ func amboySimpleCapturedOutputJobFactory(pc ProcessConstructor) *amboySimpleCapt
 	return j
 }
 
-func NewJobOptions(pc ProcessConstructor, opts *CreateOptions) Job {
+func NewJobOptions(pc ProcessConstructor, opts *options.Create) Job {
 	j := amboySimpleCapturedOutputJobFactory(pc)
 	j.Options = opts
-	j.SetID(fmt.Sprintf("%s.%x", j.Type().Name, opts.hash()))
+	j.SetID(fmt.Sprintf("%s.%x", j.Type().Name, opts.Hash()))
 	return j
 }
 
@@ -198,8 +199,8 @@ func (j *amboySimpleCapturedOutputJob) Run(ctx context.Context) {
 }
 
 type amboyForegroundOutputJob struct {
-	Options  *CreateOptions `bson:"options" json:"options" yaml:"options"`
-	ExitCode int            `bson:"exit_code" json:"exit_code" yaml:"exit_code"`
+	Options  *options.Create `bson:"options" json:"options" yaml:"options"`
+	ExitCode int             `bson:"exit_code" json:"exit_code" yaml:"exit_code"`
 	job.Base `bson:"metadata" json:"metadata" yaml:"metadata"`
 
 	makep ProcessConstructor
@@ -220,16 +221,16 @@ func amboyForegroundOutputJobFactory(pc ProcessConstructor) *amboyForegroundOutp
 	return j
 }
 
-func NewJobForeground(pc ProcessConstructor, opts *CreateOptions) Job {
+func NewJobForeground(pc ProcessConstructor, opts *options.Create) Job {
 	j := amboyForegroundOutputJobFactory(pc)
-	j.SetID(fmt.Sprintf("%s.%x", j.Type().Name, opts.hash()))
+	j.SetID(fmt.Sprintf("%s.%x", j.Type().Name, opts.Hash()))
 	j.Options = opts
 	return j
 }
 
-func NewJobBasicForeground(opts *CreateOptions) Job {
+func NewJobBasicForeground(opts *options.Create) Job {
 	j := amboyForegroundOutputJobFactory(newBasicProcess)
-	j.SetID(fmt.Sprintf("%s.basic.%x", j.Type().Name, opts.hash()))
+	j.SetID(fmt.Sprintf("%s.basic.%x", j.Type().Name, opts.Hash()))
 	j.Options = opts
 	return j
 }
