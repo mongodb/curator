@@ -27,7 +27,7 @@ imports:
   version: bea76d6a4713e18b7f5321a2b020738552def3ea
 
 - name: github.com/mongodb/grip
-  version: 0e6bc551430dcc6e74a79ba8937a4f8ff185e907
+  version: 1108173df60c955f82a84cd1ef932af1ed6882a4
 - name: github.com/mongodb/amboy
   version: 2b8431d235ec6c322dba74eff51988ebd8ac1f7f
 - name: github.com/evergreen-ci/gimlet
@@ -46,7 +46,7 @@ imports:
 - name: github.com/mongodb/ftdc
   version: 5a679be78545cb8aceb3f798b71518a4677d8475
 - name: github.com/mongodb/jasper
-  version: d3149cf864962dba4865ae0b1d3ce1553debbbd2
+  version: 2c0d704e758cd8471afdc17d5018b5563a5689b0
 - name: github.com/evergreen-ci/poplar
   version: c4e7b98776461a13c59814f046747853ac81d05b
 - name: github.com/evergreen-ci/pail
