@@ -11,11 +11,13 @@ import (
 
 	shlex "github.com/anmitsu/go-shlex"
 	"github.com/mongodb/grip"
+	"github.com/mongodb/grip/level"
 	"github.com/mongodb/grip/message"
 	"github.com/mongodb/grip/send"
 	"github.com/papertrail/go-tail/follower"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 // BuildLogger constructs the command object for all build logger client entry-points.
@@ -225,18 +227,22 @@ func getCmd(command string) (*exec.Cmd, error) {
 	return cmd, nil
 }
 
+type lineLogger func([]byte, level.Priority)
+
 type cmdLogger struct {
 	logger      grip.Journaler
+	logLine     lineLogger
 	annotations map[string]string
-	logJSON     bool
 	addMeta     bool
 	closer      func()
 }
 
 func setupBuildLogger(conf *send.BuildloggerConfig, data map[string]string, logJSON bool, count int, interval time.Duration) (*cmdLogger, error) {
-	out := &cmdLogger{
-		logJSON:     logJSON,
-		annotations: data,
+	out := &cmdLogger{annotations: data}
+	if logJSON {
+		out.logLine = out.logJSONLine
+	} else {
+		out.logLine = out.logTextLine
 	}
 
 	var toClose []send.Sender
@@ -315,11 +321,7 @@ func (l *cmdLogger) runCommand(cmd *exec.Cmd) error {
 
 	go collectStream(lines, stdOut, stdOutDone)
 	go collectStream(lines, stdErr, stdErrDone)
-	if l.logJSON {
-		go l.logJSONLines(lines, loggerDone)
-	} else {
-		go l.logLines(lines, loggerDone)
-	}
+	go l.logLines(lines, loggerDone)
 
 	<-stdOutDone
 	<-stdErrDone
@@ -336,36 +338,7 @@ func (l *cmdLogger) readPipe(pipe io.Reader) error {
 	lvl := l.logger.GetSender().Level().Default
 	input := bufio.NewScanner(pipe)
 	for input.Scan() {
-		switch {
-		case l.logJSON:
-			out := message.Fields{}
-			line := input.Bytes()
-			if err := json.Unmarshal(line, &out); err != nil {
-				grip.Error(err)
-				continue
-			}
-			switch {
-			case l.addMeta:
-				m := message.MakeFields(out)
-				if err := l.addAnnotations(m); err != nil {
-					grip.Error(err)
-				}
-
-				l.logger.Log(lvl, m)
-			default:
-				l.logger.Log(lvl, message.MakeSimpleFields(out))
-			}
-		default:
-			m := message.NewDefaultMessage(lvl, input.Text())
-
-			if l.addMeta {
-				if err := l.addAnnotations(m); err != nil {
-					grip.Error(err)
-				}
-			}
-
-			l.logger.Log(lvl, m)
-		}
+		l.logLine(input.Bytes(), lvl)
 	}
 
 	return errors.Wrap(input.Err(), "problem reading from pipe")
@@ -373,9 +346,7 @@ func (l *cmdLogger) readPipe(pipe io.Reader) error {
 
 func (l *cmdLogger) followFile(fn string) error {
 	lvl := l.logger.GetSender().Level().Default
-	tail, err := follower.New(fn, follower.Config{
-		Reopen: true,
-	})
+	tail, err := follower.New(fn, follower.Config{Reopen: true})
 	if err != nil {
 		return errors.Wrapf(err, "problem setting up file follower of '%s'", fn)
 	}
@@ -386,35 +357,7 @@ func (l *cmdLogger) followFile(fn string) error {
 	}
 
 	for line := range tail.Lines() {
-		switch {
-		case l.logJSON:
-			out := message.Fields{}
-			if err = json.Unmarshal(line.Bytes(), &out); err != nil {
-				grip.Error(err)
-				continue
-			}
-			switch {
-			case l.addMeta:
-				m := message.MakeFields(out)
-				if err = l.addAnnotations(m); err != nil {
-					grip.Error(err)
-				}
-
-				l.logger.Log(lvl, message.MakeFields(out))
-			default:
-				l.logger.Log(lvl, message.MakeSimpleFields(out))
-			}
-		default:
-			m := message.NewDefaultMessage(lvl, line.String())
-
-			if l.addMeta {
-				if err = l.addAnnotations(m); err != nil {
-					grip.Error(err)
-				}
-			}
-
-			l.logger.Log(lvl, m)
-		}
+		l.logLine(line.Bytes(), lvl)
 	}
 
 	if err = tail.Err(); err != nil {
@@ -450,38 +393,44 @@ func (l *cmdLogger) logLines(lines <-chan []byte, signal chan struct{}) {
 	logLevel := l.logger.GetSender().Level().Threshold
 
 	for line := range lines {
-		grip.Notice(line)
-		m := message.NewBytesMessage(logLevel, line)
-		grip.Error(l.addAnnotations(m))
-
-		l.logger.Log(logLevel, m)
+		l.logLine(line, logLevel)
 	}
 
 	close(signal)
 }
 
-func (l *cmdLogger) logJSONLines(lines <-chan []byte, signal chan struct{}) {
-	logLevel := l.logger.GetSender().Level().Threshold
+func (l *cmdLogger) logTextLine(line []byte, logLevel level.Priority) {
+	grip.Notice(line)
+	m := message.NewBytesMessage(logLevel, line)
+	grip.Error(l.addAnnotations(m))
 
-	for line := range lines {
-		grip.Notice(line)
-		out := message.Fields{}
-		if err := json.Unmarshal(line, &out); err != nil {
-			grip.Error(err)
-			continue
-		}
-		var m message.Composer
+	l.logger.Log(logLevel, m)
+}
 
-		switch {
-		case l.addMeta:
-			m = message.MakeFields(out)
-			grip.Error(l.addAnnotations(m))
-		default:
-			m = message.MakeSimpleFields(out)
-			grip.Error(l.addAnnotations(m))
-		}
-		l.logger.Log(logLevel, m)
+func (l *cmdLogger) logJSONLine(line []byte, logLevel level.Priority) {
+	l.logUnmarshalledLine(line, logLevel, json.Unmarshal)
+}
+
+func (l *cmdLogger) logBSONLine(line []byte, logLevel level.Priority) {
+	l.logUnmarshalledLine(line, logLevel, bson.Unmarshal)
+}
+
+func (l *cmdLogger) logUnmarshalledLine(line []byte, logLevel level.Priority, unmarshal func([]byte, interface{}) error) {
+	grip.Notice(line)
+
+	out := message.Fields{}
+	if err := unmarshal(line, &out); err != nil {
+		grip.Error(err)
 	}
 
-	close(signal)
+	var m message.Composer
+	switch {
+	case l.addMeta:
+		m = message.MakeFields(out)
+		grip.Error(l.addAnnotations(m))
+	default:
+		m = message.MakeSimpleFields(out)
+		grip.Error(l.addAnnotations(m))
+	}
+	l.logger.Log(logLevel, m)
 }
