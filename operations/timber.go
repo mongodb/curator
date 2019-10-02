@@ -11,7 +11,11 @@ import (
 	"github.com/urfave/cli"
 )
 
-const timberPathFlagName = "confPath"
+const (
+	timberPathFlagName       = "confPath"
+	timberMetaFlagName       = "addMeta"
+	timberAnnotationFlagName = "annotation"
+)
 
 // Timber command line function.
 func Timber() cli.Command {
@@ -22,6 +26,16 @@ func Timber() cli.Command {
 			cli.StringFlag{
 				Name:  timberPathFlagName,
 				Usage: "specify the path of the input file",
+			},
+			cli.BoolFlag{
+				Name:  timberMetaFlagName,
+				Usage: "when sending json or bson data, add logging meta data to each message",
+			},
+			cli.StringSliceFlag{
+				Name: timberAnnotationFlagName,
+				Usage: "Optional. Specify key pairs in the form of <key>:<value>. " +
+					"You may specify this command more than once. " +
+					"Keys must not contain the : character.",
 			},
 		},
 		Subcommands: []cli.Command{
@@ -46,12 +60,16 @@ func timberCommand() cli.Command {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			clogger, err := setupTimber(ctx, c.Parent().String(timberPathFlagName))
+			clogger, err := setupTimber(
+				ctx,
+				c.Parent().String(timberPathFlagName),
+				c.Parent().Bool(timberMetaFlagName),
+				getAnnotations(c.Parent().StringSlice(timberAnnotationFlagName)),
+			)
 			defer clogger.closer() // should close before checking error.
 			if err != nil {
 				return errors.Wrap(err, "problem configuring logger")
 			}
-			//clogger.addMeta = c.Parent().Bool("addMeta")
 
 			cmd, err := getCmd(c.String("exec"))
 			if err != nil {
@@ -71,7 +89,12 @@ func timberPipe() cli.Command {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			clogger, err := setupTimber(ctx, c.Parent().String(timberPathFlagName))
+			clogger, err := setupTimber(
+				ctx,
+				c.Parent().String(timberPathFlagName),
+				c.Parent().Bool(timberMetaFlagName),
+				getAnnotations(c.Parent().StringSlice(timberAnnotationFlagName)),
+			)
 			defer clogger.closer()
 			if err != nil {
 				return errors.Wrap(err, "problem configuring logger")
@@ -101,7 +124,12 @@ func timberFollowFile() cli.Command {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			clogger, err := setupTimber(ctx, c.Parent().String(timberPathFlagName))
+			clogger, err := setupTimber(
+				ctx,
+				c.Parent().String(timberPathFlagName),
+				c.Parent().Bool(timberMetaFlagName),
+				getAnnotations(c.Parent().StringSlice(timberAnnotationFlagName)),
+			)
 			defer clogger.closer()
 			if err != nil {
 				return errors.Wrap(err, "problem configuring logger")
@@ -116,13 +144,13 @@ func timberFollowFile() cli.Command {
 	}
 }
 
-func setupTimber(ctx context.Context, path string) (*cmdLogger, error) {
+func setupTimber(ctx context.Context, path string, meta bool, data map[string]string) (*cmdLogger, error) {
 	out := &cmdLogger{
-		//annotations: data,
+		annotations: data,
+		addMeta:     meta,
 	}
 
 	var sender send.Sender
-
 	out.closer = func() {
 		if sender != nil {
 			grip.Warning(sender.Close())
