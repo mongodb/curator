@@ -213,7 +213,6 @@ vendor-clean:
 	rm -rf vendor/github.com/evergreen-ci/timber/vendor/google.golang.org/grpc/
 	rm -rf vendor/github.com/evergreen-ci/timber/vendor/github.com/pkg/errors/
 	rm -rf vendor/github.com/evergreen-ci/timber/vendor/gopkg.in/yaml.v2/
-
 	find vendor/ -name "*.gif" -o -name "*.gz" -o -name "*.png" -o -name "*.ico" -o -name "*testdata*"| xargs rm -rf
 #   add phony targets
 phony += vendor-clean
