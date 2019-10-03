@@ -359,8 +359,8 @@ func (l *cmdLogger) followFile(fn string) error {
 	}
 
 	end := make(chan int)
+	lines := tail.Lines()
 	go func() {
-		lines := tail.Lines()
 		for {
 			select {
 			case <-end:
@@ -388,7 +388,7 @@ func collectStream(out chan<- []byte, input io.Reader, signal chan struct{}) {
 	stream := bufio.NewScanner(input)
 
 	for stream.Scan() {
-		cp := []byte{}
+		cp := make([]byte, len(stream.Bytes()))
 		copy(cp, stream.Bytes())
 		out <- cp
 	}
