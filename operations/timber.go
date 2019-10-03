@@ -157,7 +157,7 @@ func setupTimber(ctx context.Context, path string, meta bool, data map[string]st
 		}
 	}
 
-	out.logger = grip.NewJournaler("buildlogger")
+	out.logger = grip.NewJournaler("timber")
 
 	opts, err := timber.LoadLoggerOptions(path)
 	if err != nil {
