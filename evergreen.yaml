@@ -274,7 +274,6 @@ buildvariants:
       goos: darwin
     run_on:
       - macos-1014
-      - macos-1014-i7
     tasks:
       - ".dist"
       - ".test"
