@@ -48,6 +48,7 @@ func buildApp() *cli.App {
 		jaspercli.Jasper(),
 		operations.Poplar(),
 		operations.FTDC(),
+		operations.Timber(),
 	}
 
 	// These are global options. Use this to configure logging or

@@ -17,6 +17,7 @@ func TestBuildLoggerRunCommand(t *testing.T) {
 	clogger := cmdLogger{
 		logger: grip.NewJournaler("buildlogger.test"),
 	}
+	clogger.logLine = clogger.logTextLine
 
 	// error and non-error cases should both work as expected
 	err = clogger.runCommand(exec.Command("ls"))

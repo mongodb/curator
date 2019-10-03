@@ -55,6 +55,8 @@ imports:
   version: b5b1a9f93a1d0bd95769b3106971aaeca615a7b2
 - name: go.mongodb.org/mongo-driver
   version: 305bc4a5e4131420fe8ba5628e6faa9e6ade4e86
+- name: github.com/evergreen-ci/timber
+  version: 81c260a8aec0fe3a3a7c2028ffe23db8f7a1813d
 
 # grpc and dependencies
 - name: google.golang.org/grpc
