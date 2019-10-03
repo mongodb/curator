@@ -3,9 +3,11 @@ package operations
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
+	"os/signal"
 	"strings"
 	"time"
 
@@ -356,9 +358,25 @@ func (l *cmdLogger) followFile(fn string) error {
 		return errors.Wrapf(err, "problem starting up file follower of '%s'", fn)
 	}
 
-	for line := range tail.Lines() {
-		l.logLine(line.Bytes(), lvl)
-	}
+	end := make(chan int)
+	go func() {
+		lines := tail.Lines()
+		for {
+			select {
+			case <-end:
+				grip.Notice("exiting go routine")
+				return
+			case line := <-lines:
+				l.logLine(line.Bytes(), lvl)
+			}
+		}
+	}()
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c)
+	s := <-c
+	grip.Notice(fmt.Sprintf("got signal: %s", s))
+	end <- 0
 
 	if err = tail.Err(); err != nil {
 		return errors.Wrapf(err, "problem finishing file following of '%s'", fn)
