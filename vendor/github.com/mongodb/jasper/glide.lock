@@ -25,8 +25,8 @@ imports:
     version: 6f45313302b9c56850fc17f99e40caebce98c716
   - name: github.com/urfave/cli
     version: 693af58b4d51b8fcc7f9d89576da170765980581
-  - name: github.com/kardianos/service
-    version: fffe6c52ed0fd8653543bbe72432dbf6ea02f300
+  - name: github.com/evergreen-ci/service
+    version: 82d35dc013454d62290efe84c5df82378f4a68ec
   - name: github.com/cheynewallace/tabby
     version: b7224f6123093cc04ce961170a360e1d22e214a5
   - name: github.com/evergreen-ci/aviation

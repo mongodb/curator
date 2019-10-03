@@ -6,9 +6,10 @@ import (
 	"io/ioutil"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 
-	"github.com/kardianos/service"
+	"github.com/evergreen-ci/service"
 	"github.com/mongodb/grip"
 	"github.com/mongodb/grip/level"
 	"github.com/mongodb/grip/message"
@@ -54,6 +55,12 @@ const (
 	splunkTokenFlagName         = "splunk_token"
 	splunkTokenFilePathFlagName = "splunk_token_path"
 	splunkChannelFlagName       = "splunk_channel"
+
+	// Flags related to resource limits.
+	limitNumFilesFlagName      = "limit_num_files"
+	limitNumProcsFlagName      = "limit_num_procs"
+	limitLockedMemoryFlagName  = "limit_locked_memory"
+	limitVirtualMemoryFlagName = "limit_virtual_memory"
 )
 
 // Service encapsulates the functionality to set up Jasper services.
@@ -112,6 +119,7 @@ func serviceFlags() []cli.Flag {
 		},
 		cli.StringFlag{
 			Name:  logNameFlagName,
+			Usage: "the name of the logger",
 			Value: defaultLogName,
 		},
 		cli.StringFlag{
@@ -138,6 +146,35 @@ func serviceFlags() []cli.Flag {
 			Usage:  "the splunk channel",
 			EnvVar: "GRIP_SPLUNK_CHANNEL",
 		},
+		cli.IntFlag{
+			Name:  limitNumFilesFlagName,
+			Usage: "the maximum number of open file descriptors. Specify -1 for no limit",
+		},
+		cli.IntFlag{
+			Name:  limitNumProcsFlagName,
+			Usage: "the maximum number of processes. Specify -1 for no limit",
+		},
+		cli.IntFlag{
+			Name:  limitLockedMemoryFlagName,
+			Usage: "the maximum size that may be locked into memory (kB). Specify -1 for no limit",
+		},
+		cli.IntFlag{
+			Name:  limitVirtualMemoryFlagName,
+			Usage: "the maximum available virtual memory (kB). Specify -1 for no limit",
+		},
+	}
+}
+
+func validateLimits(flagNames ...string) func(*cli.Context) error {
+	return func(c *cli.Context) error {
+		catcher := grip.NewBasicCatcher()
+		for _, flagName := range flagNames {
+			l := c.Int(flagName)
+			if l < -1 {
+				catcher.Errorf("%s is not a valid limit value for %s", l, flagName)
+			}
+		}
+		return catcher.Resolve()
 	}
 }
 
@@ -201,11 +238,52 @@ func buildRunCommand(c *cli.Context, serviceType string) []string {
 // serviceOptions returns all options specific to particular service management
 // systems.
 func serviceOptions(c *cli.Context) service.KeyValue {
-	return service.KeyValue{
+	opts := service.KeyValue{
 		// launchd-specific options
 		"RunAtLoad": true,
-		"Password":  c.String(passwordFlagName),
+		// Windows-specific options
+		"Password": c.String(passwordFlagName),
 	}
+
+	// Linux-specific resource limit options
+	if limit := resourceLimit(c.Int(limitNumFilesFlagName)); limit != "" {
+		opts["LimitNumFiles"] = limit
+	}
+	if limit := resourceLimit(c.Int(limitNumProcsFlagName)); limit != "" {
+		opts["LimitNumProcs"] = limit
+	}
+	if limit := resourceLimit(c.Int(limitLockedMemoryFlagName)); limit != "" {
+		opts["LimitLockedMemory"] = limit
+	}
+	if limit := resourceLimit(c.Int(limitVirtualMemoryFlagName)); limit != "" {
+		opts["LimitVirtualMemory"] = limit
+	}
+
+	return opts
+}
+
+func resourceLimit(limit int) string {
+	system := service.ChosenSystem()
+	if system == nil {
+		return ""
+	}
+	if limit < -1 || limit == 0 {
+		return ""
+	}
+	switch system.String() {
+	case "linux-systemd":
+		if limit == -1 {
+			return "infinity"
+		}
+	case "linux-upstart", "unix-systemv":
+		if limit == -1 {
+			return "unlimited"
+		}
+	default:
+		return ""
+	}
+
+	return strconv.Itoa(limit)
 }
 
 // serviceConfig returns the daemon service configuration.

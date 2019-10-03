@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kardianos/service"
+	"github.com/evergreen-ci/service"
 	"github.com/mongodb/grip"
 	"github.com/mongodb/jasper"
 	"github.com/mongodb/jasper/options"
@@ -40,6 +40,7 @@ func serviceCommandREST(cmd string, operation serviceOperation) cli.Command {
 		Before: mergeBeforeFuncs(
 			validatePort(portFlagName),
 			validateLogLevel(logLevelFlagName),
+			validateLimits(limitNumFilesFlagName, limitNumProcsFlagName, limitLockedMemoryFlagName, limitVirtualMemoryFlagName),
 		),
 		Action: func(c *cli.Context) error {
 			manager, err := jasper.NewLocalManager(false)
