@@ -130,6 +130,15 @@ func (j *Job) linkPackages(dest string) error {
 				err = errors.Wrap(os.Remove(mirror), "problem removing previous development build")
 				grip.Notice(err)
 			}
+
+			new := strings.ReplaceAll(mirror, j.release.String(), j.release.Series())
+			if new != mirror {
+				grip.Infof("renaming development package from '%s' to '%s'", mirror, new)
+				if err := os.Rename(mirror, new); err != nil {
+					return errors.Wrap(err, "problem renaming development release")
+				}
+				mirror = new
+			}
 		}
 
 		if _, err := os.Stat(mirror); os.IsNotExist(err) {
