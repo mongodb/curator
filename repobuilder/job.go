@@ -265,6 +265,7 @@ func (j *Job) Run(ctx context.Context) {
 		Name:                     j.Distro.Bucket,
 		DryRun:                   j.DryRun,
 		Permissions:              pail.S3PermissionsPublicRead,
+		MaxRetries:               10,
 	}
 	bucket, err := pail.NewS3Bucket(opts)
 	if err != nil {
