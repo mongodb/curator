@@ -131,7 +131,7 @@ func (j *Job) linkPackages(dest string) error {
 				grip.Notice(err)
 			}
 
-			new := strings.ReplaceAll(mirror, j.release.String(), j.release.Series())
+			new := strings.Replace(mirror, j.release.String(), j.release.Series(), 1)
 			if new != mirror {
 				grip.Infof("renaming development package from '%s' to '%s'", mirror, new)
 				if err := os.Rename(mirror, new); err != nil {
