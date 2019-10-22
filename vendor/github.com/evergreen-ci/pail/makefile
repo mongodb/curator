@@ -56,7 +56,7 @@ $(buildDir)/.lintSetup:$(lintDeps)
 # end dependency installation tools
 
 
-testArgs := -v -timeout=20m
+testArgs := -v
 ifneq (,$(RUN_TEST))
 testArgs += -run='$(RUN_TEST)'
 endif
@@ -72,6 +72,12 @@ endif
 ifneq (,$(RACE_DETECTOR))
 testArgs += -race
 endif
+ifneq (,$(TEST_TIMEOUT))
+testArgs += -timeout=$(TEST_TIMEOUT)
+else
+testArgs += -timeout=30m
+endif
+
 # test execution and output handlers
 $(buildDir)/:
 	mkdir -p $@
