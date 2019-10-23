@@ -67,7 +67,10 @@ func NewMongoDBVersion(version string) (*MongoDBVersion, error) {
 		v.tag = strings.Join(tagParts[1:], "-")
 
 		if v.isRc {
-			v.rcNumber, err = strconv.Atoi(tagParts[1][2:])
+			// Prerelease may have +buildinfo suffix, like: 1.0.0-rc0+buildinfo
+			rcPart := strings.Split(tagParts[1], "+")
+
+			v.rcNumber, err = strconv.Atoi(rcPart[0][2:])
 			if len(tagParts) > 2 {
 				v.isDev = true
 			}

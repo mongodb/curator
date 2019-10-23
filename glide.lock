@@ -35,7 +35,7 @@ imports:
 - name: github.com/tychoish/lru
   version: f77a748d12a924cfbfcf396426dd58de5aa3a9e2
 - name: github.com/tychoish/bond
-  version: d08240643c676e2d06c340a41ce66f62988fcfa1
+  version: cbb37912b9cc70a8ccd7c4c77df3ce6bc8a62b64
 
 - name: github.com/stretchr/testify
   version: 890a5c3458b43e6104ff5da8dfa139d013d77544
