@@ -44,6 +44,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"runtime"
 	"time"
 
 	"github.com/evergreen-ci/pail"
@@ -267,6 +268,12 @@ func s3SyncToCmd() cli.Command {
 			if err != nil {
 				return errors.Wrap(err, "problem getting new bucket")
 			}
+			syncOpts := pail.ParallelBucketOptions{
+				Workers:      runtime.NumCPU(),
+				DryRun:       c.Bool("dry-run"),
+				DeleteOnSync: c.Bool("delete"),
+			}
+			bucket = pail.NewParallelSyncBucket(opts, bucket)
 
 			return errors.Wrapf(
 				bucket.Push(ctx, c.String("local"), c.String("prefix")),
@@ -299,6 +306,12 @@ func s3SyncFromCmd() cli.Command {
 			if err != nil {
 				return errors.Wrap(err, "problem getting new bucket")
 			}
+			syncOpts := pail.ParallelBucketOptions{
+				Workers:      runtime.NumCPU(),
+				DryRun:       c.Bool("dry-run"),
+				DeleteOnSync: c.Bool("delete"),
+			}
+			bucket = pail.NewParallelSyncBucket(opts, bucket)
 
 			return errors.Wrapf(
 				bucket.Pull(ctx, c.String("local"), c.String("prefix")),
