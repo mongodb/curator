@@ -54,14 +54,32 @@ func walkLocalTree(ctx context.Context, prefix string) ([]string, error) {
 			return errors.New("operation canceled")
 		}
 
-		if info.IsDir() {
-			return nil
-		}
-
 		rel, err := filepath.Rel(prefix, path)
 		if err != nil {
 			return errors.Wrap(err, "problem getting relative path")
 		}
+
+		if info.Mode()&os.ModeSymlink != 0 {
+			symPath, err := filepath.EvalSymlinks(path)
+			if err != nil {
+				return errors.Wrap(err, "problem getting symlink path")
+			}
+			symTree, err := walkLocalTree(ctx, symPath)
+			if err != nil {
+				return errors.Wrap(err, "problem getting symlink tree")
+			}
+			for i := range symTree {
+				symTree[i] = filepath.Join(rel, symTree[i])
+			}
+			out = append(out, symTree...)
+
+			return nil
+		}
+
+		if info.IsDir() {
+			return nil
+		}
+
 		out = append(out, rel)
 		return nil
 	})
