@@ -273,7 +273,7 @@ func s3SyncToCmd() cli.Command {
 				DryRun:       c.Bool("dry-run"),
 				DeleteOnSync: c.Bool("delete"),
 			}
-			bucket = pail.NewParallelSyncBucket(opts, bucket)
+			bucket = pail.NewParallelSyncBucket(syncOpts, bucket)
 
 			return errors.Wrapf(
 				bucket.Push(ctx, c.String("local"), c.String("prefix")),
@@ -311,7 +311,7 @@ func s3SyncFromCmd() cli.Command {
 				DryRun:       c.Bool("dry-run"),
 				DeleteOnSync: c.Bool("delete"),
 			}
-			bucket = pail.NewParallelSyncBucket(opts, bucket)
+			bucket = pail.NewParallelSyncBucket(syncOpts, bucket)
 
 			return errors.Wrapf(
 				bucket.Pull(ctx, c.String("local"), c.String("prefix")),
