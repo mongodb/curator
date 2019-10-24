@@ -251,7 +251,7 @@ func s3SyncToCmd() cli.Command {
 		Name:    "sync-to",
 		Aliases: []string{"push"},
 		Usage:   "sync changes from the local system to s3",
-		Flags:   baseS3Flags(s3syncFlags()...),
+		Flags:   baseS3Flags(s3syncFlags(s3synctoFlags()...)...),
 		Action: func(c *cli.Context) error {
 			ctx, cancel := ctxWithTimeout(c.Duration("timeout"))
 			defer cancel()
@@ -264,6 +264,7 @@ func s3SyncToCmd() cli.Command {
 				DeleteOnSync:             c.Bool("delete"),
 				MaxRetries:               defaultMaxRetries,
 				UseSingleFileChecksums:   true,
+				Permissions:              pail.S3Permissions(c.String("permissions")),
 			}
 			bucket, err := pail.NewS3Bucket(opts)
 			if err != nil {
@@ -402,6 +403,17 @@ func s3syncFlags(args ...cli.Flag) []cli.Flag {
 			Name:  "workers",
 			Usage: "number of workers for parallelized sync operation, defaults to twice the number of logical CPUs",
 			Value: 2 * runtime.NumCPU(),
+		},
+	}
+
+	return append(flags, args...)
+}
+
+func s3synctoFlags(args ...cli.Flag) []cli.Flag {
+	flags := []cli.Flag{
+		cli.StringFlag{
+			Name:  "permissions",
+			Usage: "canned ACL to apply to the files",
 		},
 	}
 
