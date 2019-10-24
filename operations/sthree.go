@@ -270,7 +270,6 @@ func s3SyncToCmd() cli.Command {
 				return errors.Wrap(err, "problem getting new bucket")
 			}
 			if !c.Bool("serialize") {
-				fmt.Println("HERE")
 				syncOpts := pail.ParallelBucketOptions{
 					Workers:      c.Int("workers"),
 					DryRun:       c.Bool("dry-run"),
