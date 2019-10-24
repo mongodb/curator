@@ -106,7 +106,7 @@ func s3PutCmd() cli.Command {
 			}
 
 			return errors.Wrapf(
-				bucket.Upload(ctx, c.String("file"), c.String("name")),
+				bucket.Upload(ctx, c.String("name"), c.String("file")),
 				"problem putting %s in s3",
 				c.String("file"),
 			)
