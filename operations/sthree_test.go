@@ -34,21 +34,25 @@ func (s *CommandsSuite) TestSyncFlagsFactory() {
 			f, ok := flag.(cli.StringFlag)
 			s.True(ok)
 			s.Equal(pwd, f.Value)
-		} else if flagName == "dry-run" || flagName == "delete" {
+		} else if flagName == "dry-run" || flagName == "delete" || flagName == "serialize" {
 			s.IsType(cli.BoolFlag{}, flag)
 		} else if flagName == "timeout" {
 			s.IsType(cli.DurationFlag{}, flag)
+		} else if flagName == "workers" {
+			s.IsType(cli.IntFlag{}, flag)
 		} else {
 			s.IsType(cli.StringFlag{}, flag)
 		}
 	}
 
-	s.Len(names, 4)
-	s.Len(flags, 4)
+	s.Len(names, 6)
+	s.Len(flags, 6)
 	s.True(names["local"])
 	s.True(names["prefix"])
 	s.True(names["delete"])
 	s.True(names["timeout"])
+	s.True(names["serialize"])
+	s.True(names["workers"])
 }
 
 func (s *CommandsSuite) TestS3ParentCommandHasExpectedProperties() {
