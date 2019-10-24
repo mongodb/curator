@@ -554,10 +554,9 @@ func (s *s3Bucket) s3WithUploadChecksumHelper(ctx context.Context, target, file 
 		if aerr.Code() == "PreconditionFailed" || aerr.Code() == "NotFound" {
 			return true, nil
 		}
-	} else if err != nil {
-		return false, errors.Wrapf(err, "problem with checksum for '%s'", target)
 	}
-	return false, nil
+
+	return false, errors.Wrapf(err, "problem with checksum for '%s'", target)
 }
 
 func doUpload(ctx context.Context, b Bucket, key, path string) error {
