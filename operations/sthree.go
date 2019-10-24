@@ -263,17 +263,21 @@ func s3SyncToCmd() cli.Command {
 				DryRun:                   c.Bool("dry-run"),
 				DeleteOnSync:             c.Bool("delete"),
 				MaxRetries:               defaultMaxRetries,
+				UseSingleFileChecksums:   true,
 			}
 			bucket, err := pail.NewS3Bucket(opts)
 			if err != nil {
 				return errors.Wrap(err, "problem getting new bucket")
 			}
-			syncOpts := pail.ParallelBucketOptions{
-				Workers:      runtime.NumCPU(),
-				DryRun:       c.Bool("dry-run"),
-				DeleteOnSync: c.Bool("delete"),
+			if !c.Bool("serialize") {
+				fmt.Println("HERE")
+				syncOpts := pail.ParallelBucketOptions{
+					Workers:      c.Int("workers"),
+					DryRun:       c.Bool("dry-run"),
+					DeleteOnSync: c.Bool("delete"),
+				}
+				bucket = pail.NewParallelSyncBucket(syncOpts, bucket)
 			}
-			bucket = pail.NewParallelSyncBucket(syncOpts, bucket)
 
 			return errors.Wrapf(
 				bucket.Push(ctx, c.String("local"), c.String("prefix")),
@@ -301,17 +305,20 @@ func s3SyncFromCmd() cli.Command {
 				DryRun:                   c.Bool("dry-run"),
 				DeleteOnSync:             c.Bool("delete"),
 				MaxRetries:               defaultMaxRetries,
+				UseSingleFileChecksums:   true,
 			}
 			bucket, err := pail.NewS3Bucket(opts)
 			if err != nil {
 				return errors.Wrap(err, "problem getting new bucket")
 			}
-			syncOpts := pail.ParallelBucketOptions{
-				Workers:      runtime.NumCPU(),
-				DryRun:       c.Bool("dry-run"),
-				DeleteOnSync: c.Bool("delete"),
+			if !c.Bool("workers") {
+				syncOpts := pail.ParallelBucketOptions{
+					Workers:      c.Int("workers"),
+					DryRun:       c.Bool("dry-run"),
+					DeleteOnSync: c.Bool("delete"),
+				}
+				bucket = pail.NewParallelSyncBucket(syncOpts, bucket)
 			}
-			bucket = pail.NewParallelSyncBucket(syncOpts, bucket)
 
 			return errors.Wrapf(
 				bucket.Pull(ctx, c.String("local"), c.String("prefix")),
@@ -387,6 +394,15 @@ func s3syncFlags(args ...cli.Flag) []cli.Flag {
 		cli.DurationFlag{
 			Name:  "timeout",
 			Usage: "specify a timeout for operations, defaults to unlimited timeout if not specified",
+		},
+		cli.BoolFlag{
+			Name:  "serialize",
+			Usage: "serialize sync operation",
+		},
+		cli.IntFlag{
+			Name:  "workers",
+			Usage: "number of workers for parallelized sync operation, defaults to twice the number of logical CPUs",
+			Value: 2 * runtime.NumCPU(),
 		},
 	}
 
