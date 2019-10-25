@@ -2,7 +2,6 @@ package operations
 
 import (
 	"os"
-	"strings"
 
 	"github.com/urfave/cli"
 )
@@ -67,7 +66,9 @@ func (s *CommandsSuite) TestS3ParentCommandHasExpectedProperties() {
 			s.Equal(sub.Flags, baseS3Flags(s3opFlags(s3putFlags()...)...))
 		} else if sub.Name == "get" {
 			s.Equal(sub.Flags, baseS3Flags(s3opFlags()...))
-		} else if strings.HasPrefix(sub.Name, "sync") {
+		} else if sub.Name == "sync-to" {
+			s.Equal(sub.Flags, baseS3Flags(s3syncFlags(s3synctoFlags()...)...))
+		} else if sub.Name == "sync-from" {
 			s.Equal(sub.Flags, baseS3Flags(s3syncFlags()...))
 		}
 	}
