@@ -311,7 +311,7 @@ func s3SyncFromCmd() cli.Command {
 			if err != nil {
 				return errors.Wrap(err, "problem getting new bucket")
 			}
-			if !c.Bool("workers") {
+			if !c.Bool("serialize") {
 				syncOpts := pail.ParallelBucketOptions{
 					Workers:      c.Int("workers"),
 					DryRun:       c.Bool("dry-run"),
@@ -401,8 +401,8 @@ func s3syncFlags(args ...cli.Flag) []cli.Flag {
 		},
 		cli.IntFlag{
 			Name:  "workers",
-			Usage: "number of workers for parallelized sync operation, defaults to twice the number of logical CPUs",
-			Value: 2 * runtime.NumCPU(),
+			Usage: "number of workers for parallelized sync operation, defaults to the number of logical CPUs",
+			Value: runtime.NumCPU(),
 		},
 	}
 
