@@ -11,4 +11,4 @@ import:
   - package: github.com/stretcher/testify
   - package: github.com/evergreen-ci/aviation
   - package: gopkg.in/yaml.v2
-  - package: github.com/mongodb/mongo-go-driver
+  - package: go.mongodb.org/mongo-driver

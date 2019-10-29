@@ -10,8 +10,6 @@ import (
 	duration "github.com/golang/protobuf/ptypes/duration"
 	timestamp "github.com/golang/protobuf/ptypes/timestamp"
 	grpc "google.golang.org/grpc"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -1388,29 +1386,6 @@ type CedarPerformanceMetricsServer interface {
 	AttachRollups(context.Context, *RollupData) (*MetricsResponse, error)
 	SendMetrics(CedarPerformanceMetrics_SendMetricsServer) error
 	CloseMetrics(context.Context, *MetricsSeriesEnd) (*MetricsResponse, error)
-}
-
-// UnimplementedCedarPerformanceMetricsServer can be embedded to have forward compatible implementations.
-type UnimplementedCedarPerformanceMetricsServer struct {
-}
-
-func (*UnimplementedCedarPerformanceMetricsServer) CreateMetricSeries(ctx context.Context, req *ResultData) (*MetricsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CreateMetricSeries not implemented")
-}
-func (*UnimplementedCedarPerformanceMetricsServer) AttachResultData(ctx context.Context, req *ResultData) (*MetricsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AttachResultData not implemented")
-}
-func (*UnimplementedCedarPerformanceMetricsServer) AttachArtifacts(ctx context.Context, req *ArtifactData) (*MetricsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AttachArtifacts not implemented")
-}
-func (*UnimplementedCedarPerformanceMetricsServer) AttachRollups(ctx context.Context, req *RollupData) (*MetricsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AttachRollups not implemented")
-}
-func (*UnimplementedCedarPerformanceMetricsServer) SendMetrics(srv CedarPerformanceMetrics_SendMetricsServer) error {
-	return status.Errorf(codes.Unimplemented, "method SendMetrics not implemented")
-}
-func (*UnimplementedCedarPerformanceMetricsServer) CloseMetrics(ctx context.Context, req *MetricsSeriesEnd) (*MetricsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CloseMetrics not implemented")
 }
 
 func RegisterCedarPerformanceMetricsServer(s *grpc.Server, srv CedarPerformanceMetricsServer) {

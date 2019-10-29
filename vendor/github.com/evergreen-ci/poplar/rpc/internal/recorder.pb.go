@@ -10,8 +10,6 @@ import (
 	duration "github.com/golang/protobuf/ptypes/duration"
 	timestamp "github.com/golang/protobuf/ptypes/timestamp"
 	grpc "google.golang.org/grpc"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -470,59 +468,6 @@ type PoplarMetricsRecorderServer interface {
 	IncSize(context.Context, *EventSendInt) (*PoplarResponse, error)
 	IncError(context.Context, *EventSendInt) (*PoplarResponse, error)
 	IncIterations(context.Context, *EventSendInt) (*PoplarResponse, error)
-}
-
-// UnimplementedPoplarMetricsRecorderServer can be embedded to have forward compatible implementations.
-type UnimplementedPoplarMetricsRecorderServer struct {
-}
-
-func (*UnimplementedPoplarMetricsRecorderServer) CreateRecorder(ctx context.Context, req *CreateOptions) (*PoplarResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CreateRecorder not implemented")
-}
-func (*UnimplementedPoplarMetricsRecorderServer) CloseRecorder(ctx context.Context, req *PoplarID) (*PoplarResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CloseRecorder not implemented")
-}
-func (*UnimplementedPoplarMetricsRecorderServer) BeginEvent(ctx context.Context, req *PoplarID) (*PoplarResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method BeginEvent not implemented")
-}
-func (*UnimplementedPoplarMetricsRecorderServer) ResetEvent(ctx context.Context, req *PoplarID) (*PoplarResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ResetEvent not implemented")
-}
-func (*UnimplementedPoplarMetricsRecorderServer) EndEvent(ctx context.Context, req *EventSendDuration) (*PoplarResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method EndEvent not implemented")
-}
-func (*UnimplementedPoplarMetricsRecorderServer) SetID(ctx context.Context, req *EventSendInt) (*PoplarResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SetID not implemented")
-}
-func (*UnimplementedPoplarMetricsRecorderServer) SetTime(ctx context.Context, req *EventSendTime) (*PoplarResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SetTime not implemented")
-}
-func (*UnimplementedPoplarMetricsRecorderServer) SetDuration(ctx context.Context, req *EventSendDuration) (*PoplarResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SetDuration not implemented")
-}
-func (*UnimplementedPoplarMetricsRecorderServer) SetTotalDuration(ctx context.Context, req *EventSendDuration) (*PoplarResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SetTotalDuration not implemented")
-}
-func (*UnimplementedPoplarMetricsRecorderServer) SetState(ctx context.Context, req *EventSendInt) (*PoplarResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SetState not implemented")
-}
-func (*UnimplementedPoplarMetricsRecorderServer) SetWorkers(ctx context.Context, req *EventSendInt) (*PoplarResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SetWorkers not implemented")
-}
-func (*UnimplementedPoplarMetricsRecorderServer) SetFailed(ctx context.Context, req *EventSendBool) (*PoplarResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SetFailed not implemented")
-}
-func (*UnimplementedPoplarMetricsRecorderServer) IncOps(ctx context.Context, req *EventSendInt) (*PoplarResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method IncOps not implemented")
-}
-func (*UnimplementedPoplarMetricsRecorderServer) IncSize(ctx context.Context, req *EventSendInt) (*PoplarResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method IncSize not implemented")
-}
-func (*UnimplementedPoplarMetricsRecorderServer) IncError(ctx context.Context, req *EventSendInt) (*PoplarResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method IncError not implemented")
-}
-func (*UnimplementedPoplarMetricsRecorderServer) IncIterations(ctx context.Context, req *EventSendInt) (*PoplarResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method IncIterations not implemented")
 }
 
 func RegisterPoplarMetricsRecorderServer(s *grpc.Server, srv PoplarMetricsRecorderServer) {

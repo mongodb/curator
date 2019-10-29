@@ -12,6 +12,9 @@ func AttachService(registry *poplar.RecorderRegistry, s *grpc.Server) error {
 	RegisterPoplarMetricsCollectorServer(s, &metricsService{
 		registry: registry,
 	})
+	RegisterPoplarEventCollectorServer(s, &collectorService{
+		registry: registry,
+	})
 
 	return nil
 }

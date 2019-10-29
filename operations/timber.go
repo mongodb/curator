@@ -163,7 +163,7 @@ func setupTimber(ctx context.Context, path string, meta bool, data map[string]st
 	if err != nil {
 		return out, errors.Wrapf(err, "problem loading logger options from %s", path)
 	}
-	sender, err = timber.MakeLogger(ctx, "curator", opts)
+	sender, err = timber.MakeLoggerWithContext(ctx, "curator", opts)
 	if err != nil {
 		return out, errors.Wrap(err, "problem creating logger")
 	}

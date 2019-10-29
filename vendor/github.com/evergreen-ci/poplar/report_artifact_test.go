@@ -67,13 +67,14 @@ func TestSetBucketInfo(t *testing.T) {
 			hasErr: true,
 		},
 		{
-			name: "BucketSpecifiedFromConfiguration",
+			name: "BucketAndPrefixSpecifiedFromConfiguration",
 			artifact: &TestArtifact{
 				Path:      "bson_example1.bson",
 				LocalFile: "testdata/bson_example.bson",
 			},
 			bucketConf: BucketConfiguration{
 				Name:   s3Name,
+				Prefix: s3Prefix,
 				Region: s3Region,
 			},
 		},
@@ -110,6 +111,9 @@ func TestSetBucketInfo(t *testing.T) {
 					bucketName = test.bucketConf.Name
 				}
 				prefix := test.artifact.Prefix
+				if prefix == "" {
+					prefix = test.bucketConf.Prefix
+				}
 				path := test.artifact.Path
 				if path == "" {
 					path = filepath.Base(test.artifact.LocalFile)

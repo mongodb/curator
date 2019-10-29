@@ -8,8 +8,6 @@ import (
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
 	grpc "google.golang.org/grpc"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -448,26 +446,6 @@ type PoplarMetricsCollectorServer interface {
 	ResetSample(context.Context, *PoplarID) (*PoplarResponse, error)
 	FlushSample(context.Context, *PoplarID) (*PoplarResponse, error)
 	Add(context.Context, *IntervalSummary) (*PoplarResponse, error)
-}
-
-// UnimplementedPoplarMetricsCollectorServer can be embedded to have forward compatible implementations.
-type UnimplementedPoplarMetricsCollectorServer struct {
-}
-
-func (*UnimplementedPoplarMetricsCollectorServer) CreateCollector(ctx context.Context, req *CreateOptions) (*PoplarResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CreateCollector not implemented")
-}
-func (*UnimplementedPoplarMetricsCollectorServer) CloseCollector(ctx context.Context, req *PoplarID) (*PoplarResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CloseCollector not implemented")
-}
-func (*UnimplementedPoplarMetricsCollectorServer) ResetSample(ctx context.Context, req *PoplarID) (*PoplarResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ResetSample not implemented")
-}
-func (*UnimplementedPoplarMetricsCollectorServer) FlushSample(ctx context.Context, req *PoplarID) (*PoplarResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method FlushSample not implemented")
-}
-func (*UnimplementedPoplarMetricsCollectorServer) Add(ctx context.Context, req *IntervalSummary) (*PoplarResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Add not implemented")
 }
 
 func RegisterPoplarMetricsCollectorServer(s *grpc.Server, srv PoplarMetricsCollectorServer) {

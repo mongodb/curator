@@ -14,3 +14,4 @@ import:
   - package: gopkg.in/yaml.v2
   - package: github.com/papertrail/go-tail
   - package: github.com/mongodb/amboy
+  - package: github.com/evergreen-ci/aviation

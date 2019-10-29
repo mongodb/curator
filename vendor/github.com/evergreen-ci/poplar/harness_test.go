@@ -306,11 +306,11 @@ func TestCaseType(t *testing.T) {
 			assert.NoError(t, res.Error)
 			assert.True(t, res.Runtime >= time.Millisecond)
 			assert.True(t, res.Runtime <= time.Second)
-			assert.True(t, res.Iterations > c.MinIterations)
-			assert.False(t, res.Iterations < c.MaxIterations)
+			assert.True(t, res.Iterations >= c.MinIterations)
+			assert.False(t, res.Iterations <= c.MaxIterations)
 
-			assert.True(t, res.CompletedAt.Sub(res.StartAt) < time.Second)
-			assert.True(t, res.CompletedAt.Sub(res.StartAt) > time.Millisecond)
+			assert.True(t, res.CompletedAt.Sub(res.StartAt) <= time.Second)
+			assert.True(t, res.CompletedAt.Sub(res.StartAt) >= time.Millisecond)
 
 		})
 		t.Run("CanceledContext", func(t *testing.T) {
@@ -536,7 +536,7 @@ func TestSuiteType(t *testing.T) {
 			assert.Error(t, err)
 			assert.Len(t, res, 3)
 			assert.Contains(t, err.Error(), "foo")
-			assert.True(t, counter > 100)
+			assert.True(t, counter > 50)
 		})
 		t.Run("CollectoError", func(t *testing.T) {
 			s := BenchmarkSuite{

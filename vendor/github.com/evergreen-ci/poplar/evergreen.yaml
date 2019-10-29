@@ -69,6 +69,8 @@ functions:
         GOROOT: ${goroot}
         GOPATH: ${workdir}/gopath
         USERPROFILE: C:\\Users\\Administrator
+        LDAP_USER: ${ldap_user}
+        LDAP_PASSWORD: ${ldap_password}
 
 #######################################
 #                Tasks                #

@@ -308,7 +308,6 @@ benchLoop:
 
 			res.Runtime += time.Since(startAt)
 			res.Iterations++
-			time.Sleep(time.Millisecond)
 		}
 	}
 	res.CompletedAt = time.Now()

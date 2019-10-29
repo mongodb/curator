@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.mongodb.org/mongo-driver/bson"
 	yaml "gopkg.in/yaml.v2"
 )
 

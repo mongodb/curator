@@ -147,6 +147,7 @@ vendor-clean:
 	rm -rf vendor/github.com/evergreen-ci/poplar/vendor/github.com/pkg/errors/
 	rm -rf vendor/github.com/evergreen-ci/poplar/vendor/github.com/papertrail/go-tail/
 	rm -rf vendor/github.com/evergreen-ci/poplar/vendor/gopkg.in/yaml.v2/
+	rm -rf vendor/github.com/evergreen-ci/poplar/vendor/github.com/evergreen-ci/aviation/
 	rm -rf vendor/github.com/mongodb/amboy/vendor/github.com/mongodb/grip/
 	rm -rf vendor/github.com/mongodb/amboy/vendor/github.com/mongodb/mongo-go-driver/
 	rm -rf vendor/github.com/mongodb/amboy/vendor/go.mongodb.org/
@@ -202,6 +203,7 @@ vendor-clean:
 	rm -rf vendor/github.com/evergreen-ci/aviation/vendor/github.com/pkg/errors/
 	rm -rf vendor/github.com/evergreen-ci/aviation/vendor/github.com/stretchr/testify/
 	rm -rf vendor/github.com/evergreen-ci/aviation/vendor/google.golang.org/grpc/
+	rm -rf vendor/github.com/evergreen-ci/timber/vendor/go.mongodb.org/
 	rm -rf vendor/github.com/evergreen-ci/timber/vendor/github.com/evergreen-ci/aviation/
 	rm -rf vendor/github.com/evergreen-ci/timber/vendor/github.com/golang/protobuf/
 	rm -rf vendor/github.com/evergreen-ci/timber/vendor/github.com/mongodb/grip/
