@@ -33,7 +33,7 @@ func (s *CommandsSuite) TestSyncFlagsFactory() {
 			f, ok := flag.(cli.StringFlag)
 			s.True(ok)
 			s.Equal(pwd, f.Value)
-		} else if flagName == "dry-run" || flagName == "delete" || flagName == "serialize" {
+		} else if flagName == "dry-run" || flagName == "delete" {
 			s.IsType(cli.BoolFlag{}, flag)
 		} else if flagName == "timeout" {
 			s.IsType(cli.DurationFlag{}, flag)
@@ -44,13 +44,12 @@ func (s *CommandsSuite) TestSyncFlagsFactory() {
 		}
 	}
 
-	s.Len(names, 6)
-	s.Len(flags, 6)
+	s.Len(names, 5)
+	s.Len(flags, 5)
 	s.True(names["local"])
 	s.True(names["prefix"])
 	s.True(names["delete"])
 	s.True(names["timeout"])
-	s.True(names["serialize"])
 	s.True(names["workers"])
 }
 

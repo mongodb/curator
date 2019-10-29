@@ -44,7 +44,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"runtime"
 	"time"
 
 	"github.com/evergreen-ci/pail"
@@ -270,7 +269,7 @@ func s3SyncToCmd() cli.Command {
 			if err != nil {
 				return errors.Wrap(err, "problem getting new bucket")
 			}
-			if !c.Bool("serialize") {
+			if c.Int("workers") > 0 {
 				syncOpts := pail.ParallelBucketOptions{
 					Workers:      c.Int("workers"),
 					DryRun:       c.Bool("dry-run"),
@@ -311,7 +310,7 @@ func s3SyncFromCmd() cli.Command {
 			if err != nil {
 				return errors.Wrap(err, "problem getting new bucket")
 			}
-			if !c.Bool("serialize") {
+			if c.Int("workers") > 0 {
 				syncOpts := pail.ParallelBucketOptions{
 					Workers:      c.Int("workers"),
 					DryRun:       c.Bool("dry-run"),
@@ -353,7 +352,7 @@ func baseS3Flags(args ...cli.Flag) []cli.Flag {
 	flags := []cli.Flag{
 		cli.StringFlag{
 			Name:  "region",
-			Usage: "region to send requests to, defaults to us-east-1",
+			Usage: "region to send requests to",
 			Value: "us-east-1",
 		},
 		cli.StringFlag{
@@ -395,14 +394,10 @@ func s3syncFlags(args ...cli.Flag) []cli.Flag {
 			Name:  "timeout",
 			Usage: "specify a timeout for operations, defaults to unlimited timeout if not specified",
 		},
-		cli.BoolFlag{
-			Name:  "serialize",
-			Usage: "serialize sync operation",
-		},
 		cli.IntFlag{
 			Name:  "workers",
-			Usage: "number of workers for parallelized sync operation, defaults to the number of logical CPUs",
-			Value: runtime.NumCPU(),
+			Usage: "number of workers for parallelized sync operation",
+			Value: 0,
 		},
 	}
 
