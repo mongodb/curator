@@ -262,6 +262,7 @@ func s3SyncToCmd() cli.Command {
 				DryRun:                   c.Bool("dry-run"),
 				DeleteOnSync:             c.Bool("delete"),
 				MaxRetries:               defaultMaxRetries,
+				UseSingleFileChecksums:   true,
 				Permissions:              pail.S3Permissions(c.String("permissions")),
 			}
 			bucket, err := pail.NewS3Bucket(opts)
@@ -269,7 +270,6 @@ func s3SyncToCmd() cli.Command {
 				return errors.Wrap(err, "problem getting new bucket")
 			}
 			if c.Int("workers") > 0 {
-				opts.UseSingleFileChecksums = true
 				syncOpts := pail.ParallelBucketOptions{
 					Workers:      c.Int("workers"),
 					DryRun:       c.Bool("dry-run"),
@@ -304,13 +304,13 @@ func s3SyncFromCmd() cli.Command {
 				DryRun:                   c.Bool("dry-run"),
 				DeleteOnSync:             c.Bool("delete"),
 				MaxRetries:               defaultMaxRetries,
+				UseSingleFileChecksums:   true,
 			}
 			bucket, err := pail.NewS3Bucket(opts)
 			if err != nil {
 				return errors.Wrap(err, "problem getting new bucket")
 			}
 			if c.Int("workers") > 0 {
-				opts.UseSingleFileChecksums = true
 				syncOpts := pail.ParallelBucketOptions{
 					Workers:      c.Int("workers"),
 					DryRun:       c.Bool("dry-run"),
