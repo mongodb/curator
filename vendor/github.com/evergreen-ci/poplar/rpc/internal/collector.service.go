@@ -47,7 +47,7 @@ func (s *collectorService) SendEvent(ctx context.Context, event *EventMetrics) (
 		return nil, status.Errorf(codes.NotFound, "no registry named %s", event.Name)
 	}
 
-	collector.Add(event.Export())
+	collector.Add(event.Export().Document())
 
 	return &PoplarResponse{Name: event.Name, Status: true}, nil
 }
@@ -80,7 +80,7 @@ func (s *collectorService) StreamEvents(srv PoplarEventCollector_StreamEventsSer
 			return status.Errorf(codes.InvalidArgument, "no registry named %s", eventName)
 		}
 
-		collector.Add(event)
+		collector.Add(event.Export().Document())
 
 		if ctx.Err() != nil {
 			return status.Errorf(codes.Canceled, "operation canceled for %s", eventName)

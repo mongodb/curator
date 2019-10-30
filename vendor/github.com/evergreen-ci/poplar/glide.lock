@@ -2,7 +2,7 @@ hash: ""
 updated: 2016-10-20T16:48:42.872025812-04:00
 imports:
   - name: github.com/mongodb/ftdc
-    version: 6a6069c636ac3af2e8fce50933b93716470a0534
+    version: b1b44cf77c23d879f8460fc68ba3297116746efb
   - name: github.com/mongodb/grip
     version: 9d25e1f074f259c00ff62d6690943ce61666b626
   - name: github.com/mongodb/mongo-go-driver

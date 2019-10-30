@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/mongodb/ftdc"
+	"github.com/mongodb/ftdc/metrics"
 	"github.com/mongodb/grip"
 	"github.com/mongodb/grip/level"
 	"github.com/mongodb/grip/message"
@@ -99,14 +99,14 @@ func systemFtdc() cli.Command {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			opts := ftdc.CollectSysInfoOptions{
+			opts := metrics.CollectOptions{
 				SampleCount:        math.MaxInt32,
 				OutputFilePrefix:   c.String("prefix"),
 				CollectionInterval: c.Duration("interval"),
 				FlushInterval:      c.Duration("flush"),
 			}
 			go signalListener(ctx, cancel)
-			return ftdc.CollectSysInfo(ctx, opts)
+			return metrics.CollectRuntime(ctx, opts)
 		},
 	}
 }

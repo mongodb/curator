@@ -12,16 +12,18 @@ import (
 	"testing"
 	"time"
 
+	"github.com/mongodb/ftdc/bsonx/bsonerr"
 	"github.com/mongodb/ftdc/bsonx/bsontype"
 	"github.com/mongodb/ftdc/bsonx/decimal"
-	"github.com/mongodb/ftdc/bsonx/objectid"
+	"github.com/mongodb/ftdc/bsonx/types"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestElement(t *testing.T) {
 	t.Run("Validate", func(t *testing.T) {
 		t.Run("nil Element", func(t *testing.T) {
 			rdr := (*Element)(nil)
-			want := ErrNilElement
+			want := bsonerr.NilElement
 			_, got := rdr.Validate()
 			if got != want {
 				t.Errorf("Did not receive expected error. got %s; want %s", got, want)
@@ -29,7 +31,7 @@ func TestElement(t *testing.T) {
 		})
 		t.Run("validateKey error", func(t *testing.T) {
 			rdr := Element{&Value{start: 0, offset: 1, data: []byte{0x0A, 'x'}}}
-			want := ErrInvalidKey
+			want := bsonerr.InvalidKey
 			_, got := rdr.Validate()
 			if got != want {
 				t.Errorf("Did not receive expected error. got %s; want %s", got, want)
@@ -37,7 +39,7 @@ func TestElement(t *testing.T) {
 		})
 		t.Run("Validate error", func(t *testing.T) {
 			rdr := Element{&Value{start: 0, offset: 3, data: []byte{0x01, 'x', 0x00, 0x00}}}
-			want := NewErrTooSmall()
+			want := newErrTooSmall()
 			_, got := rdr.Validate()
 			if !IsTooSmall(got) {
 				t.Errorf("Did not receive expected error. got %s; want %s", got, want)
@@ -80,17 +82,17 @@ func TestElement(t *testing.T) {
 		}{
 			{
 				"does not run off end of data", &Element{&Value{start: 0, offset: 100, data: []byte{0x0A, 'f', 'o', 'o'}}},
-				3, ErrInvalidKey,
+				3, bsonerr.InvalidKey,
 			},
 
 			{
 				"stops iteration at start of value",
 				&Element{&Value{start: 0, offset: 4, data: []byte{0x0A, 'f', 'o', 'o', 0x00}}},
-				3, ErrInvalidKey,
+				3, bsonerr.InvalidKey,
 			},
 			{
 				"returns invalid key error", &Element{&Value{start: 0, offset: 4, data: []byte{0x0A, 'f', 'o', 'o'}}},
-				3, ErrInvalidKey,
+				3, bsonerr.InvalidKey,
 			},
 			{
 				"returns correct size on success",
@@ -128,7 +130,7 @@ func TestElement(t *testing.T) {
 
 			for _, tc := range testCases {
 				t.Run(tc.name, func(t *testing.T) {
-					want := NewErrTooSmall()
+					want := newErrTooSmall()
 					size, got := tc.elem.value.valueSize()
 					if size != tc.size {
 						t.Errorf("Did not return correct number of bytes read. got %d; want %d", size, tc.size)
@@ -150,7 +152,7 @@ func TestElement(t *testing.T) {
 				expectedBytes []byte
 				err           error
 			}{
-				{"Nil Value", &Element{nil}, nil, ErrUninitializedElement},
+				{"Nil Value", &Element{nil}, nil, bsonerr.UninitializedElement},
 			}
 
 			for _, tc := range testCases {
@@ -175,7 +177,7 @@ func TestElement(t *testing.T) {
 				err           error
 			}{
 				{"Empty Element value",
-					&Element{&Value{start: 0, offset: 0, data: nil}}, nil, ErrUninitializedElement,
+					&Element{&Value{start: 0, offset: 0, data: nil}}, nil, bsonerr.UninitializedElement,
 				},
 			}
 
@@ -831,16 +833,16 @@ func TestElement(t *testing.T) {
 				val   float64
 				fault error
 			}{
-				{"Nil Value", &Element{nil}, 0, ErrUninitializedElement},
+				{"Nil Value", &Element{nil}, 0, bsonerr.UninitializedElement},
 				{"Empty Element value",
-					&Element{&Value{start: 0, offset: 0, data: nil}}, 0, ErrUninitializedElement,
+					&Element{&Value{start: 0, offset: 0, data: nil}}, 0, bsonerr.UninitializedElement,
 				},
 				{"Empty Element data",
-					&Element{&Value{start: 0, offset: 2, data: nil}}, 0, ErrUninitializedElement,
+					&Element{&Value{start: 0, offset: 2, data: nil}}, 0, bsonerr.UninitializedElement,
 				},
 				{"Not double",
 					&Element{&Value{start: 0, offset: 2, data: []byte{0x02, 0x00}}}, 0,
-					ElementTypeError{"compact.Element.double", bsontype.Type(0x02)},
+					bsonerr.ElementType{"compact.Element.double", bsontype.Type(0x02)},
 				},
 				{"Success",
 					&Element{&Value{
@@ -874,16 +876,16 @@ func TestElement(t *testing.T) {
 				val   string
 				fault error
 			}{
-				{"Nil Value", &Element{nil}, "", ErrUninitializedElement},
+				{"Nil Value", &Element{nil}, "", bsonerr.UninitializedElement},
 				{"Empty Element value",
-					&Element{&Value{start: 0, offset: 0, data: nil}}, "", ErrUninitializedElement,
+					&Element{&Value{start: 0, offset: 0, data: nil}}, "", bsonerr.UninitializedElement,
 				},
 				{"Empty Element data",
-					&Element{&Value{start: 0, offset: 2, data: nil}}, "", ErrUninitializedElement,
+					&Element{&Value{start: 0, offset: 2, data: nil}}, "", bsonerr.UninitializedElement,
 				},
 				{"Not String",
 					&Element{&Value{start: 0, offset: 2, data: []byte{0x01, 0x00}}}, "",
-					ElementTypeError{"compact.Element.String", bsontype.Type(0x01)},
+					bsonerr.ElementType{"compact.Element.String", bsontype.Type(0x01)},
 				},
 				{"Success",
 					&Element{&Value{
@@ -917,16 +919,16 @@ func TestElement(t *testing.T) {
 				val   Reader
 				fault error
 			}{
-				{"Nil Value", &Element{nil}, nil, ErrUninitializedElement},
+				{"Nil Value", &Element{nil}, nil, bsonerr.UninitializedElement},
 				{"Empty Element value",
-					&Element{&Value{start: 0, offset: 0, data: nil}}, nil, ErrUninitializedElement,
+					&Element{&Value{start: 0, offset: 0, data: nil}}, nil, bsonerr.UninitializedElement,
 				},
 				{"Empty Element data",
-					&Element{&Value{start: 0, offset: 2, data: nil}}, nil, ErrUninitializedElement,
+					&Element{&Value{start: 0, offset: 2, data: nil}}, nil, bsonerr.UninitializedElement,
 				},
 				{"Not Document",
 					&Element{&Value{start: 0, offset: 2, data: []byte{0x01, 0x00}}}, nil,
-					ElementTypeError{"compact.Element.Document", bsontype.Type(0x01)},
+					bsonerr.ElementType{"compact.Element.Document", bsontype.Type(0x01)},
 				},
 				{"Success",
 					&Element{&Value{
@@ -960,16 +962,16 @@ func TestElement(t *testing.T) {
 				val   Reader
 				fault error
 			}{
-				{"Nil Value", &Element{nil}, nil, ErrUninitializedElement},
+				{"Nil Value", &Element{nil}, nil, bsonerr.UninitializedElement},
 				{"Empty Element value",
-					&Element{&Value{start: 0, offset: 0, data: nil}}, nil, ErrUninitializedElement,
+					&Element{&Value{start: 0, offset: 0, data: nil}}, nil, bsonerr.UninitializedElement,
 				},
 				{"Empty Element data",
-					&Element{&Value{start: 0, offset: 2, data: nil}}, nil, ErrUninitializedElement,
+					&Element{&Value{start: 0, offset: 2, data: nil}}, nil, bsonerr.UninitializedElement,
 				},
 				{"Not Array",
 					&Element{&Value{start: 0, offset: 2, data: []byte{0x01, 0x00}}}, nil,
-					ElementTypeError{"compact.Element.Array", bsontype.Type(0x01)},
+					bsonerr.ElementType{"compact.Element.Array", bsontype.Type(0x01)},
 				},
 				{"Success",
 					&Element{&Value{
@@ -1004,16 +1006,16 @@ func TestElement(t *testing.T) {
 				val     []byte
 				fault   error
 			}{
-				{"Nil Value", &Element{nil}, 0x00, nil, ErrUninitializedElement},
+				{"Nil Value", &Element{nil}, 0x00, nil, bsonerr.UninitializedElement},
 				{"Empty Element value",
-					&Element{&Value{start: 0, offset: 0, data: nil}}, 0x00, nil, ErrUninitializedElement,
+					&Element{&Value{start: 0, offset: 0, data: nil}}, 0x00, nil, bsonerr.UninitializedElement,
 				},
 				{"Empty Element data",
-					&Element{&Value{start: 0, offset: 2, data: nil}}, 0x00, nil, ErrUninitializedElement,
+					&Element{&Value{start: 0, offset: 2, data: nil}}, 0x00, nil, bsonerr.UninitializedElement,
 				},
 				{"Not binary",
 					&Element{&Value{start: 0, offset: 2, data: []byte{0x01, 0x00}}}, 0x00, nil,
-					ElementTypeError{"compact.Element.binary", bsontype.Type(0x01)},
+					bsonerr.ElementType{"compact.Element.binary", bsontype.Type(0x01)},
 				},
 				{"Success",
 					&Element{&Value{
@@ -1048,19 +1050,19 @@ func TestElement(t *testing.T) {
 			testCases := []struct {
 				name  string
 				elem  *Element
-				val   objectid.ObjectID
+				val   types.ObjectID
 				fault error
 			}{
-				{"Nil Value", &Element{nil}, empty, ErrUninitializedElement},
+				{"Nil Value", &Element{nil}, empty, bsonerr.UninitializedElement},
 				{"Empty Element value",
-					&Element{&Value{start: 0, offset: 0, data: nil}}, empty, ErrUninitializedElement,
+					&Element{&Value{start: 0, offset: 0, data: nil}}, empty, bsonerr.UninitializedElement,
 				},
 				{"Empty Element data",
-					&Element{&Value{start: 0, offset: 2, data: nil}}, empty, ErrUninitializedElement,
+					&Element{&Value{start: 0, offset: 2, data: nil}}, empty, bsonerr.UninitializedElement,
 				},
 				{"Not objectID",
 					&Element{&Value{start: 0, offset: 2, data: []byte{0x01, 0x00}}}, empty,
-					ElementTypeError{"compact.Element.ObejctID", bsontype.Type(0x01)},
+					bsonerr.ElementType{"compact.Element.ObejctID", bsontype.Type(0x01)},
 				},
 				{"Success",
 					&Element{&Value{
@@ -1100,16 +1102,16 @@ func TestElement(t *testing.T) {
 				val   bool
 				fault error
 			}{
-				{"Nil Value", &Element{nil}, false, ErrUninitializedElement},
+				{"Nil Value", &Element{nil}, false, bsonerr.UninitializedElement},
 				{"Empty Element value",
-					&Element{&Value{start: 0, offset: 0, data: nil}}, false, ErrUninitializedElement,
+					&Element{&Value{start: 0, offset: 0, data: nil}}, false, bsonerr.UninitializedElement,
 				},
 				{"Empty Element data",
-					&Element{&Value{start: 0, offset: 2, data: nil}}, false, ErrUninitializedElement,
+					&Element{&Value{start: 0, offset: 2, data: nil}}, false, bsonerr.UninitializedElement,
 				},
 				{"Not Boolean",
 					&Element{&Value{start: 0, offset: 2, data: []byte{0x01, 0x00}}}, false,
-					ElementTypeError{"compact.Element.Boolean", bsontype.Type(0x01)},
+					bsonerr.ElementType{"compact.Element.Boolean", bsontype.Type(0x01)},
 				},
 				{"Success",
 					&Element{&Value{
@@ -1144,16 +1146,16 @@ func TestElement(t *testing.T) {
 				val   time.Time
 				fault error
 			}{
-				{"Nil Value", &Element{nil}, empty, ErrUninitializedElement},
+				{"Nil Value", &Element{nil}, empty, bsonerr.UninitializedElement},
 				{"Empty Element value",
-					&Element{&Value{start: 0, offset: 0, data: nil}}, empty, ErrUninitializedElement,
+					&Element{&Value{start: 0, offset: 0, data: nil}}, empty, bsonerr.UninitializedElement,
 				},
 				{"Empty Element data",
-					&Element{&Value{start: 0, offset: 2, data: nil}}, empty, ErrUninitializedElement,
+					&Element{&Value{start: 0, offset: 2, data: nil}}, empty, bsonerr.UninitializedElement,
 				},
 				{"Not UTC dateTime",
 					&Element{&Value{start: 0, offset: 2, data: []byte{0x01, 0x00}}}, empty,
-					ElementTypeError{"compact.Element.dateTime", bsontype.Type(0x01)},
+					bsonerr.ElementType{"compact.Element.dateTime", bsontype.Type(0x01)},
 				},
 				{"Success",
 					&Element{&Value{
@@ -1188,16 +1190,16 @@ func TestElement(t *testing.T) {
 				val   int64
 				fault error
 			}{
-				{"Nil Value", &Element{nil}, empty, ErrUninitializedElement},
+				{"Nil Value", &Element{nil}, empty, bsonerr.UninitializedElement},
 				{"Empty Element value",
-					&Element{&Value{start: 0, offset: 0, data: nil}}, empty, ErrUninitializedElement,
+					&Element{&Value{start: 0, offset: 0, data: nil}}, empty, bsonerr.UninitializedElement,
 				},
 				{"Empty Element data",
-					&Element{&Value{start: 0, offset: 2, data: nil}}, empty, ErrUninitializedElement,
+					&Element{&Value{start: 0, offset: 2, data: nil}}, empty, bsonerr.UninitializedElement,
 				},
 				{"Not UTC dateTime",
 					&Element{&Value{start: 0, offset: 2, data: []byte{0x01, 0x00}}}, empty,
-					ElementTypeError{"compact.Element.dateTime", bsontype.Type(0x01)},
+					bsonerr.ElementType{"compact.Element.dateTime", bsontype.Type(0x01)},
 				},
 				{"Success",
 					&Element{&Value{
@@ -1232,16 +1234,16 @@ func TestElement(t *testing.T) {
 				options string
 				fault   error
 			}{
-				{"Nil Value", &Element{nil}, "", "", ErrUninitializedElement},
+				{"Nil Value", &Element{nil}, "", "", bsonerr.UninitializedElement},
 				{"Empty Element value",
-					&Element{&Value{start: 0, offset: 0, data: nil}}, "", "", ErrUninitializedElement,
+					&Element{&Value{start: 0, offset: 0, data: nil}}, "", "", bsonerr.UninitializedElement,
 				},
 				{"Empty Element data",
-					&Element{&Value{start: 0, offset: 2, data: nil}}, "", "", ErrUninitializedElement,
+					&Element{&Value{start: 0, offset: 2, data: nil}}, "", "", bsonerr.UninitializedElement,
 				},
 				{"Not regex",
 					&Element{&Value{start: 0, offset: 2, data: []byte{0x01, 0x00}}}, "", "",
-					ElementTypeError{"compact.Element.regex", bsontype.Type(0x01)},
+					bsonerr.ElementType{"compact.Element.regex", bsontype.Type(0x01)},
 				},
 				{"Success",
 					&Element{&Value{
@@ -1277,19 +1279,19 @@ func TestElement(t *testing.T) {
 				name    string
 				elem    *Element
 				ns      string
-				pointer objectid.ObjectID
+				pointer types.ObjectID
 				fault   error
 			}{
-				{"Nil Value", &Element{nil}, "", empty, ErrUninitializedElement},
+				{"Nil Value", &Element{nil}, "", empty, bsonerr.UninitializedElement},
 				{"Empty Element value",
-					&Element{&Value{start: 0, offset: 0, data: nil}}, "", empty, ErrUninitializedElement,
+					&Element{&Value{start: 0, offset: 0, data: nil}}, "", empty, bsonerr.UninitializedElement,
 				},
 				{"Empty Element data",
-					&Element{&Value{start: 0, offset: 2, data: nil}}, "", empty, ErrUninitializedElement,
+					&Element{&Value{start: 0, offset: 2, data: nil}}, "", empty, bsonerr.UninitializedElement,
 				},
 				{"Not dbPointer",
 					&Element{&Value{start: 0, offset: 2, data: []byte{0x01, 0x00}}}, "", empty,
-					ElementTypeError{"compact.Element.dbPointer", bsontype.Type(0x01)},
+					bsonerr.ElementType{"compact.Element.dbPointer", bsontype.Type(0x01)},
 				},
 				{"Success",
 					&Element{&Value{
@@ -1334,16 +1336,16 @@ func TestElement(t *testing.T) {
 				val   string
 				fault error
 			}{
-				{"Nil Value", &Element{nil}, "", ErrUninitializedElement},
+				{"Nil Value", &Element{nil}, "", bsonerr.UninitializedElement},
 				{"Empty Element value",
-					&Element{&Value{start: 0, offset: 0, data: nil}}, "", ErrUninitializedElement,
+					&Element{&Value{start: 0, offset: 0, data: nil}}, "", bsonerr.UninitializedElement,
 				},
 				{"Empty Element data",
-					&Element{&Value{start: 0, offset: 2, data: nil}}, "", ErrUninitializedElement,
+					&Element{&Value{start: 0, offset: 2, data: nil}}, "", bsonerr.UninitializedElement,
 				},
 				{"Not JavaScript",
 					&Element{&Value{start: 0, offset: 2, data: []byte{0x01, 0x00}}}, "",
-					ElementTypeError{"compact.Element.JavaScript", bsontype.Type(0x01)},
+					bsonerr.ElementType{"compact.Element.JavaScript", bsontype.Type(0x01)},
 				},
 				{"Success",
 					&Element{&Value{
@@ -1377,16 +1379,16 @@ func TestElement(t *testing.T) {
 				val   string
 				fault error
 			}{
-				{"Nil Value", &Element{nil}, "", ErrUninitializedElement},
+				{"Nil Value", &Element{nil}, "", bsonerr.UninitializedElement},
 				{"Empty Element value",
-					&Element{&Value{start: 0, offset: 0, data: nil}}, "", ErrUninitializedElement,
+					&Element{&Value{start: 0, offset: 0, data: nil}}, "", bsonerr.UninitializedElement,
 				},
 				{"Empty Element data",
-					&Element{&Value{start: 0, offset: 2, data: nil}}, "", ErrUninitializedElement,
+					&Element{&Value{start: 0, offset: 2, data: nil}}, "", bsonerr.UninitializedElement,
 				},
 				{"Not JavaScript",
 					&Element{&Value{start: 0, offset: 2, data: []byte{0x01, 0x00}}}, "",
-					ElementTypeError{"compact.Element.symbol", bsontype.Type(0x01)},
+					bsonerr.ElementType{"compact.Element.symbol", bsontype.Type(0x01)},
 				},
 				{"Success",
 					&Element{&Value{
@@ -1421,16 +1423,16 @@ func TestElement(t *testing.T) {
 				scope Reader
 				fault error
 			}{
-				{"Nil Value", &Element{nil}, "", nil, ErrUninitializedElement},
+				{"Nil Value", &Element{nil}, "", nil, bsonerr.UninitializedElement},
 				{"Empty Element value",
-					&Element{&Value{start: 0, offset: 0, data: nil}}, "", nil, ErrUninitializedElement,
+					&Element{&Value{start: 0, offset: 0, data: nil}}, "", nil, bsonerr.UninitializedElement,
 				},
 				{"Empty Element data",
-					&Element{&Value{start: 0, offset: 2, data: nil}}, "", nil, ErrUninitializedElement,
+					&Element{&Value{start: 0, offset: 2, data: nil}}, "", nil, bsonerr.UninitializedElement,
 				},
 				{"Not JavascriptWithScope",
 					&Element{&Value{start: 0, offset: 2, data: []byte{0x01, 0x00}}}, "", nil,
-					ElementTypeError{"compact.Element.JavaScriptWithScope", bsontype.Type(0x01)},
+					bsonerr.ElementType{"compact.Element.JavaScriptWithScope", bsontype.Type(0x01)},
 				},
 				{"Success",
 					&Element{&Value{
@@ -1471,16 +1473,16 @@ func TestElement(t *testing.T) {
 				val   int32
 				fault error
 			}{
-				{"Nil Value", &Element{nil}, 0, ErrUninitializedElement},
+				{"Nil Value", &Element{nil}, 0, bsonerr.UninitializedElement},
 				{"Empty Element value",
-					&Element{&Value{start: 0, offset: 0, data: nil}}, 0, ErrUninitializedElement,
+					&Element{&Value{start: 0, offset: 0, data: nil}}, 0, bsonerr.UninitializedElement,
 				},
 				{"Empty Element data",
-					&Element{&Value{start: 0, offset: 2, data: nil}}, 0, ErrUninitializedElement,
+					&Element{&Value{start: 0, offset: 2, data: nil}}, 0, bsonerr.UninitializedElement,
 				},
 				{"Not int32",
 					&Element{&Value{start: 0, offset: 2, data: []byte{0x02, 0x00}}}, 0,
-					ElementTypeError{"compact.Element.int32", bsontype.Type(0x02)},
+					bsonerr.ElementType{"compact.Element.int32", bsontype.Type(0x02)},
 				},
 				{"Success",
 					&Element{&Value{
@@ -1515,16 +1517,16 @@ func TestElement(t *testing.T) {
 				i     uint32
 				fault error
 			}{
-				{"Nil Value", &Element{nil}, 0, 0, ErrUninitializedElement},
+				{"Nil Value", &Element{nil}, 0, 0, bsonerr.UninitializedElement},
 				{"Empty Element value",
-					&Element{&Value{start: 0, offset: 0, data: nil}}, 0, 0, ErrUninitializedElement,
+					&Element{&Value{start: 0, offset: 0, data: nil}}, 0, 0, bsonerr.UninitializedElement,
 				},
 				{"Empty Element data",
-					&Element{&Value{start: 0, offset: 2, data: nil}}, 0, 0, ErrUninitializedElement,
+					&Element{&Value{start: 0, offset: 2, data: nil}}, 0, 0, bsonerr.UninitializedElement,
 				},
 				{"Not timestamp",
 					&Element{&Value{start: 0, offset: 2, data: []byte{0x02, 0x00}}}, 0, 0,
-					ElementTypeError{"compact.Element.timestamp", bsontype.Type(0x02)},
+					bsonerr.ElementType{"compact.Element.timestamp", bsontype.Type(0x02)},
 				},
 				{"Success",
 					&Element{&Value{
@@ -1559,16 +1561,16 @@ func TestElement(t *testing.T) {
 				val   int64
 				fault error
 			}{
-				{"Nil Value", &Element{nil}, 0, ErrUninitializedElement},
+				{"Nil Value", &Element{nil}, 0, bsonerr.UninitializedElement},
 				{"Empty Element value",
-					&Element{&Value{start: 0, offset: 0, data: nil}}, 0, ErrUninitializedElement,
+					&Element{&Value{start: 0, offset: 0, data: nil}}, 0, bsonerr.UninitializedElement,
 				},
 				{"Empty Element data",
-					&Element{&Value{start: 0, offset: 2, data: nil}}, 0, ErrUninitializedElement,
+					&Element{&Value{start: 0, offset: 2, data: nil}}, 0, bsonerr.UninitializedElement,
 				},
 				{"Not int64Type",
 					&Element{&Value{start: 0, offset: 2, data: []byte{0x02, 0x00}}}, 0,
-					ElementTypeError{"compact.Element.int64Type", bsontype.Type(0x02)},
+					bsonerr.ElementType{"compact.Element.int64Type", bsontype.Type(0x02)},
 				},
 				{"Success",
 					&Element{&Value{
@@ -1603,16 +1605,16 @@ func TestElement(t *testing.T) {
 				val   decimal.Decimal128
 				fault error
 			}{
-				{"Nil Value", &Element{nil}, empty, ErrUninitializedElement},
+				{"Nil Value", &Element{nil}, empty, bsonerr.UninitializedElement},
 				{"Empty Element value",
-					&Element{&Value{start: 0, offset: 0, data: nil}}, empty, ErrUninitializedElement,
+					&Element{&Value{start: 0, offset: 0, data: nil}}, empty, bsonerr.UninitializedElement,
 				},
 				{"Empty Element data",
-					&Element{&Value{start: 0, offset: 2, data: nil}}, empty, ErrUninitializedElement,
+					&Element{&Value{start: 0, offset: 2, data: nil}}, empty, bsonerr.UninitializedElement,
 				},
 				{"Not int64Type",
 					&Element{&Value{start: 0, offset: 2, data: []byte{0x02, 0x00}}}, empty,
-					ElementTypeError{"compact.Element.Decimal128", bsontype.Type(0x02)},
+					bsonerr.ElementType{"compact.Element.Decimal128", bsontype.Type(0x02)},
 				},
 				{"Success",
 					&Element{&Value{
@@ -1650,12 +1652,12 @@ func TestElement(t *testing.T) {
 			key   string
 			fault error
 		}{
-			{"Nil Value", &Element{nil}, "", ErrUninitializedElement},
+			{"Nil Value", &Element{nil}, "", bsonerr.UninitializedElement},
 			{"Empty Element value",
-				&Element{&Value{start: 0, offset: 0, data: nil}}, "", ErrUninitializedElement,
+				&Element{&Value{start: 0, offset: 0, data: nil}}, "", bsonerr.UninitializedElement,
 			},
 			{"Empty Element data",
-				&Element{&Value{start: 0, offset: 2, data: nil}}, "", ErrUninitializedElement,
+				&Element{&Value{start: 0, offset: 2, data: nil}}, "", bsonerr.UninitializedElement,
 			},
 			{"Success",
 				&Element{&Value{
@@ -1689,12 +1691,12 @@ func TestElement(t *testing.T) {
 			etype bsontype.Type
 			fault error
 		}{
-			{"Nil Value", &Element{nil}, 0x0, ErrUninitializedElement},
+			{"Nil Value", &Element{nil}, 0x0, bsonerr.UninitializedElement},
 			{"Empty Element value",
-				&Element{&Value{start: 0, offset: 0, data: nil}}, 0x00, ErrUninitializedElement,
+				&Element{&Value{start: 0, offset: 0, data: nil}}, 0x00, bsonerr.UninitializedElement,
 			},
 			{"Empty Element data",
-				&Element{&Value{start: 0, offset: 2, data: nil}}, 0x00, ErrUninitializedElement,
+				&Element{&Value{start: 0, offset: 2, data: nil}}, 0x00, bsonerr.UninitializedElement,
 			},
 			{"Success",
 				&Element{&Value{
@@ -1721,6 +1723,12 @@ func TestElement(t *testing.T) {
 			})
 		}
 	})
+	t.Run("SetValue", func(t *testing.T) {
+		elem := EC.Int("foo", 300)
+		elem.SetValue(VC.Int32(42))
+		assert.Equal(t, 42, elem.Value().Int())
+	})
+
 }
 
 func testConvertValueToElem(t *testing.T) {
@@ -1760,7 +1768,7 @@ func testValidateValue(t *testing.T) {
 					start: 0, offset: 2,
 					data: []byte{0x01, 0x00, 0x00, 0x00},
 				}},
-				0, NewErrTooSmall(),
+				0, newErrTooSmall(),
 			},
 			{"Success",
 				&Element{&Value{
@@ -1792,21 +1800,21 @@ func testValidateValue(t *testing.T) {
 					start: 0, offset: 2,
 					data: []byte{0x02, 0x00, 0x00, 0x00},
 				}},
-				true, 0, NewErrTooSmall(),
+				true, 0, newErrTooSmall(),
 			},
 			{"Too Small >4",
 				&Element{&Value{
 					start: 0, offset: 2,
 					data: []byte{0x02, 0x00, 0xFF, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00},
 				}},
-				true, 4, NewErrTooSmall(),
+				true, 4, newErrTooSmall(),
 			},
 			{"Invalid String Value",
 				&Element{&Value{
 					start: 0, offset: 2,
 					data: []byte{0x02, 0x00, 0x03, 0x00, 0x00, 0x00, 'f', 'o', 'o'},
 				}},
-				false, 4, ErrInvalidString,
+				false, 4, bsonerr.InvalidString,
 			},
 			{"Shouldn't Deep Validate",
 				&Element{&Value{
@@ -1838,17 +1846,17 @@ func testValidateValue(t *testing.T) {
 			{"Document/too small <4",
 				&Element{&Value{
 					start: 0, offset: 2, data: []byte{0x03, 0x00, 0x00, 0x00},
-				}}, true, 0, NewErrTooSmall(),
+				}}, true, 0, newErrTooSmall(),
 			},
 			{"Document/too small >4",
 				&Element{&Value{
 					start: 0, offset: 2, data: []byte{0x03, 0x00, 0xFF, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00},
-				}}, true, 4, NewErrTooSmall(),
+				}}, true, 4, newErrTooSmall(),
 			},
 			{"Document/invalid document <5",
 				&Element{&Value{
 					start: 0, offset: 2, data: []byte{0x03, 0x00, 0x03, 0x00, 0x00, 0x00, 'f', 'o', 'o'},
-				}}, true, 4, ErrInvalidReadOnlyDocument,
+				}}, true, 4, bsonerr.InvalidReadOnlyDocument,
 			},
 			{"Document/shouldn't deep validate",
 				&Element{&Value{
@@ -1858,7 +1866,7 @@ func testValidateValue(t *testing.T) {
 			{"Document/should deep validate",
 				&Element{&Value{
 					start: 0, offset: 2, data: []byte{0x03, 0x00, 0x09, 0x00, 0x00, 0x00, 'f', 'o', 'o', 'o', 'o'},
-				}}, false, 9, ErrInvalidKey,
+				}}, false, 9, bsonerr.InvalidKey,
 			},
 			{"Document/success",
 				&Element{&Value{
@@ -1868,17 +1876,17 @@ func testValidateValue(t *testing.T) {
 			{"Array/too small <4",
 				&Element{&Value{
 					start: 0, offset: 2, data: []byte{0x04, 0x00, 0x00, 0x00},
-				}}, true, 0, NewErrTooSmall(),
+				}}, true, 0, newErrTooSmall(),
 			},
 			{"Array/too small >4",
 				&Element{&Value{
 					start: 0, offset: 2, data: []byte{0x04, 0x00, 0xFF, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00},
-				}}, true, 4, NewErrTooSmall(),
+				}}, true, 4, newErrTooSmall(),
 			},
 			{"Array/invalid document <5",
 				&Element{&Value{
 					start: 0, offset: 2, data: []byte{0x04, 0x00, 0x03, 0x00, 0x00, 0x00, 'f', 'o', 'o'},
-				}}, true, 4, ErrInvalidReadOnlyDocument,
+				}}, true, 4, bsonerr.InvalidReadOnlyDocument,
 			},
 			{"Array/shouldn't deep validate",
 				&Element{&Value{
@@ -1888,7 +1896,7 @@ func testValidateValue(t *testing.T) {
 			{"Array/should deep validate",
 				&Element{&Value{
 					start: 0, offset: 2, data: []byte{0x04, 0x00, 0x09, 0x00, 0x00, 0x00, 'f', 'o', 'o', 'o', 'o'},
-				}}, false, 9, ErrInvalidKey,
+				}}, false, 9, bsonerr.InvalidKey,
 			},
 			{"Array/success",
 				&Element{&Value{
@@ -1925,19 +1933,19 @@ func testValidateValue(t *testing.T) {
 				&Element{&Value{
 					start: 0, offset: 2, data: []byte{0x05, 0x00, 0x00},
 				}},
-				0, NewErrTooSmall(),
+				0, newErrTooSmall(),
 			},
 			{"Invalid binary Subtype",
 				&Element{&Value{
 					start: 0, offset: 2, data: []byte{0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x7F},
 				}},
-				5, ErrInvalidBinarySubtype,
+				5, bsonerr.InvalidBinarySubtype,
 			},
 			{"Length Too Small",
 				&Element{&Value{
 					start: 0, offset: 2, data: []byte{0x05, 0x00, 0xFF, 0x00, 0x00, 0x00, 0x00},
 				}},
-				5, NewErrTooSmall(),
+				5, newErrTooSmall(),
 			},
 			{"Success",
 				&Element{&Value{
@@ -1995,7 +2003,7 @@ func testValidateValue(t *testing.T) {
 				&Element{&Value{
 					start: 0, offset: 2, data: []byte{0x07, 0x00, 0x00},
 				}},
-				0, NewErrTooSmall(),
+				0, newErrTooSmall(),
 			},
 			{"Success",
 				&Element{&Value{
@@ -2029,13 +2037,13 @@ func testValidateValue(t *testing.T) {
 				&Element{&Value{
 					start: 0, offset: 2, data: []byte{0x08, 0x00},
 				}},
-				0, NewErrTooSmall(),
+				0, newErrTooSmall(),
 			},
 			{"Invalid binary Type",
 				&Element{&Value{
 					start: 0, offset: 2, data: []byte{0x08, 0x00, 0x03},
 				}},
-				1, ErrInvalidBooleanType,
+				1, bsonerr.InvalidBooleanType,
 			},
 			{"True",
 				&Element{&Value{
@@ -2072,7 +2080,7 @@ func testValidateValue(t *testing.T) {
 				&Element{&Value{
 					start: 0, offset: 2, data: []byte{0x09, 0x00},
 				}},
-				0, NewErrTooSmall(),
+				0, newErrTooSmall(),
 			},
 			{"Success",
 				&Element{&Value{
@@ -2133,13 +2141,13 @@ func testValidateValue(t *testing.T) {
 				&Element{&Value{
 					start: 0, offset: 2, data: []byte{0x0B, 0x00, 'f', 'o', 'o'},
 				}},
-				3, ErrInvalidString,
+				3, bsonerr.InvalidString,
 			},
 			{"Second Invalid String",
 				&Element{&Value{
 					start: 0, offset: 2, data: []byte{0x0B, 0x00, 'f', 'o', 'o', 0x00, 'b', 'a', 'r'},
 				}},
-				7, ErrInvalidString,
+				7, bsonerr.InvalidString,
 			},
 			{"Success",
 				&Element{&Value{
@@ -2172,13 +2180,13 @@ func testValidateValue(t *testing.T) {
 				&Element{&Value{
 					start: 0, offset: 2, data: []byte{0x0C, 0x00},
 				}},
-				0, NewErrTooSmall(),
+				0, newErrTooSmall(),
 			},
 			{"Length Too Large",
 				&Element{&Value{
 					start: 0, offset: 2, data: []byte{0x0C, 0x00, 0xFF, 0x00, 0x00, 0x00, 0x00},
 				}},
-				4, NewErrTooSmall(),
+				4, newErrTooSmall(),
 			},
 			{"Success",
 				&Element{&Value{
@@ -2216,21 +2224,21 @@ func testValidateValue(t *testing.T) {
 					start: 0, offset: 2,
 					data: []byte{0x0D, 0x00, 0x00, 0x00},
 				}},
-				true, 0, NewErrTooSmall(),
+				true, 0, newErrTooSmall(),
 			},
 			{"Too Small >4",
 				&Element{&Value{
 					start: 0, offset: 2,
 					data: []byte{0x0D, 0x00, 0xFF, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00},
 				}},
-				true, 4, NewErrTooSmall(),
+				true, 4, newErrTooSmall(),
 			},
 			{"Invalid String Value",
 				&Element{&Value{
 					start: 0, offset: 2,
 					data: []byte{0x0D, 0x00, 0x03, 0x00, 0x00, 0x00, 'f', 'o', 'o'},
 				}},
-				false, 4, ErrInvalidString,
+				false, 4, bsonerr.InvalidString,
 			},
 			{"Shouldn't Deep Validate",
 				&Element{&Value{
@@ -2264,21 +2272,21 @@ func testValidateValue(t *testing.T) {
 					start: 0, offset: 2,
 					data: []byte{0x0E, 0x00, 0x00, 0x00},
 				}},
-				true, 0, NewErrTooSmall(),
+				true, 0, newErrTooSmall(),
 			},
 			{"Too Small >4",
 				&Element{&Value{
 					start: 0, offset: 2,
 					data: []byte{0x0E, 0x00, 0xFF, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00},
 				}},
-				true, 4, NewErrTooSmall(),
+				true, 4, newErrTooSmall(),
 			},
 			{"Invalid String Value",
 				&Element{&Value{
 					start: 0, offset: 2,
 					data: []byte{0x0E, 0x00, 0x03, 0x00, 0x00, 0x00, 'f', 'o', 'o'},
 				}},
-				false, 4, ErrInvalidString,
+				false, 4, bsonerr.InvalidString,
 			},
 			{"Shouldn't Deep Validate",
 				&Element{&Value{
@@ -2312,14 +2320,14 @@ func testValidateValue(t *testing.T) {
 					start: 0, offset: 2,
 					data: []byte{0x0F, 0x00, 0x00, 0x00},
 				}},
-				true, 0, NewErrTooSmall(),
+				true, 0, newErrTooSmall(),
 			},
 			{"Too Small >4",
 				&Element{&Value{
 					start: 0, offset: 2,
 					data: []byte{0x0F, 0x00, 0xFF, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00},
 				}},
-				true, 4, NewErrTooSmall(),
+				true, 4, newErrTooSmall(),
 			},
 			{"Shouldn't Deep Validate",
 				&Element{&Value{
@@ -2336,7 +2344,7 @@ func testValidateValue(t *testing.T) {
 						0x0C, 0x00, 0x00, 0x00,
 						0xFF, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00,
 					}}},
-				false, 8, ErrStringLargerThanContainer,
+				false, 8, bsonerr.StringLargerThanContainer,
 			},
 			{"Deep Validate Invalid String",
 				&Element{&Value{
@@ -2347,7 +2355,7 @@ func testValidateValue(t *testing.T) {
 						0x02, 0x00, 0x00, 0x00, 'f', 'o', 'o',
 						0xFF, 0x01, 0x02, 0x03, 0x04,
 					}}},
-				false, 8, ErrInvalidString,
+				false, 8, bsonerr.InvalidString,
 			},
 			{"Deep Validate Invalid Document",
 				&Element{&Value{
@@ -2358,7 +2366,7 @@ func testValidateValue(t *testing.T) {
 						0x04, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00,
 						0xFF, 0x00, 0x00, 0x00, 0x00,
 					}}},
-				false, 12, ErrInvalidLength,
+				false, 12, bsonerr.InvalidLength,
 			},
 			{"Success",
 				&Element{&Value{
@@ -2395,7 +2403,7 @@ func testValidateValue(t *testing.T) {
 					start: 0, offset: 2,
 					data: []byte{0x10, 0x00, 0x00, 0x00},
 				}},
-				0, NewErrTooSmall(),
+				0, newErrTooSmall(),
 			},
 			{"Success",
 				&Element{&Value{
@@ -2428,7 +2436,7 @@ func testValidateValue(t *testing.T) {
 					start: 0, offset: 2,
 					data: []byte{0x11, 0x00, 0x00, 0x00},
 				}},
-				0, NewErrTooSmall(),
+				0, newErrTooSmall(),
 			},
 			{"Success",
 				&Element{&Value{
@@ -2461,7 +2469,7 @@ func testValidateValue(t *testing.T) {
 					start: 0, offset: 2,
 					data: []byte{0x12, 0x00, 0x00, 0x00},
 				}},
-				0, NewErrTooSmall(),
+				0, newErrTooSmall(),
 			},
 			{"Success",
 				&Element{&Value{
@@ -2494,7 +2502,7 @@ func testValidateValue(t *testing.T) {
 					start: 0, offset: 2,
 					data: []byte{0x13, 0x00, 0x00, 0x00},
 				}},
-				0, NewErrTooSmall(),
+				0, newErrTooSmall(),
 			},
 			{"Success",
 				&Element{&Value{
@@ -2573,7 +2581,7 @@ func testValidateValue(t *testing.T) {
 		}
 	})
 	t.Run("Invalid Element", func(t *testing.T) {
-		want := ErrInvalidElement
+		want := bsonerr.InvalidElement
 		var wantSize uint32
 		gotSize, got := (&Value{start: 0, offset: 2, data: []byte{0xEE, 0x00}}).validate(false)
 		if gotSize != wantSize {
@@ -2600,19 +2608,19 @@ func testValidateValue(t *testing.T) {
 			want string
 		}{
 			{
-				"nested document",
-				NewDocument(
+				name: "nested document",
+				doc: NewDocument(
 					EC.String("foo", "bar"),
 					EC.SubDocumentFromElements("fooer",
 						EC.SubDocumentFromElements("barer", EC.Int32("ok", 1)),
 					),
 				),
-				`bson.Document{bson.Element{[string]"foo": "bar"}, bson.Element{[embedded document]"fooer": bson.Reader{bson.Element{[embedded document]"barer": bson.Reader{bson.Element{[32-bit integer]"ok": 1}}}}}}`,
+				want: `bson.Document{bson.Element{[string]"foo": "bar"}, bson.Element{[embedded document]"fooer": map[barer:map[ok:1]]}}`,
 			},
 			{
-				"nested reader",
-				rdr,
-				`bson.Reader{bson.Element{[string]"foo": "bar"}, bson.Element{[embedded document]"fooer": bson.Reader{bson.Element{[embedded document]"barer": bson.Reader{bson.Element{[32-bit integer]"ok": 1}}}}}}`,
+				name: "nested reader",
+				doc:  rdr,
+				want: `bson.Reader{bson.Element{[string]"foo": "bar"}, bson.Element{[embedded document]"fooer": map[barer:map[ok:1]]}}`,
 			},
 		}
 

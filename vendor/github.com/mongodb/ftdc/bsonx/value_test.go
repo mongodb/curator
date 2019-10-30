@@ -4,13 +4,16 @@ import (
 	"encoding/binary"
 	"math"
 	"testing"
+
+	"github.com/mongodb/ftdc/bsonx/bsonerr"
+	"github.com/mongodb/ftdc/bsonx/bsontype"
 )
 
 func TestValue(t *testing.T) {
 	t.Run("panic", func(t *testing.T) {
 		handle := func() {
-			if got := recover(); got != ErrUninitializedElement {
-				want := ErrUninitializedElement
+			if got := recover(); got != bsonerr.UninitializedElement {
+				want := bsonerr.UninitializedElement
 				t.Errorf("Incorrect value for panic. got %s; want %s", got, want)
 			}
 		}
@@ -56,7 +59,7 @@ func TestValue(t *testing.T) {
 			'\x00',
 		}
 		e := &Element{&Value{start: 4, offset: 9, data: buf}}
-		want := TypeString
+		want := bsontype.String
 		got := e.value.Type()
 		if got != want {
 			t.Errorf("Unexpected result. got %v; want %v", got, want)
@@ -101,7 +104,7 @@ func TestValue(t *testing.T) {
 					NewDocument(EC.Boolean("foo", true)),
 				)).MarshalBSON()
 			noerr(t, err)
-			elem, err := Reader(b).Lookup("cws")
+			elem, err := Reader(b).RecursiveLookup("cws")
 			noerr(t, err)
 			return elem.Value()
 		}

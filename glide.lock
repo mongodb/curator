@@ -44,11 +44,11 @@ imports:
   version: 1b77c8dfcc6baca12dedfab119135396782b68a1
 
 - name: github.com/mongodb/ftdc
-  version: 5a679be78545cb8aceb3f798b71518a4677d8475
+  version: b1b44cf77c23d879f8460fc68ba3297116746efb
 - name: github.com/mongodb/jasper
   version: 24607954ecbc513a690707528e363aa14bd0dfaf
 - name: github.com/evergreen-ci/poplar
-  version: 7701d359a2f78b280650d631cea8ef499c996312
+  version: 767213a2ceabfd38db0a6d9209491cdf0eebe4ff
 - name: github.com/evergreen-ci/pail
   version: b12ff61066800389f3f04e3b2418455bc46b2330
 - name: github.com/evergreen-ci/aviation

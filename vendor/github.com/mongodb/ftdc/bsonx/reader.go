@@ -12,11 +12,10 @@ import (
 	"io"
 	"strings"
 
+	"github.com/mongodb/ftdc/bsonx/bsonerr"
 	"github.com/pkg/errors"
 )
 
-// ErrNilReader indicates that an operation was attempted on a nil bson.Reader.
-var ErrNilReader = errors.New("nil reader")
 var errValidateDone = errors.New("validation loop complete")
 
 // Reader is a wrapper around a byte slice. It will interpret the slice as a
@@ -30,7 +29,7 @@ type Reader []byte
 // it.
 func NewFromIOReader(r io.Reader) (Reader, error) {
 	if r == nil {
-		return nil, ErrNilReader
+		return nil, bsonerr.NilReader
 	}
 
 	var lengthBytes [4]byte
@@ -41,12 +40,12 @@ func NewFromIOReader(r io.Reader) (Reader, error) {
 	}
 
 	if count < 4 {
-		return nil, NewErrTooSmall()
+		return nil, newErrTooSmall()
 	}
 
 	length := readi32(lengthBytes[:])
 	if length < 0 {
-		return nil, ErrInvalidLength
+		return nil, bsonerr.InvalidLength
 	}
 	reader := make([]byte, length)
 
@@ -58,7 +57,7 @@ func NewFromIOReader(r io.Reader) (Reader, error) {
 	}
 
 	if int32(count) != length-4 {
-		return nil, ErrInvalidLength
+		return nil, bsonerr.InvalidLength
 	}
 
 	return reader, nil
@@ -88,13 +87,13 @@ func (r Reader) validateKey(pos, end uint32) (uint32, error) {
 		total++
 	}
 	if pos == end || r[pos] != '\x00' {
-		return total, ErrInvalidKey
+		return total, bsonerr.InvalidKey
 	}
 	total++
 	return total, nil
 }
 
-// Lookup search the document, potentially recursively, for the given key. If
+// RecursiveLookup search the document, potentially recursively, for the given key. If
 // there are multiple keys provided, this method will recurse down, as long as
 // the top and intermediate nodes are either documents or arrays. If any key
 // except for the last is not a document or an array, an error will be returned.
@@ -103,9 +102,9 @@ func (r Reader) validateKey(pos, end uint32) (uint32, error) {
 //
 // TODO(skriptble): Determine if this should return an error on empty key and
 // key not found.
-func (r Reader) Lookup(key ...string) (*Element, error) {
+func (r Reader) RecursiveLookup(key ...string) (*Element, error) {
 	if len(key) < 1 {
-		return nil, ErrEmptyKey
+		return nil, bsonerr.EmptyKey
 	}
 
 	var elem *Element
@@ -114,21 +113,21 @@ func (r Reader) Lookup(key ...string) (*Element, error) {
 			if len(key) > 1 {
 				switch e.value.Type() {
 				case '\x03':
-					e, err := e.value.ReaderDocument().Lookup(key[1:]...)
+					e, err := e.value.ReaderDocument().RecursiveLookup(key[1:]...)
 					if err != nil {
 						return err
 					}
 					elem = e
 					return errValidateDone
 				case '\x04':
-					e, err := e.value.ReaderArray().Lookup(key[1:]...)
+					e, err := e.value.ReaderArray().RecursiveLookup(key[1:]...)
 					if err != nil {
 						return err
 					}
 					elem = e
 					return errValidateDone
 				default:
-					return ErrInvalidDepthTraversal
+					return bsonerr.InvalidDepthTraversal
 				}
 			}
 			elem = e
@@ -138,7 +137,7 @@ func (r Reader) Lookup(key ...string) (*Element, error) {
 	})
 
 	if elem == nil && err == nil {
-		return nil, ErrElementNotFound
+		return nil, bsonerr.ElementNotFound
 	}
 
 	return elem, err
@@ -162,15 +161,15 @@ func (r Reader) ElementAt(index uint) (*Element, error) {
 		return nil, err
 	}
 	if elem == nil {
-		return nil, ErrOutOfBounds
+		return nil, bsonerr.OutOfBounds
 	}
 	return elem, nil
 }
 
 // Iterator returns a ReaderIterator that can be used to iterate through the
 // elements of this Reader.
-func (r Reader) Iterator() (*ReaderIterator, error) {
-	return NewReaderIterator(r)
+func (r Reader) Iterator() (Iterator, error) {
+	return newReaderIterator(r)
 }
 
 // Keys returns the keys for this document. If recursive is true then this
@@ -251,14 +250,14 @@ func (r Reader) recursiveKeys(recursive bool, prefix ...string) (Keys, error) {
 // be returned by this method.
 func (r Reader) readElements(f func(e *Element) error) (uint32, error) {
 	if len(r) < 5 {
-		return 0, NewErrTooSmall()
+		return 0, newErrTooSmall()
 	}
 	// TODO(skriptble): We could support multiple documents in the same byte
 	// slice without reslicing if we have pos as a parameter and use that to
 	// get the length of the document.
 	givenLength := readi32(r[0:4])
 	if len(r) < int(givenLength) || givenLength < 0 {
-		return 0, ErrInvalidLength
+		return 0, bsonerr.InvalidLength
 	}
 	var pos uint32 = 4
 	var elemStart, elemValStart uint32
@@ -268,7 +267,7 @@ func (r Reader) readElements(f func(e *Element) error) (uint32, error) {
 		if pos >= end {
 			// We've gone off the end of the buffer and we're missing
 			// a null terminator.
-			return pos, ErrInvalidReadOnlyDocument
+			return pos, bsonerr.InvalidReadOnlyDocument
 		}
 		if r[pos] == '\x00' {
 			break

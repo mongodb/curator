@@ -9,9 +9,10 @@ package bsonx
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"strconv"
 
+	"github.com/mongodb/ftdc/bsonx/bsonerr"
+	"github.com/mongodb/ftdc/bsonx/bsontype"
 	"github.com/mongodb/ftdc/bsonx/elements"
 	"github.com/pkg/errors"
 )
@@ -42,7 +43,7 @@ func ArrayFromDocument(doc *Document) *Array {
 
 // MakeArray creates a new array with the size hint (capacity)
 // specified.
-func MakeArray(size int) *Array { return &Array{doc: MakeDocument(size)} }
+func MakeArray(size int) *Array { return &Array{doc: DC.Make(size)} }
 
 // Len returns the number of elements in the array.
 func (a *Array) Len() int {
@@ -82,17 +83,34 @@ func (a *Array) Validate() (uint32, error) {
 // a LookupOK that returns a bool. Although if we want to align with the
 // semantics of how Go arrays and slices work, we would not provide a LookupOK
 // and force users to use the Len method before hand to avoid panics.
-func (a *Array) Lookup(index uint) (*Value, error) {
+func (a *Array) Lookup(index uint) *Value {
+	return a.doc.ElementAt(index).value
+}
+
+func (a *Array) LookupErr(index uint) (*Value, error) {
 	v, ok := a.doc.ElementAtOK(index)
 	if !ok {
-		return nil, ErrOutOfBounds
+		return nil, bsonerr.OutOfBounds
 	}
 
 	return v.value, nil
 }
 
+func (a *Array) LookupElementErr(index uint) (*Element, error) {
+	v, ok := a.doc.ElementAtOK(index)
+	if !ok {
+		return nil, bsonerr.OutOfBounds
+	}
+
+	return v, nil
+}
+
+func (a *Array) LookupElement(index uint) *Element {
+	return a.doc.ElementAt(index)
+}
+
 func (a *Array) lookupTraverse(index uint, keys ...string) (*Value, error) {
-	value, err := a.Lookup(index)
+	value, err := a.LookupErr(index)
 	if err != nil {
 		return nil, err
 	}
@@ -102,17 +120,17 @@ func (a *Array) lookupTraverse(index uint, keys ...string) (*Value, error) {
 	}
 
 	switch value.Type() {
-	case TypeEmbeddedDocument:
-		element, err := value.MutableDocument().LookupElementErr(keys...)
+	case bsontype.EmbeddedDocument:
+		element, err := value.MutableDocument().RecursiveLookupElementErr(keys...)
 		if err != nil {
 			return nil, err
 		}
 
 		return element.Value(), nil
-	case TypeArray:
+	case bsontype.Array:
 		index, err := strconv.ParseUint(keys[0], 10, 0)
 		if err != nil {
-			return nil, ErrInvalidArrayKey
+			return nil, bsonerr.InvalidArrayKey
 		}
 
 		val, err := value.MutableArray().lookupTraverse(uint(index), keys[1:]...)
@@ -122,7 +140,7 @@ func (a *Array) lookupTraverse(index uint, keys ...string) (*Value, error) {
 
 		return val, nil
 	default:
-		return nil, ErrInvalidDepthTraversal
+		return nil, bsonerr.InvalidDepthTraversal
 	}
 }
 
@@ -164,7 +182,7 @@ func (a *Array) Prepend(values ...*Value) *Array {
 // out of bounds.
 func (a *Array) Set(index uint, value *Value) *Array {
 	if index >= uint(len(a.doc.elems)) {
-		panic(ErrOutOfBounds)
+		panic(bsonerr.OutOfBounds)
 	}
 
 	a.doc.elems[index] = &Element{value}
@@ -172,77 +190,8 @@ func (a *Array) Set(index uint, value *Value) *Array {
 	return a
 }
 
-// Concat will append all the values from each of the arguments onto the array.
-//
-// Each argument must be one of the following:
-//
-//   - *Array
-//   - *Document
-//   - []byte
-//   - bson.Reader
-//
-// Note that in the case of *Document, []byte, and bson.Reader, the keys will be ignored and only
-// the values will be appended.
-func (a *Array) Concat(docs ...interface{}) error {
-	for _, arr := range docs {
-		if arr == nil {
-			if a.doc.IgnoreNilInsert {
-				continue
-			}
-
-			return ErrNilDocument
-		}
-
-		switch val := arr.(type) {
-		case *Array:
-			if val == nil {
-				if a.doc.IgnoreNilInsert {
-					continue
-				}
-
-				return ErrNilDocument
-			}
-
-			for _, e := range val.doc.elems {
-				a.Append(e.value)
-			}
-		case *Document:
-			if val == nil {
-				if a.doc.IgnoreNilInsert {
-					continue
-				}
-
-				return ErrNilDocument
-			}
-
-			for _, e := range val.elems {
-				a.Append(e.value)
-			}
-		case []byte:
-			if err := a.concatReader(Reader(val)); err != nil {
-				return err
-			}
-		case Reader:
-			if err := a.concatReader(val); err != nil {
-				return err
-			}
-		default:
-			return ErrInvalidDocumentType
-		}
-	}
-
-	return nil
-}
-
-func (a *Array) concatReader(r Reader) error {
-	_, err := r.readElements(func(e *Element) error {
-		a.Append(e.value)
-
-		return nil
-	})
-
-	return err
-}
+func (a *Array) Extend(ar2 *Array) *Array                { a.doc.Append(ar2.doc.elems...); return a }
+func (a *Array) ExtendFromDocument(doc *Document) *Array { a.doc.Append(doc.elems...); return a }
 
 // Delete removes the value at the given index from the array.
 func (a *Array) Delete(index uint) *Value {
@@ -256,16 +205,6 @@ func (a *Array) Delete(index uint) *Value {
 	return elem.value
 }
 
-// WriteTo implements the io.WriterTo interface.
-func (a *Array) WriteTo(w io.Writer) (int64, error) {
-	b, err := a.MarshalBSON()
-	if err != nil {
-		return 0, err
-	}
-	n, err := w.Write(b)
-	return int64(n), err
-}
-
 // String implements the fmt.Stringer interface.
 func (a *Array) String() string {
 	var buf bytes.Buffer
@@ -274,32 +213,11 @@ func (a *Array) String() string {
 		if idx > 0 {
 			buf.Write([]byte(", "))
 		}
-		fmt.Fprintf(&buf, "%s", elem)
+		fmt.Fprintf(&buf, "%s", elem.value.Interface())
 	}
 	buf.WriteByte(']')
 
 	return buf.String()
-}
-
-// WriteArray will serialize this array to the provided writer beginning
-// at the provided start position.
-func (a *Array) WriteArray(start uint, writer []byte) (int64, error) {
-	var total int64
-	var pos = start
-
-	size, err := a.Validate()
-	if err != nil {
-		return total, err
-	}
-
-	n, err := a.writeByteSlice(pos, size, writer)
-	total += n
-	pos += uint(n)
-	if err != nil {
-		return total, err
-	}
-
-	return total, nil
 }
 
 // writeByteSlice handles serializing this array to a slice of bytes starting
@@ -309,7 +227,7 @@ func (a *Array) writeByteSlice(start uint, size uint32, b []byte) (int64, error)
 	var pos = start
 
 	if len(b) < int(start)+int(size) {
-		return 0, NewErrTooSmall()
+		return 0, newErrTooSmall()
 	}
 	n, err := elements.Int32.Encode(start, b, int32(size))
 	total += int64(n)
@@ -330,7 +248,7 @@ func (a *Array) writeByteSlice(start uint, size uint32, b []byte) (int64, error)
 		pos += uint(len(key))
 
 		n, err := elem.writeElement(false, pos, b)
-		total += int64(n)
+		total += n
 		pos += uint(n)
 		if err != nil {
 			return total, err
@@ -339,7 +257,6 @@ func (a *Array) writeByteSlice(start uint, size uint32, b []byte) (int64, error)
 
 	n, err = elements.Byte.Encode(pos, b, '\x00')
 	total += int64(n)
-	pos += uint(n)
 	if err != nil {
 		return total, err
 	}
@@ -362,39 +279,6 @@ func (a *Array) MarshalBSON() ([]byte, error) {
 
 // Iterator returns a ArrayIterator that can be used to iterate through the
 // elements of this Array.
-func (a *Array) Iterator() *ArrayIterator {
+func (a *Array) Iterator() Iterator {
 	return newArrayIterator(a)
-}
-
-// Equal compares this document to another, returning true if they are equal.
-func (a *Array) Equal(a2 *Array) bool {
-	if a == nil && a2 == nil {
-		return true
-	}
-
-	if a == nil || a2 == nil {
-		return false
-	}
-
-	if a.doc == nil && a2.doc == nil {
-		return true
-	}
-
-	if a.doc == nil || a2.doc == nil {
-		return false
-	}
-
-	if (len(a.doc.elems) != len(a2.doc.elems)) || (len(a.doc.index) != len(a2.doc.index)) {
-		return false
-	}
-
-	for index := range a.doc.elems {
-		v1 := a.doc.elems[index].value
-		v2 := a2.doc.elems[index].value
-
-		if !v1.Equal(v2) {
-			return false
-		}
-	}
-	return true
 }

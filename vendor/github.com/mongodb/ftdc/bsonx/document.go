@@ -13,54 +13,15 @@ import (
 	"sort"
 	"strconv"
 
+	"github.com/mongodb/ftdc/bsonx/bsonerr"
 	"github.com/mongodb/ftdc/bsonx/elements"
-	"github.com/pkg/errors"
 )
-
-// ErrInvalidReadOnlyDocument indicates that the underlying bytes of a bson.Reader are invalid.
-var ErrInvalidReadOnlyDocument = errors.New("invalid read-only document")
-
-// ErrInvalidKey indicates that the BSON representation of a key is missing a null terminator.
-var ErrInvalidKey = errors.New("invalid document key")
-
-// ErrInvalidArrayKey indicates that a key that isn't a positive integer was used to lookup an
-// element in an array.
-var ErrInvalidArrayKey = errors.New("invalid array key")
-
-// ErrInvalidLength indicates that a length in a binary representation of a BSON document is invalid.
-var ErrInvalidLength = errors.New("document length is invalid")
-
-// ErrEmptyKey indicates that no key was provided to a Lookup method.
-var ErrEmptyKey = errors.New("empty key provided")
-
-// ErrNilElement indicates that a nil element was provided when none was expected.
-var ErrNilElement = errors.New("element is nil")
-
-// ErrNilDocument indicates that an operation was attempted on a nil *bson.Document.
-var ErrNilDocument = errors.New("document is nil")
-
-// ErrInvalidDocumentType indicates that a type which doesn't represent a BSON document was
-// was provided when a document was expected.
-var ErrInvalidDocumentType = errors.New("invalid document type")
-
-// ErrInvalidDepthTraversal indicates that a provided path of keys to a nested value in a document
-// does not exist.
-//
-// TODO(skriptble): This error message is pretty awful.
-// Please fix.
-var ErrInvalidDepthTraversal = errors.New("invalid depth traversal")
-
-// ErrElementNotFound indicates that an Element matching a certain condition does not exist.
-var ErrElementNotFound = errors.New("element not found")
-
-// ErrOutOfBounds indicates that an index provided to access something was invalid.
-var ErrOutOfBounds = errors.New("out of bounds")
 
 // Document is a mutable ordered map that compactly represents a BSON document.
 type Document struct {
 	// The default behavior or Append, Prepend, and Replace is to panic on the
 	// insertion of a nil element. Setting IgnoreNilInsert to true will instead
-	// silently ignore any nil parameters to these methods.
+	// silently ignore any nil paramet()ers to these methods.
 	IgnoreNilInsert bool
 	elems           []*Element
 	index           []uint32
@@ -68,9 +29,7 @@ type Document struct {
 
 // NewDocument creates an empty Document. The numberOfElems parameter will
 // preallocate the underlying storage which can prevent extra allocations.
-func NewDocument(elems ...*Element) *Document {
-	return MakeDocument(len(elems)).Append(elems...)
-}
+func NewDocument(elems ...*Element) *Document { return DC.Elements(elems...) }
 
 // ReadDocument will create a Document using the provided slice of bytes. If the
 // slice of bytes is not a valid BSON document, this method will return an error.
@@ -104,7 +63,7 @@ func (d *Document) Copy() *Document {
 // Len returns the number of elements in the document.
 func (d *Document) Len() int {
 	if d == nil {
-		panic(ErrNilDocument)
+		panic(bsonerr.NilDocument)
 	}
 
 	return len(d.elems)
@@ -114,7 +73,7 @@ func (d *Document) Len() int {
 // this method will also return the keys of any subdocuments or arrays.
 func (d *Document) Keys(recursive bool) (Keys, error) {
 	if d == nil {
-		return nil, ErrNilDocument
+		return nil, bsonerr.NilDocument
 	}
 
 	return d.recursiveKeys(recursive)
@@ -124,7 +83,7 @@ func (d *Document) Keys(recursive bool) (Keys, error) {
 // keys.
 func (d *Document) recursiveKeys(recursive bool, prefix ...string) (Keys, error) {
 	if d == nil {
-		return nil, ErrNilDocument
+		return nil, bsonerr.NilDocument
 	}
 
 	ks := make(Keys, 0, len(d.elems))
@@ -164,7 +123,7 @@ func (d *Document) recursiveKeys(recursive bool, prefix ...string) (Keys, error)
 // previously added elements.
 func (d *Document) Append(elems ...*Element) *Document {
 	if d == nil {
-		panic(ErrNilDocument)
+		panic(bsonerr.NilDocument)
 	}
 
 	for _, elem := range elems {
@@ -174,7 +133,7 @@ func (d *Document) Append(elems ...*Element) *Document {
 			}
 			// TODO(skriptble): Maybe Append and Prepend should return an error
 			// instead of panicking here.
-			panic(ErrNilElement)
+			panic(bsonerr.NilElement)
 		}
 		d.elems = append(d.elems, elem)
 		i := sort.Search(len(d.index), func(i int) bool {
@@ -200,7 +159,7 @@ func (d *Document) Append(elems ...*Element) *Document {
 // previously added elements.
 func (d *Document) Prepend(elems ...*Element) *Document {
 	if d == nil {
-		panic(ErrNilDocument)
+		panic(bsonerr.NilDocument)
 	}
 
 	// In order to insert the prepended elements in order we need to make space
@@ -224,7 +183,7 @@ func (d *Document) Prepend(elems ...*Element) *Document {
 				d.elems[len(d.elems)-1] = nil
 				d.elems = d.elems[:len(d.elems)-1]
 			}
-			panic(ErrNilElement)
+			panic(bsonerr.NilElement)
 		}
 		remaining--
 		d.elems[idx] = elem
@@ -255,21 +214,17 @@ func (d *Document) Prepend(elems ...*Element) *Document {
 //
 // If a nil element is inserted and this method panics, it does not remove the
 // previously added elements.
-//
-// TODO(skriptble): Do we need to panic on a nil element? Semantically, if you
-// ask to replace an element in the document with a nil element, you aren't
-// asking for anything to be done.
 func (d *Document) Set(elem *Element) *Document {
 	if elem == nil {
 		if d.IgnoreNilInsert {
 			return d
 		}
-		panic(ErrNilElement)
+		panic(bsonerr.NilElement)
 	}
 
 	key := elem.Key() + "\x00"
 	i := sort.Search(len(d.index), func(i int) bool { return bytes.Compare(d.keyFromIndex(i), []byte(key)) >= 0 })
-	if i < len(d.index) && bytes.Compare(d.keyFromIndex(i), []byte(key)) == 0 {
+	if i < len(d.index) && bytes.Equal(d.keyFromIndex(i), []byte(key)) {
 		d.elems[d.index[i]] = elem
 		return d
 	}
@@ -287,12 +242,12 @@ func (d *Document) Set(elem *Element) *Document {
 	return d
 }
 
-// Lookup searches the document and potentially subdocuments or arrays for the
+// RecursiveLookup searches the document and potentially subdocuments or arrays for the
 // provided key. Each key provided to this method represents a layer of depth.
 //
-// Lookup will return nil if it encounters an error.
-func (d *Document) Lookup(key ...string) *Value {
-	elem, err := d.LookupElementErr(key...)
+// RecursiveLookup will return nil if it encounters an error.
+func (d *Document) RecursiveLookup(key ...string) *Value {
+	elem, err := d.RecursiveLookupElementErr(key...)
 	if err != nil {
 		return nil
 	}
@@ -300,10 +255,10 @@ func (d *Document) Lookup(key ...string) *Value {
 	return elem.value
 }
 
-// LookupErr searches the document and potentially subdocuments or arrays for the
+// RecursiveLookupErr searches the document and potentially subdocuments or arrays for the
 // provided key. Each key provided to this method represents a layer of depth.
-func (d *Document) LookupErr(key ...string) (*Value, error) {
-	elem, err := d.LookupElementErr(key...)
+func (d *Document) RecursiveLookupErr(key ...string) (*Value, error) {
+	elem, err := d.RecursiveLookupElementErr(key...)
 	if err != nil {
 		return nil, err
 	}
@@ -311,12 +266,12 @@ func (d *Document) LookupErr(key ...string) (*Value, error) {
 	return elem.value, nil
 }
 
-// LookupElement searches the document and potentially subdocuments or arrays for the
+// RecursiveLookupElement searches the document and potentially subdocuments or arrays for the
 // provided key. Each key provided to this method represents a layer of depth.
 //
-// LookupElement will return nil if it encounters an error.
-func (d *Document) LookupElement(key ...string) *Element {
-	elem, err := d.LookupElementErr(key...)
+// RecursiveLookupElement will return nil if it encounters an error.
+func (d *Document) RecursiveLookupElement(key ...string) *Element {
+	elem, err := d.RecursiveLookupElementErr(key...)
 	if err != nil {
 		return nil
 	}
@@ -324,32 +279,32 @@ func (d *Document) LookupElement(key ...string) *Element {
 	return elem
 }
 
-// LookupElementErr searches the document and potentially subdocuments or arrays for the
+// RecursiveLookupElementErr searches the document and potentially subdocuments or arrays for the
 // provided key. Each key provided to this method represents a layer of depth.
-func (d *Document) LookupElementErr(key ...string) (*Element, error) {
+func (d *Document) RecursiveLookupElementErr(key ...string) (*Element, error) {
 	if d == nil {
-		return nil, ErrNilDocument
+		return nil, bsonerr.NilDocument
 	}
 
 	if len(key) == 0 {
-		return nil, ErrEmptyKey
+		return nil, bsonerr.EmptyKey
 	}
 	var elem *Element
 	var err error
 	first := []byte(key[0] + "\x00")
 	i := sort.Search(len(d.index), func(i int) bool { return bytes.Compare(d.keyFromIndex(i), first) >= 0 })
-	if i < len(d.index) && bytes.Compare(d.keyFromIndex(i), first) == 0 {
+	if i < len(d.index) && bytes.Equal(d.keyFromIndex(i), first) {
 		elem = d.elems[d.index[i]]
 		if len(key) == 1 {
 			return elem, nil
 		}
 		switch elem.value.Type() {
 		case '\x03':
-			elem, err = elem.value.MutableDocument().LookupElementErr(key[1:]...)
+			elem, err = elem.value.MutableDocument().RecursiveLookupElementErr(key[1:]...)
 		case '\x04':
 			index, err := strconv.ParseUint(key[1], 10, 0)
 			if err != nil {
-				return nil, ErrInvalidArrayKey
+				return nil, bsonerr.InvalidArrayKey
 			}
 
 			val, err := elem.value.MutableArray().lookupTraverse(uint(index), key[2:]...)
@@ -363,7 +318,7 @@ func (d *Document) LookupElementErr(key ...string) (*Element, error) {
 			// TODO(skriptble): This error message should be more clear, e.g.
 			// include information about what depth was reached, what the
 			// incorrect type was, etc...
-			err = ErrInvalidDepthTraversal
+			err = bsonerr.InvalidDepthTraversal
 		}
 	}
 	if err != nil {
@@ -372,7 +327,7 @@ func (d *Document) LookupElementErr(key ...string) (*Element, error) {
 	if elem == nil {
 		// TODO(skriptble): This should also be a clearer error message.
 		// Preferably we should track the depth at which the key was not found.
-		return nil, ErrElementNotFound
+		return nil, bsonerr.ElementNotFound
 	}
 	return elem, nil
 }
@@ -383,7 +338,7 @@ func (d *Document) LookupElementErr(key ...string) (*Element, error) {
 // or is not a traversable type.
 func (d *Document) Delete(key ...string) *Element {
 	if d == nil {
-		panic(ErrNilDocument)
+		panic(bsonerr.NilDocument)
 	}
 
 	if len(key) == 0 {
@@ -394,7 +349,7 @@ func (d *Document) Delete(key ...string) *Element {
 	var elem *Element
 	first := []byte(key[0] + "\x00")
 	i := sort.Search(len(d.index), func(i int) bool { return bytes.Compare(d.keyFromIndex(i), first) >= 0 })
-	if i < len(d.index) && bytes.Compare(d.keyFromIndex(i), first) == 0 {
+	if i < len(d.index) && bytes.Equal(d.keyFromIndex(i), first) {
 		keyIndex := d.index[i]
 		elem = d.elems[keyIndex]
 		if len(key) == 1 {
@@ -426,7 +381,7 @@ func (d *Document) Delete(key ...string) *Element {
 // provided depth.
 func (d *Document) ElementAt(index uint) *Element {
 	if d == nil {
-		panic(ErrNilDocument)
+		panic(bsonerr.NilDocument)
 	}
 
 	return d.elems[index]
@@ -446,77 +401,22 @@ func (d *Document) ElementAtOK(index uint) (*Element, bool) {
 }
 
 // Iterator creates an Iterator for this document and returns it.
-func (d *Document) Iterator() *Iterator {
+func (d *Document) Iterator() Iterator {
 	if d == nil {
-		panic(ErrNilDocument)
+		panic(bsonerr.NilDocument)
 	}
 
 	return newIterator(d)
 }
 
-// Concat will take the keys from the provided document and concat them onto
-// the end of this document.
-//
-// doc must be one of the following:
-//
-//   - *Document
-//   - []byte
-//   - io.Reader
-func (d *Document) Concat(docs ...interface{}) error {
-	if d == nil {
-		return ErrNilDocument
-	}
-
-	for _, doc := range docs {
-		if doc == nil {
-			if d.IgnoreNilInsert {
-				continue
-			}
-
-			return ErrNilDocument
-		}
-
-		switch doc := doc.(type) {
-		case *Document:
-			if doc == nil {
-				if d.IgnoreNilInsert {
-					continue
-				}
-
-				return ErrNilDocument
-			}
-			d.Append(doc.elems...)
-		case []byte:
-			if err := d.concatReader(Reader(doc)); err != nil {
-				return err
-			}
-		case Reader:
-			if err := d.concatReader(doc); err != nil {
-				return err
-			}
-		default:
-			return ErrInvalidDocumentType
-		}
-	}
-
-	return nil
-}
-
-func (d *Document) concatReader(r Reader) error {
-	_, err := r.readElements(func(e *Element) error {
-		d.Append(e)
-
-		return nil
-	})
-
-	return err
-}
+func (d *Document) Extend(d2 *Document) *Document   { d.Append(d2.elems...); return d }
+func (d *Document) ExtendReader(r Reader) *Document { d.Append(DC.Reader(r).elems...); return d }
 
 // Reset clears a document so it can be reused. This method clears references
 // to the underlying pointers to elements so they can be garbage collected.
 func (d *Document) Reset() {
 	if d == nil {
-		panic(ErrNilDocument)
+		panic(bsonerr.NilDocument)
 	}
 
 	for idx := range d.elems {
@@ -529,7 +429,7 @@ func (d *Document) Reset() {
 // Validate validates the document and returns its total size.
 func (d *Document) Validate() (uint32, error) {
 	if d == nil {
-		return 0, ErrNilDocument
+		return 0, bsonerr.NilDocument
 	}
 
 	// Header and Footer
@@ -544,23 +444,13 @@ func (d *Document) Validate() (uint32, error) {
 	return size, nil
 }
 
-// validates the document and returns its total size. This method has
-// bookkeeping parameters to prevent a stack overflow.
-func (d *Document) validate(currentDepth, maxDepth uint32) (uint32, error) {
-	if d == nil {
-		return 0, ErrNilDocument
-	}
-
-	return 0, nil
-}
-
 // WriteTo implements the io.WriterTo interface.
 //
 // TODO(skriptble): We can optimize this by having creating implementations of
 // writeByteSlice that write directly to an io.Writer instead.
 func (d *Document) WriteTo(w io.Writer) (int64, error) {
 	if d == nil {
-		return 0, ErrNilDocument
+		return 0, bsonerr.NilDocument
 	}
 
 	b, err := d.MarshalBSON()
@@ -575,7 +465,7 @@ func (d *Document) WriteTo(w io.Writer) (int64, error) {
 // at the provided start position.
 func (d *Document) WriteDocument(start uint, writer interface{}) (int64, error) {
 	if d == nil {
-		return 0, ErrNilDocument
+		return 0, bsonerr.NilDocument
 	}
 
 	var total int64
@@ -588,12 +478,11 @@ func (d *Document) WriteDocument(start uint, writer interface{}) (int64, error) 
 	case []byte:
 		n, err := d.writeByteSlice(pos, size, w)
 		total += n
-		pos += uint(n)
 		if err != nil {
 			return total, err
 		}
 	default:
-		return 0, ErrInvalidWriter
+		return 0, bsonerr.InvalidWriter
 	}
 	return total, nil
 }
@@ -602,13 +491,13 @@ func (d *Document) WriteDocument(start uint, writer interface{}) (int64, error) 
 // at the given start position.
 func (d *Document) writeByteSlice(start uint, size uint32, b []byte) (int64, error) {
 	if d == nil {
-		return 0, ErrNilDocument
+		return 0, bsonerr.NilDocument
 	}
 
 	var total int64
 	var pos = start
 	if len(b) < int(start)+int(size) {
-		return 0, NewErrTooSmall()
+		return 0, newErrTooSmall()
 	}
 	n, err := elements.Int32.Encode(start, b, int32(size))
 	total += int64(n)
@@ -618,7 +507,7 @@ func (d *Document) writeByteSlice(start uint, size uint32, b []byte) (int64, err
 	}
 	for _, elem := range d.elems {
 		n, err := elem.writeElement(true, pos, b)
-		total += int64(n)
+		total += n
 		pos += uint(n)
 		if err != nil {
 			return total, err
@@ -627,7 +516,6 @@ func (d *Document) writeByteSlice(start uint, size uint32, b []byte) (int64, err
 
 	n, err = elements.Byte.Encode(pos, b, '\x00')
 	total += int64(n)
-	pos += uint(n)
 	if err != nil {
 		return total, err
 	}
@@ -637,7 +525,7 @@ func (d *Document) writeByteSlice(start uint, size uint32, b []byte) (int64, err
 // MarshalBSON implements the Marshaler interface.
 func (d *Document) MarshalBSON() ([]byte, error) {
 	if d == nil {
-		return nil, ErrNilDocument
+		return nil, bsonerr.NilDocument
 	}
 
 	size, err := d.Validate()
@@ -656,7 +544,7 @@ func (d *Document) MarshalBSON() ([]byte, error) {
 // UnmarshalBSON implements the Unmarshaler interface.
 func (d *Document) UnmarshalBSON(b []byte) error {
 	if d == nil {
-		return ErrNilDocument
+		return bsonerr.NilDocument
 	}
 
 	// Read byte array
@@ -685,7 +573,7 @@ func (d *Document) UnmarshalBSON(b []byte) error {
 // ReadFrom will read one BSON document from the given io.Reader.
 func (d *Document) ReadFrom(r io.Reader) (int64, error) {
 	if d == nil {
-		return 0, ErrNilDocument
+		return 0, bsonerr.NilDocument
 	}
 
 	var total int64
@@ -712,45 +600,11 @@ func (d *Document) ReadFrom(r io.Reader) (int64, error) {
 // mainly used when calling sort.Search.
 func (d *Document) keyFromIndex(idx int) []byte {
 	if d == nil {
-		panic(ErrNilDocument)
+		panic(bsonerr.NilDocument)
 	}
 
 	haystack := d.elems[d.index[idx]]
 	return haystack.value.data[haystack.value.start+1 : haystack.value.offset]
-}
-
-// Equal compares this document to another, returning true if they are equal.
-func (d *Document) Equal(d2 *Document) bool {
-	if d == nil && d2 == nil {
-		return true
-	}
-
-	if d == nil || d2 == nil {
-		return false
-	}
-
-	if (len(d.elems) != len(d2.elems)) || (len(d.index) != len(d2.index)) {
-		return false
-	}
-	for index := range d.elems {
-		b1, err := d.elems[index].MarshalBSON()
-		if err != nil {
-			return false
-		}
-		b2, err := d2.elems[index].MarshalBSON()
-		if err != nil {
-			return false
-		}
-
-		if !bytes.Equal(b1, b2) {
-			return false
-		}
-
-		if d.index[index] != d2.index[index] {
-			return false
-		}
-	}
-	return true
 }
 
 // String implements the fmt.Stringer interface.

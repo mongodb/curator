@@ -15,20 +15,22 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/mongodb/ftdc/bsonx/bsonerr"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestDocument(t *testing.T) {
 	t.Run("NewDocument", func(t *testing.T) {
 		t.Run("TooShort", func(t *testing.T) {
-			want := NewErrTooSmall()
+			want := newErrTooSmall()
 			_, got := ReadDocument([]byte{'\x00', '\x00'})
 			if !IsTooSmall(got) {
 				t.Errorf("Did not get expected error. got %#v; want %#v", got, want)
 			}
 		})
 		t.Run("InvalidLength", func(t *testing.T) {
-			want := ErrInvalidLength
+			want := bsonerr.InvalidLength
 			b := make([]byte, 5)
 			binary.LittleEndian.PutUint32(b[0:4], 200)
 			_, got := ReadDocument(b)
@@ -37,7 +39,7 @@ func TestDocument(t *testing.T) {
 			}
 		})
 		t.Run("keyLength-error", func(t *testing.T) {
-			want := ErrInvalidKey
+			want := bsonerr.InvalidKey
 			b := make([]byte, 8)
 			binary.LittleEndian.PutUint32(b[0:4], 8)
 			b[4], b[5], b[6], b[7] = '\x02', 'f', 'o', 'o'
@@ -47,7 +49,7 @@ func TestDocument(t *testing.T) {
 			}
 		})
 		t.Run("Missing-Null-Terminator", func(t *testing.T) {
-			want := ErrInvalidReadOnlyDocument
+			want := bsonerr.InvalidReadOnlyDocument
 			b := make([]byte, 9)
 			binary.LittleEndian.PutUint32(b[0:4], 9)
 			b[4], b[5], b[6], b[7], b[8] = '\x0A', 'f', 'o', 'o', '\x00'
@@ -57,7 +59,7 @@ func TestDocument(t *testing.T) {
 			}
 		})
 		t.Run("validateValue-error", func(t *testing.T) {
-			want := NewErrTooSmall()
+			want := newErrTooSmall()
 			b := make([]byte, 11)
 			binary.LittleEndian.PutUint32(b[0:4], 11)
 			b[4], b[5], b[6], b[7], b[8], b[9], b[10] = '\x01', 'f', 'o', 'o', '\x00', '\x01', '\x02'
@@ -88,14 +90,66 @@ func TestDocument(t *testing.T) {
 			})
 		}
 	})
-	t.Run("Keys", testDocumentKeys)
+	t.Run("Keys", func(t *testing.T) {
+		testCases := []struct {
+			name      string
+			d         *Document
+			want      Keys
+			err       error
+			recursive bool
+		}{
+			{"one", (&Document{}).Append(EC.String("foo", "")), Keys{{Name: "foo"}}, nil, false},
+			{"two", (&Document{}).Append(EC.Null("x"), EC.Null("y")), Keys{{Name: "x"}, {Name: "y"}}, nil, false},
+			{"one-flat", (&Document{}).Append(EC.SubDocumentFromElements("foo", EC.Null("a"), EC.Null("b"))),
+				Keys{{Name: "foo"}}, nil, false,
+			},
+			{"one-recursive", (&Document{}).Append(EC.SubDocumentFromElements("foo", EC.Null("a"), EC.Null("b"))),
+				Keys{{Name: "foo"}, {Prefix: []string{"foo"}, Name: "a"}, {Prefix: []string{"foo"}, Name: "b"}}, nil, true,
+			},
+			// {"one-array-recursive", (&Document{}).Append(c.ArrayFromElements("foo", VC.Null(())),
+			// 	Keys{{Name: "foo"}, {Prefix: []string{"foo"}, Name: "1"}, {Prefix: []string{"foo"}, Name: "2"}}, nil, true,
+			// },
+			// {"invalid-subdocument",
+			// 	Reader{
+			// 		'\x15', '\x00', '\x00', '\x00',
+			// 		'\x03',
+			// 		'f', 'o', 'o', '\x00',
+			// 		'\x0B', '\x00', '\x00', '\x00', '\x01', '1', '\x00',
+			// 		'\x0A', '2', '\x00', '\x00', '\x00',
+			// 	},
+			// 	nil, newErrTooSmall(), true,
+			// },
+			// {"invalid-array",
+			// 	Reader{
+			// 		'\x15', '\x00', '\x00', '\x00',
+			// 		'\x04',
+			// 		'f', 'o', 'o', '\x00',
+			// 		'\x0B', '\x00', '\x00', '\x00', '\x01', '1', '\x00',
+			// 		'\x0A', '2', '\x00', '\x00', '\x00',
+			// 	},
+			// 	nil, newErrTooSmall(), true,
+			// },
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				got, err := tc.d.Keys(tc.recursive)
+				if err != tc.err {
+					t.Errorf("Returned error does not match. got %#v; want %#v", err, tc.err)
+				}
+				if !reflect.DeepEqual(got, tc.want) {
+					t.Errorf("Returned keys do not match expected keys. got %#v; want %#v", got, tc.want)
+				}
+			})
+		}
+	})
 	t.Run("Append", func(t *testing.T) {
 		t.Run("Nil Insert", func(t *testing.T) {
 			func() {
 				defer func() {
 					r := recover()
-					if r != ErrNilElement {
-						t.Errorf("Did not received expected error from panic. got %#v; want %#v", r, ErrNilElement)
+					if r != bsonerr.NilElement {
+						t.Errorf("Did not received expected error from panic. got %#v; want %#v", r, bsonerr.NilElement)
 					}
 				}()
 				d := NewDocument()
@@ -162,8 +216,8 @@ func TestDocument(t *testing.T) {
 				func() {
 					defer func() {
 						r := recover()
-						if r != ErrNilElement {
-							t.Errorf("Did not received expected error from panic. got %#v; want %#v", r, ErrNilElement)
+						if r != bsonerr.NilElement {
+							t.Errorf("Did not received expected error from panic. got %#v; want %#v", r, bsonerr.NilElement)
 						}
 						require.Equal(t, tc.want, got)
 
@@ -301,8 +355,8 @@ func TestDocument(t *testing.T) {
 				func() {
 					defer func() {
 						r := recover()
-						if r != ErrNilElement {
-							t.Errorf("Did not receive expected error from panic. got %#v; want %#v", r, ErrNilElement)
+						if r != bsonerr.NilElement {
+							t.Errorf("Did not receive expected error from panic. got %#v; want %#v", r, bsonerr.NilElement)
 						}
 
 						require.Equal(t, tc.want, got)
@@ -391,12 +445,12 @@ func TestDocument(t *testing.T) {
 			})
 		}
 	})
-	t.Run("Lookup", func(t *testing.T) {
+	t.Run("RecursiveLookup", func(t *testing.T) {
 		t.Run("empty key", func(t *testing.T) {
 			d := NewDocument()
-			_, err := d.LookupErr()
-			if err != ErrEmptyKey {
-				t.Errorf("Empty key lookup did not return expected result. got %#v; want %#v", err, ErrEmptyKey)
+			_, err := d.RecursiveLookupErr()
+			if err != bsonerr.EmptyKey {
+				t.Errorf("Empty key lookup did not return expected result. got %#v; want %#v", err, bsonerr.EmptyKey)
 			}
 		})
 		testCases := []struct {
@@ -415,11 +469,11 @@ func TestDocument(t *testing.T) {
 			},
 			{"invalid-depth-traversal", (&Document{}).Append(EC.Null("x")),
 				[]string{"x", "y"},
-				nil, ErrInvalidDepthTraversal,
+				nil, bsonerr.InvalidDepthTraversal,
 			},
 			{"not-found", (&Document{}).Append(EC.Null("x")),
 				[]string{"y"},
-				nil, ErrElementNotFound,
+				nil, bsonerr.ElementNotFound,
 			},
 			{"subarray",
 				NewDocument(
@@ -437,7 +491,7 @@ func TestDocument(t *testing.T) {
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				got, err := tc.d.LookupElementErr(tc.key...)
+				got, err := tc.d.RecursiveLookupElementErr(tc.key...)
 				if err != tc.err {
 					t.Errorf("Returned error does not match. got %#v; want %#v", err, tc.err)
 				}
@@ -546,235 +600,6 @@ func TestDocument(t *testing.T) {
 		require.False(t, iter.Next())
 		require.NoError(t, iter.Err())
 	})
-	t.Run("Concat", func(t *testing.T) {
-		testCases := []struct {
-			name     string
-			doc      *Document
-			concat   []interface{}
-			expected *Document
-			err      error
-		}{
-			{
-				"nil",
-				NewDocument(),
-				[]interface{}{
-					nil,
-				},
-				nil,
-				ErrNilDocument,
-			},
-			{
-				"nil document",
-				NewDocument(),
-				[]interface{}{
-					(*Document)(nil),
-				},
-				nil,
-				ErrNilDocument,
-			},
-			{
-				"concat single doc",
-				NewDocument(),
-				[]interface{}{
-					NewDocument(EC.String("foo", "bar")),
-				},
-				NewDocument(EC.String("foo", "bar")),
-				nil,
-			},
-			{
-				"concat multiple docs",
-				NewDocument(),
-				[]interface{}{
-					NewDocument(EC.String("foo", "bar")),
-					NewDocument(EC.Int32("baz", 3), EC.Null("bang")),
-				},
-				NewDocument(EC.String("foo", "bar"), EC.Int32("baz", 3), EC.Null("bang")),
-				nil,
-			},
-			{
-				"concat single byte slice",
-				NewDocument(),
-				[]interface{}{
-					[]byte{
-						// length
-						0x12, 0x0, 0x0, 0x0,
-
-						// type - string
-						0x2,
-						// key - "foo"
-						0x66, 0x6f, 0x6f, 0x0,
-						// value - string length
-						0x4, 0x0, 0x0, 0x0,
-						// value - string "bar"
-						0x62, 0x61, 0x72, 0x0,
-
-						// null terminator
-						0x0,
-					},
-				},
-				NewDocument(EC.String("foo", "bar")),
-				nil,
-			},
-			{
-				"concat multiple byte slices",
-				NewDocument(),
-				[]interface{}{
-					[]byte{
-						// length
-						0x12, 0x0, 0x0, 0x0,
-
-						// type - string
-						0x2,
-						// key - "foo"
-						0x66, 0x6f, 0x6f, 0x0,
-						// value - string length
-						0x4, 0x0, 0x0, 0x0,
-						// value - string "bar"
-						0x62, 0x61, 0x72, 0x0,
-
-						// null terminator
-						0x0,
-					},
-					[]byte{
-						// length
-						0x14, 0x0, 0x0, 0x0,
-
-						// type - string
-						0x10,
-						// key - "baz"
-						0x62, 0x61, 0x7a, 0x0,
-						// value - int32(3)
-						0x3, 0x0, 0x0, 0x0,
-
-						// type - null
-						0xa,
-						// key - "bang"
-						0x62, 0x61, 0x6e, 0x67, 0x0,
-
-						// null terminator
-						0x0,
-					},
-				},
-				NewDocument(EC.String("foo", "bar"), EC.Int32("baz", 3), EC.Null("bang")),
-				nil,
-			},
-			{
-				"concat single reader",
-				NewDocument(),
-				[]interface{}{
-					Reader([]byte{
-						// length
-						0x12, 0x0, 0x0, 0x0,
-
-						// type - string
-						0x2,
-						// key - "foo"
-						0x66, 0x6f, 0x6f, 0x0,
-						// value - string length
-						0x4, 0x0, 0x0, 0x0,
-						// value - string "bar"
-						0x62, 0x61, 0x72, 0x0,
-
-						// null terminator
-						0x0,
-					}),
-				},
-				NewDocument(EC.String("foo", "bar")),
-				nil,
-			},
-			{
-				"concat multiple readers",
-				NewDocument(),
-				[]interface{}{
-					Reader([]byte{
-						// length
-						0x12, 0x0, 0x0, 0x0,
-
-						// type - string
-						0x2,
-						// key - "foo"
-						0x66, 0x6f, 0x6f, 0x0,
-						// value - string length
-						0x4, 0x0, 0x0, 0x0,
-						// value - string "bar"
-						0x62, 0x61, 0x72, 0x0,
-
-						// null terminator
-						0x0,
-					}),
-					Reader([]byte{
-						// length
-						0x14, 0x0, 0x0, 0x0,
-
-						// type - string
-						0x10,
-						// key - "baz"
-						0x62, 0x61, 0x7a, 0x0,
-						// value - int32(3)
-						0x3, 0x0, 0x0, 0x0,
-
-						// type - null
-						0xa,
-						// key - "bang"
-						0x62, 0x61, 0x6e, 0x67, 0x0,
-
-						// null terminator
-						0x0,
-					}),
-				},
-				NewDocument(EC.String("foo", "bar"), EC.Int32("baz", 3), EC.Null("bang")),
-				nil,
-			},
-			{
-				"concat mixed",
-				NewDocument(),
-				[]interface{}{
-					NewDocument(EC.String("foo", "bar")),
-					[]byte{
-						// length
-						0xe, 0x0, 0x0, 0x0,
-
-						// type - string
-						0x10,
-						// key - "baz"
-						0x62, 0x61, 0x7a, 0x0,
-						// value - int32(3)
-						0x3, 0x0, 0x0, 0x0,
-
-						// null terminator
-						0x0,
-					},
-					Reader([]byte{
-						// length
-						0xb, 0x0, 0x0, 0x0,
-
-						// type - null
-						0xa,
-						// key - "bang"
-						0x62, 0x61, 0x6e, 0x67, 0x0,
-
-						// null terminator
-						0x0,
-					}),
-				},
-				NewDocument(EC.String("foo", "bar"), EC.Int32("baz", 3), EC.Null("bang")),
-				nil,
-			},
-		}
-
-		for _, tc := range testCases {
-			t.Run(tc.name, func(t *testing.T) {
-				err := tc.doc.Concat(tc.concat...)
-				require.Equal(t, tc.err, err)
-				if err != nil {
-					return
-				}
-
-				require.True(t, documentComparer(tc.expected, tc.doc))
-			})
-		}
-
-	})
 	t.Run("Reset", func(t *testing.T) {
 		d := NewDocument(EC.Null("a"), EC.Null("b"), EC.Null("c"), EC.Null("a"), EC.Null("e"))
 		gotSlc := d.elems
@@ -828,7 +653,7 @@ func TestDocument(t *testing.T) {
 			b := make([]byte, 15)
 			_, err := d.WriteDocument(0, b)
 			if !IsTooSmall(err) {
-				t.Errorf("Expected error not returned. got %s; want %s", err, NewErrTooSmall())
+				t.Errorf("Expected error not returned. got %s; want %s", err, newErrTooSmall())
 			}
 		})
 		t.Run("[]byte-too-small", func(t *testing.T) {
@@ -836,15 +661,15 @@ func TestDocument(t *testing.T) {
 			b := make([]byte, 5)
 			_, err := d.WriteDocument(0, b)
 			if !IsTooSmall(err) {
-				t.Errorf("Expected error not returned. got %s; want %s", err, NewErrTooSmall())
+				t.Errorf("Expected error not returned. got %s; want %s", err, newErrTooSmall())
 			}
 		})
 		t.Run("invalid-writer", func(t *testing.T) {
 			d := NewDocument(EC.Double("", 3.14159))
 			var buf bytes.Buffer
 			_, err := d.WriteDocument(0, buf)
-			if err != ErrInvalidWriter {
-				t.Errorf("Expected error not returned. got %s; want %s", err, NewErrTooSmall())
+			if err != bsonerr.InvalidWriter {
+				t.Errorf("Expected error not returned. got %s; want %s", err, newErrTooSmall())
 			}
 		})
 
@@ -936,7 +761,7 @@ func TestDocument(t *testing.T) {
 			}
 			_, err = NewDocument().ReadFrom(&buf)
 			if !IsTooSmall(err) {
-				t.Errorf("Expected error not returned. got %s; want %s", err, NewErrTooSmall())
+				t.Errorf("Expected error not returned. got %s; want %s", err, newErrTooSmall())
 			}
 		})
 		testCases := []struct {
@@ -970,60 +795,70 @@ func TestDocument(t *testing.T) {
 			// }
 		}
 	})
-}
-
-func testDocumentKeys(t *testing.T) {
-	testCases := []struct {
-		name      string
-		d         *Document
-		want      Keys
-		err       error
-		recursive bool
-	}{
-		{"one", (&Document{}).Append(EC.String("foo", "")), Keys{{Name: "foo"}}, nil, false},
-		{"two", (&Document{}).Append(EC.Null("x"), EC.Null("y")), Keys{{Name: "x"}, {Name: "y"}}, nil, false},
-		{"one-flat", (&Document{}).Append(EC.SubDocumentFromElements("foo", EC.Null("a"), EC.Null("b"))),
-			Keys{{Name: "foo"}}, nil, false,
-		},
-		{"one-recursive", (&Document{}).Append(EC.SubDocumentFromElements("foo", EC.Null("a"), EC.Null("b"))),
-			Keys{{Name: "foo"}, {Prefix: []string{"foo"}, Name: "a"}, {Prefix: []string{"foo"}, Name: "b"}}, nil, true,
-		},
-		// {"one-array-recursive", (&Document{}).Append(c.ArrayFromElements("foo", VC.Null(())),
-		// 	Keys{{Name: "foo"}, {Prefix: []string{"foo"}, Name: "1"}, {Prefix: []string{"foo"}, Name: "2"}}, nil, true,
-		// },
-		// {"invalid-subdocument",
-		// 	Reader{
-		// 		'\x15', '\x00', '\x00', '\x00',
-		// 		'\x03',
-		// 		'f', 'o', 'o', '\x00',
-		// 		'\x0B', '\x00', '\x00', '\x00', '\x01', '1', '\x00',
-		// 		'\x0A', '2', '\x00', '\x00', '\x00',
-		// 	},
-		// 	nil, NewErrTooSmall(), true,
-		// },
-		// {"invalid-array",
-		// 	Reader{
-		// 		'\x15', '\x00', '\x00', '\x00',
-		// 		'\x04',
-		// 		'f', 'o', 'o', '\x00',
-		// 		'\x0B', '\x00', '\x00', '\x00', '\x01', '1', '\x00',
-		// 		'\x0A', '2', '\x00', '\x00', '\x00',
-		// 	},
-		// 	nil, NewErrTooSmall(), true,
-		// },
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			got, err := tc.d.Keys(tc.recursive)
-			if err != tc.err {
-				t.Errorf("Returned error does not match. got %#v; want %#v", err, tc.err)
-			}
-			if !reflect.DeepEqual(got, tc.want) {
-				t.Errorf("Returned keys do not match expected keys. got %#v; want %#v", got, tc.want)
-			}
+	t.Run("Sort", func(t *testing.T) {
+		t.Run("EqualKeys", func(t *testing.T) {
+			doc := DC.New().Append(EC.Int32("_id", 42), EC.Int32("_id", 0))
+			assert.EqualValues(t, 42, doc.Elements()[0].Value().Int32())
+			sdoc := doc.Sorted()
+			assert.EqualValues(t, 42, doc.Elements()[0].Value().Int32())
+			assert.EqualValues(t, 0, sdoc.Elements()[0].Value().Int32())
 		})
-	}
+		t.Run("DifferentKeys", func(t *testing.T) {
+			doc := DC.New().Append(EC.Int64("id", 42), EC.Int64("_id", 0), EC.String("_first", "hi"))
+			assert.Equal(t, "id", doc.Elements()[0].Key())
+			sdoc := doc.Sorted()
+			assert.Equal(t, "id", doc.Elements()[0].Key())
+			assert.Equal(t, "_first", sdoc.Elements()[0].Key())
+		})
+		t.Run("DifferentTypes", func(t *testing.T) {
+			doc := DC.New().Append(EC.Int32("_id", 42), EC.String("_id", "forty-two"))
+			assert.EqualValues(t, 42, doc.Elements()[0].Value().Int32())
+			sdoc := doc.Sorted()
+			assert.EqualValues(t, 42, doc.Elements()[0].Value().Int32())
+			assert.Equal(t, "forty-two", sdoc.Elements()[0].Value().StringValue())
+		})
+	})
+	t.Run("Lookup", func(t *testing.T) {
+		doc := DC.New().Append(EC.Int64("id", 42), EC.Int64("_id", 11), EC.String("hi", "hi"))
+		t.Run("Element", func(t *testing.T) {
+			elem := doc.LookupElement("id")
+			assert.Equal(t, "id", elem.Key())
+			assert.EqualValues(t, 42, elem.Value().Int64())
+		})
+		t.Run("ElementErr", func(t *testing.T) {
+			elem, err := doc.LookupElementErr("_id")
+			require.NoError(t, err)
+			assert.Equal(t, "_id", elem.Key())
+			assert.EqualValues(t, 11, elem.Value().Int64())
+		})
+		t.Run("Value", func(t *testing.T) {
+			val := doc.Lookup("id")
+			assert.EqualValues(t, 42, val.Int64())
+		})
+		t.Run("ValueErr", func(t *testing.T) {
+			val, err := doc.LookupErr("_id")
+			require.NoError(t, err)
+			assert.EqualValues(t, 11, val.Int64())
+		})
+		t.Run("Missing", func(t *testing.T) {
+			assert.Nil(t, doc.Lookup("NOT REAL"))
+		})
+		t.Run("MissingErr", func(t *testing.T) {
+			val, err := doc.LookupErr("NOT REAL")
+			assert.Error(t, err)
+			assert.Nil(t, val)
+		})
+		t.Run("MissingElement", func(t *testing.T) {
+			assert.Nil(t, doc.LookupElement("NOT REAL"))
+		})
+		t.Run("MissingElementErr", func(t *testing.T) {
+			elem, err := doc.LookupElementErr("NOT REAL")
+			assert.Error(t, err)
+			assert.Nil(t, elem)
+		})
+
+	})
+
 }
 
 var tpag testPrependAppendGenerator

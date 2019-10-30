@@ -15,6 +15,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/mongodb/ftdc/bsonx/bsonerr"
 	"github.com/stretchr/testify/require"
 )
 
@@ -39,14 +40,14 @@ func BenchmarkReaderValidate(b *testing.B) {
 func TestReader(t *testing.T) {
 	t.Run("Validate", func(t *testing.T) {
 		t.Run("TooShort", func(t *testing.T) {
-			want := NewErrTooSmall()
+			want := newErrTooSmall()
 			_, got := Reader{'\x00', '\x00'}.Validate()
 			if !IsTooSmall(got) {
 				t.Errorf("Did not get expected error. got %v; want %v", got, want)
 			}
 		})
 		t.Run("InvalidLength", func(t *testing.T) {
-			want := ErrInvalidLength
+			want := bsonerr.InvalidLength
 			r := make(Reader, 5)
 			binary.LittleEndian.PutUint32(r[0:4], 200)
 			_, got := r.Validate()
@@ -55,7 +56,7 @@ func TestReader(t *testing.T) {
 			}
 		})
 		t.Run("keyLength-error", func(t *testing.T) {
-			want := ErrInvalidKey
+			want := bsonerr.InvalidKey
 			r := make(Reader, 8)
 			binary.LittleEndian.PutUint32(r[0:4], 8)
 			r[4], r[5], r[6], r[7] = '\x02', 'f', 'o', 'o'
@@ -65,7 +66,7 @@ func TestReader(t *testing.T) {
 			}
 		})
 		t.Run("Missing-Null-Terminator", func(t *testing.T) {
-			want := ErrInvalidReadOnlyDocument
+			want := bsonerr.InvalidReadOnlyDocument
 			r := make(Reader, 9)
 			binary.LittleEndian.PutUint32(r[0:4], 9)
 			r[4], r[5], r[6], r[7], r[8] = '\x0A', 'f', 'o', 'o', '\x00'
@@ -75,7 +76,7 @@ func TestReader(t *testing.T) {
 			}
 		})
 		t.Run("validateValue-error", func(t *testing.T) {
-			want := NewErrTooSmall()
+			want := newErrTooSmall()
 			r := make(Reader, 11)
 			binary.LittleEndian.PutUint32(r[0:4], 11)
 			r[4], r[5], r[6], r[7], r[8], r[9], r[10] = '\x01', 'f', 'o', 'o', '\x00', '\x01', '\x02'
@@ -184,7 +185,7 @@ func TestReader(t *testing.T) {
 					'\x0B', '\x00', '\x00', '\x00', '\x01', '1', '\x00',
 					'\x0A', '2', '\x00', '\x00', '\x00',
 				},
-				nil, NewErrTooSmall(), true,
+				nil, newErrTooSmall(), true,
 			},
 			{"invalid-array",
 				Reader{
@@ -194,7 +195,7 @@ func TestReader(t *testing.T) {
 					'\x0B', '\x00', '\x00', '\x00', '\x01', '1', '\x00',
 					'\x0A', '2', '\x00', '\x00', '\x00',
 				},
-				nil, NewErrTooSmall(), true,
+				nil, newErrTooSmall(), true,
 			},
 		}
 
@@ -208,12 +209,12 @@ func TestReader(t *testing.T) {
 			})
 		}
 	})
-	t.Run("Lookup", func(t *testing.T) {
+	t.Run("RecursiveLookup", func(t *testing.T) {
 		t.Run("empty-key", func(t *testing.T) {
 			rdr := Reader{'\x05', '\x00', '\x00', '\x00', '\x00'}
-			_, err := rdr.Lookup()
-			if err != ErrEmptyKey {
-				t.Errorf("Empty key lookup did not return expected result. got %v; want %v", err, ErrEmptyKey)
+			_, err := rdr.RecursiveLookup()
+			if err != bsonerr.EmptyKey {
+				t.Errorf("Empty key lookup did not return expected result. got %v; want %v", err, bsonerr.EmptyKey)
 			}
 		})
 		t.Run("corrupted-subdocument", func(t *testing.T) {
@@ -225,9 +226,9 @@ func TestReader(t *testing.T) {
 				'\x00',
 				'\x00',
 			}
-			_, err := rdr.Lookup("x", "y")
+			_, err := rdr.RecursiveLookup("x", "y")
 			if !IsTooSmall(err) {
-				t.Errorf("Empty key lookup did not return expected result. got %v; want %v", err, NewErrTooSmall())
+				t.Errorf("Empty key lookup did not return expected result. got %v; want %v", err, newErrTooSmall())
 			}
 		})
 		t.Run("corrupted-array", func(t *testing.T) {
@@ -239,16 +240,16 @@ func TestReader(t *testing.T) {
 				'\x00',
 				'\x00',
 			}
-			_, err := rdr.Lookup("x", "y")
+			_, err := rdr.RecursiveLookup("x", "y")
 			if !IsTooSmall(err) {
-				t.Errorf("Empty key lookup did not return expected result. got %v; want %v", err, NewErrTooSmall())
+				t.Errorf("Empty key lookup did not return expected result. got %v; want %v", err, newErrTooSmall())
 			}
 		})
 		t.Run("invalid-traversal", func(t *testing.T) {
 			rdr := Reader{'\x08', '\x00', '\x00', '\x00', '\x0A', 'x', '\x00', '\x00'}
-			_, err := rdr.Lookup("x", "y")
-			if err != ErrInvalidDepthTraversal {
-				t.Errorf("Empty key lookup did not return expected result. got %v; want %v", err, ErrInvalidDepthTraversal)
+			_, err := rdr.RecursiveLookup("x", "y")
+			if err != bsonerr.InvalidDepthTraversal {
+				t.Errorf("Empty key lookup did not return expected result. got %v; want %v", err, bsonerr.InvalidDepthTraversal)
 			}
 		})
 		testCases := []struct {
@@ -291,7 +292,7 @@ func TestReader(t *testing.T) {
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				got, err := tc.r.Lookup(tc.key...)
+				got, err := tc.r.RecursiveLookup(tc.key...)
 				if err != tc.err {
 					t.Errorf("Returned error does not match. got %v; want %v", err, tc.err)
 				}
@@ -305,15 +306,15 @@ func TestReader(t *testing.T) {
 		t.Run("Out of bounds", func(t *testing.T) {
 			rdr := Reader{0xe, 0x0, 0x0, 0x0, 0xa, 0x78, 0x0, 0xa, 0x79, 0x0, 0xa, 0x7a, 0x0, 0x0}
 			_, err := rdr.ElementAt(3)
-			if err != ErrOutOfBounds {
-				t.Errorf("Out of bounds should be returned when accessing element beyond end of document. got %v; want %v", err, ErrOutOfBounds)
+			if err != bsonerr.OutOfBounds {
+				t.Errorf("Out of bounds should be returned when accessing element beyond end of document. got %v; want %v", err, bsonerr.OutOfBounds)
 			}
 		})
-		t.Run("Validation Error", func(t *testing.T) {
+		t.Run("Validationbsonerr.or", func(t *testing.T) {
 			rdr := Reader{0x07, 0x00, 0x00, 0x00, 0x00}
 			_, err := rdr.ElementAt(1)
-			if err != ErrInvalidLength {
-				t.Errorf("Did not receive expected error. got %v; want %v", err, ErrInvalidLength)
+			if err != bsonerr.InvalidLength {
+				t.Errorf("Did not receive expected error. got %v; want %v", err, bsonerr.InvalidLength)
 			}
 		})
 		testCases := []struct {
@@ -357,21 +358,21 @@ func TestReader(t *testing.T) {
 			{
 				"nil reader",
 				nil,
-				NewErrTooSmall(),
+				newErrTooSmall(),
 				nil,
 				nil,
 			},
 			{
 				"empty reader",
 				[]byte{},
-				NewErrTooSmall(),
+				newErrTooSmall(),
 				nil,
 				nil,
 			},
 			{
 				"invalid length",
 				[]byte{0x6, 0x0, 0x0, 0x0, 0x0},
-				ErrInvalidLength,
+				bsonerr.InvalidLength,
 				nil,
 				nil,
 			},
@@ -435,7 +436,7 @@ func TestReader(t *testing.T) {
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				itr, err := NewReaderIterator(tc.rdr)
+				itr, err := newReaderIterator(tc.rdr)
 				requireErrEqual(t, err, tc.initErr)
 
 				if err != nil {
@@ -464,7 +465,7 @@ func TestReader(t *testing.T) {
 				"nil reader",
 				nil,
 				nil,
-				ErrNilReader,
+				bsonerr.NilReader,
 			},
 			{
 				"premature end of reader",
