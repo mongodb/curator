@@ -105,7 +105,7 @@ func s3PutCmd() cli.Command {
 			}
 
 			return errors.Wrapf(
-				bucket.Upload(ctx, c.String("file"), c.String("name")),
+				bucket.Upload(ctx, c.String("name"), c.String("file")),
 				"problem putting %s in s3",
 				c.String("file"),
 			)
@@ -250,7 +250,7 @@ func s3SyncToCmd() cli.Command {
 		Name:    "sync-to",
 		Aliases: []string{"push"},
 		Usage:   "sync changes from the local system to s3",
-		Flags:   baseS3Flags(s3syncFlags()...),
+		Flags:   baseS3Flags(s3syncFlags(s3synctoFlags()...)...),
 		Action: func(c *cli.Context) error {
 			ctx, cancel := ctxWithTimeout(c.Duration("timeout"))
 			defer cancel()
@@ -262,10 +262,20 @@ func s3SyncToCmd() cli.Command {
 				DryRun:                   c.Bool("dry-run"),
 				DeleteOnSync:             c.Bool("delete"),
 				MaxRetries:               defaultMaxRetries,
+				UseSingleFileChecksums:   true,
+				Permissions:              pail.S3Permissions(c.String("permissions")),
 			}
 			bucket, err := pail.NewS3Bucket(opts)
 			if err != nil {
 				return errors.Wrap(err, "problem getting new bucket")
+			}
+			if c.Int("workers") > 0 {
+				syncOpts := pail.ParallelBucketOptions{
+					Workers:      c.Int("workers"),
+					DryRun:       c.Bool("dry-run"),
+					DeleteOnSync: c.Bool("delete"),
+				}
+				bucket = pail.NewParallelSyncBucket(syncOpts, bucket)
 			}
 
 			return errors.Wrapf(
@@ -294,10 +304,19 @@ func s3SyncFromCmd() cli.Command {
 				DryRun:                   c.Bool("dry-run"),
 				DeleteOnSync:             c.Bool("delete"),
 				MaxRetries:               defaultMaxRetries,
+				UseSingleFileChecksums:   true,
 			}
 			bucket, err := pail.NewS3Bucket(opts)
 			if err != nil {
 				return errors.Wrap(err, "problem getting new bucket")
+			}
+			if c.Int("workers") > 0 {
+				syncOpts := pail.ParallelBucketOptions{
+					Workers:      c.Int("workers"),
+					DryRun:       c.Bool("dry-run"),
+					DeleteOnSync: c.Bool("delete"),
+				}
+				bucket = pail.NewParallelSyncBucket(syncOpts, bucket)
 			}
 
 			return errors.Wrapf(
@@ -333,7 +352,7 @@ func baseS3Flags(args ...cli.Flag) []cli.Flag {
 	flags := []cli.Flag{
 		cli.StringFlag{
 			Name:  "region",
-			Usage: "region to send requests to, defaults to us-east-1",
+			Usage: "region to send requests to",
 			Value: "us-east-1",
 		},
 		cli.StringFlag{
@@ -374,6 +393,22 @@ func s3syncFlags(args ...cli.Flag) []cli.Flag {
 		cli.DurationFlag{
 			Name:  "timeout",
 			Usage: "specify a timeout for operations, defaults to unlimited timeout if not specified",
+		},
+		cli.IntFlag{
+			Name:  "workers",
+			Usage: "number of workers for parallelized sync operation",
+			Value: 0,
+		},
+	}
+
+	return append(flags, args...)
+}
+
+func s3synctoFlags(args ...cli.Flag) []cli.Flag {
+	flags := []cli.Flag{
+		cli.StringFlag{
+			Name:  "permissions",
+			Usage: "canned ACL to apply to the files",
 		},
 	}
 

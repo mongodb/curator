@@ -2,7 +2,6 @@ package operations
 
 import (
 	"os"
-	"strings"
 
 	"github.com/urfave/cli"
 )
@@ -38,17 +37,20 @@ func (s *CommandsSuite) TestSyncFlagsFactory() {
 			s.IsType(cli.BoolFlag{}, flag)
 		} else if flagName == "timeout" {
 			s.IsType(cli.DurationFlag{}, flag)
+		} else if flagName == "workers" {
+			s.IsType(cli.IntFlag{}, flag)
 		} else {
 			s.IsType(cli.StringFlag{}, flag)
 		}
 	}
 
-	s.Len(names, 4)
-	s.Len(flags, 4)
+	s.Len(names, 5)
+	s.Len(flags, 5)
 	s.True(names["local"])
 	s.True(names["prefix"])
 	s.True(names["delete"])
 	s.True(names["timeout"])
+	s.True(names["workers"])
 }
 
 func (s *CommandsSuite) TestS3ParentCommandHasExpectedProperties() {
@@ -63,7 +65,9 @@ func (s *CommandsSuite) TestS3ParentCommandHasExpectedProperties() {
 			s.Equal(sub.Flags, baseS3Flags(s3opFlags(s3putFlags()...)...))
 		} else if sub.Name == "get" {
 			s.Equal(sub.Flags, baseS3Flags(s3opFlags()...))
-		} else if strings.HasPrefix(sub.Name, "sync") {
+		} else if sub.Name == "sync-to" {
+			s.Equal(sub.Flags, baseS3Flags(s3syncFlags(s3synctoFlags()...)...))
+		} else if sub.Name == "sync-from" {
 			s.Equal(sub.Flags, baseS3Flags(s3syncFlags()...))
 		}
 	}

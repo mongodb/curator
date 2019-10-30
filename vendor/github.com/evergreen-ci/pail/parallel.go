@@ -42,6 +42,9 @@ func NewParallelSyncBucket(opts ParallelBucketOptions, b Bucket) Bucket {
 }
 
 func (b *parallelBucketImpl) Push(ctx context.Context, local, remote string) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	files, err := walkLocalTree(ctx, local)
 	if err != nil {
 		return errors.WithStack(err)
@@ -59,20 +62,37 @@ func (b *parallelBucketImpl) Push(ctx context.Context, local, remote string) err
 		go func() {
 			defer wg.Done()
 			for fn := range in {
-				catcher.Add(b.Bucket.Upload(ctx, filepath.Join(remote, fn), filepath.Join(local, fn)))
+				select {
+				case <-ctx.Done():
+					return
+				default:
+				}
+
+				if b.dryRun {
+					continue
+				}
+
+				err = b.Bucket.Upload(ctx, filepath.Join(remote, fn), filepath.Join(local, fn))
+				if err != nil {
+					catcher.Add(err)
+					cancel()
+				}
 			}
 		}()
 	}
 	wg.Wait()
 
-	if b.deleteOnSync && !b.dryRun {
-		return errors.Wrapf(os.RemoveAll(local), "problem removing '%s' after push", local)
+	if ctx.Err() == nil && b.deleteOnSync && !b.dryRun {
+		catcher.Add(errors.Wrapf(os.RemoveAll(local), "problem removing '%s' after push", local))
 	}
 
 	return catcher.Resolve()
 
 }
 func (b *parallelBucketImpl) Pull(ctx context.Context, local, remote string) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	iter, err := b.List(ctx, remote)
 	if err != nil {
 		return errors.WithStack(err)
@@ -82,27 +102,24 @@ func (b *parallelBucketImpl) Pull(ctx context.Context, local, remote string) err
 	items := make(chan BucketItem)
 	toDelete := make(chan string)
 
-	deleteSignal := make(chan struct{})
 	go func() {
 		defer close(items)
 
 		for iter.Next(ctx) {
 			if iter.Err() != nil {
-				catcher.Add(errors.Wrap(err, "problem iterating bucket"))
-				return
+				cancel()
+				catcher.Add(errors.Wrap(iter.Err(), "problem iterating bucket"))
 			}
 			select {
 			case <-ctx.Done():
 				catcher.Add(ctx.Err())
 				return
 			case items <- iter.Item():
-				continue
 			}
 		}
 	}()
 
 	wg := &sync.WaitGroup{}
-
 	for i := 0; i < b.size; i++ {
 		wg.Add(1)
 		go func() {
@@ -111,46 +128,45 @@ func (b *parallelBucketImpl) Pull(ctx context.Context, local, remote string) err
 				name, err := filepath.Rel(remote, item.Name())
 				if err != nil {
 					catcher.Add(errors.Wrap(err, "problem getting relative filepath"))
-					return
+					cancel()
 				}
 				localName := filepath.Join(local, name)
 				if err := b.Download(ctx, item.Name(), localName); err != nil {
 					catcher.Add(err)
-					return
+					cancel()
 				}
+
 				select {
 				case <-ctx.Done():
 					catcher.Add(ctx.Err())
 					return
 				case toDelete <- item.Name():
-					continue
 				}
 			}
 		}()
 	}
-
 	go func() {
 		wg.Wait()
 		close(toDelete)
 	}()
 
+	deleteSignal := make(chan struct{})
 	go func() {
 		defer close(deleteSignal)
+
 		keys := []string{}
 		for key := range toDelete {
 			keys = append(keys, key)
 		}
 
-		if b.deleteOnSync {
-			if b.dryRun {
-				grip.Debug(message.Fields{
-					"dry_run": true,
-					"keys":    keys,
-					"message": "would delete after push",
-				})
-			} else {
-				catcher.Add(errors.Wrapf(b.RemoveMany(ctx, keys...), "problem removing '%s' after pull", remote))
-			}
+		if b.deleteOnSync && b.dryRun {
+			grip.Debug(message.Fields{
+				"dry_run": true,
+				"keys":    toDelete,
+				"message": "would delete after push",
+			})
+		} else if ctx.Err() == nil && b.deleteOnSync {
+			catcher.Add(errors.Wrapf(b.RemoveMany(ctx, keys...), "problem removing '%s' after pull", remote))
 		}
 	}()
 
