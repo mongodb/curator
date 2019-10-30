@@ -60,10 +60,15 @@ func (s *collectorService) StreamEvents(srv PoplarEventCollector_StreamEventsSer
 
 	for {
 		event, err := srv.Recv()
-		if err != io.EOF {
+		if err == io.EOF {
 			return srv.SendAndClose(&PoplarResponse{
 				Name:   eventName,
 				Status: true,
+			})
+		} else if err != nil {
+			return srv.SendAndClose(&PoplarResponse{
+				Name:   eventName,
+				Status: false,
 			})
 		}
 

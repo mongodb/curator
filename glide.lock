@@ -48,7 +48,7 @@ imports:
 - name: github.com/mongodb/jasper
   version: 24607954ecbc513a690707528e363aa14bd0dfaf
 - name: github.com/evergreen-ci/poplar
-  version: 767213a2ceabfd38db0a6d9209491cdf0eebe4ff
+  version: b4cc00f04e28681db26be5d9a231bc2cca729382
 - name: github.com/evergreen-ci/pail
   version: 7b8cb54bad5ecabc93b3e89da341e842ed54d8d4
 - name: github.com/evergreen-ci/aviation

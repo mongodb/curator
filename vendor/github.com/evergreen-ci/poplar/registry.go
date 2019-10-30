@@ -164,7 +164,7 @@ func (r *RecorderRegistry) GetCollector(key string) (ftdc.Collector, bool) {
 
 	impl, ok := r.cache[key]
 
-	if !ok || !impl.isDynamic {
+	if !ok {
 		return nil, false
 	}
 
@@ -192,7 +192,7 @@ func (r *RecorderRegistry) MakeBenchmark(bench *BenchmarkCase) func(*testing.B) 
 		Path:      fqname,
 		ChunkSize: 1024,
 		Streaming: true,
-		Dynamic:   true,
+		Dynamic:   false,
 		Recorder:  bench.Recorder,
 	})
 
