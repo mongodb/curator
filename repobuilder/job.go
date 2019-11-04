@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -273,6 +274,7 @@ func (j *Job) Run(ctx context.Context) {
 		SharedCredentialsProfile: j.Profile,
 		Name:                     j.Distro.Bucket,
 		DryRun:                   j.DryRun,
+		UseSingleFileChecksums:   true,
 		Permissions:              pail.S3PermissionsPublicRead,
 		MaxRetries:               10,
 	}
@@ -281,8 +283,9 @@ func (j *Job) Run(ctx context.Context) {
 		j.AddError(errors.Wrapf(err, "problem getting s3 bucket %s", j.Distro.Bucket))
 		return
 	}
-
 	defer j.MarkComplete()
+
+	bucket = pail.NewParallelSyncBucket(pail.ParallelBucketOptions{Workers: runtime.NumCPU() * 2}, bucket)
 
 	var cancel context.CancelFunc
 	if _, ok := ctx.Deadline(); !ok {
