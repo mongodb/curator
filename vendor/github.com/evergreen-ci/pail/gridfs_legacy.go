@@ -224,7 +224,7 @@ func (b *gridfsLegacyBucket) Push(ctx context.Context, local, remote string) err
 	}
 
 	if b.opts.DeleteOnSync && !b.opts.DryRun {
-		return errors.Wrapf(os.RemoveAll(local), "problem removing '%s' after push", local)
+		return errors.Wrap(deleteOnPush(ctx, localPaths, remote, b), "probelm with delete on sync after push")
 	}
 	return nil
 }
@@ -246,8 +246,9 @@ func (b *gridfsLegacyBucket) Pull(ctx context.Context, local, remote string) err
 	keys := []string{}
 	for gridfs.OpenNext(iterimpl.iter, &f) {
 		denormalizedName := b.denormalizeKey(f.Name())
-		name := filepath.Join(local, denormalizedName[len(remote)+1:])
-		keys = append(keys, denormalizedName)
+		fn := denormalizedName[len(remote)+1:]
+		name := filepath.Join(local, fn)
+		keys = append(keys, fn)
 		checksum, err = md5sum(name)
 		if os.IsNotExist(errors.Cause(err)) {
 			if err = b.Download(ctx, denormalizedName, name); err != nil {
@@ -272,7 +273,7 @@ func (b *gridfsLegacyBucket) Pull(ctx context.Context, local, remote string) err
 	}
 
 	if b.opts.DeleteOnSync && !b.opts.DryRun {
-		return errors.Wrapf(b.RemoveMany(ctx, keys...), "problem removing '%s' after pull", remote)
+		return errors.Wrap(deleteOnPull(ctx, keys, local), "problem with delete on sync after pull")
 	}
 	return nil
 }

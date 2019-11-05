@@ -206,7 +206,7 @@ func (b *gridfsBucket) Push(ctx context.Context, local, remote string) error {
 	}
 
 	if b.opts.DeleteOnSync && !b.opts.DryRun {
-		return errors.Wrapf(os.RemoveAll(local), "problem removing '%s' after push", local)
+		return errors.Wrap(deleteOnPush(ctx, localPaths, remote, b), "probelm with delete on sync after push")
 	}
 
 	return nil
@@ -222,8 +222,9 @@ func (b *gridfsBucket) Pull(ctx context.Context, local, remote string) error {
 
 	for iter.Next(ctx) {
 		item := iter.Item()
-		name := filepath.Join(local, item.Name()[len(remote)+1:])
-		keys = append(keys, item.Name())
+		fn := item.Name()[len(remote)+1:]
+		name := filepath.Join(local, fn)
+		keys = append(keys, fn)
 
 		if err = b.Download(ctx, item.Name(), name); err != nil {
 			return errors.WithStack(err)
@@ -235,7 +236,7 @@ func (b *gridfsBucket) Pull(ctx context.Context, local, remote string) error {
 	}
 
 	if b.opts.DeleteOnSync && !b.opts.DryRun {
-		return errors.Wrapf(b.RemoveMany(ctx, keys...), "problem removing '%s' after pull", remote)
+		return errors.Wrap(deleteOnPull(ctx, keys, local), "problem with delete on sync after pull")
 	}
 
 	return nil

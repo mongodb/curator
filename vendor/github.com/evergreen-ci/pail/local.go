@@ -236,7 +236,7 @@ func (b *localFileSystem) Push(ctx context.Context, local, remote string) error 
 	}
 
 	if b.deleteOnSync && !b.dryRun {
-		return errors.Wrapf(os.RemoveAll(local), "problem removing '%s' after push", local)
+		return errors.Wrap(deleteOnPush(ctx, files, remote, b), "probelm with delete on sync after push")
 	}
 	return nil
 }
@@ -250,9 +250,9 @@ func (b *localFileSystem) Pull(ctx context.Context, local, remote string) error 
 
 	keys := []string{}
 	for _, fn := range files {
+		keys = append(keys, fn)
 		path := filepath.Join(local, fn)
 		fn = filepath.Join(remote, fn)
-		keys = append(keys, filepath.Join(remote, fn))
 		if _, err := os.Stat(path); os.IsNotExist(err) {
 			if err := b.Download(ctx, fn, path); err != nil {
 				return errors.WithStack(err)
@@ -278,7 +278,7 @@ func (b *localFileSystem) Pull(ctx context.Context, local, remote string) error 
 	}
 
 	if b.deleteOnSync && !b.dryRun {
-		return errors.Wrapf(b.RemoveMany(ctx, keys...), "problem removing '%s' after pull", remote)
+		return errors.Wrap(deleteOnPull(ctx, keys, local), "problem with delete on sync after pull")
 	}
 	return nil
 }

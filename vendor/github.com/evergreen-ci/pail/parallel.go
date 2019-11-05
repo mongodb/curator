@@ -2,8 +2,8 @@ package pail
 
 import (
 	"context"
-	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/mongodb/grip"
@@ -83,7 +83,7 @@ func (b *parallelBucketImpl) Push(ctx context.Context, local, remote string) err
 	wg.Wait()
 
 	if ctx.Err() == nil && b.deleteOnSync && !b.dryRun {
-		catcher.Add(errors.Wrapf(os.RemoveAll(local), "problem removing '%s' after push", local))
+		catcher.Add(errors.Wrap(deleteOnPush(ctx, files, remote, b), "probelm with delete on sync after push"))
 	}
 
 	return catcher.Resolve()
@@ -136,11 +136,15 @@ func (b *parallelBucketImpl) Pull(ctx context.Context, local, remote string) err
 					cancel()
 				}
 
+				fn := strings.TrimPrefix(item.Name(), remote)
+				fn = strings.TrimPrefix(fn, "/")
+				fn = strings.TrimPrefix(fn, "\\") // cause windows...
+
 				select {
 				case <-ctx.Done():
 					catcher.Add(ctx.Err())
 					return
-				case toDelete <- item.Name():
+				case toDelete <- fn:
 				}
 			}
 		}()
@@ -162,11 +166,10 @@ func (b *parallelBucketImpl) Pull(ctx context.Context, local, remote string) err
 		if b.deleteOnSync && b.dryRun {
 			grip.Debug(message.Fields{
 				"dry_run": true,
-				"keys":    toDelete,
 				"message": "would delete after push",
 			})
 		} else if ctx.Err() == nil && b.deleteOnSync {
-			catcher.Add(errors.Wrapf(b.RemoveMany(ctx, keys...), "problem removing '%s' after pull", remote))
+			catcher.Add(errors.Wrap(deleteOnPull(ctx, keys, local), "problem with delete on sync after pull"))
 		}
 	}()
 
