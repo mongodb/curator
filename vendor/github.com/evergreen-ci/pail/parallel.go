@@ -25,8 +25,9 @@ type ParallelBucketOptions struct {
 	// DryRun enables running in a mode that will not execute any
 	// operations that modify the bucket.
 	DryRun bool
-	// DeleteOnSync will delete, either locally or remotely, all objects
-	// that were part of the sync operation (Push/Pull) from the source.
+	// DeleteOnSync will delete all objects from the target that do not
+	// exist in the source after the completion of a sync operation
+	// (Push/Pull).
 	DeleteOnSync bool
 }
 
