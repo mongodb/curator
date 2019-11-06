@@ -76,8 +76,9 @@ type S3Options struct {
 	// DryRun enables running in a mode that will not execute any
 	// operations that modify the bucket.
 	DryRun bool
-	// DeleteOnSync will delete, either locally or remotely, all objects
-	// that were part of the sync operation (Push/Pull) from the source.
+	// DeleteOnSync will delete all objects from the target that do not
+	// exist in the source after the completion of a sync operation
+	// (Push/Pull).
 	DeleteOnSync bool
 	// Compress enables gzipping of uploaded objects.
 	Compress bool
@@ -678,7 +679,7 @@ func (s *s3Bucket) pushHelper(ctx context.Context, b Bucket, local, remote strin
 	}
 
 	if s.deleteOnSync && !s.dryRun {
-		return errors.Wrapf(os.RemoveAll(local), "problem removing '%s' after push", local)
+		return errors.Wrap(deleteOnPush(ctx, files, remote, b), "probelm with delete on sync after push")
 	}
 	return nil
 }
@@ -710,11 +711,11 @@ func (s *s3Bucket) pullHelper(ctx context.Context, local, remote string, b Bucke
 		if err := s3DownloadWithChecksum(ctx, b, iter.Item(), localName); err != nil {
 			return errors.WithStack(err)
 		}
-		keys = append(keys, iter.Item().Name())
+		keys = append(keys, name)
 	}
 
 	if s.deleteOnSync && !s.dryRun {
-		return errors.Wrapf(b.RemoveMany(ctx, keys...), "problem removing '%s' after pull", remote)
+		return errors.Wrap(deleteOnPull(ctx, keys, local), "problem with delete on sync after pull")
 	}
 	return nil
 }

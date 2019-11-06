@@ -10,7 +10,9 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 
+	"github.com/mongodb/grip"
 	"github.com/pkg/errors"
 )
 
@@ -132,4 +134,50 @@ func consistentJoin(prefix, key string) string {
 		return prefix + "/" + key
 	}
 	return key
+}
+
+func deleteOnPush(ctx context.Context, sourceFiles []string, remote string, bucket Bucket) error {
+	sourceFilesMap := map[string]bool{}
+	for _, fn := range sourceFiles {
+		sourceFilesMap[fn] = true
+	}
+
+	iter, err := bucket.List(ctx, remote)
+	if err != nil {
+		return err
+	}
+
+	toDelete := []string{}
+	for iter.Next(ctx) {
+		fn := strings.TrimPrefix(iter.Item().Name(), remote)
+		fn = strings.TrimPrefix(fn, "/")
+		fn = strings.TrimPrefix(fn, "\\") // cause windows...
+
+		if !sourceFilesMap[fn] {
+			toDelete = append(toDelete, iter.Item().Name())
+		}
+	}
+
+	return bucket.RemoveMany(ctx, toDelete...)
+}
+
+func deleteOnPull(ctx context.Context, sourceFiles []string, local string) error {
+	sourceFilesMap := map[string]bool{}
+	for _, fn := range sourceFiles {
+		sourceFilesMap[fn] = true
+	}
+
+	destinationFiles, err := walkLocalTree(ctx, local)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	catcher := grip.NewBasicCatcher()
+	for _, fn := range destinationFiles {
+		if !sourceFilesMap[fn] {
+			catcher.Add(os.RemoveAll(filepath.Join(local, fn)))
+		}
+	}
+
+	return catcher.Resolve()
 }
