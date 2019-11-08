@@ -46,13 +46,13 @@ imports:
 - name: github.com/mongodb/ftdc
   version: b1b44cf77c23d879f8460fc68ba3297116746efb
 - name: github.com/mongodb/jasper
-  version: 24607954ecbc513a690707528e363aa14bd0dfaf
+  version: bcecce47838670751b1a60751fb3c3d7eec69bbc
 - name: github.com/evergreen-ci/poplar
   version: b4cc00f04e28681db26be5d9a231bc2cca729382
 - name: github.com/evergreen-ci/pail
   version: 2f47b94fefc9b6cc3d97a01fb8b396a8d6bcb3df
 - name: github.com/evergreen-ci/aviation
-  version: d74791c0d819b6f7908cced0dd37e6ab3fb9eeae
+  version: 8bdfd62dc19653045bea1cd8a9dc48c57a0d66f0
 - name: go.mongodb.org/mongo-driver
   version: 305bc4a5e4131420fe8ba5628e6faa9e6ade4e86
 - name: github.com/evergreen-ci/timber

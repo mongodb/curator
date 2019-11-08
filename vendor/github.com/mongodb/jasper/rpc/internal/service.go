@@ -103,10 +103,14 @@ func (s *jasperService) Create(ctx context.Context, opts *CreateOptions) (*Proce
 	if err := proc.RegisterTrigger(ctx, func(_ jasper.ProcessInfo) {
 		cancel()
 	}); err != nil {
-		if !proc.Info(ctx).Complete {
-			return ConvertProcessInfo(proc.Info(ctx)), nil
-		}
+		info := getProcInfoNoHang(ctx, proc)
 		cancel()
+		// If we get an error registering a trigger, then we should make sure
+		// that the reason for it isn't just because the process has exited
+		// already, since that should not be considered an error.
+		if !info.Complete {
+			return nil, errors.WithStack(err)
+		}
 	}
 
 	return getProcInfoNoHang(ctx, proc), nil
@@ -226,23 +230,26 @@ func (s *jasperService) Respawn(ctx context.Context, id *JasperProcessID) (*Proc
 	// Spawn a new context so that the process' context is not potentially
 	// canceled by the request's. See how rest_service.go's createProcess() does
 	// this same thing.
-	cctx, cancel := context.WithCancel(context.Background())
-	newProc, err := proc.Respawn(cctx)
+	pctx, cancel := context.WithCancel(context.Background())
+	newProc, err := proc.Respawn(pctx)
 	if err != nil {
 		err = errors.Wrap(err, "problem encountered while respawning")
 		cancel()
 		return nil, errors.WithStack(err)
 	}
-	_ = s.manager.Register(ctx, newProc)
+	if err := s.manager.Register(ctx, newProc); err != nil {
+		cancel()
+		return nil, errors.WithStack(err)
+	}
 
 	if err := newProc.RegisterTrigger(ctx, func(_ jasper.ProcessInfo) {
 		cancel()
 	}); err != nil {
 		newProcInfo := getProcInfoNoHang(ctx, newProc)
+		cancel()
 		if !newProcInfo.Complete {
 			return newProcInfo, nil
 		}
-		cancel()
 	}
 
 	return getProcInfoNoHang(ctx, newProc), nil

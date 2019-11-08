@@ -4,6 +4,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/evergreen-ci/timber"
 	"github.com/mongodb/grip"
 	"github.com/mongodb/grip/level"
 	"github.com/mongodb/grip/send"
@@ -102,15 +103,16 @@ func (opts Buffer) Validate() error {
 //
 // By default, logger reads from both standard output and standard error.
 type Log struct {
-	BufferOptions      Buffer                    `json:"buffer_options,omitempty"`
-	BuildloggerOptions send.BuildloggerConfig    `json:"buildlogger_options,omitempty"`
-	DefaultPrefix      string                    `json:"default_prefix,omitempty"`
-	FileName           string                    `json:"file_name,omitempty"`
-	Format             LogFormat                 `json:"format"`
-	InMemoryCap        int                       `json:"in_memory_cap,omitempty"`
-	Level              send.LevelInfo            `json:"level,omitempty"`
-	SplunkOptions      send.SplunkConnectionInfo `json:"splunk_options,omitempty"`
-	SumoEndpoint       string                    `json:"sumo_endpoint,omitempty"`
+	BufferOptions        Buffer                    `json:"buffer_options,omitempty"`
+	BuildloggerOptions   send.BuildloggerConfig    `json:"buildlogger_options,omitempty"`
+	BuildloggerV3Options timber.LoggerOptions      `json:"buildlogger_v3_options"`
+	DefaultPrefix        string                    `json:"default_prefix,omitempty"`
+	FileName             string                    `json:"file_name,omitempty"`
+	Format               LogFormat                 `json:"format"`
+	InMemoryCap          int                       `json:"in_memory_cap,omitempty"`
+	Level                send.LevelInfo            `json:"level,omitempty"`
+	SplunkOptions        send.SplunkConnectionInfo `json:"splunk_options,omitempty"`
+	SumoEndpoint         string                    `json:"sumo_endpoint,omitempty"`
 }
 
 // Validate ensures that LogOptions is valid.
@@ -159,7 +161,7 @@ func (l *Logger) Configure() (send.Sender, error) {
 	}
 
 	switch l.Type {
-	case LogBuildloggerV2, LogBuildloggerV3:
+	case LogBuildloggerV2:
 		if l.Options.BuildloggerOptions.Local == nil {
 			l.Options.BuildloggerOptions.Local = send.MakeNative()
 		}
@@ -185,7 +187,7 @@ func (l *Logger) Configure() (send.Sender, error) {
 		}
 	case LogInherit:
 		sender = grip.GetSender()
-		if err := sender.SetLevel(l.Options.Level); err != nil {
+		if err = sender.SetLevel(l.Options.Level); err != nil {
 			return nil, err
 		}
 	case LogSplunk:
@@ -204,7 +206,7 @@ func (l *Logger) Configure() (send.Sender, error) {
 		if err != nil {
 			return nil, err
 		}
-		if err := sender.SetLevel(l.Options.Level); err != nil {
+		if err = sender.SetLevel(l.Options.Level); err != nil {
 			return nil, err
 		}
 	case LogInMemory:
@@ -212,6 +214,11 @@ func (l *Logger) Configure() (send.Sender, error) {
 			return nil, errors.New("invalid inmemory capacity")
 		}
 		sender, err = send.NewInMemorySender(DefaultLogName, l.Options.Level, l.Options.InMemoryCap)
+		if err != nil {
+			return nil, err
+		}
+	case LogBuildloggerV3:
+		sender, err = timber.NewLogger(DefaultLogName, l.Options.Level, &l.Options.BuildloggerV3Options)
 		if err != nil {
 			return nil, err
 		}
@@ -227,7 +234,7 @@ func (l *Logger) Configure() (send.Sender, error) {
 		return nil, errors.New("failed to set log format")
 	}
 
-	if l.Options.BufferOptions.Buffered {
+	if l.Type != LogBuildloggerV3 && l.Options.BufferOptions.Buffered {
 		if l.Options.BufferOptions.Duration < 0 || l.Options.BufferOptions.MaxSize < 0 {
 			return nil, errors.New("buffer options cannot be negative")
 		}

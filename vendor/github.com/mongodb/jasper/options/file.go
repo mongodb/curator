@@ -111,8 +111,8 @@ func (info *WriteFile) WriteBufferedContent(doWrite func(bufInfo WriteFile) erro
 			bufInfo.Append = true
 		}
 
-		if err := doWrite(bufInfo); err != nil {
-			return errors.Wrap(err, "could not write info")
+		if writeErr := doWrite(bufInfo); err != nil {
+			return errors.Wrap(writeErr, "could not write info")
 		}
 
 		didWrite = true

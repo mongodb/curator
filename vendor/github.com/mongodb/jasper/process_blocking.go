@@ -6,13 +6,10 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
-	"strings"
 	"sync"
 	"syscall"
 	"time"
 
-	"github.com/mongodb/grip"
-	"github.com/mongodb/grip/message"
 	"github.com/mongodb/jasper/options"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -20,7 +17,6 @@ import (
 
 type blockingProcess struct {
 	id       string
-	opts     options.Create
 	ops      chan func(*exec.Cmd)
 	complete chan struct{}
 	err      error
@@ -43,7 +39,6 @@ func newBlockingProcess(ctx context.Context, opts *options.Create) (Process, err
 
 	p := &blockingProcess{
 		id:       id,
-		opts:     *opts,
 		tags:     make(map[string]struct{}),
 		ops:      make(chan func(*exec.Cmd)),
 		complete: make(chan struct{}),
@@ -148,13 +143,6 @@ func (p *blockingProcess) reactor(ctx context.Context, deadline time.Time, cmd *
 				} else {
 					info.Successful = (err == nil)
 				}
-
-				grip.Debug(message.WrapError(err, message.Fields{
-					"id":           p.ID,
-					"cmd":          strings.Join(p.opts.Args, " "),
-					"success":      info.Successful,
-					"num_triggers": len(p.triggers),
-				}))
 			}()
 
 			p.mu.RLock()
@@ -388,7 +376,7 @@ func (p *blockingProcess) Tag(t string) {
 	}
 
 	p.tags[t] = struct{}{}
-	p.opts.Tags = append(p.opts.Tags, t)
+	p.info.Options.Tags = append(p.info.Options.Tags, t)
 }
 
 func (p *blockingProcess) ResetTags() {
@@ -396,7 +384,7 @@ func (p *blockingProcess) ResetTags() {
 	defer p.mu.Unlock()
 
 	p.tags = make(map[string]struct{})
-	p.opts.Tags = []string{}
+	p.info.Options.Tags = []string{}
 }
 
 func (p *blockingProcess) GetTags() []string {

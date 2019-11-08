@@ -222,10 +222,10 @@ case "$1" in
             echo "Already started"
         else
             echo "Starting $name"
-			{{ if .Option.LimitLockedMemory }}ulimit -l {{.Option.LimitLockedMemory}}
-			{{ if .Option.LimitNumFiles }}ulimit -n {{.Option.LimitNumFiles}}
-			{{ if .Option.LimitNumProcs }}ulimit -u {{.Option.LimitNumProcs}}
-			{{ if .Option.LimitVirtualMemory }}ulimit -v {{.Option.LimitVirtualMemory}}
+			{{ if .Option.LimitLockedMemory }}ulimit -l {{.Option.LimitLockedMemory}}{{end}}
+			{{ if .Option.LimitNumFiles }}ulimit -n {{.Option.LimitNumFiles}}{{end}}
+			{{ if .Option.LimitNumProcs }}ulimit -u {{.Option.LimitNumProcs}}{{end}}
+			{{ if .Option.LimitVirtualMemory }}ulimit -v {{.Option.LimitVirtualMemory}}{{end}}
             {{if .WorkingDirectory}}cd '{{.WorkingDirectory}}'{{end}}
             $cmd >> "$stdout_log" 2>> "$stderr_log" &
             echo $! > "$pid_file"

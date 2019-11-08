@@ -19,7 +19,6 @@ type basicProcess struct {
 	cmd            *exec.Cmd
 	err            error
 	id             string
-	opts           options.Create
 	tags           map[string]struct{}
 	triggers       ProcessTriggerSequence
 	signalTriggers SignalTriggerSequence
@@ -38,7 +37,6 @@ func newBasicProcess(ctx context.Context, opts *options.Create) (Process, error)
 
 	p := &basicProcess{
 		id:            id,
-		opts:          *opts,
 		cmd:           cmd,
 		tags:          make(map[string]struct{}),
 		waitProcessed: make(chan struct{}),
@@ -58,7 +56,7 @@ func newBasicProcess(ctx context.Context, opts *options.Create) (Process, error)
 
 	p.info.StartAt = time.Now()
 	p.info.ID = p.id
-	p.info.Options = p.opts
+	p.info.Options = *opts
 	p.info.Host, _ = os.Hostname()
 	p.info.IsRunning = true
 	p.info.PID = cmd.Process.Pid
@@ -113,8 +111,8 @@ func (p *basicProcess) Info(_ context.Context) ProcessInfo {
 	return p.info
 }
 
-func (p *basicProcess) Complete(_ context.Context) bool {
-	return !p.Running(nil)
+func (p *basicProcess) Complete(ctx context.Context) bool {
+	return !p.Running(ctx)
 }
 
 func (p *basicProcess) Running(_ context.Context) bool {
@@ -212,12 +210,16 @@ func (p *basicProcess) Tag(t string) {
 	}
 
 	p.tags[t] = struct{}{}
-	p.opts.Tags = append(p.opts.Tags, t)
+	p.Lock()
+	defer p.Unlock()
+	p.info.Options.Tags = append(p.info.Options.Tags, t)
 }
 
 func (p *basicProcess) ResetTags() {
 	p.tags = make(map[string]struct{})
-	p.opts.Tags = []string{}
+	p.Lock()
+	defer p.Unlock()
+	p.info.Options.Tags = []string{}
 }
 
 func (p *basicProcess) GetTags() []string {

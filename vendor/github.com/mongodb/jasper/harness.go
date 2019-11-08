@@ -1,5 +1,3 @@
-// +build none
-
 package jasper
 
 import (
@@ -7,32 +5,50 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"time"
 
+	"github.com/evergreen-ci/poplar"
+	"github.com/mongodb/grip"
 	"github.com/mongodb/grip/send"
 	"github.com/mongodb/jasper/options"
+	"github.com/mongodb/jasper/testutil"
 	"github.com/pkg/errors"
 )
 
-const (
-	one             = 1
-	five            = 5
-	ten             = 2 * five
-	thirty          = 3 * ten
-	hundred         = ten * ten
-	thousand        = ten * hundred
-	tenThousand     = ten * thousand
-	hundredThousand = hundred * thousand
-	million         = hundred * hundredThousand
-	halfMillion     = five * hundredThousand
+// RunLogBenchmarks runs the logging benchmark suite.
+func RunLogBenchmarks(ctx context.Context) error {
+	prefix := filepath.Join(
+		"build",
+		fmt.Sprintf("jasper-log-benchmark-%d", time.Now().Unix()),
+	)
+	if err := os.Mkdir(prefix, os.ModePerm); err != nil {
+		return errors.Wrap(err, "problem creating benchmark directory")
+	}
 
-	executionTimeout = five * time.Minute
-	minIterations    = one
-)
+	resultFile, err := os.Create(filepath.Join(prefix, "results.txt"))
+	if err != nil {
+		return errors.Wrap(err, "problem creating result file")
+	}
 
-func yesCreateOpts(timeout time.Duration) options.Create {
-	return options.Create{Args: []string{"yes"}, Timeout: timeout}
+	var resultText string
+	s := getLogBenchmarkSuite()
+	res, err := s.Run(ctx, prefix)
+	if err != nil {
+		resultText = fmt.Sprintf("--- FAIL: %s\n", err)
+	} else {
+		resultText = fmt.Sprintf("--- PASS: %s\n", res.Report())
+	}
+
+	catcher := grip.NewBasicCatcher()
+	_, err = resultFile.WriteString(resultText)
+	catcher.Add(errors.Wrap(err, "failed to write benchmark results to file"))
+	catcher.Add(resultFile.Close())
+
+	return catcher.Resolve()
 }
+
+type makeProcess func(context.Context, *options.Create) (Process, error)
 
 func procMap() map[string]func(context.Context, *options.Create) (Process, error) {
 	return map[string]func(context.Context, *options.Create) (Process, error){
@@ -41,7 +57,7 @@ func procMap() map[string]func(context.Context, *options.Create) (Process, error
 	}
 }
 
-func runIteration(ctx context.Context, makeProc func(context.Context, *options.Create) (Process, error), opts *options.Create) error {
+func runIteration(ctx context.Context, makeProc makeProcess, opts *options.Create) error {
 	proc, err := makeProc(ctx, opts)
 	if err != nil {
 		return err
@@ -54,113 +70,116 @@ func runIteration(ctx context.Context, makeProc func(context.Context, *options.C
 }
 
 func makeCreateOpts(timeout time.Duration, logger options.Logger) *options.Create {
-	opts := yesCreateOpts(timeout)
+	opts := testutil.YesCreateOpts(timeout)
 	opts.Output.Loggers = []options.Logger{logger}
-	return &opts
+	return opts
 }
 
-func inMemoryLoggerCase(ctx context.Context, c *caseDefinition) result {
+func getInMemoryLoggerBenchmark(makeProc makeProcess, timeout time.Duration) poplar.Benchmark {
 	var logType options.LogType = options.LogInMemory
 	logOptions := options.Log{InMemoryCap: 1000, Format: options.LogFormatPlain}
-	res := result{duration: c.timeout}
-	size := make(chan int64)
-	opts := makeCreateOpts(c.timeout, options.Logger{Type: logType, Options: logOptions})
-	opts.closers = append(opts.closers, func() (_ error) {
-		defer close(size)
-		logger := opts.Output.outputSender.Sender.(*send.InMemorySender)
-		select {
-		case size <- logger.TotalBytesSent():
-		case <-ctx.Done():
+	opts := makeCreateOpts(timeout, options.Logger{Type: logType, Options: logOptions})
+
+	return func(ctx context.Context, r poplar.Recorder, _ int) error {
+		startAt := time.Now()
+		r.Begin()
+		err := runIteration(ctx, makeProc, opts)
+		if err != nil {
+			return err
 		}
-		return
-	})
-
-	sizeAdded := make(chan struct{})
-	go func(res *result) {
-		defer close(sizeAdded)
-		select {
-		case numBytes := <-size:
-			res.size += float64(numBytes)
-		case <-ctx.Done():
+		r.IncOps(1)
+		sender, err := opts.Output.Loggers[0].Configure()
+		if err != nil {
+			return err
 		}
-	}(&res)
+		rawSender := sender.(*send.InMemorySender)
+		r.IncSize(rawSender.TotalBytesSent())
+		r.End(time.Since(startAt))
 
-	err := runIteration(ctx, c.procMaker, opts)
-	if err != nil {
-		return result{err: err}
-	}
-
-	select {
-	case <-sizeAdded:
-	case <-ctx.Done():
-	}
-
-	return res
-}
-
-func fileLoggerCase(ctx context.Context, c *caseDefinition) result {
-	res := result{duration: c.timeout}
-
-	var logType options.LogType = options.LogFile
-	file, err := ioutil.TempFile("build", "bench_out.txt")
-	if err != nil {
-		return result{err: err}
-	}
-	defer os.Remove(file.Name())
-	logOptions := options.Log{FileName: file.Name(), Format: options.LogFormatPlain}
-
-	opts := makeCreateOpts(c.timeout, options.Logger{Type: logType, Options: logOptions})
-
-	err = runIteration(ctx, c.procMaker, opts)
-	if err != nil {
-		return result{err: err}
-	}
-
-	info, err := file.Stat()
-	if err != nil {
-		return result{err: err}
-	}
-	numBytes := info.Size()
-	res.size += float64(numBytes)
-
-	return res
-}
-
-func logCases() map[string]func(context.Context, *caseDefinition) result {
-	return map[string]func(context.Context, *caseDefinition) result{
-		"InMemoryLogger": inMemoryLoggerCase,
-		"FileLogger":     fileLoggerCase,
+		return nil
 	}
 }
 
-func getAllCases() []*caseDefinition {
-	cases := make([]*caseDefinition, 0)
+func getFileLoggerBenchmark(makeProc makeProcess, timeout time.Duration) poplar.Benchmark {
+	return func(ctx context.Context, r poplar.Recorder, _ int) error {
+		var logType options.LogType = options.LogFile
+		file, err := ioutil.TempFile("", "bench_out.txt")
+		if err != nil {
+			return err
+		}
+		defer os.Remove(file.Name())
+		logOptions := options.Log{FileName: file.Name(), Format: options.LogFormatPlain}
+		opts := makeCreateOpts(timeout, options.Logger{Type: logType, Options: logOptions})
+
+		startAt := time.Now()
+		r.Begin()
+		err = runIteration(ctx, makeProc, opts)
+		if err != nil {
+			return err
+		}
+		r.IncOps(1)
+		info, err := file.Stat()
+		if err != nil {
+			return err
+		}
+		r.IncSize(info.Size())
+		r.End(time.Since(startAt))
+
+		return nil
+	}
+}
+
+func logBenchmarks() map[string]func(makeProcess, time.Duration) poplar.Benchmark {
+	return map[string]func(makeProcess, time.Duration) poplar.Benchmark{
+		"InMemoryLogger": getInMemoryLoggerBenchmark,
+		"FileLogger":     getFileLoggerBenchmark,
+	}
+}
+
+func getLogBenchmarkSuite() poplar.BenchmarkSuite {
+	benchmarkSuite := poplar.BenchmarkSuite{}
 	for procName, makeProc := range procMap() {
-		for logName, logCase := range logCases() {
-			cases = append(cases,
-				&caseDefinition{
-					name:               fmt.Sprintf("%s/%s/Send1Second", logName, procName),
-					bench:              logCase,
-					procMaker:          makeProc,
-					timeout:            one * time.Second,
-					requiredIterations: ten,
+		for logName, logBench := range logBenchmarks() {
+			benchmarkSuite = append(benchmarkSuite,
+				&poplar.BenchmarkCase{
+					CaseName:         fmt.Sprintf("%s-%s-Send1Second", logName, procName),
+					Bench:            logBench(makeProc, time.Second),
+					MinRuntime:       30 * time.Second,
+					MaxRuntime:       time.Minute,
+					Timeout:          10 * time.Minute,
+					IterationTimeout: time.Minute,
+					Count:            1,
+					MinIterations:    10,
+					MaxIterations:    20,
+					Recorder:         poplar.RecorderPerf,
 				},
-				&caseDefinition{
-					name:               fmt.Sprintf("%s/%s/Send5Seconds", logName, procName),
-					bench:              logCase,
-					procMaker:          makeProc,
-					timeout:            five * time.Second,
-					requiredIterations: five,
+				&poplar.BenchmarkCase{
+					CaseName:         fmt.Sprintf("%s-%s-Send5Seconds", logName, procName),
+					Bench:            logBench(makeProc, 5*time.Second),
+					MinRuntime:       30 * time.Second,
+					MaxRuntime:       time.Minute,
+					Timeout:          10 * time.Minute,
+					IterationTimeout: time.Minute,
+					Count:            1,
+					MinIterations:    5,
+					MaxIterations:    20,
+					Recorder:         poplar.RecorderPerf,
 				},
-				&caseDefinition{
-					name:               fmt.Sprintf("%s/%s/Send30Seconds", logName, procName),
-					bench:              logCase,
-					procMaker:          makeProc,
-					timeout:            thirty * time.Second,
-					requiredIterations: one,
+				&poplar.BenchmarkCase{
+					CaseName:         fmt.Sprintf("%s-%s-Send30Seconds", logName, procName),
+					Bench:            logBench(makeProc, 30*time.Second),
+					MinRuntime:       30 * time.Second,
+					MaxRuntime:       time.Minute,
+					Timeout:          10 * time.Minute,
+					IterationTimeout: time.Minute,
+					Count:            1,
+					MinIterations:    1,
+					MaxIterations:    20,
+					Recorder:         poplar.RecorderPerf,
 				},
 			)
 		}
 	}
-	return cases
+
+	return benchmarkSuite
 }

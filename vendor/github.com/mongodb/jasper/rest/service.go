@@ -84,6 +84,8 @@ func (s *Service) App(ctx context.Context) *gimlet.APIApp {
 	return app
 }
 
+// SetDisableCachePruning toggles the underlying option for the
+// services cache.
 func (s *Service) SetDisableCachePruning(v bool) {
 	s.cacheMutex.Lock()
 	defer s.cacheMutex.Unlock()
@@ -91,6 +93,8 @@ func (s *Service) SetDisableCachePruning(v bool) {
 	s.cacheOpts.Disabled = v
 }
 
+// SetCacheMaxSize sets the underlying option for the
+// services cache.
 func (s *Service) SetCacheMaxSize(size int) {
 	s.cacheMutex.Lock()
 	defer s.cacheMutex.Unlock()
@@ -98,6 +102,8 @@ func (s *Service) SetCacheMaxSize(size int) {
 	s.cacheOpts.MaxSize = size
 }
 
+// SetPruneDelay sets the underlying option for the
+// services cache.
 func (s *Service) SetPruneDelay(dur time.Duration) {
 	s.cacheMutex.Lock()
 	defer s.cacheMutex.Unlock()
@@ -193,17 +199,18 @@ func (s *Service) createProcess(rw http.ResponseWriter, r *http.Request) {
 	if err := proc.RegisterTrigger(ctx, func(_ jasper.ProcessInfo) {
 		cancel()
 	}); err != nil {
-		// If we get an error registering a trigger, then we should make sure that
-		// the reason for it isn't just because the process has exited already,
-		// since that should not be considered an error.
-		if !getProcInfoNoHang(ctx, proc).Complete {
+		info := getProcInfoNoHang(ctx, proc)
+		cancel()
+		// If we get an error registering a trigger, then we should make sure
+		// that the reason for it isn't just because the process has exited
+		// already, since that should not be considered an error.
+		if !info.Complete {
 			writeError(rw, gimlet.ErrorResponse{
 				StatusCode: http.StatusInternalServerError,
-				Message:    errors.Wrap(err, "problem managing resources").Error(),
+				Message:    errors.Wrap(err, "problem registering trigger").Error(),
 			})
 			return
 		}
-		cancel()
 	}
 
 	gimlet.WriteJSON(rw, getProcInfoNoHang(ctx, proc))
@@ -445,15 +452,16 @@ func (s *Service) respawnProcess(rw http.ResponseWriter, r *http.Request) {
 	if err := newProc.RegisterTrigger(ctx, func(_ jasper.ProcessInfo) {
 		cancel()
 	}); err != nil {
-		if !getProcInfoNoHang(ctx, newProc).Complete {
+		newProcInfo := getProcInfoNoHang(ctx, newProc)
+		cancel()
+		if !newProcInfo.Complete {
 			writeError(rw, gimlet.ErrorResponse{
 				StatusCode: http.StatusInternalServerError,
 				Message: errors.Wrap(
-					err, "failed to register trigger on respawn").Error(),
+					err, "failed to register trigger on respawned process").Error(),
 			})
 			return
 		}
-		cancel()
 	}
 
 	info := getProcInfoNoHang(ctx, newProc)
