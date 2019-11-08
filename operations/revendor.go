@@ -147,7 +147,7 @@ func cleanupDependencies(vendorPath string, cleanCmd string) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	mgr, err := jasper.NewLocalManager(false)
+	mgr, err := jasper.NewSynchronizedManager(false)
 	if err != nil {
 		return errors.Wrap(err, "problem creating process manager")
 	}

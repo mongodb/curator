@@ -5,6 +5,7 @@ import (
 	"net"
 
 	"github.com/evergreen-ci/aviation"
+	"github.com/evergreen-ci/certdepot"
 	"github.com/mongodb/grip"
 	"github.com/mongodb/grip/logging"
 	"github.com/mongodb/jasper"
@@ -25,8 +26,8 @@ func AttachService(manager jasper.Manager, s *grpc.Server) error {
 // given manager. If creds is non-nil, the credentials will be used to establish
 // a secure TLS connection with clients; otherwise, it will start an insecure
 // service. The caller is responsible for closing the connection using the
-// return jasper.CloseFunc.
-func StartService(ctx context.Context, manager jasper.Manager, addr net.Addr, creds *Credentials) (jasper.CloseFunc, error) {
+// returned jasper.CloseFunc.
+func StartService(ctx context.Context, manager jasper.Manager, addr net.Addr, creds *certdepot.Credentials) (jasper.CloseFunc, error) {
 	lis, err := net.Listen(addr.Network(), addr.String())
 	if err != nil {
 		return nil, errors.Wrapf(err, "error listening on %s", addr.String())
@@ -49,7 +50,9 @@ func StartService(ctx context.Context, manager jasper.Manager, addr net.Addr, cr
 	if err := AttachService(manager, service); err != nil {
 		return nil, errors.Wrap(err, "could not attach manager to service")
 	}
-	go service.Serve(lis)
+	go func() {
+		grip.Notice(service.Serve(lis))
+	}()
 
 	return func() error { service.Stop(); return nil }, nil
 }
@@ -59,10 +62,10 @@ func StartService(ctx context.Context, manager jasper.Manager, addr net.Addr, cr
 // credentials file should contain the JSON-encoded bytes from
 // (*Credentials).Export().
 func StartServiceWithFile(ctx context.Context, manager jasper.Manager, addr net.Addr, filePath string) (jasper.CloseFunc, error) {
-	var creds *Credentials
+	var creds *certdepot.Credentials
 	if filePath != "" {
 		var err error
-		creds, err = NewCredentialsFromFile(filePath)
+		creds, err = certdepot.NewCredentialsFromFile(filePath)
 		if err != nil {
 			return nil, errors.Wrap(err, "error getting credentials from file")
 		}

@@ -69,7 +69,7 @@ func TestSelfClearingManager(t *testing.T) {
 					otherSleepProcs, err := manager.List(ctx, options.All)
 					require.NoError(t, err)
 					for _, otherSleepProc := range otherSleepProcs {
-						_, err := otherSleepProc.Wait(ctx)
+						_, err = otherSleepProc.Wait(ctx)
 						require.NoError(t, err)
 					}
 					sleepProc, err = createFunc(ctx, manager, t, sleepOpts)
@@ -85,7 +85,7 @@ func TestSelfClearingManager(t *testing.T) {
 					selfClearingManager, err := NewSelfClearingProcessManager(5, false)
 					require.NoError(t, err)
 					test(tctx, t, selfClearingManager.(*selfClearingProcessManager))
-					selfClearingManager.Close(tctx)
+					assert.NoError(t, selfClearingManager.Close(tctx))
 				})
 			}
 		})

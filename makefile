@@ -161,14 +161,17 @@ vendor-clean:
 	rm -rf vendor/github.com/mongodb/ftdc/vendor/github.com/stretchr/testify
 	rm -rf vendor/github.com/mongodb/ftdc/vendor/github.com/stretchr/testify
 	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/pkg/
-	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/stretchr/testify
-	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/evergreen-ci/gimlet
-	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/pkg/errors/
+	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/stretchr/testify/
+	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/evergreen-ci/aviation/
+	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/evergreen-ci/gimlet/
+	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/evergreen-ci/poplar/
+	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/evergreen-ci/pail/
+	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/evergreen-ci/timber/
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/golang/
-	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/golang/protobuf
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/mongodb/amboy
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/mongodb/ftdc
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/mongodb/grip
+	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/pkg/errors/
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/tychoish/bond
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/tychoish/lru
 	rm -rf vendor/github.com/mongodb/jasper/vendor/golang.org/x/net
@@ -180,6 +183,7 @@ vendor-clean:
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/satori/go.uuid/
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/urfave/
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/jpillora/backoff/
+	rm -rf vendor/github.com/mongodb/jasper/vendor/go.mongodb.org/mongo-driver/
 	rm -rf vendor/go.mongodb.org/mongo-driver/data/
 	rm -rf vendor/go.mongodb.org/mongo-driver/vendor/github.com/davecgh
 	rm -rf vendor/go.mongodb.org/mongo-driver/vendor/github.com/montanaflynn
