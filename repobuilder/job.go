@@ -31,6 +31,7 @@ type Job struct {
 	Distro       *RepositoryDefinition `bson:"distro" json:"distro" yaml:"distro"`
 	Conf         *RepositoryConfig     `bson:"conf" json:"conf" yaml:"conf"`
 	DryRun       bool                  `bson:"dry_run" json:"dry_run" yaml:"dry_run"`
+	Verbose      bool                  `bson:"verbose" json:"verbose" yaml:"verbose"`
 	Output       map[string]string     `bson:"output" json:"output" yaml:"output"`
 	Version      string                `bson:"version" json:"version" yaml:"version"`
 	Arch         string                `bson:"arch" json:"arch" yaml:"arch"`
@@ -274,6 +275,7 @@ func (j *Job) Run(ctx context.Context) {
 		SharedCredentialsProfile: j.Profile,
 		Name:                     j.Distro.Bucket,
 		DryRun:                   j.DryRun,
+		Verbose:                  j.Verbose,
 		UseSingleFileChecksums:   true,
 		Permissions:              pail.S3PermissionsPublicRead,
 		MaxRetries:               10,

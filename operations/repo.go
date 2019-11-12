@@ -38,6 +38,7 @@ func Repo() cli.Command {
 				c.String("arch"),
 				c.String("profile"),
 				c.Bool("dry-run"),
+				c.Bool("verbose"),
 				c.Bool("rebuild"),
 				c.Int("retries"),
 			)
@@ -99,6 +100,10 @@ func repoFlags() []cli.Flag {
 			Usage: "make task operate in a dry-run mode",
 		},
 		cli.BoolFlag{
+			Name:  "verbose",
+			Usage: "run task in verbose (debug) mode",
+		},
+		cli.BoolFlag{
 			Name:  "rebuild",
 			Usage: "rebuild a repository without adding any new packages",
 		},
@@ -140,7 +145,7 @@ func getPackages(rootPath, suffix string) ([]string, error) {
 	return output, err
 }
 
-func buildRepo(ctx context.Context, packages, configPath, workingDir, distro, edition, version, arch, profile string, dryRun, rebuild bool, retries int) error {
+func buildRepo(ctx context.Context, packages, configPath, workingDir, distro, edition, version, arch, profile string, dryRun, verbose, rebuild bool, retries int) error {
 	// validate inputs
 	if edition == "community" {
 		edition = "org"
@@ -179,6 +184,7 @@ func buildRepo(ctx context.Context, packages, configPath, workingDir, distro, ed
 	}
 	job.WorkSpace = workingDir
 	job.DryRun = dryRun
+	job.Verbose = verbose
 
 	if retries < 1 {
 		retries = 1
