@@ -15,6 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/mongodb/grip"
+	"github.com/mongodb/grip/message"
 	"github.com/pkg/errors"
 )
 
@@ -62,6 +63,7 @@ type s3Bucket struct {
 	deleteOnSync        bool
 	singleFileChecksums bool
 	compress            bool
+	verbose             bool
 	batchSize           int
 	sess                *session.Session
 	svc                 *s3.S3
@@ -87,6 +89,8 @@ type S3Options struct {
 	// operations independently.) Useful for large files, particularly in
 	// coordination with the parallel sync bucket implementations.
 	UseSingleFileChecksums bool
+	// Verbose sets the logging mode to "debug".
+	Verbose bool
 	// MaxRetries sets the number of retry attemps for s3 operations.
 	MaxRetries int
 	// Credentials allows the passing in of explicit AWS credentials. These
@@ -184,6 +188,7 @@ func newS3BucketBase(client *http.Client, options S3Options) (*s3Bucket, error) 
 		prefix:              options.Prefix,
 		compress:            options.Compress,
 		singleFileChecksums: options.UseSingleFileChecksums,
+		verbose:             options.Verbose,
 		sess:                sess,
 		svc:                 svc,
 		permissions:         options.Permissions,
@@ -266,6 +271,7 @@ type smallWriteCloser struct {
 	isClosed    bool
 	dryRun      bool
 	compress    bool
+	verbose     bool
 	svc         *s3.S3
 	buffer      []byte
 	name        string
@@ -280,6 +286,7 @@ type largeWriteCloser struct {
 	isClosed       bool
 	compress       bool
 	dryRun         bool
+	verbose        bool
 	partNumber     int64
 	maxSize        int
 	svc            *s3.S3
@@ -294,6 +301,14 @@ type largeWriteCloser struct {
 }
 
 func (w *largeWriteCloser) create() error {
+	grip.DebugWhen(w.verbose, message.Fields{
+		"type":      "s3",
+		"dry_run":   w.dryRun,
+		"operation": "large writer create",
+		"bucket":    w.name,
+		"key":       w.key,
+	})
+
 	if !w.dryRun {
 		input := &s3.CreateMultipartUploadInput{
 			Bucket:      aws.String(w.name),
@@ -317,6 +332,14 @@ func (w *largeWriteCloser) create() error {
 }
 
 func (w *largeWriteCloser) complete() error {
+	grip.DebugWhen(w.verbose, message.Fields{
+		"type":      "s3",
+		"dry_run":   w.dryRun,
+		"operation": "large writer complete",
+		"bucket":    w.name,
+		"key":       w.key,
+	})
+
 	if !w.dryRun {
 		input := &s3.CompleteMultipartUploadInput{
 			Bucket: aws.String(w.name),
@@ -340,6 +363,14 @@ func (w *largeWriteCloser) complete() error {
 }
 
 func (w *largeWriteCloser) abort() error {
+	grip.DebugWhen(w.verbose, message.Fields{
+		"type":      "s3",
+		"dry_run":   w.dryRun,
+		"operation": "large writer abort",
+		"bucket":    w.name,
+		"key":       w.key,
+	})
+
 	input := &s3.AbortMultipartUploadInput{
 		Bucket:   aws.String(w.name),
 		Key:      aws.String(w.key),
@@ -351,6 +382,14 @@ func (w *largeWriteCloser) abort() error {
 }
 
 func (w *largeWriteCloser) flush() error {
+	grip.DebugWhen(w.verbose, message.Fields{
+		"type":      "s3",
+		"dry_run":   w.dryRun,
+		"operation": "large writer flush",
+		"bucket":    w.name,
+		"key":       w.key,
+	})
+
 	if !w.isCreated {
 		err := w.create()
 		if err != nil {
@@ -378,12 +417,21 @@ func (w *largeWriteCloser) flush() error {
 			PartNumber: aws.Int64(w.partNumber),
 		})
 	}
+
 	w.buffer = []byte{}
 	w.partNumber++
 	return nil
 }
 
 func (w *smallWriteCloser) Write(p []byte) (int, error) {
+	grip.DebugWhen(w.verbose, message.Fields{
+		"type":      "s3",
+		"dry_run":   w.dryRun,
+		"operation": "small writer write",
+		"bucket":    w.name,
+		"key":       w.key,
+	})
+
 	if w.isClosed {
 		return 0, errors.New("writer already closed")
 	}
@@ -392,6 +440,14 @@ func (w *smallWriteCloser) Write(p []byte) (int, error) {
 }
 
 func (w *largeWriteCloser) Write(p []byte) (int, error) {
+	grip.DebugWhen(w.verbose, message.Fields{
+		"type":      "s3",
+		"dry_run":   w.dryRun,
+		"operation": "large writer write",
+		"bucket":    w.name,
+		"key":       w.key,
+	})
+
 	if w.isClosed {
 		return 0, errors.New("writer already closed")
 	}
@@ -406,6 +462,14 @@ func (w *largeWriteCloser) Write(p []byte) (int, error) {
 }
 
 func (w *smallWriteCloser) Close() error {
+	grip.DebugWhen(w.verbose, message.Fields{
+		"type":      "s3",
+		"dry_run":   w.dryRun,
+		"operation": "small writer close",
+		"bucket":    w.name,
+		"key":       w.key,
+	})
+
 	if w.isClosed {
 		return errors.New("writer already closed")
 	}
@@ -429,6 +493,28 @@ func (w *smallWriteCloser) Close() error {
 
 }
 
+func (w *largeWriteCloser) Close() error {
+	grip.DebugWhen(w.verbose, message.Fields{
+		"type":      "s3",
+		"dry_run":   w.dryRun,
+		"operation": "large writer close",
+		"bucket":    w.name,
+		"key":       w.key,
+	})
+
+	if w.isClosed {
+		return errors.New("writer already closed")
+	}
+	if len(w.buffer) > 0 || w.partNumber == 0 {
+		err := w.flush()
+		if err != nil {
+			return err
+		}
+	}
+	err := w.complete()
+	return err
+}
+
 type compressingWriteCloser struct {
 	gzipWriter io.WriteCloser
 	s3Writer   io.WriteCloser
@@ -447,21 +533,16 @@ func (w *compressingWriteCloser) Close() error {
 	return catcher.Resolve()
 }
 
-func (w *largeWriteCloser) Close() error {
-	if w.isClosed {
-		return errors.New("writer already closed")
-	}
-	if len(w.buffer) > 0 || w.partNumber == 0 {
-		err := w.flush()
-		if err != nil {
-			return err
-		}
-	}
-	err := w.complete()
-	return err
-}
-
 func (s *s3BucketSmall) Writer(ctx context.Context, key string) (io.WriteCloser, error) {
+	grip.DebugWhen(s.verbose, message.Fields{
+		"type":          "s3",
+		"dry_run":       s.dryRun,
+		"operation":     "small writer",
+		"bucket":        s.name,
+		"bucket_prefix": s.prefix,
+		"key":           key,
+	})
+
 	writer := &smallWriteCloser{
 		name:        s.name,
 		svc:         s.svc,
@@ -482,6 +563,15 @@ func (s *s3BucketSmall) Writer(ctx context.Context, key string) (io.WriteCloser,
 }
 
 func (s *s3BucketLarge) Writer(ctx context.Context, key string) (io.WriteCloser, error) {
+	grip.DebugWhen(s.verbose, message.Fields{
+		"type":          "s3",
+		"dry_run":       s.dryRun,
+		"operation":     "large writer",
+		"bucket":        s.name,
+		"bucket_prefix": s.prefix,
+		"key":           key,
+	})
+
 	writer := &largeWriteCloser{
 		maxSize:     s.minPartSize,
 		name:        s.name,
@@ -492,6 +582,7 @@ func (s *s3BucketLarge) Writer(ctx context.Context, key string) (io.WriteCloser,
 		contentType: s.contentType,
 		dryRun:      s.dryRun,
 		compress:    s.compress,
+		verbose:     s.verbose,
 	}
 	if s.compress {
 		return &compressingWriteCloser{
@@ -503,6 +594,14 @@ func (s *s3BucketLarge) Writer(ctx context.Context, key string) (io.WriteCloser,
 }
 
 func (s *s3Bucket) Reader(ctx context.Context, key string) (io.ReadCloser, error) {
+	grip.DebugWhen(s.verbose, message.Fields{
+		"type":          "s3",
+		"operation":     "reader",
+		"bucket":        s.name,
+		"bucket_prefix": s.prefix,
+		"key":           key,
+	})
+
 	input := &s3.GetObjectInput{
 		Bucket: aws.String(s.name),
 		Key:    aws.String(s.normalizeKey(key)),
@@ -529,14 +628,40 @@ func putHelper(ctx context.Context, b Bucket, key string, r io.Reader) error {
 }
 
 func (s *s3BucketSmall) Put(ctx context.Context, key string, r io.Reader) error {
+	grip.DebugWhen(s.verbose, message.Fields{
+		"type":          "s3",
+		"dry_run":       s.dryRun,
+		"operation":     "put",
+		"bucket":        s.name,
+		"bucket_prefix": s.prefix,
+		"key":           key,
+	})
+
 	return putHelper(ctx, s, key, r)
 }
 
 func (s *s3BucketLarge) Put(ctx context.Context, key string, r io.Reader) error {
+	grip.DebugWhen(s.verbose, message.Fields{
+		"type":          "s3",
+		"dry_run":       s.dryRun,
+		"operation":     "put",
+		"bucket":        s.name,
+		"bucket_prefix": s.prefix,
+		"key":           key,
+	})
+
 	return putHelper(ctx, s, key, r)
 }
 
 func (s *s3Bucket) Get(ctx context.Context, key string) (io.ReadCloser, error) {
+	grip.DebugWhen(s.verbose, message.Fields{
+		"type":          "s3",
+		"operation":     "get",
+		"bucket":        s.name,
+		"bucket_prefix": s.prefix,
+		"key":           key,
+	})
+
 	return s.Reader(ctx, key)
 }
 
@@ -571,6 +696,16 @@ func doUpload(ctx context.Context, b Bucket, key, path string) error {
 }
 
 func (s *s3Bucket) uploadHelper(ctx context.Context, b Bucket, key, path string) error {
+	grip.DebugWhen(s.verbose, message.Fields{
+		"type":          "s3",
+		"dry_run":       s.dryRun,
+		"operation":     "upload",
+		"bucket":        s.name,
+		"bucket_prefix": s.prefix,
+		"key":           key,
+		"path":          path,
+	})
+
 	if s.singleFileChecksums {
 		shouldUpload, err := s.s3WithUploadChecksumHelper(ctx, key, path)
 		if err != nil {
@@ -613,7 +748,6 @@ func doDownload(ctx context.Context, b Bucket, key, path string) error {
 	}
 
 	return errors.WithStack(f.Close())
-
 }
 
 func s3DownloadWithChecksum(ctx context.Context, b Bucket, item BucketItem, local string) error {
@@ -635,6 +769,15 @@ func s3DownloadWithChecksum(ctx context.Context, b Bucket, item BucketItem, loca
 }
 
 func (s *s3Bucket) downloadHelper(ctx context.Context, b Bucket, key, path string) error {
+	grip.DebugWhen(s.verbose, message.Fields{
+		"type":          "s3",
+		"operation":     "download",
+		"bucket":        s.name,
+		"bucket_prefix": s.prefix,
+		"key":           key,
+		"path":          path,
+	})
+
 	if s.singleFileChecksums {
 		iter, err := s.listHelper(ctx, b, s.normalizeKey(key))
 		if err != nil {
@@ -658,6 +801,16 @@ func (s *s3BucketLarge) Download(ctx context.Context, key, path string) error {
 }
 
 func (s *s3Bucket) pushHelper(ctx context.Context, b Bucket, local, remote string) error {
+	grip.DebugWhen(s.verbose, message.Fields{
+		"type":          "s3",
+		"dry_run":       s.dryRun,
+		"operation":     "push",
+		"bucket":        s.name,
+		"bucket_prefix": s.prefix,
+		"remote":        remote,
+		"local":         local,
+	})
+
 	files, err := walkLocalTree(ctx, local)
 	if err != nil {
 		return errors.WithStack(err)
@@ -692,6 +845,15 @@ func (s *s3BucketLarge) Push(ctx context.Context, local, remote string) error {
 }
 
 func (s *s3Bucket) pullHelper(ctx context.Context, local, remote string, b Bucket) error {
+	grip.DebugWhen(s.verbose, message.Fields{
+		"type":          "s3",
+		"operation":     "pull",
+		"bucket":        s.name,
+		"bucket_prefix": s.prefix,
+		"remote":        remote,
+		"local":         local,
+	})
+
 	iter, err := b.List(ctx, remote)
 	if err != nil {
 		return errors.WithStack(err)
@@ -735,6 +897,16 @@ func (s *s3Bucket) Copy(ctx context.Context, options CopyOptions) error {
 		return options.DestinationBucket.Copy(ctx, options)
 	}
 
+	grip.DebugWhen(s.verbose, message.Fields{
+		"type":          "s3",
+		"dry_run":       s.dryRun,
+		"operation":     "copy",
+		"bucket":        s.name,
+		"bucket_prefix": s.prefix,
+		"source_key":    options.SourceKey,
+		"dest_key":      options.DestinationKey,
+	})
+
 	input := &s3.CopyObjectInput{
 		Bucket:     aws.String(s.name),
 		CopySource: aws.String(options.SourceKey),
@@ -752,6 +924,15 @@ func (s *s3Bucket) Copy(ctx context.Context, options CopyOptions) error {
 }
 
 func (s *s3Bucket) Remove(ctx context.Context, key string) error {
+	grip.DebugWhen(s.verbose, message.Fields{
+		"type":          "s3",
+		"dry_run":       s.dryRun,
+		"operation":     "remove",
+		"bucket":        s.name,
+		"bucket_prefix": s.prefix,
+		"key":           key,
+	})
+
 	if !s.dryRun {
 		input := &s3.DeleteObjectInput{
 			Bucket: aws.String(s.name),
@@ -781,6 +962,15 @@ func (s *s3Bucket) deleteObjectsWrapper(ctx context.Context, toDelete *s3.Delete
 }
 
 func (s *s3Bucket) RemoveMany(ctx context.Context, keys ...string) error {
+	grip.DebugWhen(s.verbose, message.Fields{
+		"type":          "s3",
+		"dry_run":       s.dryRun,
+		"operation":     "remove",
+		"bucket":        s.name,
+		"bucket_prefix": s.prefix,
+		"keys":          keys,
+	})
+
 	catcher := grip.NewBasicCatcher()
 	if !s.dryRun {
 		count := 0
@@ -804,22 +994,66 @@ func (s *s3Bucket) RemoveMany(ctx context.Context, keys ...string) error {
 }
 
 func (s *s3BucketSmall) RemovePrefix(ctx context.Context, prefix string) error {
+	grip.DebugWhen(s.verbose, message.Fields{
+		"type":          "s3",
+		"dry_run":       s.dryRun,
+		"operation":     "remove prefix",
+		"bucket":        s.name,
+		"bucket_prefix": s.prefix,
+		"prefix":        prefix,
+	})
+
 	return removePrefix(ctx, prefix, s)
 }
 
 func (s *s3BucketLarge) RemovePrefix(ctx context.Context, prefix string) error {
+	grip.DebugWhen(s.verbose, message.Fields{
+		"type":          "s3",
+		"dry_run":       s.dryRun,
+		"operation":     "remove prefix",
+		"bucket":        s.name,
+		"bucket_prefix": s.prefix,
+		"prefix":        prefix,
+	})
+
 	return removePrefix(ctx, prefix, s)
 }
 
 func (s *s3BucketSmall) RemoveMatching(ctx context.Context, expression string) error {
+	grip.DebugWhen(s.verbose, message.Fields{
+		"type":          "s3",
+		"dry_run":       s.dryRun,
+		"operation":     "remove matching",
+		"bucket":        s.name,
+		"bucket_prefix": s.prefix,
+		"expression":    expression,
+	})
+
 	return removeMatching(ctx, expression, s)
 }
 
 func (s *s3BucketLarge) RemoveMatching(ctx context.Context, expression string) error {
+	grip.DebugWhen(s.verbose, message.Fields{
+		"type":          "s3",
+		"dry_run":       s.dryRun,
+		"operation":     "remove matching",
+		"bucket":        s.name,
+		"bucket_prefix": s.prefix,
+		"expression":    expression,
+	})
+
 	return removeMatching(ctx, expression, s)
 }
 
 func (s *s3Bucket) listHelper(ctx context.Context, b Bucket, prefix string) (BucketIterator, error) {
+	grip.DebugWhen(s.verbose, message.Fields{
+		"type":          "s3",
+		"operation":     "list",
+		"bucket":        s.name,
+		"bucket_prefix": s.prefix,
+		"prefix":        prefix,
+	})
+
 	contents, isTruncated, err := getObjectsWrapper(ctx, s, prefix, "")
 	if err != nil {
 		return nil, err

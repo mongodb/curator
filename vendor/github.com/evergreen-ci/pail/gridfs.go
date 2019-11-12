@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/mongodb/grip"
+	"github.com/mongodb/grip/message"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -25,6 +27,7 @@ type GridFSOptions struct {
 	MongoDBURI   string
 	DryRun       bool
 	DeleteOnSync bool
+	Verbose      bool
 }
 
 type gridfsBucket struct {
@@ -106,6 +109,15 @@ func (b *gridfsBucket) bucket(ctx context.Context) (*gridfs.Bucket, error) {
 }
 
 func (b *gridfsBucket) Writer(ctx context.Context, name string) (io.WriteCloser, error) {
+	grip.DebugWhen(b.opts.Verbose, message.Fields{
+		"type":          "gridfs",
+		"dry_run":       b.opts.DryRun,
+		"operation":     "writer",
+		"bucket":        b.opts.Name,
+		"bucket_prefix": b.opts.Prefix,
+		"key":           name,
+	})
+
 	grid, err := b.bucket(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "problem resolving bucket")
@@ -124,6 +136,14 @@ func (b *gridfsBucket) Writer(ctx context.Context, name string) (io.WriteCloser,
 }
 
 func (b *gridfsBucket) Reader(ctx context.Context, name string) (io.ReadCloser, error) {
+	grip.DebugWhen(b.opts.Verbose, message.Fields{
+		"type":          "gridfs",
+		"operation":     "reader",
+		"bucket":        b.opts.Name,
+		"bucket_prefix": b.opts.Prefix,
+		"key":           name,
+	})
+
 	grid, err := b.bucket(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "problem resolving bucket")
@@ -138,6 +158,15 @@ func (b *gridfsBucket) Reader(ctx context.Context, name string) (io.ReadCloser, 
 }
 
 func (b *gridfsBucket) Put(ctx context.Context, name string, input io.Reader) error {
+	grip.DebugWhen(b.opts.Verbose, message.Fields{
+		"type":          "gridfs",
+		"dry_run":       b.opts.DryRun,
+		"operation":     "put",
+		"bucket":        b.opts.Name,
+		"bucket_prefix": b.opts.Prefix,
+		"key":           name,
+	})
+
 	grid, err := b.bucket(ctx)
 	if err != nil {
 		return errors.Wrap(err, "problem resolving bucket")
@@ -155,10 +184,28 @@ func (b *gridfsBucket) Put(ctx context.Context, name string, input io.Reader) er
 }
 
 func (b *gridfsBucket) Get(ctx context.Context, name string) (io.ReadCloser, error) {
+	grip.DebugWhen(b.opts.Verbose, message.Fields{
+		"type":          "gridfs",
+		"operation":     "get",
+		"bucket":        b.opts.Name,
+		"bucket_prefix": b.opts.Prefix,
+		"key":           name,
+	})
+
 	return b.Reader(ctx, name)
 }
 
 func (b *gridfsBucket) Upload(ctx context.Context, name, path string) error {
+	grip.DebugWhen(b.opts.Verbose, message.Fields{
+		"type":          "gridfs",
+		"dry_run":       b.opts.DryRun,
+		"operation":     "upload",
+		"bucket":        b.opts.Name,
+		"bucket_prefix": b.opts.Prefix,
+		"key":           name,
+		"path":          path,
+	})
+
 	f, err := os.Open(path)
 	if err != nil {
 		return errors.Wrapf(err, "problem opening file %s", name)
@@ -169,6 +216,15 @@ func (b *gridfsBucket) Upload(ctx context.Context, name, path string) error {
 }
 
 func (b *gridfsBucket) Download(ctx context.Context, name, path string) error {
+	grip.DebugWhen(b.opts.Verbose, message.Fields{
+		"type":          "gridfs",
+		"operation":     "download",
+		"bucket":        b.opts.Name,
+		"bucket_prefix": b.opts.Prefix,
+		"key":           name,
+		"path":          path,
+	})
+
 	reader, err := b.Reader(ctx, name)
 	if err != nil {
 		return errors.WithStack(err)
@@ -192,6 +248,16 @@ func (b *gridfsBucket) Download(ctx context.Context, name, path string) error {
 }
 
 func (b *gridfsBucket) Push(ctx context.Context, local, remote string) error {
+	grip.DebugWhen(b.opts.Verbose, message.Fields{
+		"type":          "gridfs",
+		"dry_run":       b.opts.DryRun,
+		"operation":     "push",
+		"bucket":        b.opts.Name,
+		"bucket_prefix": b.opts.Prefix,
+		"remote":        remote,
+		"local":         local,
+	})
+
 	localPaths, err := walkLocalTree(ctx, local)
 	if err != nil {
 		return errors.Wrap(err, "problem finding local paths")
@@ -213,6 +279,15 @@ func (b *gridfsBucket) Push(ctx context.Context, local, remote string) error {
 }
 
 func (b *gridfsBucket) Pull(ctx context.Context, local, remote string) error {
+	grip.DebugWhen(b.opts.Verbose, message.Fields{
+		"type":          "gridfs",
+		"operation":     "pull",
+		"bucket":        b.opts.Name,
+		"bucket_prefix": b.opts.Prefix,
+		"remote":        remote,
+		"local":         local,
+	})
+
 	iter, err := b.List(ctx, remote)
 	if err != nil {
 		return errors.WithStack(err)
@@ -243,6 +318,15 @@ func (b *gridfsBucket) Pull(ctx context.Context, local, remote string) error {
 }
 
 func (b *gridfsBucket) Copy(ctx context.Context, opts CopyOptions) error {
+	grip.DebugWhen(b.opts.Verbose, message.Fields{
+		"type":          "gridfs",
+		"operation":     "copy",
+		"bucket":        b.opts.Name,
+		"bucket_prefix": b.opts.Prefix,
+		"source_key":    opts.SourceKey,
+		"dest_key":      opts.DestinationKey,
+	})
+
 	from, err := b.Reader(ctx, opts.SourceKey)
 	if err != nil {
 		return errors.Wrap(err, "problem getting reader for source")
@@ -261,6 +345,15 @@ func (b *gridfsBucket) Copy(ctx context.Context, opts CopyOptions) error {
 }
 
 func (b *gridfsBucket) Remove(ctx context.Context, key string) error {
+	grip.DebugWhen(b.opts.Verbose, message.Fields{
+		"type":          "gridfs",
+		"dry_run":       b.opts.DryRun,
+		"operation":     "remove",
+		"bucket":        b.opts.Name,
+		"bucket_prefix": b.opts.Prefix,
+		"key":           key,
+	})
+
 	grid, err := b.bucket(ctx)
 	if err != nil {
 		return errors.Wrap(err, "problem resolving bucket")
@@ -307,6 +400,15 @@ func (b *gridfsBucket) Remove(ctx context.Context, key string) error {
 }
 
 func (b *gridfsBucket) RemoveMany(ctx context.Context, keys ...string) error {
+	grip.DebugWhen(b.opts.Verbose, message.Fields{
+		"type":          "gridfs",
+		"dry_run":       b.opts.DryRun,
+		"operation":     "remove many",
+		"bucket":        b.opts.Name,
+		"bucket_prefix": b.opts.Prefix,
+		"keys":          keys,
+	})
+
 	grid, err := b.bucket(ctx)
 	if err != nil {
 		return errors.Wrap(err, "problem resolving bucket")
@@ -357,14 +459,40 @@ func (b *gridfsBucket) RemoveMany(ctx context.Context, keys ...string) error {
 }
 
 func (b *gridfsBucket) RemovePrefix(ctx context.Context, prefix string) error {
+	grip.DebugWhen(b.opts.Verbose, message.Fields{
+		"type":          "gridfs",
+		"dry_run":       b.opts.DryRun,
+		"operation":     "remove prefix",
+		"bucket":        b.opts.Name,
+		"bucket_prefix": b.opts.Prefix,
+		"prefix":        prefix,
+	})
+
 	return removePrefix(ctx, prefix, b)
 }
 
 func (b *gridfsBucket) RemoveMatching(ctx context.Context, expr string) error {
+	grip.DebugWhen(b.opts.Verbose, message.Fields{
+		"type":          "gridfs",
+		"dry_run":       b.opts.DryRun,
+		"operation":     "remove matching",
+		"bucket":        b.opts.Name,
+		"bucket_prefix": b.opts.Prefix,
+		"expression":    expr,
+	})
+
 	return removeMatching(ctx, expr, b)
 }
 
 func (b *gridfsBucket) List(ctx context.Context, prefix string) (BucketIterator, error) {
+	grip.DebugWhen(b.opts.Verbose, message.Fields{
+		"type":          "gridfs",
+		"operation":     "list",
+		"bucket":        b.opts.Name,
+		"bucket_prefix": b.opts.Prefix,
+		"prefix":        prefix,
+	})
+
 	filter := bson.M{}
 	if prefix != "" {
 		filter = bson.M{"filename": primitive.Regex{Pattern: fmt.Sprintf("^%s.*", b.normalizeKey(prefix))}}
