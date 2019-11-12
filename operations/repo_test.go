@@ -17,7 +17,7 @@ func (s *CommandsSuite) TestRepoFlags() {
 		names[flag.GetName()] = true
 
 		name := flag.GetName()
-		if name == "dry-run" || name == "rebuild" {
+		if name == "dry-run" || name == "verbose" || name == "rebuild" {
 			s.IsType(cli.BoolFlag{}, flag)
 		} else if name == "timeout" {
 			s.IsType(cli.DurationFlag{}, flag)
@@ -28,8 +28,8 @@ func (s *CommandsSuite) TestRepoFlags() {
 		}
 	}
 
-	s.Len(names, 12)
-	s.Len(flags, 12)
+	s.Len(names, 13)
+	s.Len(flags, 13)
 	s.True(names["config"])
 	s.True(names["retries"])
 	s.True(names["distro"])
@@ -40,13 +40,14 @@ func (s *CommandsSuite) TestRepoFlags() {
 	s.True(names["packages"])
 	s.True(names["profile"])
 	s.True(names["dry-run"])
+	s.True(names["verbose"])
 }
 
 func (s *CommandsSuite) TestRebuildOperationOnProcess() {
 	err := os.Setenv("NOTARY_TOKEN", "foo")
 	s.NoError(err)
 	err = buildRepo(context.Background(),
-		"./", // packages
+		"./",                           // packages
 		"repobuilder/config_test.yaml", // repo config path
 		"build/repo-build-test",        // workingdir
 		"rhel7",                        // distro
@@ -55,6 +56,7 @@ func (s *CommandsSuite) TestRebuildOperationOnProcess() {
 		"x86_64",                       // arch
 		"default",                      // aws profile
 		true,                           // dryrun
+		false,                          // verbose
 		true,                           // rebuild
 		1)                              // retries
 
@@ -68,7 +70,7 @@ func (s *CommandsSuite) TestRebuildOperationOnProcess() {
 
 func (s *CommandsSuite) TestDryRunOperationOnProcess() {
 	err := buildRepo(context.Background(),
-		"./", // packages
+		"./",                           // packages
 		"repobuilder/config_test.yaml", // repo config path
 		"build/repo-build-test",        // workingdir
 		"rhel7",                        // distro
@@ -77,6 +79,7 @@ func (s *CommandsSuite) TestDryRunOperationOnProcess() {
 		"x86_64",                       // arch
 		"default",                      // aws profile
 		true,                           // dryrun
+		true,                           // verbose
 		false,                          // rebuild
 		1)                              // retries
 
