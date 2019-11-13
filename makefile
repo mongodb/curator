@@ -243,15 +243,15 @@ coverDeps := $(addprefix $(gopath)/src/,$(coverDeps))
 #    and save test output.
 $(buildDir)/test.operations:$(name)
 $(buildDir)/test.%:$(testSrcFiles) $(coverDeps)
-	go test $(if $(DISABLE_COVERAGE),,-covermode=count) -c -o $@ ./$(subst -,/,$*)
+	go test -ldflags="-w" $(if $(DISABLE_COVERAGE),,-covermode=count) -c -o $@ ./$(subst -,/,$*)
 $(buildDir)/race.operations:$(name)
 $(buildDir)/race.%:$(testSrcFiles)
-	go test -race -c -o $@ ./$(subst -,/,$*)
+	go test -ldflags="-w" -race -c -o $@ ./$(subst -,/,$*)
 #  targets to run any tests in the top-level package
 $(buildDir)/test.$(name):$(testSrcFiles) $(coverDeps)
-	go test $(if $(DISABLE_COVERAGE),,-covermode=count) -c -o $@ ./
+	go test -ldflags="-w"  $(if $(DISABLE_COVERAGE),,-covermode=count) -c -o $@ ./
 $(buildDir)/race.$(name):$(testSrcFiles)
-	go test -race -c -o $@ ./
+	go test -ldflags="-w" -race -c -o $@ ./
 #  targets to run the tests and report the output
 $(buildDir)/output.%.test:$(buildDir)/test.% .FORCE
 	$(testRunEnv) ./$< $(testArgs) 2>&1 | tee $@

@@ -70,7 +70,7 @@ func TestBucket(t *testing.T) {
 			constructor: func(t *testing.T) Bucket {
 				path := filepath.Join(tempdir, uuid)
 				require.NoError(t, os.MkdirAll(path, 0777))
-				return &localFileSystem{path: path, prefix: newUUID()}
+				return &localFileSystem{path: path, prefix: newUUID(), verbose: true}
 			},
 			tests: []bucketTestCase{
 				{
@@ -192,6 +192,7 @@ func TestBucket(t *testing.T) {
 					Name:     newUUID(),
 					Prefix:   newUUID(),
 					Database: uuid,
+					Verbose:  true,
 				})
 				require.NoError(t, err)
 				return b
@@ -205,6 +206,7 @@ func TestBucket(t *testing.T) {
 					Name:     newUUID(),
 					Prefix:   newUUID(),
 					Database: uuid,
+					Verbose:  true,
 				})
 				require.NoError(t, err)
 				return b
@@ -240,6 +242,7 @@ func TestBucket(t *testing.T) {
 					Name:       s3BucketName,
 					Prefix:     s3Prefix + newUUID(),
 					MaxRetries: 20,
+					Verbose:    true,
 				}
 				b, err := NewS3Bucket(s3Options)
 				require.NoError(t, err)
@@ -256,6 +259,7 @@ func TestBucket(t *testing.T) {
 					Prefix:                 s3Prefix + newUUID(),
 					MaxRetries:             20,
 					UseSingleFileChecksums: true,
+					Verbose:                true,
 				}
 				b, err := NewS3Bucket(s3Options)
 				require.NoError(t, err)
@@ -283,6 +287,7 @@ func TestBucket(t *testing.T) {
 					Prefix:                 s3Prefix + newUUID(),
 					MaxRetries:             20,
 					UseSingleFileChecksums: true,
+					Verbose:                true,
 				}
 				b, err := NewS3Bucket(s3Options)
 				require.NoError(t, err)
@@ -297,6 +302,7 @@ func TestBucket(t *testing.T) {
 					Name:       s3BucketName,
 					Prefix:     s3Prefix + newUUID(),
 					MaxRetries: 20,
+					Verbose:    true,
 				}
 				b, err := NewS3MultiPartBucket(s3Options)
 				require.NoError(t, err)
@@ -313,6 +319,7 @@ func TestBucket(t *testing.T) {
 					Prefix:                 s3Prefix + newUUID(),
 					MaxRetries:             20,
 					UseSingleFileChecksums: true,
+					Verbose:                true,
 				}
 				b, err := NewS3MultiPartBucket(s3Options)
 				require.NoError(t, err)

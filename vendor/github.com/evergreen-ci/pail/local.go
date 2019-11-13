@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/mongodb/grip"
+	"github.com/mongodb/grip/message"
 	"github.com/pkg/errors"
 )
 
@@ -16,6 +17,7 @@ type localFileSystem struct {
 	prefix       string
 	dryRun       bool
 	deleteOnSync bool
+	verbose      bool
 }
 
 // LocalOptions describes the configuration of a local Bucket.
@@ -24,6 +26,7 @@ type LocalOptions struct {
 	Prefix       string
 	DryRun       bool
 	DeleteOnSync bool
+	Verbose      bool
 }
 
 func (b *localFileSystem) normalizeKey(key string) string {
@@ -72,6 +75,15 @@ func (b *localFileSystem) Check(_ context.Context) error {
 }
 
 func (b *localFileSystem) Writer(_ context.Context, name string) (io.WriteCloser, error) {
+	grip.DebugWhen(b.verbose, message.Fields{
+		"type":          "local",
+		"dry_run":       b.dryRun,
+		"operation":     "writer",
+		"bucket":        b.path,
+		"bucket_prefix": b.prefix,
+		"key":           name,
+	})
+
 	if b.dryRun {
 		return &mockWriteCloser{}, nil
 	}
@@ -90,6 +102,14 @@ func (b *localFileSystem) Writer(_ context.Context, name string) (io.WriteCloser
 }
 
 func (b *localFileSystem) Reader(_ context.Context, name string) (io.ReadCloser, error) {
+	grip.DebugWhen(b.verbose, message.Fields{
+		"type":          "local",
+		"operation":     "reader",
+		"bucket":        b.path,
+		"bucket_prefix": b.prefix,
+		"key":           name,
+	})
+
 	path := filepath.Join(b.path, b.normalizeKey(name))
 	f, err := os.Open(path)
 	if err != nil {
@@ -100,6 +120,15 @@ func (b *localFileSystem) Reader(_ context.Context, name string) (io.ReadCloser,
 }
 
 func (b *localFileSystem) Put(ctx context.Context, name string, input io.Reader) error {
+	grip.DebugWhen(b.verbose, message.Fields{
+		"type":          "local",
+		"dry_run":       b.dryRun,
+		"operation":     "put",
+		"bucket":        b.path,
+		"bucket_prefix": b.prefix,
+		"key":           name,
+	})
+
 	f, err := b.Writer(ctx, name)
 	if err != nil {
 		return errors.WithStack(err)
@@ -114,10 +143,28 @@ func (b *localFileSystem) Put(ctx context.Context, name string, input io.Reader)
 }
 
 func (b *localFileSystem) Get(ctx context.Context, name string) (io.ReadCloser, error) {
+	grip.DebugWhen(b.verbose, message.Fields{
+		"type":          "local",
+		"operation":     "get",
+		"bucket":        b.path,
+		"bucket_prefix": b.prefix,
+		"key":           name,
+	})
+
 	return b.Reader(ctx, name)
 }
 
 func (b *localFileSystem) Upload(ctx context.Context, name, path string) error {
+	grip.DebugWhen(b.verbose, message.Fields{
+		"type":          "local",
+		"dry_run":       b.dryRun,
+		"operation":     "upload",
+		"bucket":        b.path,
+		"bucket_prefix": b.prefix,
+		"key":           name,
+		"path":          path,
+	})
+
 	f, err := os.Open(path)
 	if err != nil {
 		return errors.Wrapf(err, "problem opening file %s", name)
@@ -128,6 +175,15 @@ func (b *localFileSystem) Upload(ctx context.Context, name, path string) error {
 }
 
 func (b *localFileSystem) Download(ctx context.Context, name, path string) error {
+	grip.DebugWhen(b.verbose, message.Fields{
+		"type":          "local",
+		"operation":     "download",
+		"bucket":        b.path,
+		"bucket_prefix": b.prefix,
+		"key":           name,
+		"path":          path,
+	})
+
 	catcher := grip.NewBasicCatcher()
 
 	if err := os.MkdirAll(filepath.Dir(path), 0600); err != nil {
@@ -158,6 +214,16 @@ func (b *localFileSystem) Download(ctx context.Context, name, path string) error
 }
 
 func (b *localFileSystem) Copy(ctx context.Context, options CopyOptions) error {
+	grip.DebugWhen(b.verbose, message.Fields{
+		"type":          "local",
+		"dry_run":       b.dryRun,
+		"operation":     "copy",
+		"bucket":        b.path,
+		"bucket_prefix": b.prefix,
+		"source_key":    options.SourceKey,
+		"dest_key":      options.DestinationKey,
+	})
+
 	from, err := b.Reader(ctx, options.SourceKey)
 	if err != nil {
 		return errors.Wrap(err, "problem getting reader for source")
@@ -177,6 +243,15 @@ func (b *localFileSystem) Copy(ctx context.Context, options CopyOptions) error {
 }
 
 func (b *localFileSystem) Remove(ctx context.Context, key string) error {
+	grip.DebugWhen(b.verbose, message.Fields{
+		"type":          "local",
+		"dry_run":       b.dryRun,
+		"operation":     "remove",
+		"bucket":        b.path,
+		"bucket_prefix": b.prefix,
+		"key":           key,
+	})
+
 	if b.dryRun {
 		return nil
 	}
@@ -187,6 +262,15 @@ func (b *localFileSystem) Remove(ctx context.Context, key string) error {
 }
 
 func (b *localFileSystem) RemoveMany(ctx context.Context, keys ...string) error {
+	grip.DebugWhen(b.verbose, message.Fields{
+		"type":          "local",
+		"dry_run":       b.dryRun,
+		"operation":     "remove many",
+		"bucket":        b.path,
+		"bucket_prefix": b.prefix,
+		"keys":          keys,
+	})
+
 	catcher := grip.NewBasicCatcher()
 	for _, key := range keys {
 		catcher.Add(b.Remove(ctx, key))
@@ -195,14 +279,42 @@ func (b *localFileSystem) RemoveMany(ctx context.Context, keys ...string) error 
 }
 
 func (b *localFileSystem) RemovePrefix(ctx context.Context, prefix string) error {
+	grip.DebugWhen(b.verbose, message.Fields{
+		"type":          "local",
+		"dry_run":       b.dryRun,
+		"operation":     "remove prefix",
+		"bucket":        b.path,
+		"bucket_prefix": b.prefix,
+		"prefix":        prefix,
+	})
+
 	return removePrefix(ctx, prefix, b)
 }
 
 func (b *localFileSystem) RemoveMatching(ctx context.Context, expression string) error {
+	grip.DebugWhen(b.verbose, message.Fields{
+		"type":          "local",
+		"dry_run":       b.dryRun,
+		"operation":     "remove matching",
+		"bucket":        b.path,
+		"bucket_prefix": b.prefix,
+		"expression":    expression,
+	})
+
 	return removeMatching(ctx, expression, b)
 }
 
 func (b *localFileSystem) Push(ctx context.Context, local, remote string) error {
+	grip.DebugWhen(b.verbose, message.Fields{
+		"type":          "local",
+		"dry_run":       b.dryRun,
+		"operation":     "push",
+		"bucket":        b.path,
+		"bucket_prefix": b.prefix,
+		"remote":        remote,
+		"local":         local,
+	})
+
 	files, err := walkLocalTree(ctx, local)
 	if err != nil {
 		return errors.WithStack(err)
@@ -242,6 +354,15 @@ func (b *localFileSystem) Push(ctx context.Context, local, remote string) error 
 }
 
 func (b *localFileSystem) Pull(ctx context.Context, local, remote string) error {
+	grip.DebugWhen(b.verbose, message.Fields{
+		"type":          "local",
+		"operation":     "pull",
+		"bucket":        b.path,
+		"bucket_prefix": b.prefix,
+		"remote":        remote,
+		"local":         local,
+	})
+
 	prefix := filepath.Join(b.path, b.normalizeKey(remote))
 	files, err := walkLocalTree(ctx, prefix)
 	if err != nil {
@@ -284,6 +405,13 @@ func (b *localFileSystem) Pull(ctx context.Context, local, remote string) error 
 }
 
 func (b *localFileSystem) List(ctx context.Context, prefix string) (BucketIterator, error) {
+	grip.DebugWhen(b.verbose, message.Fields{
+		"operation":     "list",
+		"bucket":        b.path,
+		"bucket_prefix": b.prefix,
+		"prefix":        prefix,
+	})
+
 	files, err := walkLocalTree(ctx, filepath.Join(b.path, b.normalizeKey(prefix)))
 	if err != nil {
 		return nil, errors.WithStack(err)

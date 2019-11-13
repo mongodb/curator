@@ -51,6 +51,10 @@ func Index() cli.Command {
 				Usage: fmt.Sprintln("task runs in a dry-run mode.",
 					"files are downloaded but no files are uploaded."),
 			},
+			cli.BoolFlag{
+				Name:  "verbose",
+				Usage: "run task in verbose (debug) mode",
+			},
 			cli.StringFlag{
 				Name: "name",
 				Usage: fmt.Sprintln("the public name of the repo for use in",
@@ -74,12 +78,13 @@ func Index() cli.Command {
 				c.String("name"),
 				c.String("distro"),
 				c.String("edition"),
-				c.Bool("dry-run"))
+				c.Bool("dry-run"),
+				c.Bool("verbose"))
 		},
 	}
 }
 
-func rebuildIndexPages(configPath, dir, name, distro, edition string, dryRun bool) error {
+func rebuildIndexPages(configPath, dir, name, distro, edition string, dryRun, verbose bool) error {
 	// get configuration objects.
 	conf, err := repobuilder.GetConfig(configPath)
 	if err != nil {
@@ -93,7 +98,7 @@ func rebuildIndexPages(configPath, dir, name, distro, edition string, dryRun boo
 		return errors.New(e)
 	}
 
-	j := repobuilder.NewIndexBuildJob(conf, dir, name, repo.Bucket, dryRun)
+	j := repobuilder.NewIndexBuildJob(conf, dir, name, repo.Bucket, dryRun, verbose)
 
 	j.Run(context.TODO())
 

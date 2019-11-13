@@ -47,6 +47,8 @@ import (
 	"time"
 
 	"github.com/evergreen-ci/pail"
+	"github.com/mongodb/grip"
+	"github.com/mongodb/grip/level"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -90,6 +92,10 @@ func s3PutCmd() cli.Command {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
+			if err := setVerboseLogging(c.Bool("verbose")); err != nil {
+				return err
+			}
+
 			opts := pail.S3Options{
 				SharedCredentialsProfile: c.String("profile"),
 				Region:                   c.String("region"),
@@ -98,6 +104,7 @@ func s3PutCmd() cli.Command {
 				ContentType:              c.String("type"),
 				DryRun:                   c.Bool("dry-run"),
 				MaxRetries:               defaultMaxRetries,
+				Verbose:                  c.Bool("verbose"),
 			}
 			bucket, err := pail.NewS3Bucket(opts)
 			if err != nil {
@@ -122,12 +129,17 @@ func s3GetCmd() cli.Command {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
+			if err := setVerboseLogging(c.Bool("verbose")); err != nil {
+				return err
+			}
+
 			opts := pail.S3Options{
 				SharedCredentialsProfile: c.String("profile"),
 				Region:                   c.String("region"),
 				Name:                     c.String("bucket"),
 				DryRun:                   c.Bool("dry-run"),
 				MaxRetries:               defaultMaxRetries,
+				Verbose:                  c.Bool("verbose"),
 			}
 			bucket, err := pail.NewS3Bucket(opts)
 			if err != nil {
@@ -156,12 +168,17 @@ func s3DeleteCmd() cli.Command {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
+			if err := setVerboseLogging(c.Bool("verbose")); err != nil {
+				return err
+			}
+
 			opts := pail.S3Options{
 				SharedCredentialsProfile: c.String("profile"),
 				Region:                   c.String("region"),
 				Name:                     c.String("bucket"),
 				DryRun:                   c.Bool("dry-run"),
 				MaxRetries:               defaultMaxRetries,
+				Verbose:                  c.Bool("verbose"),
 			}
 			bucket, err := pail.NewS3Bucket(opts)
 			if err != nil {
@@ -190,12 +207,17 @@ func s3DeletePrefixCmd() cli.Command {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
+			if err := setVerboseLogging(c.Bool("verbose")); err != nil {
+				return err
+			}
+
 			opts := pail.S3Options{
 				SharedCredentialsProfile: c.String("profile"),
 				Region:                   c.String("region"),
 				Name:                     c.String("bucket"),
 				DryRun:                   c.Bool("dry-run"),
 				MaxRetries:               defaultMaxRetries,
+				Verbose:                  c.Bool("verbose"),
 			}
 			bucket, err := pail.NewS3Bucket(opts)
 			if err != nil {
@@ -224,12 +246,17 @@ func s3DeleteMatchingCmd() cli.Command {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
+			if err := setVerboseLogging(c.Bool("verbose")); err != nil {
+				return err
+			}
+
 			opts := pail.S3Options{
 				SharedCredentialsProfile: c.String("profile"),
 				Region:                   c.String("region"),
 				Name:                     c.String("bucket"),
 				DryRun:                   c.Bool("dry-run"),
 				MaxRetries:               defaultMaxRetries,
+				Verbose:                  c.Bool("verbose"),
 			}
 			bucket, err := pail.NewS3Bucket(opts)
 			if err != nil {
@@ -255,6 +282,10 @@ func s3SyncToCmd() cli.Command {
 			ctx, cancel := ctxWithTimeout(c.Duration("timeout"))
 			defer cancel()
 
+			if err := setVerboseLogging(c.Bool("verbose")); err != nil {
+				return err
+			}
+
 			opts := pail.S3Options{
 				SharedCredentialsProfile: c.String("profile"),
 				Region:                   c.String("region"),
@@ -264,6 +295,7 @@ func s3SyncToCmd() cli.Command {
 				MaxRetries:               defaultMaxRetries,
 				UseSingleFileChecksums:   true,
 				Permissions:              pail.S3Permissions(c.String("permissions")),
+				Verbose:                  c.Bool("verbose"),
 			}
 			bucket, err := pail.NewS3Bucket(opts)
 			if err != nil {
@@ -297,6 +329,10 @@ func s3SyncFromCmd() cli.Command {
 			ctx, cancel := ctxWithTimeout(c.Duration("timeout"))
 			defer cancel()
 
+			if err := setVerboseLogging(c.Bool("verbose")); err != nil {
+				return err
+			}
+
 			opts := pail.S3Options{
 				SharedCredentialsProfile: c.String("profile"),
 				Region:                   c.String("region"),
@@ -305,6 +341,7 @@ func s3SyncFromCmd() cli.Command {
 				DeleteOnSync:             c.Bool("delete"),
 				MaxRetries:               defaultMaxRetries,
 				UseSingleFileChecksums:   true,
+				Verbose:                  c.Bool("verbose"),
 			}
 			bucket, err := pail.NewS3Bucket(opts)
 			if err != nil {
@@ -367,6 +404,10 @@ func baseS3Flags(args ...cli.Flag) []cli.Flag {
 		cli.BoolFlag{
 			Name:  "dry-run",
 			Usage: "make task operate in a dry-run mode",
+		},
+		cli.BoolFlag{
+			Name:  "verbose",
+			Usage: "run task in verbose (debug) mode",
 		},
 	}
 
@@ -441,4 +482,16 @@ func s3putFlags() []cli.Flag {
 			Usage: "canned ACL to apply to the file",
 		},
 	}
+}
+
+func setVerboseLogging(verbose bool) error {
+	if verbose {
+		sender := grip.GetSender()
+		info := sender.Level()
+		info.Threshold = level.Debug
+
+		return errors.Wrap(sender.SetLevel(info), "problem setting logger threshold to debug")
+	}
+
+	return nil
 }

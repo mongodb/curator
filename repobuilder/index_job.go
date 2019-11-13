@@ -21,6 +21,7 @@ type IndexBuildJob struct {
 	WorkSpace string            `bson:"local_workdir" json:"local_workdir" yaml:"local_workdir"`
 	RepoName  string            `bson:"repo_name" json:"repo_name" yaml:"repo_name"`
 	DryRun    bool              `bson:"dry_run" json:"dry_run" yaml:"dry_run"`
+	Verbose   bool              `bson:"verbose" json:"verbose" yaml:"verbose"`
 	*job.Base `bson:"metadata" json:"metadata" yaml:"metadata"`
 }
 
@@ -31,10 +32,11 @@ func init() {
 }
 
 // NewIndexBuildJob constructs an IndexBuildJob object.
-func NewIndexBuildJob(conf *RepositoryConfig, workSpace, repoName, bucket string, dryRun bool) *IndexBuildJob {
+func NewIndexBuildJob(conf *RepositoryConfig, workSpace, repoName, bucket string, dryRun, verbose bool) *IndexBuildJob {
 	j := &IndexBuildJob{
 		Conf:      conf,
 		DryRun:    dryRun,
+		Verbose:   verbose,
 		WorkSpace: workSpace,
 		Bucket:    bucket,
 		RepoName:  repoName,
