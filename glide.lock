@@ -64,7 +64,7 @@ imports:
 - name: golang.org/x/net
   version: 3a22650c66bd7f4fb6d1e8072ffd7b75c8a27898
 - name: golang.org/x/sys
-  version: a9d3bda3a223baa6bba6ef412cb273f0fd163c05
+  version: 6c9a33b5f776fb04c14b20a12b8bf37be4ed92da
 - name: golang.org/x/text
   version: 6c92c7dc7f53607809182301b96e4cc1975143f1
 - name: google.golang.org/genproto
