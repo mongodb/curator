@@ -273,8 +273,8 @@ func (c *restClient) GetLogStream(ctx context.Context, id string, count int) (ja
 	return stream, nil
 }
 
-func (c *restClient) DownloadFile(ctx context.Context, info options.Download) error {
-	body, err := makeBody(info)
+func (c *restClient) DownloadFile(ctx context.Context, opts options.Download) error {
+	body, err := makeBody(opts)
 	if err != nil {
 		return errors.Wrap(err, "problem building request")
 	}
@@ -330,9 +330,9 @@ func (c *restClient) SignalEvent(ctx context.Context, name string) error {
 	return nil
 }
 
-func (c *restClient) WriteFile(ctx context.Context, info options.WriteFile) error {
-	sendInfo := func(info options.WriteFile) error {
-		body, err := makeBody(info)
+func (c *restClient) WriteFile(ctx context.Context, opts options.WriteFile) error {
+	sendOpts := func(opts options.WriteFile) error {
+		body, err := makeBody(opts)
 		if err != nil {
 			return errors.Wrap(err, "problem building request")
 		}
@@ -343,7 +343,7 @@ func (c *restClient) WriteFile(ctx context.Context, info options.WriteFile) erro
 		return errors.Wrap(resp.Body.Close(), "problem closing response body")
 	}
 
-	return info.WriteBufferedContent(sendInfo)
+	return opts.WriteBufferedContent(sendOpts)
 }
 
 type restProcess struct {

@@ -140,9 +140,9 @@ func TestCreate(t *testing.T) {
 		"WorkingDirectoryUnresolveableShouldNotError": func(t *testing.T, opts *Create) {
 			cmd, _, err := opts.Resolve(ctx)
 			require.NoError(t, err)
-			assert.NotNil(t, cmd)
-			assert.NotZero(t, cmd.Dir)
-			assert.Equal(t, opts.WorkingDirectory, cmd.Dir)
+			require.NotNil(t, cmd)
+			assert.NotZero(t, cmd.Dir())
+			assert.Equal(t, opts.WorkingDirectory, cmd.Dir())
 		},
 		"ResolveFailsIfOptionsAreFatal": func(t *testing.T, opts *Create) {
 			opts.Args = []string{}
@@ -153,13 +153,13 @@ func TestCreate(t *testing.T) {
 		"WithoutOverrideEnvironmentEnvIsPopulated": func(t *testing.T, opts *Create) {
 			cmd, _, err := opts.Resolve(ctx)
 			assert.NoError(t, err)
-			assert.NotZero(t, cmd.Env)
+			assert.NotEmpty(t, cmd.Env())
 		},
 		"WithOverrideEnvironmentEnvIsEmpty": func(t *testing.T, opts *Create) {
 			opts.OverrideEnviron = true
 			cmd, _, err := opts.Resolve(ctx)
 			assert.NoError(t, err)
-			assert.Zero(t, cmd.Env)
+			assert.Empty(t, cmd.Env())
 		},
 		"EnvironmentVariablesArePropagated": func(t *testing.T, opts *Create) {
 			opts.Environment = map[string]string{
@@ -168,22 +168,22 @@ func TestCreate(t *testing.T) {
 
 			cmd, _, err := opts.Resolve(ctx)
 			assert.NoError(t, err)
-			assert.Contains(t, cmd.Env, "foo=bar")
-			assert.NotContains(t, cmd.Env, "bar=foo")
+			assert.Contains(t, cmd.Env(), "foo=bar")
+			assert.NotContains(t, cmd.Env(), "bar=foo")
 		},
 		"MultipleArgsArePropagated": func(t *testing.T, opts *Create) {
 			opts.Args = append(opts.Args, "-lha")
 			cmd, _, err := opts.Resolve(ctx)
 			assert.NoError(t, err)
-			assert.Contains(t, cmd.Path, "ls")
-			assert.Len(t, cmd.Args, 2)
+			require.Len(t, cmd.Args(), 2)
+			assert.Contains(t, cmd.Args()[0], "ls")
+			assert.Equal(t, cmd.Args()[1], "-lha")
 		},
 		"WithOnlyCommandsArgsHasOneVal": func(t *testing.T, opts *Create) {
 			cmd, _, err := opts.Resolve(ctx)
 			assert.NoError(t, err)
-			assert.Contains(t, cmd.Path, "ls")
-			assert.Len(t, cmd.Args, 1)
-			assert.Equal(t, "ls", cmd.Args[0])
+			require.Len(t, cmd.Args(), 1)
+			assert.Equal(t, "ls", cmd.Args()[0])
 		},
 		"WithTimeout": func(t *testing.T, opts *Create) {
 			opts.Timeout = time.Second
@@ -192,7 +192,8 @@ func TestCreate(t *testing.T) {
 			cmd, deadline, err := opts.Resolve(ctx)
 			require.NoError(t, err)
 			assert.True(t, time.Now().Before(deadline))
-			assert.Error(t, cmd.Run())
+			assert.NoError(t, cmd.Start())
+			assert.Error(t, cmd.Wait())
 			assert.True(t, time.Now().After(deadline))
 		},
 		"ReturnedContextWrapsResolveContext": func(t *testing.T, opts *Create) {
@@ -203,7 +204,8 @@ func TestCreate(t *testing.T) {
 
 			cmd, deadline, err := opts.Resolve(ctx)
 			require.NoError(t, err)
-			assert.Error(t, cmd.Run())
+			assert.NoError(t, cmd.Start())
+			assert.Error(t, cmd.Wait())
 			assert.Equal(t, context.DeadlineExceeded, tctx.Err())
 			assert.True(t, time.Now().After(deadline))
 		},
@@ -216,7 +218,8 @@ func TestCreate(t *testing.T) {
 			start := time.Now()
 			cmd, deadline, err := opts.Resolve(ctx)
 			require.NoError(t, err)
-			assert.Error(t, cmd.Run())
+			assert.NoError(t, cmd.Start())
+			assert.Error(t, cmd.Wait())
 			elapsed := time.Since(start)
 			assert.True(t, elapsed > opts.Timeout)
 			assert.NoError(t, tctx.Err())

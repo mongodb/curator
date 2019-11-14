@@ -517,46 +517,46 @@ func ConvertCacheOptions(jopts options.Cache) *CacheOptions {
 }
 
 // Export takes a protobuf RPC DownloadInfo struct and returns the analogous
-// Jasper DownloadInfo struct.
-func (info *DownloadInfo) Export() options.Download {
+// options.Download struct.
+func (opts *DownloadInfo) Export() options.Download {
 	return options.Download{
-		Path:        info.Path,
-		URL:         info.Url,
-		ArchiveOpts: info.ArchiveOpts.Export(),
+		Path:        opts.Path,
+		URL:         opts.Url,
+		ArchiveOpts: opts.ArchiveOpts.Export(),
 	}
 }
 
-// ConvertDownloadInfo takes a Jasper DownloadInfo struct and returns an
-// equivalent protobuf RPC DownloadInfo struct. ConvertDownloadInfo is the
+// ConvertDownloadOptions takes an options.Download struct and returns an
+// equivalent protobuf RPC DownloadInfo struct. ConvertDownloadOptions is the
 // inverse of (*DownloadInfo) Export().
-func ConvertDownloadInfo(info options.Download) *DownloadInfo {
+func ConvertDownloadOptions(opts options.Download) *DownloadInfo {
 	return &DownloadInfo{
-		Path:        info.Path,
-		Url:         info.URL,
-		ArchiveOpts: ConvertArchiveOptions(info.ArchiveOpts),
+		Path:        opts.Path,
+		Url:         opts.URL,
+		ArchiveOpts: ConvertArchiveOptions(opts.ArchiveOpts),
 	}
 }
 
 // Export takes a protobuf RPC WriteFileInfo struct and returns the analogous
-// Jasper WriteFileInfo struct.
-func (info *WriteFileInfo) Export() options.WriteFile {
+// options.WriteFile struct.
+func (opts *WriteFileInfo) Export() options.WriteFile {
 	return options.WriteFile{
-		Path:    info.Path,
-		Content: info.Content,
-		Append:  info.Append,
-		Perm:    os.FileMode(info.Perm),
+		Path:    opts.Path,
+		Content: opts.Content,
+		Append:  opts.Append,
+		Perm:    os.FileMode(opts.Perm),
 	}
 }
 
-// ConvertWriteFileInfo takes a Jasper WriteFileInfo struct and returns an
-// equivalent protobuf RPC WriteFileInfo struct. ConvertWriteFileInfo is the
+// ConvertWriteFileOptions takes an options.WriteFile struct and returns an
+// equivalent protobuf RPC WriteFileInfo struct. ConvertWriteFileOptions is the
 // inverse of (*WriteFileInfo) Export().
-func ConvertWriteFileInfo(info options.WriteFile) *WriteFileInfo {
+func ConvertWriteFileOptions(opts options.WriteFile) *WriteFileInfo {
 	return &WriteFileInfo{
-		Path:    info.Path,
-		Content: info.Content,
-		Append:  info.Append,
-		Perm:    uint32(info.Perm),
+		Path:    opts.Path,
+		Content: opts.Content,
+		Append:  opts.Append,
+		Perm:    uint32(opts.Perm),
 	}
 }
 

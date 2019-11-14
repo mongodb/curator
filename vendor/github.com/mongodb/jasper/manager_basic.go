@@ -12,17 +12,19 @@ import (
 )
 
 type basicProcessManager struct {
-	id       string
-	procs    map[string]Process
-	blocking bool
-	tracker  ProcessTracker
+	id            string
+	procs         map[string]Process
+	blocking      bool
+	useSSHLibrary bool
+	tracker       ProcessTracker
 }
 
-func newBasicProcessManager(procs map[string]Process, blocking bool, trackProcs bool) (Manager, error) {
+func newBasicProcessManager(procs map[string]Process, blocking bool, trackProcs bool, useSSHLibrary bool) (Manager, error) {
 	m := basicProcessManager{
-		procs:    procs,
-		blocking: blocking,
-		id:       uuid.Must(uuid.NewV4()).String(),
+		procs:         procs,
+		blocking:      blocking,
+		id:            uuid.Must(uuid.NewV4()).String(),
+		useSSHLibrary: useSSHLibrary,
 	}
 	if trackProcs {
 		tracker, err := NewProcessTracker(m.id)
@@ -46,6 +48,9 @@ func (m *basicProcessManager) CreateProcess(ctx context.Context, opts *options.C
 		err  error
 	)
 
+	if opts.Remote != nil && m.useSSHLibrary {
+		opts.Remote.UseSSHLibrary = true
+	}
 	if m.blocking {
 		proc, err = newBlockingProcess(ctx, opts)
 	} else {

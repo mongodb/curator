@@ -32,7 +32,7 @@ func PutHTTPClient(client *http.Client) {
 }
 
 // WaitForRESTService waits until either the REST service becomes available to
-// serve requests or the context times out.
+// serve requests or the context is done.
 func WaitForRESTService(ctx context.Context, url string) error {
 	client := GetHTTPClient()
 	defer PutHTTPClient(client)

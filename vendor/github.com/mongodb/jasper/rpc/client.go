@@ -197,8 +197,8 @@ func (c *rpcClient) ConfigureCache(ctx context.Context, opts options.Cache) erro
 	return errors.New(resp.Text)
 }
 
-func (c *rpcClient) DownloadFile(ctx context.Context, info options.Download) error {
-	resp, err := c.client.DownloadFile(ctx, internal.ConvertDownloadInfo(info))
+func (c *rpcClient) DownloadFile(ctx context.Context, opts options.Download) error {
+	resp, err := c.client.DownloadFile(ctx, internal.ConvertDownloadOptions(opts))
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -252,18 +252,18 @@ func (c *rpcClient) SignalEvent(ctx context.Context, name string) error {
 	return errors.New(resp.Text)
 }
 
-func (c *rpcClient) WriteFile(ctx context.Context, jinfo options.WriteFile) error {
+func (c *rpcClient) WriteFile(ctx context.Context, jopts options.WriteFile) error {
 	stream, err := c.client.WriteFile(ctx)
 	if err != nil {
 		return errors.Wrap(err, "error getting client stream to write file")
 	}
 
-	sendInfo := func(jinfo options.WriteFile) error {
-		info := internal.ConvertWriteFileInfo(jinfo)
-		return stream.Send(info)
+	sendOpts := func(jopts options.WriteFile) error {
+		opts := internal.ConvertWriteFileOptions(jopts)
+		return stream.Send(opts)
 	}
 
-	if err = jinfo.WriteBufferedContent(sendInfo); err != nil {
+	if err = jopts.WriteBufferedContent(sendOpts); err != nil {
 		catcher := grip.NewBasicCatcher()
 		catcher.Wrapf(err, "error reading from content source")
 		catcher.Wrapf(stream.CloseSend(), "error closing send stream after error during read: %s", err.Error())

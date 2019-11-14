@@ -15,7 +15,7 @@ func MakeSynchronizedManager(manager Manager) (Manager, error) {
 
 // NewSynchronizedManager is a constructor for a thread-safe Manager.
 func NewSynchronizedManager(trackProcs bool) (Manager, error) {
-	basicManager, err := newBasicProcessManager(map[string]Process{}, false, trackProcs)
+	basicManager, err := newBasicProcessManager(map[string]Process{}, false, trackProcs, false)
 	if err != nil {
 		return nil, err
 	}
@@ -23,10 +23,20 @@ func NewSynchronizedManager(trackProcs bool) (Manager, error) {
 	return &synchronizedProcessManager{manager: basicManager}, nil
 }
 
+// NewSSHLibrarySynchronizedManager is the same as NewSynchronizedManager but
+// uses the SSH library instead of the SSH binary for remote processes.
+func NewSSHLibrarySynchronizedManager(trackProcs bool) (Manager, error) {
+	basicManager, err := newBasicProcessManager(map[string]Process{}, false, trackProcs, true)
+	if err != nil {
+		return nil, errors.Wrap(err, "problem constructing underlying manager")
+	}
+	return &synchronizedProcessManager{manager: basicManager}, nil
+}
+
 // NewSynchronizedManagerBlockingProcesses is a constructor for a thread-safe Manager
 // that uses blockingProcess instead of the default basicProcess.
 func NewSynchronizedManagerBlockingProcesses(trackProcs bool) (Manager, error) {
-	basicBlockingManager, err := newBasicProcessManager(map[string]Process{}, true, trackProcs)
+	basicBlockingManager, err := newBasicProcessManager(map[string]Process{}, true, trackProcs, false)
 	if err != nil {
 		return nil, err
 	}

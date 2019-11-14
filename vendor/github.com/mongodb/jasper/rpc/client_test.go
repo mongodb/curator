@@ -437,13 +437,13 @@ func TestRPCClient(t *testing.T) {
 								assert.NoError(t, os.RemoveAll(tmpFile.Name()))
 							}()
 
-							info := options.WriteFile{Path: tmpFile.Name(), Content: []byte("foo")}
-							require.NoError(t, client.WriteFile(ctx, info))
+							opts := options.WriteFile{Path: tmpFile.Name(), Content: []byte("foo")}
+							require.NoError(t, client.WriteFile(ctx, opts))
 
 							content, err := ioutil.ReadFile(tmpFile.Name())
 							require.NoError(t, err)
 
-							assert.Equal(t, info.Content, content)
+							assert.Equal(t, opts.Content, content)
 						},
 						"WriteFileAcceptsContentFromReader": func(ctx context.Context, t *testing.T, client jasper.RemoteClient) {
 							tmpFile, err := ioutil.TempFile(buildDir(t), filepath.Base(t.Name()))
@@ -454,8 +454,8 @@ func TestRPCClient(t *testing.T) {
 							}()
 
 							buf := []byte("foo")
-							info := options.WriteFile{Path: tmpFile.Name(), Reader: bytes.NewBuffer(buf)}
-							require.NoError(t, client.WriteFile(ctx, info))
+							opts := options.WriteFile{Path: tmpFile.Name(), Reader: bytes.NewBuffer(buf)}
+							require.NoError(t, client.WriteFile(ctx, opts))
 
 							content, err := ioutil.ReadFile(tmpFile.Name())
 							require.NoError(t, err)
@@ -471,17 +471,17 @@ func TestRPCClient(t *testing.T) {
 							}()
 
 							const mb = 1024 * 1024
-							info := options.WriteFile{Path: tmpFile.Name(), Content: bytes.Repeat([]byte("foo"), mb)}
-							require.NoError(t, client.WriteFile(ctx, info))
+							opts := options.WriteFile{Path: tmpFile.Name(), Content: bytes.Repeat([]byte("foo"), mb)}
+							require.NoError(t, client.WriteFile(ctx, opts))
 
 							content, err := ioutil.ReadFile(tmpFile.Name())
 							require.NoError(t, err)
 
-							assert.Equal(t, info.Content, content)
+							assert.Equal(t, opts.Content, content)
 						},
 						"WriteFileFailsWithInvalidPath": func(ctx context.Context, t *testing.T, client jasper.RemoteClient) {
-							info := options.WriteFile{Content: []byte("foo")}
-							assert.Error(t, client.WriteFile(ctx, info))
+							opts := options.WriteFile{Content: []byte("foo")}
+							assert.Error(t, client.WriteFile(ctx, opts))
 						},
 						"WriteFileSucceedsWithNoContent": func(ctx context.Context, t *testing.T, client jasper.RemoteClient) {
 							path := filepath.Join(buildDir(t), filepath.Base(t.Name()))
@@ -490,8 +490,8 @@ func TestRPCClient(t *testing.T) {
 								assert.NoError(t, os.RemoveAll(path))
 							}()
 
-							info := options.WriteFile{Path: path}
-							require.NoError(t, client.WriteFile(ctx, info))
+							opts := options.WriteFile{Path: path}
+							require.NoError(t, client.WriteFile(ctx, opts))
 
 							stat, err := os.Stat(path)
 							require.NoError(t, err)

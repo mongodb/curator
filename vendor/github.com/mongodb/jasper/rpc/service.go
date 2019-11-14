@@ -18,8 +18,8 @@ import (
 // AttachService attaches the jasper GRPC server to the given manager. After
 // this function successfully returns, calls to Manager functions will be sent
 // over GRPC to the Jasper GRPC server.
-func AttachService(manager jasper.Manager, s *grpc.Server) error {
-	return errors.WithStack(internal.AttachService(manager, s))
+func AttachService(ctx context.Context, manager jasper.Manager, s *grpc.Server) error {
+	return errors.WithStack(internal.AttachService(ctx, manager, s))
 }
 
 // StartService starts an RPC server with the specified address addr around the
@@ -47,14 +47,16 @@ func StartService(ctx context.Context, manager jasper.Manager, addr net.Addr, cr
 
 	service := grpc.NewServer(opts...)
 
-	if err := AttachService(manager, service); err != nil {
+	ctx, cancel := context.WithCancel(ctx)
+	if err := AttachService(ctx, manager, service); err != nil {
+		cancel()
 		return nil, errors.Wrap(err, "could not attach manager to service")
 	}
 	go func() {
 		grip.Notice(service.Serve(lis))
 	}()
 
-	return func() error { service.Stop(); return nil }, nil
+	return func() error { service.Stop(); cancel(); return nil }, nil
 }
 
 // StartServiceWithFile is the same as StartService, but the credentials will be

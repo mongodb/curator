@@ -32,6 +32,7 @@ func mockFail() error {
 	return errors.Errorf("function failed: %s", frame.Function)
 }
 
+// ID returns the value of the ManagerID field.
 func (m *Manager) ID() string {
 	return m.ManagerID
 }

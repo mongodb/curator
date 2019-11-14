@@ -9,27 +9,28 @@ import (
 	"github.com/tychoish/bond"
 )
 
-// YesCreateOpts returns an options.Create struct that runs the "yes" command for
-// the given duration.
+// YesCreateOpts creates the options to run the "yes" command for the given
+// duration.
 func YesCreateOpts(timeout time.Duration) *options.Create {
 	return &options.Create{Args: []string{"yes"}, Timeout: timeout}
 }
 
-// TrueCreateOpts returns an options.Create struct to run the "true" command.
+// TrueCreateOpts creates the options to run the "true" command.
 func TrueCreateOpts() *options.Create {
 	return &options.Create{
 		Args: []string{"true"},
 	}
 }
 
-// FalseCreateOpts returns an options.Create struct to run the "false" command.
+// FalseCreateOpts creates the options to run the "false" command.
 func FalseCreateOpts() *options.Create {
 	return &options.Create{
 		Args: []string{"false"},
 	}
 }
 
-// SleepCreateOpts returns an options.Create struct to run the "sleep" command.
+// SleepCreateOpts creates the options to run the "sleep" command for the give
+// nnumber of seconds.
 func SleepCreateOpts(num int) *options.Create {
 	return &options.Create{
 		Args: []string{"sleep", fmt.Sprint(num)},

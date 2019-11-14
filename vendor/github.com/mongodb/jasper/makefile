@@ -2,10 +2,10 @@ name := jasper
 buildDir := build
 srcFiles := $(shell find . -name "*.go" -not -path "./$(buildDir)/*" -not -name "*_test.go" -not -path "*\#*")
 testFiles := $(shell find . -name "*.go" -not -path "./$(buildDir)/*" -not -path "*\#*")
-packages := $(name) cli rpc rest options testutil
-testPackages := $(packages) mock
+packages := $(name) cli rpc rest options mock testutil internal-executor
+testPackages := $(packages)
 
-_testPackages := $(subst $(name),,$(foreach target,$(testPackages),./$(target)))
+_compilePackages := $(subst $(name),,$(subst -,/,$(foreach target,$(testPackages),./$(target))))
 coverageOutput := $(foreach target,$(testPackages),$(buildDir)/output.$(target).coverage)
 coverageHtmlOutput := $(foreach target,$(testPackages),$(buildDir)/output.$(target).coverage.html)
 
@@ -20,7 +20,7 @@ buildEnv := GOCACHE=$(gocache)
 # end environment setup
 
 compile:
-	go build $(_testPackages)
+	go build $(_compilePackages)
 compile-base:
 	go build ./
 build:compile
@@ -101,9 +101,6 @@ $(buildDir)/:
 $(buildDir)/output.%.test:$(buildDir)/ .FORCE
 	go test $(testArgs) ./$(if $(subst $(name),,$*),$(subst -,/,$*),) | tee $@
 	@(! grep -s -q -e "^FAIL" $@ && ! grep -s -q "^WARNING: DATA RACE" $@) || ! grep -s -q "no test files" $@
-$(buildDir)/output.test:$(buildDir)/ .FORCE
-	go test $(testArgs) ./... | tee $@
-	@! grep -s -q -e "^FAIL" $@ && ! grep -s -q "^WARNING: DATA RACE" $@
 $(buildDir)/output.%.coverage:$(buildDir)/ .FORCE
 	go test $(testArgs) ./$(if $(subst $(name),,$*),$(subst -,/,$*),) -covermode=count -coverprofile $@ | tee $(buildDir)/output.$*.test
 	@-[ -f $@ ] && go tool cover -func=$@ | sed 's%$(projectPath)/%%' | column -t
@@ -112,18 +109,18 @@ $(buildDir)/output.%.coverage.html:$(buildDir)/output.%.coverage
 #  targets to generate gotest output from the linter.
 $(buildDir)/output.%.lint:$(buildDir)/run-linter $(buildDir)/ .FORCE
 	@./$< --output=$@ --lintArgs='$(lintArgs)' --packages='$*'
-$(buildDir)/output.lint:$(buildDir)/run-linter $(buildDir)/ .FORCE
-	@./$< --output="$@" --lintArgs='$(lintArgs)' --packages="$(packages)"
 #  targets to process and generate coverage reports
 # end test and coverage artifacts
 
 
-# userfacing targets for basic build and development operations
+# user-facing targets for basic build and development operations
 proto:
 	@mkdir -p rpc/internal
 	protoc --go_out=plugins=grpc:rpc/internal *.proto
-lint:$(foreach target,$(packages),$(buildDir)/output.$(target).lint)
-test:build $(buildDir)/output.test
+lint:build $(foreach target,$(packages),$(buildDir)/output.$(target).lint)
+	
+test:build $(foreach target,$(testPackages),$(buildDir)/output.$(target).test)
+	
 benchmarks:$(buildDir)/run-benchmarks $(buildDir) .FORCE
 	./$(buildDir)/run-benchmarks $(run-benchmark)
 coverage:build $(coverageOutput)
@@ -134,8 +131,8 @@ phony += lint build test coverage coverage-html
 .PRECIOUS:$(coverageOutput) $(coverageHtmlOutput)
 .PRECIOUS:$(foreach target,$(testPackages),$(buildDir)/output.$(target).test)
 .PRECIOUS:$(foreach target,$(packages),$(buildDir)/output.$(target).lint)
-.PRECIOUS:$(buildDir)/output.lint
 # end front-ends
+
 .FORCE:
 
 clean:
@@ -150,10 +147,11 @@ vendor-clean:
 	rm -rf vendor/github.com/evergreen-ci/aviation/vendor/github.com/pkg/errors/
 	rm -rf vendor/github.com/evergreen-ci/aviation/vendor/github.com/stretchr/testify/
 	rm -rf vendor/github.com/evergreen-ci/aviation/vendor/google.golang.org/grpc/
-	rm -rf vendor/github.com/evergreen-ci/certdepot/vendor/gopkg.in/mgo.v2/
 	rm -rf vendor/github.com/evergreen-ci/certdepot/mgo_depot.go
+	rm -rf vendor/github.com/evergreen-ci/certdepot/vendor/gopkg.in/mgo.v2/
 	rm -rf vendor/github.com/evergreen-ci/certdepot/vendor/go.mongodb.org/mongo-driver/
 	rm -rf vendor/github.com/evergreen-ci/certdepot/vendor/github.com/stretchr/testify/
+	rm -rf vendor/github.com/evergreen-ci/certdepot/vendor/github.com/square/certstrap/vendor/golang.org/x/crypto
 	rm -rf vendor/github.com/evergreen-ci/certdepot/vendor/github.com/square/certstrap/vendor/golang.org/x/sys/
 	rm -rf vendor/github.com/evergreen-ci/certdepot/vendor/github.com/square/certstrap/vendor/github.com/urfave/cli/
 	rm -rf vendor/github.com/evergreen-ci/certdepot/vendor/github.com/pkg/errors/
@@ -206,6 +204,7 @@ vendor-clean:
 	rm -rf vendor/go.mongodb.org/mongo-driver/vendor/github.com/montanaflynn/stats/
 	rm -rf vendor/go.mongodb.org/mongo-driver/vendor/github.com/pkg/errors/
 	rm -rf vendor/go.mongodb.org/mongo-driver/vendor/github.com/stretchr/testify/
+	rm -rf vendor/go.mongodb.org/mongo-driver/vendor/golang.org/x/crypto/
 	rm -rf vendor/go.mongodb.org/mongo-driver/vendor/golang.org/x/net/
 	rm -rf vendor/go.mongodb.org/mongo-driver/vendor/golang.org/x/sys/
 	rm -rf vendor/go.mongodb.org/mongo-driver/vendor/golang.org/x/text/

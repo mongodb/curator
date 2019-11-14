@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/mongodb/grip"
+	"github.com/mongodb/jasper/internal/executor"
 	"github.com/mongodb/jasper/options"
 	"github.com/mongodb/jasper/testutil"
 	"github.com/pkg/errors"
@@ -111,9 +112,9 @@ func TestBlockingProcess(t *testing.T) {
 
 					op := <-proc.ops
 
-					op(&exec.Cmd{
+					op(executor.MakeLocal(&exec.Cmd{
 						Process: &os.Process{},
-					})
+					}))
 					<-signal
 				},
 				"RunningIsFalseWithNilCmd": func(ctx context.Context, t *testing.T, proc *blockingProcess) {
@@ -136,14 +137,14 @@ func TestBlockingProcess(t *testing.T) {
 					}()
 
 					op := <-proc.ops
-					op(&exec.Cmd{
+					op(executor.MakeLocal(&exec.Cmd{
 						Process: &os.Process{Pid: 42},
-					})
+					}))
 
 					<-signal
 				},
 				"RunningIsFalseWithCanceledContext": func(ctx context.Context, t *testing.T, proc *blockingProcess) {
-					proc.ops <- func(_ *exec.Cmd) {}
+					proc.ops <- func(_ executor.Executor) {}
 					cctx, cancel := context.WithCancel(ctx)
 					cancel()
 					assert.False(t, proc.Running(cctx))
@@ -182,9 +183,9 @@ func TestBlockingProcess(t *testing.T) {
 					}()
 
 					op := <-proc.ops
-					op(&exec.Cmd{
+					op(executor.MakeLocal(&exec.Cmd{
 						Process: &os.Process{Pid: -42},
-					})
+					}))
 
 					<-signal
 				},
@@ -205,7 +206,7 @@ func TestBlockingProcess(t *testing.T) {
 				},
 				"WaitShouldReturnNilForSuccessfulCommandsWithoutIDs": func(ctx context.Context, t *testing.T, proc *blockingProcess) {
 					proc.info.Options.Args = []string{"sleep", "10"}
-					proc.ops = make(chan func(*exec.Cmd))
+					proc.ops = make(chan func(executor.Executor))
 
 					cmd, _, err := proc.info.Options.Resolve(ctx)
 					assert.NoError(t, err)
@@ -240,7 +241,7 @@ func TestBlockingProcess(t *testing.T) {
 				},
 				"WaitShouldReturnNilForSuccessfulCommands": func(ctx context.Context, t *testing.T, proc *blockingProcess) {
 					proc.info.Options.Args = []string{"sleep", "10"}
-					proc.ops = make(chan func(*exec.Cmd))
+					proc.ops = make(chan func(executor.Executor))
 
 					cmd, _, err := proc.info.Options.Resolve(ctx)
 					assert.NoError(t, err)
@@ -276,7 +277,7 @@ func TestBlockingProcess(t *testing.T) {
 				},
 				"WaitShouldReturnErrorForFailedCommands": func(ctx context.Context, t *testing.T, proc *blockingProcess) {
 					proc.info.Options.Args = []string{"sleep", "10"}
-					proc.ops = make(chan func(*exec.Cmd))
+					proc.ops = make(chan func(executor.Executor))
 
 					cmd, _, err := proc.info.Options.Resolve(ctx)
 					assert.NoError(t, err)
@@ -400,7 +401,7 @@ func TestBlockingProcess(t *testing.T) {
 					id := uuid.Must(uuid.NewV4()).String()
 					proc := &blockingProcess{
 						id:   id,
-						ops:  make(chan func(*exec.Cmd), 1),
+						ops:  make(chan func(executor.Executor), 1),
 						info: ProcessInfo{ID: id},
 					}
 
