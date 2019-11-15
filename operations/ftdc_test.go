@@ -14,7 +14,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/mongodb/ftdc/bsonx"
+	"github.com/evergreen-ci/birch"
 	"github.com/mongodb/grip"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -115,10 +115,10 @@ func TestJSONRoundtrip(t *testing.T) {
 	assert.True(t, equal)
 }
 
-func randFlatDocument(numKeys int) *bsonx.Document {
-	doc := bsonx.NewDocument()
+func randFlatDocument(numKeys int) *birch.Document {
+	doc := birch.NewDocument()
 	for i := 0; i < numKeys; i++ {
-		doc.Append(bsonx.EC.Int64(randStr(), rand.Int63n(int64(numKeys)*1)))
+		doc.Append(birch.EC.Int64(randStr(), rand.Int63n(int64(numKeys)*1)))
 	}
 
 	return doc
