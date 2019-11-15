@@ -1,6 +1,7 @@
 package poplar
 
 import (
+	"context"
 	"io"
 	"os"
 	"path/filepath"
@@ -27,6 +28,24 @@ const (
 	CustomMetrics                        = "custom"
 )
 
+// EventsCollectorType represents the collector strategy for events
+// collector.
+type EventsCollectorType string
+
+const (
+	EventsCollectorBasic            EventsCollectorType = "basic"
+	EventsCollectorPassthrough                          = "passthrough"
+	EventsCollectorSampling100                          = "sampling-100"
+	EventsCollectorSampling1k                           = "sampling-1k"
+	EventsCollectorSampling10k                          = "sampling-10k"
+	EventsCollectorSampling100k                         = "sampling-100k"
+	EventsCollectorRandomSampling50                     = "rand-sampling-50"
+	EventsCollectorRandomSampling25                     = "rand-sampling-25"
+	EventsCollectorRandomSampling10                     = "rand-sampling-10"
+	EventsCollectorInterval100ms                        = "interval-100ms"
+	EventsCollectorInterval1s                           = "interval-1s"
+)
+
 // Validate the underyling recorder type.
 func (t RecorderType) Validate() error {
 	switch t {
@@ -39,13 +58,31 @@ func (t RecorderType) Validate() error {
 	}
 }
 
+// Validate the underyling events collector type.
+func (t EventsCollectorType) Validate() error {
+	switch t {
+	case EventsCollectorBasic, EventsCollectorInterval100ms, EventsCollectorInterval1s,
+		EventsCollectorPassthrough, EventsCollectorRandomSampling10, EventsCollectorRandomSampling25,
+		EventsCollectorRandomSampling50, EventsCollectorSampling100, EventsCollectorSampling100k, EventsCollectorSampling10k, EventsCollectorSampling1k:
+
+		return nil
+	default:
+		return errors.Errorf("%s is not a supported events collector type", t)
+
+	}
+}
+
 type recorderInstance struct {
-	file      io.WriteCloser
-	collector ftdc.Collector
-	recorder  events.Recorder
-	tracker   *customEventTracker
-	isDynamic bool
-	isCustom  bool
+	file            io.WriteCloser
+	collector       ftdc.Collector
+	recorder        events.Recorder
+	eventsCollector events.Collector
+	tracker         *customEventTracker
+	ctx             context.Context
+	cancel          context.CancelFunc
+	isDynamic       bool
+	isCustom        bool
+	isEvents        bool
 }
 
 type customEventTracker struct {
@@ -157,7 +194,7 @@ func (r *RecorderRegistry) GetCustomCollector(key string) (CustomMetricsCollecto
 
 // GetCollector returns the collector instance for this key. Will
 // return false, when the collector does not exist OR if the collector
-// is dynamic.
+// is not dynamic.
 func (r *RecorderRegistry) GetCollector(key string) (ftdc.Collector, bool) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -168,7 +205,31 @@ func (r *RecorderRegistry) GetCollector(key string) (ftdc.Collector, bool) {
 		return nil, false
 	}
 
+	if !impl.isDynamic || impl.collector == nil {
+		return nil, false
+
+	}
+
 	return impl.collector, true
+}
+
+// GetEventsCollector returns the events.Collector instance for this
+// key. Will return false, when the collector does not exist OR if the collector
+// is not an events.Collector.
+func (r *RecorderRegistry) GetEventsCollector(key string) (events.Collector, bool) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	impl, ok := r.cache[key]
+	if !ok {
+		return nil, false
+	}
+
+	if !impl.isEvents || impl.eventsCollector == nil {
+		return nil, false
+	}
+
+	return impl.eventsCollector, true
 }
 
 // SetBenchRecorderPrefix sets the bench prefix for this registry.
@@ -210,6 +271,11 @@ func (r *RecorderRegistry) Close(key string) error {
 	defer r.mu.Unlock()
 
 	if impl, ok := r.cache[key]; ok {
+		if impl.isEvents {
+			impl.cancel()
+			time.Sleep(100 * time.Millisecond)
+		}
+
 		if impl.isCustom {
 			if err := impl.collector.Add(impl.tracker.Custom); err != nil {
 				return errors.Wrap(err, "problem flushing interval summarizations")
@@ -238,7 +304,9 @@ type CreateOptions struct {
 	ChunkSize int
 	Streaming bool
 	Dynamic   bool
+	Buffered  bool
 	Recorder  RecorderType
+	Events    EventsCollectorType
 }
 
 func (opts *CreateOptions) build() (*recorderInstance, error) {
@@ -262,7 +330,10 @@ func (opts *CreateOptions) build() (*recorderInstance, error) {
 	out := &recorderInstance{
 		isDynamic: opts.Dynamic,
 		file:      file,
+		isEvents:  opts.Events != "",
 	}
+
+	out.ctx, out.cancel = context.WithCancel(context.Background())
 
 	switch {
 	case opts.Streaming && opts.Dynamic:
@@ -276,6 +347,37 @@ func (opts *CreateOptions) build() (*recorderInstance, error) {
 	default:
 		return nil, errors.New("invalid collector defined")
 	}
+	if opts.Buffered {
+		out.collector = ftdc.NewBufferedCollector(out.ctx, 4*opts.ChunkSize, out.collector)
+	}
+
+	switch opts.Events {
+	case EventsCollectorBasic:
+		out.eventsCollector = events.NewBasicCollector(out.collector)
+	case EventsCollectorPassthrough:
+		out.eventsCollector = events.NewPassthroughCollector(out.collector)
+	case EventsCollectorSampling100:
+		out.eventsCollector = events.NewSamplingCollector(out.collector, 100)
+	case EventsCollectorSampling1k:
+		out.eventsCollector = events.NewSamplingCollector(out.collector, 1000)
+	case EventsCollectorSampling10k:
+		out.eventsCollector = events.NewSamplingCollector(out.collector, 10000)
+	case EventsCollectorSampling100k:
+		out.eventsCollector = events.NewSamplingCollector(out.collector, 100000)
+	case EventsCollectorRandomSampling50:
+		out.eventsCollector = events.NewRandomSamplingCollector(out.collector, true, 50)
+	case EventsCollectorRandomSampling25:
+		out.eventsCollector = events.NewRandomSamplingCollector(out.collector, true, 25)
+	case EventsCollectorRandomSampling10:
+		out.eventsCollector = events.NewRandomSamplingCollector(out.collector, true, 10)
+	case EventsCollectorInterval100ms:
+		out.eventsCollector = events.NewIntervalCollector(out.collector, 100*time.Millisecond)
+	case EventsCollectorInterval1s:
+		out.eventsCollector = events.NewIntervalCollector(out.collector, time.Second)
+	}
+
+	out.collector = ftdc.NewSynchronizedCollector(out.collector)
+	out.eventsCollector = events.NewSynchronizedCollector(out.eventsCollector)
 
 	switch opts.Recorder {
 	case RecorderPerf:

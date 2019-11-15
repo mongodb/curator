@@ -8,9 +8,10 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/evergreen-ci/birch"
 	"github.com/evergreen-ci/pail"
 	"github.com/mongodb/ftdc"
-	"github.com/mongodb/ftdc/bsonx"
+	"github.com/mongodb/ftdc/metrics"
 	"github.com/mongodb/grip"
 	"github.com/pkg/errors"
 )
@@ -154,7 +155,7 @@ func (a *TestArtifact) bsonToFTDC(ctx context.Context, path string) (string, err
 			break
 		}
 
-		bsonDoc := bsonx.NewDocument()
+		bsonDoc := birch.NewDocument()
 		_, err = bsonDoc.ReadFrom(srcFile)
 		if err != nil {
 			if err == io.EOF {
@@ -210,11 +211,11 @@ func (a *TestArtifact) jsonToFTDC(ctx context.Context, path string) (string, err
 	}
 	defer func() { catcher.Add(ftdcFile.Close()) }()
 
-	opts := ftdc.CollectJSONOptions{
+	opts := metrics.CollectJSONOptions{
 		OutputFilePrefix: strings.TrimSuffix(path, ".json"),
 		InputSource:      ftdcFile,
 	}
-	return path, ftdc.CollectJSONStream(ctx, opts)
+	return path, metrics.CollectJSONStream(ctx, opts)
 }
 
 func (a *TestArtifact) gzip(path string) (string, error) {

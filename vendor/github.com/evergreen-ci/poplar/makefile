@@ -98,7 +98,7 @@ test:
 	@grep -s -q -e "^PASS" $(buildDir)/test.out
 .PHONY: benchmark
 benchmark:
-	@mkdir -p $(buildDir)
+	@mkdir -p $(buildDir)/
 	GOPATH=$(gopath) $(gobin) test $(testArgs) -bench=$(benchPattern) $(if $(RUN_TEST),, -run=^^$$) | tee $(buildDir)/bench.out
 coverage:$(buildDir)/cover.out
 	@go tool cover -func=$< | sed -E 's%github.com/.*/jasper/%%' | column -t
@@ -131,6 +131,7 @@ proto:vendor/cedar.proto
 	@mkdir -p rpc/internal
 	protoc --go_out=plugins=grpc:rpc/internal *.proto
 	protoc --go_out=plugins=grpc:rpc/internal vendor/cedar.proto
+	protoc --go_out=plugins=grpc:collector *.proto
 	mv rpc/internal/vendor/cedar.pb.go rpc/internal/cedar.pb.go
 clean:
 	rm -rf rpc/internal/*.pb.go
