@@ -11,9 +11,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/evergreen-ci/birch"
 	"github.com/mongodb/ftdc"
-	"github.com/mongodb/ftdc/bsonx"
-	"github.com/mongodb/grip"
+	"github.com/mongodb/ftdc/util"
 	"github.com/mongodb/grip/message"
 	"github.com/mongodb/grip/recovery"
 	"github.com/pkg/errors"
@@ -30,21 +30,18 @@ type Runtime struct {
 	Process   *message.ProcessInfo   `json:"process,omitempty" bson:"process,omitempty"`
 }
 
-func (r *Runtime) MarshalBSON() ([]byte, error) { return bson.Marshal(r) }
-func (r *Runtime) UnmarshalBSON(b []byte) error { return bson.Unmarshal(b, r) }
-
 // CollectOptions are the settings to provide the behavior of
 // the collection process process.
 type CollectOptions struct {
-	OutputFilePrefix      string
-	SampleCount           int
 	FlushInterval         time.Duration
 	CollectionInterval    time.Duration
 	SkipGolang            bool
 	SkipSystem            bool
 	SkipProcess           bool
-	Collectors            Collectors
 	RunParallelCollectors bool
+	SampleCount           int
+	Collectors            Collectors
+	OutputFilePrefix      string
 }
 
 type Collectors []CustomCollector
@@ -55,10 +52,10 @@ func (c Collectors) Less(i, j int) bool { return c[i].Name < c[j].Name }
 
 type CustomCollector struct {
 	Name      string
-	Operation func(context.Context) *bsonx.Document
+	Operation func(context.Context) *birch.Document
 }
 
-func (opts *CollectOptions) generate(ctx context.Context, id int) *bsonx.Document {
+func (opts *CollectOptions) generate(ctx context.Context, id int) *birch.Document {
 	pid := os.Getpid()
 	out := &Runtime{
 		ID:        id,
@@ -83,21 +80,26 @@ func (opts *CollectOptions) generate(ctx context.Context, id int) *bsonx.Documen
 		out.Process.Base = base
 	}
 
-	if len(opts.Collectors) == 0 {
-		return bsonx.DC.Make(1).Append(bsonx.EC.Marshaler("runtime", out))
+	docb, err := bson.Marshal(out)
+	if err != nil {
+		panic(err)
 	}
 
-	doc := bsonx.DC.Make(len(opts.Collectors) + 1).Append(bsonx.EC.Marshaler("runtime", out))
+	if len(opts.Collectors) == 0 {
+		return birch.DC.Reader(docb)
+	}
+
+	doc := birch.DC.Make(len(opts.Collectors) + 1).Append(birch.EC.SubDocument("runtime", birch.DC.Reader(docb)))
 	if !opts.RunParallelCollectors {
 		for _, ec := range opts.Collectors {
-			doc.Append(bsonx.EC.SubDocument(ec.Name, ec.Operation(ctx)))
+			doc.Append(birch.EC.SubDocument(ec.Name, ec.Operation(ctx)))
 		}
 
 		return doc
 	}
 
 	collectors := make(chan CustomCollector, len(opts.Collectors))
-	elems := make(chan *bsonx.Element, len(opts.Collectors))
+	elems := make(chan *birch.Element, len(opts.Collectors))
 	num := runtime.NumCPU()
 	if num > len(opts.Collectors) {
 		num = len(opts.Collectors)
@@ -116,7 +118,7 @@ func (opts *CollectOptions) generate(ctx context.Context, id int) *bsonx.Documen
 			defer wg.Done()
 
 			for collector := range collectors {
-				elems <- bsonx.EC.SubDocument(collector.Name, collector.Operation(ctx))
+				elems <- birch.EC.SubDocument(collector.Name, collector.Operation(ctx))
 			}
 		}()
 	}
@@ -144,7 +146,7 @@ func NewCollectOptions(prefix string) CollectOptions {
 // Validate checks the Collect option settings and ensures that all
 // values are reasonable.
 func (opts CollectOptions) Validate() error {
-	catcher := grip.NewBasicCatcher()
+	catcher := util.NewCatcher()
 
 	sort.Stable(opts.Collectors)
 
@@ -213,7 +215,6 @@ func CollectRuntime(ctx context.Context, opts CollectOptions) error {
 	for {
 		select {
 		case <-ctx.Done():
-			grip.Info("collection aborted, flushing results")
 			return errors.WithStack(flusher())
 		case <-collectTimer.C:
 			if err := collector.Add(opts.generate(ctx, collectCount)); err != nil {

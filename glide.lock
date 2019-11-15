@@ -44,7 +44,7 @@ imports:
   version: 1b77c8dfcc6baca12dedfab119135396782b68a1
 
 - name: github.com/mongodb/ftdc
-  version: b1b44cf77c23d879f8460fc68ba3297116746efb
+  version: 090775b61edf818f1b30daa3318f37ca7b5f4429
 - name: github.com/mongodb/jasper
   version: 51ae83c02ea528ca23ffad0a8c644efbca28bcc6
 - name: github.com/evergreen-ci/poplar
@@ -57,6 +57,8 @@ imports:
   version: 305bc4a5e4131420fe8ba5628e6faa9e6ade4e86
 - name: github.com/evergreen-ci/timber
   version: 1cdd00ad2f2eaf6fb1cb9dedacaddbc3b0e03149
+- name: github.com/evergreen-ci/birch
+  version: da7e58b5cca1d63dc9181790f6d69fca759bb78a
 
 # grpc and dependencies
 - name: google.golang.org/grpc

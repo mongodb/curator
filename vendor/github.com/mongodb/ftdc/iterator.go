@@ -4,14 +4,14 @@ import (
 	"context"
 	"io"
 
-	"github.com/mongodb/ftdc/bsonx"
-	"github.com/mongodb/grip"
+	"github.com/evergreen-ci/birch"
+	"github.com/mongodb/ftdc/util"
 )
 
 type Iterator interface {
 	Next() bool
-	Document() *bsonx.Document
-	Metadata() *bsonx.Document
+	Document() *birch.Document
+	Metadata() *birch.Document
 	Err() error
 	Close()
 }
@@ -24,8 +24,8 @@ func ReadMetrics(ctx context.Context, r io.Reader) Iterator {
 		closer:  cancel,
 		chunks:  ReadChunks(iterctx, r),
 		flatten: true,
-		pipe:    make(chan *bsonx.Document, 100),
-		catcher: grip.NewBasicCatcher(),
+		pipe:    make(chan *birch.Document, 100),
+		catcher: util.NewCatcher(),
 	}
 
 	go iter.worker(iterctx)
@@ -41,8 +41,8 @@ func ReadStructuredMetrics(ctx context.Context, r io.Reader) Iterator {
 		closer:  cancel,
 		chunks:  ReadChunks(iterctx, r),
 		flatten: false,
-		pipe:    make(chan *bsonx.Document, 100),
-		catcher: grip.NewBasicCatcher(),
+		pipe:    make(chan *birch.Document, 100),
+		catcher: util.NewCatcher(),
 	}
 
 	go iter.worker(iterctx)
@@ -61,8 +61,8 @@ func ReadMatrix(ctx context.Context, r io.Reader) Iterator {
 	iter := &matrixIterator{
 		closer:  cancel,
 		chunks:  ReadChunks(iterctx, r),
-		pipe:    make(chan *bsonx.Document, 25),
-		catcher: grip.NewBasicCatcher(),
+		pipe:    make(chan *birch.Document, 25),
+		catcher: util.NewCatcher(),
 	}
 
 	go iter.worker(iterctx)
@@ -92,14 +92,14 @@ func ReadMatrix(ctx context.Context, r io.Reader) Iterator {
 //            // ...
 //     }
 //
-// Although the *bsonx.Document type does support iteration directly.
+// Although the *birch.Document type does support iteration directly.
 func ReadSeries(ctx context.Context, r io.Reader) Iterator {
 	iterctx, cancel := context.WithCancel(ctx)
 	iter := &matrixIterator{
 		closer:  cancel,
 		chunks:  ReadChunks(iterctx, r),
-		pipe:    make(chan *bsonx.Document, 25),
-		catcher: grip.NewBasicCatcher(),
+		pipe:    make(chan *birch.Document, 25),
+		catcher: util.NewCatcher(),
 		reflect: true,
 	}
 

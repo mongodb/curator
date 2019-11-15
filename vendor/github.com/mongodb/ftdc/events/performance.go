@@ -16,7 +16,7 @@ package events
 import (
 	"time"
 
-	"github.com/mongodb/ftdc/bsonx"
+	"github.com/evergreen-ci/birch"
 )
 
 // Performance represents a single raw event in a metrics collection
@@ -62,28 +62,48 @@ type PerformanceGauges struct {
 // MarshalBSON implements the bson marshaler interface to support
 // converting this type into BSON without relying on a
 // reflection-based BSON library.
-func (p *Performance) MarshalBSON() ([]byte, error) { return p.Document().MarshalBSON() }
+func (p *Performance) MarshalBSON() ([]byte, error) { return p.MarshalDocument().MarshalBSON() }
 
-// Document exports the Performance type as a bsonx.Document to
-// support more efficent operations.
-func (p *Performance) Document() *bsonx.Document {
-	return bsonx.DC.Elements(
-		bsonx.EC.Time("ts", p.Timestamp),
-		bsonx.EC.Int64("id", p.ID),
-		bsonx.EC.SubDocument("counters", bsonx.DC.Elements(
-			bsonx.EC.Int64("n", p.Counters.Number),
-			bsonx.EC.Int64("ops", p.Counters.Operations),
-			bsonx.EC.Int64("size", p.Counters.Size),
-			bsonx.EC.Int64("errors", p.Counters.Errors),
+// MarshalDocument exports the Performance type as a birch.Document to
+// support more efficient operations.
+func (p *Performance) MarshalDocument() *birch.Document {
+	return birch.DC.Elements(
+		birch.EC.Time("ts", p.Timestamp),
+		birch.EC.Int64("id", p.ID),
+		birch.EC.SubDocument("counters", birch.DC.Elements(
+			birch.EC.Int64("n", p.Counters.Number),
+			birch.EC.Int64("ops", p.Counters.Operations),
+			birch.EC.Int64("size", p.Counters.Size),
+			birch.EC.Int64("errors", p.Counters.Errors),
 		)),
-		bsonx.EC.SubDocument("timers", bsonx.DC.Elements(
-			bsonx.EC.Duration("dur", p.Timers.Duration),
-			bsonx.EC.Duration("total", p.Timers.Total),
+		birch.EC.SubDocument("timers", birch.DC.Elements(
+			birch.EC.Duration("dur", p.Timers.Duration),
+			birch.EC.Duration("total", p.Timers.Total),
 		)),
-		bsonx.EC.SubDocument("gauges", bsonx.DC.Elements(
-			bsonx.EC.Int64("state", p.Gauges.State),
-			bsonx.EC.Int64("workers", p.Gauges.Workers),
-			bsonx.EC.Boolean("failed", p.Gauges.Failed),
+		birch.EC.SubDocument("gauges", birch.DC.Elements(
+			birch.EC.Int64("state", p.Gauges.State),
+			birch.EC.Int64("workers", p.Gauges.Workers),
+			birch.EC.Boolean("failed", p.Gauges.Failed),
 		)),
 	)
+}
+
+// Add combines the values of the input Performance struct into this
+// struct, logically, overriding the Gauges values as well as the
+// timestamp and ID values, while summing the Counters and Timers
+// values.
+func (p *Performance) Add(in *Performance) {
+	p.Timestamp = in.Timestamp
+	p.ID = in.ID
+	p.Counters.Number += in.Counters.Number
+	p.Counters.Errors += in.Counters.Errors
+	p.Counters.Operations += in.Counters.Operations
+	p.Counters.Size += in.Counters.Size
+
+	p.Timers.Duration += in.Timers.Duration
+	p.Timers.Total += in.Timers.Total
+
+	p.Gauges.Failed = in.Gauges.Failed
+	p.Gauges.Workers = in.Gauges.Workers
+	p.Gauges.State = in.Gauges.State
 }

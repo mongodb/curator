@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"io"
 
-	"github.com/mongodb/ftdc/bsonx"
+	"github.com/evergreen-ci/birch"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 )
@@ -12,7 +12,7 @@ import (
 // NewUncompressedCollectorJSON constructs a collector that resolves
 // data into a stream of JSON documents. The output of these
 // uncompressed collectors does not use the FTDC encoding for data,
-// and can be read as newline seperated JSON.
+// and can be read as newline separated JSON.
 //
 // This collector will not allow you to collect documents with
 // different schema (determined by the number of top-level fields.)
@@ -52,7 +52,7 @@ func NewUncompressedCollectorBSON(maxSamples int) Collector {
 // NewUncompressedCollectorJSON constructs a collector that resolves
 // data into a stream of JSON documents. The output of these
 // uncompressed collectors does not use the FTDC encoding for data,
-// and can be read as newline seperated JSON.
+// and can be read as newline separated JSON.
 //
 // This collector will not allow you to collect documents with
 // different schema (determined by the number of top-level fields.)
@@ -98,7 +98,7 @@ func NewStreamingUncompressedCollectorBSON(maxSamples int, writer io.Writer) Col
 // NewStreamingUncompressedCollectorJSON constructs a collector that
 // resolves data into a stream of JSON documents. The output of these
 // uncompressed collectors does not use the FTDC encoding for data,
-// and can be read as newline seperated JSON.
+// and can be read as newline separated JSON.
 //
 // The metadata for this collector is rendered as the first document
 // in the stream. Additionally, the collector will automatically
@@ -140,12 +140,12 @@ type uncompressedCollector struct {
 	exportJSON  bool
 	batchSize   int
 	metricCount int
-	metadata    *bsonx.Document
-	samples     []*bsonx.Document
+	metadata    *birch.Document
+	samples     []*birch.Document
 }
 
 func (c *uncompressedCollector) Reset() {
-	c.samples = []*bsonx.Document{}
+	c.samples = []*birch.Document{}
 	c.metricCount = 0
 }
 
@@ -210,7 +210,7 @@ func (c *uncompressedCollector) Resolve() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (c *uncompressedCollector) marshalWrite(buf io.Writer, doc *bsonx.Document) error {
+func (c *uncompressedCollector) marshalWrite(buf io.Writer, doc io.WriterTo) error {
 	switch {
 	case c.exportBSON == c.exportJSON:
 		return errors.New("collector export format is not configured")

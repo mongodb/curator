@@ -3,8 +3,8 @@ package ftdc
 import (
 	"context"
 
-	"github.com/mongodb/ftdc/bsonx"
-	"github.com/mongodb/grip"
+	"github.com/evergreen-ci/birch"
+	"github.com/mongodb/ftdc/util"
 	"github.com/pkg/errors"
 )
 
@@ -12,10 +12,10 @@ type combinedIterator struct {
 	closer   context.CancelFunc
 	chunks   *ChunkIterator
 	sample   *sampleIterator
-	metadata *bsonx.Document
-	document *bsonx.Document
-	pipe     chan *bsonx.Document
-	catcher  grip.Catcher
+	metadata *birch.Document
+	document *birch.Document
+	pipe     chan *birch.Document
+	catcher  util.Catcher
 	flatten  bool
 }
 
@@ -31,8 +31,8 @@ func (iter *combinedIterator) Close() {
 }
 
 func (iter *combinedIterator) Err() error                { return iter.catcher.Resolve() }
-func (iter *combinedIterator) Metadata() *bsonx.Document { return iter.metadata }
-func (iter *combinedIterator) Document() *bsonx.Document { return iter.document }
+func (iter *combinedIterator) Metadata() *birch.Document { return iter.metadata }
+func (iter *combinedIterator) Document() *birch.Document { return iter.document }
 
 func (iter *combinedIterator) Next() bool {
 	doc, ok := <-iter.pipe

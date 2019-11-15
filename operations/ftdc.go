@@ -7,8 +7,9 @@ import (
 	"os"
 	"time"
 
+	"github.com/evergreen-ci/birch"
 	"github.com/mongodb/ftdc"
-	"github.com/mongodb/ftdc/bsonx"
+	"github.com/mongodb/ftdc/metrics"
 	"github.com/mongodb/grip"
 	"github.com/mongodb/grip/message"
 	"github.com/pkg/errors"
@@ -161,7 +162,7 @@ func fromJSON() cli.Command {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			opts := ftdc.CollectJSONOptions{}
+			opts := metrics.CollectJSONOptions{}
 
 			jsonPath := c.String(input)
 			if jsonPath == "" {
@@ -173,7 +174,7 @@ func fromJSON() cli.Command {
 			opts.FlushInterval = c.Duration(flush)
 			opts.SampleCount = c.Int(maxCount)
 
-			if err := ftdc.CollectJSONStream(ctx, opts); err != nil {
+			if err := metrics.CollectJSONStream(ctx, opts); err != nil {
 				return errors.Wrap(err, "Failed to write FTDC from JSON")
 			}
 			return nil
@@ -308,7 +309,7 @@ func fromBSON() cli.Command {
 			collector := ftdc.NewStreamingDynamicCollector(maxCount, ftdcFile)
 			defer func() { grip.EmergencyFatal(ftdc.FlushCollector(collector, ftdcFile)) }()
 			for {
-				bsonDoc := bsonx.NewDocument()
+				bsonDoc := birch.NewDocument()
 				_, err = bsonDoc.ReadFrom(bsonFile)
 				if err != nil {
 					if err == io.EOF {
@@ -660,7 +661,7 @@ func fromMDB() cli.Command {
 				defer func() { grip.EmergencyFatal(out.Close()) }()
 			}
 
-			cursor, err := coll.Find(ctx, bsonx.NewDocument())
+			cursor, err := coll.Find(ctx, birch.NewDocument())
 			if err != nil {
 				return errors.Wrap(err, "problem finding documents")
 			}
@@ -672,7 +673,7 @@ func fromMDB() cli.Command {
 			count := 0
 
 			for cursor.Next(ctx) {
-				doc := bsonx.NewDocument()
+				doc := birch.NewDocument()
 				err := cursor.Decode(doc)
 				catcher.Add(err)
 				if err != nil {

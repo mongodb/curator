@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 	"time"
 
@@ -26,7 +27,9 @@ func TestCollectRuntime(t *testing.T) {
 	require.NoError(t, err)
 
 	defer func() {
-		require.NoError(t, os.RemoveAll(dir))
+		if err := os.RemoveAll(dir); err != nil {
+			fmt.Println(err)
+		}
 	}()
 
 	t.Run("CollectData", func(t *testing.T) {
@@ -35,8 +38,10 @@ func TestCollectRuntime(t *testing.T) {
 				os.Getpid(),
 				time.Now().Format("2006-01-02.15-04-05"))),
 			SampleCount:        10,
-			FlushInterval:      2 * time.Second,
+			FlushInterval:      time.Second,
 			CollectionInterval: time.Millisecond,
+			SkipProcess:        true,
+			SkipSystem:         true,
 		}
 		var cancel context.CancelFunc
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -59,19 +64,39 @@ func TestCollectRuntime(t *testing.T) {
 				path := filepath.Join(dir, info.Name())
 				f, err := os.Open(path)
 				require.NoError(t, err)
-				defer f.Close()
+				defer func() { assert.NoError(t, f.Close()) }()
 				iter := ftdc.ReadMetrics(ctx, f)
 				counter := 0
 				for iter.Next() {
 					counter++
 					doc := iter.Document()
 					assert.NotNil(t, doc)
-					assert.Equal(t, doc.Len(), 15)
+					require.Equal(t, 3, doc.Len())
 				}
-				assert.NoError(t, iter.Err())
+				require.NoError(t, iter.Err())
 				total += counter
 			})
-			assert.True(t, total > len(files))
 		}
+	})
+	t.Run("CollectAllData", func(t *testing.T) {
+		if strings.Contains(os.Getenv("EVR_TASK_ID"), "race") {
+			t.Skip("evergreen environment inconsistent")
+		}
+		// this test runs without the skips, which are
+		// expected to be less reliable in different environment
+		opts := CollectOptions{
+			OutputFilePrefix: filepath.Join(dir, fmt.Sprintf("complete.%d.%s",
+				os.Getpid(),
+				time.Now().Format("2006-01-02.15-04-05"))),
+			SampleCount:        100,
+			FlushInterval:      time.Second,
+			CollectionInterval: time.Millisecond,
+		}
+		var cancel context.CancelFunc
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+
+		err = CollectRuntime(ctx, opts)
+		require.NoError(t, err)
 	})
 }
