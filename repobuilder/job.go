@@ -320,7 +320,11 @@ func (j *Job) Run(ctx context.Context) {
 
 		grip.Infof("downloading from %s to %s", remote, local)
 		pkgLocation := j.getPackageLocation()
-		if err = bucket.Pull(ctx, filepath.Join(local, pkgLocation), filepath.Join(remote, pkgLocation)); err != nil {
+		syncOpts := pail.SyncOptions{
+			Local:  filepath.Join(local, pkgLocation),
+			Remote: filepath.Join(remote, pkgLocation),
+		}
+		if err = bucket.Pull(ctx, syncOpts); err != nil {
 			j.AddError(errors.Wrapf(err, "problem syncing from %s to %s", remote, local))
 			return
 		}
@@ -356,7 +360,11 @@ func (j *Job) Run(ctx context.Context) {
 		}
 
 		// do the sync. It's ok,
-		err = bucket.Push(ctx, syncSource, filepath.Join(remote, changedComponent))
+		syncOpts = pail.SyncOptions{
+			Local:  syncSource,
+			Remote: filepath.Join(remote, changedComponent),
+		}
+		err = bucket.Push(ctx, syncOpts)
 		if err != nil {
 			j.AddError(errors.Wrapf(err, "problem uploading %s to %s/%s",
 				syncSource, bucket, changedComponent))

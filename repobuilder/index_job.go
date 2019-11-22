@@ -72,7 +72,8 @@ func (j *IndexBuildJob) Run(ctx context.Context) {
 	defer j.MarkComplete()
 
 	grip.Infof("downloading from %s to %s", bucket, j.WorkSpace)
-	if err = bucket.Pull(ctx, j.WorkSpace, ""); err != nil {
+	syncOpts := pail.SyncOptions{Local: j.WorkSpace}
+	if err = bucket.Pull(ctx, syncOpts); err != nil {
 		j.AddError(errors.Wrapf(err, "problem syncing from %s to %s", bucket, j.WorkSpace))
 		return
 	}
@@ -87,7 +88,7 @@ func (j *IndexBuildJob) Run(ctx context.Context) {
 		return
 	}
 
-	if err = bucket.Push(ctx, j.WorkSpace, ""); err != nil {
+	if err = bucket.Push(ctx, syncOpts); err != nil {
 		j.AddError(errors.Wrapf(err, "problem uploading %s to %s",
 			j.WorkSpace, bucket))
 	}
