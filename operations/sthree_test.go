@@ -29,10 +29,12 @@ func (s *CommandsSuite) TestSyncFlagsFactory() {
 	for _, flag := range flags {
 		flagName := flag.GetName()
 		names[flagName] = true
-		if flagName == "local" {
+		if flagName == "local" || flagName == "exclude" {
 			f, ok := flag.(cli.StringFlag)
 			s.True(ok)
-			s.Equal(pwd, f.Value)
+			if flagName == "local" {
+				s.Equal(pwd, f.Value)
+			}
 		} else if flagName == "dry-run" || flagName == "delete" {
 			s.IsType(cli.BoolFlag{}, flag)
 		} else if flagName == "timeout" {
@@ -44,11 +46,12 @@ func (s *CommandsSuite) TestSyncFlagsFactory() {
 		}
 	}
 
-	s.Len(names, 5)
-	s.Len(flags, 5)
+	s.Len(names, 6)
+	s.Len(flags, 6)
 	s.True(names["local"])
 	s.True(names["prefix"])
 	s.True(names["delete"])
+	s.True(names["exclude"])
 	s.True(names["timeout"])
 	s.True(names["workers"])
 }

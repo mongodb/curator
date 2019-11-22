@@ -302,16 +302,21 @@ func s3SyncToCmd() cli.Command {
 				return errors.Wrap(err, "problem getting new bucket")
 			}
 			if c.Int("workers") > 0 {
-				syncOpts := pail.ParallelBucketOptions{
+				parallelOpts := pail.ParallelBucketOptions{
 					Workers:      c.Int("workers"),
 					DryRun:       c.Bool("dry-run"),
 					DeleteOnSync: c.Bool("delete"),
 				}
-				bucket = pail.NewParallelSyncBucket(syncOpts, bucket)
+				bucket = pail.NewParallelSyncBucket(parallelOpts, bucket)
 			}
 
+			syncOpts := pail.SyncOptions{
+				Local:   c.String("local"),
+				Remote:  c.String("prefix"),
+				Exclude: c.String("exclude"),
+			}
 			return errors.Wrapf(
-				bucket.Push(ctx, c.String("local"), c.String("prefix")),
+				bucket.Push(ctx, syncOpts),
 				"problem syncing %s to s3",
 				c.String("local"),
 			)
@@ -348,16 +353,21 @@ func s3SyncFromCmd() cli.Command {
 				return errors.Wrap(err, "problem getting new bucket")
 			}
 			if c.Int("workers") > 0 {
-				syncOpts := pail.ParallelBucketOptions{
+				parallelOpts := pail.ParallelBucketOptions{
 					Workers:      c.Int("workers"),
 					DryRun:       c.Bool("dry-run"),
 					DeleteOnSync: c.Bool("delete"),
 				}
-				bucket = pail.NewParallelSyncBucket(syncOpts, bucket)
+				bucket = pail.NewParallelSyncBucket(parallelOpts, bucket)
 			}
 
+			syncOpts := pail.SyncOptions{
+				Local:   c.String("local"),
+				Remote:  c.String("prefix"),
+				Exclude: c.String("exclude"),
+			}
 			return errors.Wrapf(
-				bucket.Pull(ctx, c.String("local"), c.String("prefix")),
+				bucket.Pull(ctx, syncOpts),
 				"problem syncing %s from  s3",
 				c.String("prefix"),
 			)
@@ -430,6 +440,10 @@ func s3syncFlags(args ...cli.Flag) []cli.Flag {
 		cli.BoolFlag{
 			Name:  "delete",
 			Usage: "delete items from the target that do not exist in the source",
+		},
+		cli.StringFlag{
+			Name:  "exclude",
+			Usage: "regular expression used to exclude items from the sync operation",
 		},
 		cli.DurationFlag{
 			Name:  "timeout",
