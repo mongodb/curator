@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -800,25 +801,39 @@ func (s *s3BucketLarge) Download(ctx context.Context, key, path string) error {
 	return s.downloadHelper(ctx, s, key, path)
 }
 
-func (s *s3Bucket) pushHelper(ctx context.Context, b Bucket, local, remote string) error {
+func (s *s3Bucket) pushHelper(ctx context.Context, b Bucket, opts SyncOptions) error {
 	grip.DebugWhen(s.verbose, message.Fields{
 		"type":          "s3",
 		"dry_run":       s.dryRun,
 		"operation":     "push",
 		"bucket":        s.name,
 		"bucket_prefix": s.prefix,
-		"remote":        remote,
-		"local":         local,
+		"remote":        opts.Remote,
+		"local":         opts.Local,
+		"exclude":       opts.Exclude,
 	})
 
-	files, err := walkLocalTree(ctx, local)
+	var re *regexp.Regexp
+	var err error
+	if opts.Exclude != "" {
+		re, err = regexp.Compile(opts.Exclude)
+		if err != nil {
+			return errors.Wrap(err, "problem compiling exclude regex")
+		}
+	}
+
+	files, err := walkLocalTree(ctx, opts.Local)
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
 	for _, fn := range files {
-		target := consistentJoin(remote, fn)
-		file := filepath.Join(local, fn)
+		if re != nil && re.MatchString(fn) {
+			continue
+		}
+
+		target := consistentJoin(opts.Remote, fn)
+		file := filepath.Join(opts.Local, fn)
 		shouldUpload, err := s.s3WithUploadChecksumHelper(ctx, target, file)
 		if err != nil {
 			return errors.WithStack(err)
@@ -832,29 +847,39 @@ func (s *s3Bucket) pushHelper(ctx context.Context, b Bucket, local, remote strin
 	}
 
 	if s.deleteOnSync && !s.dryRun {
-		return errors.Wrap(deleteOnPush(ctx, files, remote, b), "probelm with delete on sync after push")
+		return errors.Wrap(deleteOnPush(ctx, files, opts.Remote, b), "probelm with delete on sync after push")
 	}
 	return nil
 }
 
-func (s *s3BucketSmall) Push(ctx context.Context, local, remote string) error {
-	return s.pushHelper(ctx, s, local, remote)
+func (s *s3BucketSmall) Push(ctx context.Context, opts SyncOptions) error {
+	return s.pushHelper(ctx, s, opts)
 }
-func (s *s3BucketLarge) Push(ctx context.Context, local, remote string) error {
-	return s.pushHelper(ctx, s, local, remote)
+func (s *s3BucketLarge) Push(ctx context.Context, opts SyncOptions) error {
+	return s.pushHelper(ctx, s, opts)
 }
 
-func (s *s3Bucket) pullHelper(ctx context.Context, local, remote string, b Bucket) error {
+func (s *s3Bucket) pullHelper(ctx context.Context, b Bucket, opts SyncOptions) error {
 	grip.DebugWhen(s.verbose, message.Fields{
 		"type":          "s3",
 		"operation":     "pull",
 		"bucket":        s.name,
 		"bucket_prefix": s.prefix,
-		"remote":        remote,
-		"local":         local,
+		"remote":        opts.Remote,
+		"local":         opts.Local,
+		"exclude":       opts.Exclude,
 	})
 
-	iter, err := b.List(ctx, remote)
+	var re *regexp.Regexp
+	var err error
+	if opts.Exclude != "" {
+		re, err = regexp.Compile(opts.Exclude)
+		if err != nil {
+			return errors.Wrap(err, "problem compiling exclude regex")
+		}
+	}
+
+	iter, err := b.List(ctx, opts.Remote)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -865,11 +890,15 @@ func (s *s3Bucket) pullHelper(ctx context.Context, local, remote string, b Bucke
 			return errors.Wrap(err, "problem iterating bucket")
 		}
 
-		name, err := filepath.Rel(remote, iter.Item().Name())
+		if re != nil && re.MatchString(iter.Item().Name()) {
+			continue
+		}
+
+		name, err := filepath.Rel(opts.Remote, iter.Item().Name())
 		if err != nil {
 			return errors.Wrap(err, "problem getting relative filepath")
 		}
-		localName := filepath.Join(local, name)
+		localName := filepath.Join(opts.Local, name)
 		if err := s3DownloadWithChecksum(ctx, b, iter.Item(), localName); err != nil {
 			return errors.WithStack(err)
 		}
@@ -877,17 +906,17 @@ func (s *s3Bucket) pullHelper(ctx context.Context, local, remote string, b Bucke
 	}
 
 	if s.deleteOnSync && !s.dryRun {
-		return errors.Wrap(deleteOnPull(ctx, keys, local), "problem with delete on sync after pull")
+		return errors.Wrap(deleteOnPull(ctx, keys, opts.Local), "problem with delete on sync after pull")
 	}
 	return nil
 }
 
-func (s *s3BucketSmall) Pull(ctx context.Context, local, remote string) error {
-	return s.pullHelper(ctx, local, remote, s)
+func (s *s3BucketSmall) Pull(ctx context.Context, opts SyncOptions) error {
+	return s.pullHelper(ctx, s, opts)
 }
 
-func (s *s3BucketLarge) Pull(ctx context.Context, local, remote string) error {
-	return s.pullHelper(ctx, local, remote, s)
+func (s *s3BucketLarge) Pull(ctx context.Context, opts SyncOptions) error {
+	return s.pullHelper(ctx, s, opts)
 }
 
 func (s *s3Bucket) Copy(ctx context.Context, options CopyOptions) error {
