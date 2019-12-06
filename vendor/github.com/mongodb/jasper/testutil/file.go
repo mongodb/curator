@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"github.com/mholt/archiver"
 	"github.com/mongodb/grip"
@@ -45,4 +46,12 @@ func AddFileToDirectory(dir string, fileName string, fileContents string) error 
 		return catcher.Resolve()
 	}
 	return file.Close()
+}
+
+// GetDirectoryOfFile returns the directory of the file where this
+// function is called from.
+func GetDirectoryOfFile() string {
+	_, file, _, _ := runtime.Caller(1)
+
+	return filepath.Dir(file)
 }

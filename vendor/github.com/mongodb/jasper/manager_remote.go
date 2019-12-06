@@ -28,10 +28,22 @@ func (m *remoteOverrideMgr) CreateProcess(ctx context.Context, opts *options.Cre
 	return m.mgr.CreateProcess(ctx, opts)
 }
 
+func (m *remoteOverrideMgr) CreateScripting(ctx context.Context, opts options.ScriptingHarness) (ScriptingHarness, error) {
+	return m.mgr.CreateScripting(ctx, opts)
+}
+
+func (m *remoteOverrideMgr) GetScripting(ctx context.Context, id string) (ScriptingHarness, error) {
+	return m.mgr.GetScripting(ctx, id)
+}
+
 func (m *remoteOverrideMgr) CreateCommand(ctx context.Context) *Command {
 	cmd := m.mgr.CreateCommand(ctx)
 	cmd.opts.Remote = m.remote
 	return cmd
+}
+
+func (m *remoteOverrideMgr) WriteFile(ctx context.Context, opts options.WriteFile) error {
+	return m.mgr.WriteFile(ctx, opts)
 }
 
 func (m *remoteOverrideMgr) Register(ctx context.Context, p Process) error {

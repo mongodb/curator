@@ -1,4 +1,4 @@
-package jasper
+package benchmarks
 
 import (
 	"context"
@@ -11,13 +11,14 @@ import (
 	"github.com/evergreen-ci/poplar"
 	"github.com/mongodb/grip"
 	"github.com/mongodb/grip/send"
+	"github.com/mongodb/jasper"
 	"github.com/mongodb/jasper/options"
 	"github.com/mongodb/jasper/testutil"
 	"github.com/pkg/errors"
 )
 
-// RunLogBenchmarks runs the logging benchmark suite.
-func RunLogBenchmarks(ctx context.Context) error {
+// RunLogging runs the logging benchmark suite.
+func RunLogging(ctx context.Context) error {
 	prefix := filepath.Join(
 		"build",
 		fmt.Sprintf("jasper-log-benchmark-%d", time.Now().Unix()),
@@ -48,12 +49,28 @@ func RunLogBenchmarks(ctx context.Context) error {
 	return catcher.Resolve()
 }
 
-type makeProcess func(context.Context, *options.Create) (Process, error)
+type makeProcess func(context.Context, *options.Create) (jasper.Process, error)
 
-func procMap() map[string]func(context.Context, *options.Create) (Process, error) {
-	return map[string]func(context.Context, *options.Create) (Process, error){
-		"Basic":    newBasicProcess,
-		"Blocking": newBlockingProcess,
+func procMap() map[string]func(context.Context, *options.Create) (jasper.Process, error) {
+	return map[string]func(context.Context, *options.Create) (jasper.Process, error){
+		"Basic": func(ctx context.Context, opts *options.Create) (jasper.Process, error) {
+			opts.Implementation = options.ProcessImplementationBasic
+			return jasper.NewProcess(ctx, opts)
+		},
+		"Blocking": func(ctx context.Context, opts *options.Create) (jasper.Process, error) {
+			opts.Implementation = options.ProcessImplementationBlocking
+			return jasper.NewProcess(ctx, opts)
+		},
+		"BasicSynchronized": func(ctx context.Context, opts *options.Create) (jasper.Process, error) {
+			opts.Implementation = options.ProcessImplementationBasic
+			opts.Synchronized = true
+			return jasper.NewProcess(ctx, opts)
+		},
+		"BlockingSynchronized": func(ctx context.Context, opts *options.Create) (jasper.Process, error) {
+			opts.Implementation = options.ProcessImplementationBlocking
+			opts.Synchronized = true
+			return jasper.NewProcess(ctx, opts)
+		},
 	}
 }
 

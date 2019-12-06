@@ -40,17 +40,13 @@ func (opts *WriteFile) validateContent() error {
 // Validate ensures that all the parameters to write to a file are valid and sets
 // default permissions if necessary.
 func (opts *WriteFile) Validate() error {
-	catcher := grip.NewBasicCatcher()
-	if opts.Path == "" {
-		catcher.New("path to file must be specified")
-	}
-
 	if opts.Perm == 0 {
 		opts.Perm = 0666
 	}
 
+	catcher := grip.NewBasicCatcher()
+	catcher.NewWhen(opts.Path == "", "path to file must be specified")
 	catcher.Add(opts.validateContent())
-
 	return catcher.Resolve()
 }
 

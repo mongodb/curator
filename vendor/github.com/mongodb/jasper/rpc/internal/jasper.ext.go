@@ -10,6 +10,7 @@ import (
 	"github.com/mongodb/grip/send"
 	"github.com/mongodb/jasper"
 	"github.com/mongodb/jasper/options"
+	"github.com/pkg/errors"
 	"github.com/tychoish/bond"
 )
 
@@ -668,4 +669,48 @@ func ConvertLogStream(l jasper.LogStream) *LogStream {
 		Logs: l.Logs,
 		Done: l.Done,
 	}
+}
+
+// Export converts the rpc type to jasper's equivalent option type.
+func (o *ScriptingOptions) Export() (options.ScriptingHarness, error) {
+	switch val := o.Value.(type) {
+	case *ScriptingOptions_Golang:
+		return &options.ScriptingGolang{
+			Gopath:         val.Golang.Gopath,
+			Goroot:         val.Golang.Goroot,
+			Packages:       val.Golang.Packages,
+			Context:        val.Golang.Context,
+			WithUpdate:     val.Golang.WithUpdate,
+			CachedDuration: time.Duration(o.Duration),
+			Environment:    o.Environment,
+			Output:         o.Output.Export(),
+		}, nil
+	case *ScriptingOptions_Python:
+		return &options.ScriptingPython{
+			VirtualEnvPath:        val.Python.VirtualEnvPath,
+			RequirementsFilePath:  val.Python.RequirementsPath,
+			HostPythonInterpreter: val.Python.HostPython,
+			Packages:              val.Python.Packages,
+			LegacyPython:          val.Python.LegacyPython,
+			CachedDuration:        time.Duration(o.Duration),
+			Environment:           o.Environment,
+			Output:                o.Output.Export(),
+		}, nil
+	case *ScriptingOptions_Roswell:
+		return &options.ScriptingRoswell{
+			Path:           val.Roswell.Path,
+			Systems:        val.Roswell.Systems,
+			Lisp:           val.Roswell.Lisp,
+			CachedDuration: time.Duration(o.Duration),
+			Environment:    o.Environment,
+			Output:         o.Output.Export(),
+		}, nil
+	default:
+		return nil, errors.Errorf("invalid scripting options type %T", val)
+	}
+}
+
+func ConvertScriptingOptions(opts options.ScriptingHarness) *ScriptingOptions {
+	return nil
+
 }

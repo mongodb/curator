@@ -153,6 +153,15 @@ func (c *Command) Port(p int) *Command {
 	return c
 }
 
+// ExtendRemoteArgs allows you to add arguments, when needed, to the
+// Password sets the password in order to authenticate to a remote host.
+// underlying ssh command, for remote commands.
+func (c *Command) ExtendRemoteArgs(args ...string) *Command {
+	c.initRemote()
+	c.opts.Remote.Args = append(c.opts.Remote.Args, args...)
+	return c
+}
+
 // PrivKey sets the private key in order to authenticate to a remote host.
 func (c *Command) PrivKey(key string) *Command {
 	c.initRemote()
@@ -190,7 +199,7 @@ func (c *Command) ProxyHost(h string) *Command {
 	return c
 }
 
-// ProxyUser sets the proxy username for conencting to a proxy host.
+// ProxyUser sets the proxy username for connecting to a proxy host.
 func (c *Command) ProxyUser(u string) *Command {
 	c.initRemoteProxy()
 	c.opts.Remote.Proxy.User = u
@@ -410,6 +419,10 @@ func (c *Command) Sh(script string) *Command { return c.ShellScript("sh", script
 // in the form of arguments.
 func (c *Command) AppendArgs(args ...string) *Command { return c.Add(args) }
 
+// SetHook allows you to add a function that's always called (locally)
+// after the command completes.
+func (c *Command) SetHook(h func(error) error) *Command { c.opts.Hook = h; return c }
+
 func (c *Command) setupEnv() {
 	if c.opts.Process.Environment == nil {
 		c.opts.Process.Environment = map[string]string{}
@@ -448,8 +461,10 @@ func (c *Command) Run(ctx context.Context) error {
 		}
 
 		err := c.exec(ctx, opt, idx)
-		if !c.opts.IgnoreError {
-			catcher.Add(err)
+		catcher.AddWhen(!c.opts.IgnoreError, err)
+
+		if c.opts.Hook != nil {
+			catcher.AddWhen(!c.opts.IgnoreError, c.opts.Hook(err))
 		}
 
 		if err != nil && !c.opts.ContinueOnError {
@@ -751,7 +766,8 @@ func (c *Command) exec(ctx context.Context, opts *options.Create, idx int) error
 			_, err = proc.Wait(ctx)
 			waitCatcher.Add(errors.Wrapf(err, "error waiting on process '%s'", proc.ID()))
 		}
-		msg["err"] = waitCatcher.Resolve()
+		err = waitCatcher.Resolve()
+		msg["err"] = err
 		grip.Log(c.opts.Priority, writeOutput(msg))
 	}
 

@@ -7,7 +7,6 @@ import (
 	"math"
 	"os"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
@@ -25,32 +24,9 @@ const (
 	lsErrorMsg       = "No such file or directory"
 )
 
-type Buffer struct {
-	b bytes.Buffer
-	sync.RWMutex
-}
-
-func (b *Buffer) Read(p []byte) (n int, err error) {
-	b.RLock()
-	defer b.RUnlock()
-	return b.b.Read(p)
-}
-func (b *Buffer) Write(p []byte) (n int, err error) {
-	b.Lock()
-	defer b.Unlock()
-	return b.b.Write(p)
-}
-func (b *Buffer) String() string {
-	b.RLock()
-	defer b.RUnlock()
-	return b.b.String()
-}
-
-func (b *Buffer) Close() error { return nil }
-
 func verifyCommandAndGetOutput(ctx context.Context, t *testing.T, cmd *Command, run cmdRunFunc, success bool) string {
 	var buf bytes.Buffer
-	bufCloser := &Buffer{b: buf}
+	bufCloser := &localBuffer{b: buf}
 
 	cmd.SetCombinedWriter(bufCloser)
 
@@ -238,9 +214,9 @@ func TestCommandImplementation(t *testing.T) {
 						"SingleInvalidSubCommandCausesTotalError": func(ctx context.Context, t *testing.T, cmd Command) {
 							cmd.ID(t.Name()).Priority(level.Info).Extend(
 								[][]string{
-									[]string{echo, arg1},
-									[]string{ls, arg2},
-									[]string{echo, arg3},
+									{echo, arg1},
+									{ls, arg2},
+									{echo, arg3},
 								},
 							).Directory(cwd)
 							assert.Error(t, runFunc(&cmd, ctx))
@@ -304,20 +280,20 @@ func TestCommandImplementation(t *testing.T) {
 							}
 						},
 						"WriterOutputAndErrorIsSettable": func(ctx context.Context, t *testing.T, cmd Command) {
-							for subName, subTestCase := range map[string]func(context.Context, *testing.T, Command, *Buffer){
-								"StdOutOnly": func(ctx context.Context, t *testing.T, cmd Command, buf *Buffer) {
+							for subName, subTestCase := range map[string]func(context.Context, *testing.T, Command, *localBuffer){
+								"StdOutOnly": func(ctx context.Context, t *testing.T, cmd Command, buf *localBuffer) {
 									cmd.SetOutputWriter(buf)
 									require.NoError(t, runFunc(&cmd, ctx))
 									checkOutput(t, true, buf.String(), arg1, arg2)
 									checkOutput(t, false, buf.String(), lsErrorMsg)
 								},
-								"StdErrOnly": func(ctx context.Context, t *testing.T, cmd Command, buf *Buffer) {
+								"StdErrOnly": func(ctx context.Context, t *testing.T, cmd Command, buf *localBuffer) {
 									cmd.SetErrorWriter(buf)
 									require.NoError(t, runFunc(&cmd, ctx))
 									checkOutput(t, true, buf.String(), lsErrorMsg)
 									checkOutput(t, false, buf.String(), arg1, arg2)
 								},
-								"StdOutAndStdErr": func(ctx context.Context, t *testing.T, cmd Command, buf *Buffer) {
+								"StdOutAndStdErr": func(ctx context.Context, t *testing.T, cmd Command, buf *localBuffer) {
 									cmd.SetCombinedWriter(buf)
 									require.NoError(t, runFunc(&cmd, ctx))
 									checkOutput(t, true, buf.String(), arg1, arg2, lsErrorMsg)
@@ -325,13 +301,13 @@ func TestCommandImplementation(t *testing.T) {
 							} {
 								t.Run(subName, func(t *testing.T) {
 									cmd = *NewCommand().ProcConstructor(makep).Extend([][]string{
-										[]string{echo, arg1},
-										[]string{echo, arg2},
-										[]string{ls, arg3},
+										{echo, arg1},
+										{echo, arg2},
+										{ls, arg3},
 									}).ContinueOnError(true).IgnoreError(true)
 
 									var buf bytes.Buffer
-									bufCloser := &Buffer{b: buf}
+									bufCloser := &localBuffer{b: buf}
 
 									subTestCase(ctx, t, cmd, bufCloser)
 								})
@@ -365,9 +341,9 @@ func TestCommandImplementation(t *testing.T) {
 							} {
 								t.Run(subName, func(t *testing.T) {
 									cmd = *NewCommand().ProcConstructor(makep).Extend([][]string{
-										[]string{echo, arg1},
-										[]string{echo, arg2},
-										[]string{ls, arg3},
+										{echo, arg1},
+										{echo, arg2},
+										{ls, arg3},
 									}).ContinueOnError(true).IgnoreError(true).Priority(level.Info)
 
 									levelInfo := send.LevelInfo{Default: cmd.opts.Priority, Threshold: cmd.opts.Priority}
@@ -380,9 +356,9 @@ func TestCommandImplementation(t *testing.T) {
 						},
 						"GetProcIDsReturnsCorrectNumberOfIDs": func(ctx context.Context, t *testing.T, cmd Command) {
 							subCmds := [][]string{
-								[]string{echo, arg1},
-								[]string{echo, arg2},
-								[]string{ls, arg3},
+								{echo, arg1},
+								{echo, arg2},
+								{ls, arg3},
 							}
 							assert.NoError(t, cmd.Extend(subCmds).ContinueOnError(true).IgnoreError(true).Run(ctx))
 							assert.Len(t, cmd.GetProcIDs(), len(subCmds))
@@ -491,9 +467,9 @@ func TestCommandImplementation(t *testing.T) {
 						},
 						"SingleArgCommandSplitsShellCommandCorrectly": func(ctx context.Context, t *testing.T, cmd Command) {
 							cmd.Extend([][]string{
-								[]string{"echo hello world"},
-								[]string{"echo 'hello world'"},
-								[]string{"echo 'hello\"world\"'"},
+								{"echo hello world"},
+								{"echo 'hello world'"},
+								{"echo 'hello\"world\"'"},
 							})
 
 							optslist, err := cmd.Export()
@@ -543,9 +519,9 @@ func TestCommandImplementation(t *testing.T) {
 
 func TestRunParallelRunsInParallel(t *testing.T) {
 	cmd := NewCommand().Extend([][]string{
-		[]string{"sleep", "3"},
-		[]string{"sleep", "3"},
-		[]string{"sleep", "3"},
+		{"sleep", "3"},
+		{"sleep", "3"},
+		{"sleep", "3"},
 	})
 	threePointFiveSeconds := time.Second*3 + time.Millisecond*500
 	maxRunTimeAllowed := threePointFiveSeconds

@@ -201,7 +201,7 @@ func (s *jasperService) Signal(ctx context.Context, sig *SignalProcess) (*Operat
 	return &OperationOutcome{
 		Success:  true,
 		Text:     fmt.Sprintf("sending '%s' to '%s'", sig.Signal, sig.ProcessID),
-		ExitCode: int32(getProcInfoNoHang(ctx, proc).ExitCode),
+		ExitCode: getProcInfoNoHang(ctx, proc).ExitCode,
 	}, nil
 }
 
@@ -544,4 +544,173 @@ func (s *jasperService) WriteFile(stream JasperProcessManager_WriteFileServer) e
 		Success: true,
 		Text:    fmt.Sprintf("file %s successfully written", jopts.Path),
 	}), "could not send success response to client")
+}
+
+func (s *jasperService) ScriptingHarnessCreate(ctx context.Context, opts *ScriptingOptions) (*ScriptingHarnessID, error) {
+	xopts, err := opts.Export()
+	if err != nil {
+		return nil, errors.Wrap(err, "problem converting options")
+	}
+
+	se, err := s.manager.CreateScripting(ctx, xopts)
+	if err != nil {
+		return nil, errors.Wrap(err, "problem generating scripting environment")
+	}
+	return &ScriptingHarnessID{
+		Id:    se.ID(),
+		Setup: true,
+	}, nil
+}
+func (s *jasperService) ScriptingHarnessCheck(ctx context.Context, id *ScriptingHarnessID) (*OperationOutcome, error) {
+	se, err := s.manager.GetScripting(ctx, id.Id)
+	if err != nil {
+		return &OperationOutcome{
+			Success:  false,
+			Text:     err.Error(),
+			ExitCode: 1,
+		}, nil
+	}
+
+	return &OperationOutcome{
+		Success:  true,
+		Text:     se.ID(),
+		ExitCode: 0,
+	}, nil
+}
+
+func (s *jasperService) ScriptingHarnessSetup(ctx context.Context, id *ScriptingHarnessID) (*OperationOutcome, error) {
+	se, err := s.manager.GetScripting(ctx, id.Id)
+	if err != nil {
+		return &OperationOutcome{
+			Success:  false,
+			Text:     err.Error(),
+			ExitCode: 1,
+		}, nil
+	}
+
+	err = se.Setup(ctx)
+
+	if err != nil {
+		return &OperationOutcome{
+			Success:  false,
+			Text:     err.Error(),
+			ExitCode: 1,
+		}, nil
+	}
+
+	return &OperationOutcome{
+		Success:  true,
+		Text:     se.ID(),
+		ExitCode: 0,
+	}, nil
+}
+
+func (s *jasperService) ScriptingHarnessCleanup(ctx context.Context, id *ScriptingHarnessID) (*OperationOutcome, error) {
+	se, err := s.manager.GetScripting(ctx, id.Id)
+	if err != nil {
+		return &OperationOutcome{
+			Success:  false,
+			Text:     err.Error(),
+			ExitCode: 1,
+		}, nil
+	}
+
+	err = se.Cleanup(ctx)
+
+	if err != nil {
+		return &OperationOutcome{
+			Success:  false,
+			Text:     err.Error(),
+			ExitCode: 1,
+		}, nil
+	}
+
+	return &OperationOutcome{
+		Success:  true,
+		Text:     se.ID(),
+		ExitCode: 0,
+	}, nil
+}
+
+func (s *jasperService) ScriptingHarnessRun(ctx context.Context, args *ScriptingHarnessRunArgs) (*OperationOutcome, error) {
+	se, err := s.manager.GetScripting(ctx, args.Id)
+	if err != nil {
+		return &OperationOutcome{
+			Success:  false,
+			Text:     err.Error(),
+			ExitCode: 1,
+		}, nil
+	}
+
+	err = se.Run(ctx, args.Args)
+	if err != nil {
+		return &OperationOutcome{
+			Success:  false,
+			Text:     err.Error(),
+			ExitCode: 1,
+		}, nil
+	}
+
+	return &OperationOutcome{
+		Success:  true,
+		Text:     se.ID(),
+		ExitCode: 0,
+	}, nil
+}
+
+func (s *jasperService) ScriptingHarnessRunScript(ctx context.Context, args *ScriptingHarnessRunScriptArgs) (*OperationOutcome, error) {
+	se, err := s.manager.GetScripting(ctx, args.Id)
+	if err != nil {
+		return &OperationOutcome{
+			Success:  false,
+			Text:     err.Error(),
+			ExitCode: 1,
+		}, nil
+	}
+
+	err = se.RunScript(ctx, args.Script)
+	if err != nil {
+		return &OperationOutcome{
+			Success:  false,
+			Text:     err.Error(),
+			ExitCode: 1,
+		}, nil
+	}
+
+	return &OperationOutcome{
+		Success:  true,
+		Text:     se.ID(),
+		ExitCode: 0,
+	}, nil
+}
+
+func (s *jasperService) ScriptingHarnessBuild(ctx context.Context, args *ScriptingHarnessBuildArgs) (*ScriptingHarnessBuildResponse, error) {
+	se, err := s.manager.GetScripting(ctx, args.Id)
+	if err != nil {
+		return &ScriptingHarnessBuildResponse{
+			Outcome: &OperationOutcome{
+				Success:  false,
+				Text:     err.Error(),
+				ExitCode: 1,
+			}}, nil
+	}
+
+	path, err := se.Build(ctx, args.Directory, args.Args)
+	if err != nil {
+		return &ScriptingHarnessBuildResponse{
+			Path: path,
+			Outcome: &OperationOutcome{
+				Success:  false,
+				Text:     err.Error(),
+				ExitCode: 1,
+			}}, nil
+	}
+
+	return &ScriptingHarnessBuildResponse{
+		Path: path,
+		Outcome: &OperationOutcome{
+			Success:  true,
+			Text:     se.ID(),
+			ExitCode: 0,
+		}}, nil
 }

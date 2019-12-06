@@ -135,6 +135,58 @@ func (c *restClient) CreateCommand(ctx context.Context) *jasper.Command {
 	return jasper.NewCommand().ProcConstructor(c.CreateProcess)
 }
 
+func (c *restClient) CreateScripting(ctx context.Context, opts options.ScriptingHarness) (jasper.ScriptingHarness, error) {
+	if err := opts.Validate(); err != nil {
+		return nil, errors.Wrap(err, "problem validating input")
+	}
+
+	body, err := makeBody(opts)
+	if err != nil {
+		return nil, errors.Wrap(err, "problem building request for scripting create")
+	}
+
+	resp, err := c.doRequest(ctx, http.MethodPost, c.getURL("/scripting/create/%s", opts.Type()), body)
+	if err != nil {
+		return nil, errors.Wrap(err, "request returned error")
+	}
+	defer resp.Body.Close()
+
+	out := struct {
+		ID string `json:"id"`
+	}{}
+
+	if err = gimlet.GetJSON(resp.Body, &out); err != nil {
+		return nil, errors.Wrap(err, "problem reading response")
+	}
+
+	return &restScripting{
+		id:     out.ID,
+		client: c,
+	}, nil
+}
+
+func (c *restClient) GetScripting(ctx context.Context, id string) (jasper.ScriptingHarness, error) {
+	resp, err := c.doRequest(ctx, http.MethodPost, c.getURL("/scripting/%s", id), nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "request returned error")
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		gimerr := gimlet.ErrorResponse{}
+		if err := gimlet.GetJSON(resp.Body, &gimerr); err != nil {
+			return nil, errors.WithStack(err)
+		}
+
+		return nil, gimerr
+	}
+
+	return &restScripting{
+		id:     id,
+		client: c,
+	}, nil
+}
+
 func (c *restClient) Register(ctx context.Context, proc jasper.Process) error {
 	return errors.New("cannot register a local process on a remote service")
 }
@@ -479,4 +531,82 @@ func (p *restProcess) ResetTags() {
 		return
 	}
 	defer resp.Body.Close()
+}
+
+type restScripting struct {
+	id     string
+	client *restClient
+}
+
+func (s *restScripting) ID() string { return s.id }
+func (s *restScripting) Setup(ctx context.Context) error {
+	resp, err := s.client.doRequest(ctx, http.MethodPost, s.client.getURL("/scripting/%s/setup", s.id), nil)
+	if err != nil {
+		return errors.Wrap(err, "request returned error")
+	}
+	defer resp.Body.Close()
+	return nil
+}
+
+func (s *restScripting) Run(ctx context.Context, args []string) error {
+	body, err := makeBody(struct {
+		Args []string `json:"args"`
+	}{Args: args})
+	if err != nil {
+		return errors.Wrap(err, "problem building request")
+	}
+
+	resp, err := s.client.doRequest(ctx, http.MethodPost, s.client.getURL("/scripting/%s/run", s.id), body)
+	if err != nil {
+		return errors.Wrap(err, "request returned error")
+	}
+	defer resp.Body.Close()
+
+	return nil
+}
+
+func (s *restScripting) RunScript(ctx context.Context, script string) error {
+	resp, err := s.client.doRequest(ctx, http.MethodPost, s.client.getURL("/scripting/%s/script", s.id), bytes.NewBuffer([]byte(script)))
+	if err != nil {
+		return errors.Wrap(err, "request returned error")
+	}
+	defer resp.Body.Close()
+
+	return nil
+}
+
+func (s *restScripting) Build(ctx context.Context, dir string, args []string) (string, error) {
+	body, err := makeBody(struct {
+		Directory string   `json:"directory"`
+		Args      []string `json:"args"`
+	}{Args: args})
+	if err != nil {
+		return "", errors.Wrap(err, "problem building request")
+	}
+
+	resp, err := s.client.doRequest(ctx, http.MethodPost, s.client.getURL("/scripting/%s/build", s.id), body)
+	if err != nil {
+		return "", errors.Wrap(err, "request returned error")
+	}
+	defer resp.Body.Close()
+
+	out := struct {
+		Path string `json:"path"`
+	}{}
+
+	if err = gimlet.GetJSON(resp.Body, &out); err != nil {
+		return "", errors.Wrap(err, "problem reading response")
+	}
+
+	return out.Path, nil
+}
+
+func (s *restScripting) Cleanup(ctx context.Context) error {
+	resp, err := s.client.doRequest(ctx, http.MethodDelete, s.client.getURL("/scripting/%s", s.id), nil)
+	if err != nil {
+		return errors.Wrap(err, "request returned error")
+	}
+	defer resp.Body.Close()
+
+	return nil
 }

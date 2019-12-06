@@ -3,6 +3,7 @@ package rest
 import (
 	"context"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"strconv"
@@ -75,6 +76,13 @@ func (s *Service) App(ctx context.Context) *gimlet.APIApp {
 	app.AddRoute("/process/{id}/signal/{signal}").Version(1).Patch().Handler(s.signalProcess)
 	app.AddRoute("/process/{id}/trigger/signal/{trigger-id}").Version(1).Patch().Handler(s.registerSignalTriggerID)
 	app.AddRoute("/signal/event/{name}").Version(1).Patch().Handler(s.signalEvent)
+	app.AddRoute("/scripting/create/{type}").Version(1).Post().Handler(s.scriptingCreate)
+	app.AddRoute("/scripting/{id}").Version(1).Get().Handler(s.scriptingCheck)
+	app.AddRoute("/scripting/{id}").Version(1).Delete().Handler(s.scriptingCleanup)
+	app.AddRoute("/scripting/{id}/setup").Version(1).Post().Handler(s.scriptingSetup)
+	app.AddRoute("/scripting/{id}/run").Version(1).Post().Handler(s.scriptingRun)
+	app.AddRoute("/scripting/{id}/script").Version(1).Post().Handler(s.scriptingRunScript)
+	app.AddRoute("/scripting/{id}/build").Version(1).Post().Handler(s.scriptingBuild)
 	app.AddRoute("/file/write").Version(1).Put().Handler(s.writeFile)
 	app.AddRoute("/clear").Version(1).Post().Handler(s.clearManager)
 	app.AddRoute("/close").Version(1).Delete().Handler(s.closeManager)
@@ -755,4 +763,203 @@ func (s *Service) oomTrackerList(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	gimlet.WriteJSON(rw, resp)
+}
+
+func (s *Service) scriptingCreate(rw http.ResponseWriter, r *http.Request) {
+	seopt, err := options.NewScriptingHarness(gimlet.GetVars(r)["type"])
+	if err != nil {
+		writeError(rw, gimlet.ErrorResponse{
+			StatusCode: http.StatusBadRequest,
+			Message:    err.Error(),
+		})
+		return
+	}
+
+	if err = gimlet.GetJSON(r.Body, seopt); err != nil {
+		writeError(rw, gimlet.ErrorResponse{
+			StatusCode: http.StatusInternalServerError,
+			Message:    err.Error(),
+		})
+		return
+	}
+
+	se, err := s.manager.CreateScripting(r.Context(), seopt)
+	if err != nil {
+		writeError(rw, gimlet.ErrorResponse{
+			StatusCode: http.StatusBadRequest,
+			Message:    err.Error(),
+		})
+		return
+	}
+
+	gimlet.WriteJSON(rw, struct {
+		ID string `json:"id"`
+	}{
+		ID: se.ID(),
+	})
+}
+
+func (s *Service) scriptingCheck(rw http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	_, err := s.manager.GetScripting(ctx, gimlet.GetVars(r)["id"])
+	if err != nil {
+		writeError(rw, gimlet.ErrorResponse{
+			StatusCode: http.StatusNotFound,
+			Message:    err.Error(),
+		})
+		return
+	}
+
+	gimlet.WriteJSON(rw, struct{}{})
+}
+
+func (s *Service) scriptingSetup(rw http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	se, err := s.manager.GetScripting(ctx, gimlet.GetVars(r)["id"])
+	if err != nil {
+		writeError(rw, gimlet.ErrorResponse{
+			StatusCode: http.StatusNotFound,
+			Message:    err.Error(),
+		})
+		return
+	}
+
+	if err := se.Setup(ctx); err != nil {
+		writeError(rw, gimlet.ErrorResponse{
+			StatusCode: http.StatusInternalServerError,
+			Message:    err.Error(),
+		})
+		return
+	}
+
+	gimlet.WriteJSON(rw, struct{}{})
+}
+
+func (s *Service) scriptingRun(rw http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	se, err := s.manager.GetScripting(ctx, gimlet.GetVars(r)["id"])
+	if err != nil {
+		writeError(rw, gimlet.ErrorResponse{
+			StatusCode: http.StatusNotFound,
+			Message:    err.Error(),
+		})
+		return
+	}
+
+	args := &struct {
+		Args []string `json:"args"`
+	}{}
+	if err := gimlet.GetJSON(r.Body, args); err != nil {
+		writeError(rw, gimlet.ErrorResponse{
+			StatusCode: http.StatusInternalServerError,
+			Message:    err.Error(),
+		})
+		return
+	}
+
+	if err := se.Run(ctx, args.Args); err != nil {
+		writeError(rw, gimlet.ErrorResponse{
+			StatusCode: http.StatusBadRequest,
+			Message:    err.Error(),
+		})
+		return
+	}
+
+	gimlet.WriteJSON(rw, struct{}{})
+}
+
+func (s *Service) scriptingRunScript(rw http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	se, err := s.manager.GetScripting(ctx, gimlet.GetVars(r)["id"])
+	if err != nil {
+		writeError(rw, gimlet.ErrorResponse{
+			StatusCode: http.StatusNotFound,
+			Message:    err.Error(),
+		})
+		return
+	}
+
+	data, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		writeError(rw, gimlet.ErrorResponse{
+			StatusCode: http.StatusInternalServerError,
+			Message:    err.Error(),
+		})
+		return
+	}
+
+	if err := se.RunScript(ctx, string(data)); err != nil {
+		writeError(rw, gimlet.ErrorResponse{
+			StatusCode: http.StatusBadRequest,
+			Message:    err.Error(),
+		})
+		return
+	}
+
+	gimlet.WriteJSON(rw, struct{}{})
+}
+
+func (s *Service) scriptingBuild(rw http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	se, err := s.manager.GetScripting(ctx, gimlet.GetVars(r)["id"])
+	if err != nil {
+		writeError(rw, gimlet.ErrorResponse{
+			StatusCode: http.StatusNotFound,
+			Message:    err.Error(),
+		})
+		return
+	}
+
+	args := &struct {
+		Directory string   `json:"directory"`
+		Args      []string `json:"args"`
+	}{}
+	if err = gimlet.GetJSON(r.Body, args); err != nil {
+		writeError(rw, gimlet.ErrorResponse{
+			StatusCode: http.StatusInternalServerError,
+			Message:    err.Error(),
+		})
+		return
+	}
+	path, err := se.Build(ctx, args.Directory, args.Args)
+	if err != nil {
+		writeError(rw, gimlet.ErrorResponse{
+			StatusCode: http.StatusBadRequest,
+			Message:    err.Error(),
+		})
+		return
+	}
+
+	gimlet.WriteJSON(rw, struct {
+		Path string `json:"path"`
+	}{
+		Path: path,
+	})
+}
+
+func (s *Service) scriptingCleanup(rw http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	se, err := s.manager.GetScripting(ctx, gimlet.GetVars(r)["id"])
+	if err != nil {
+		writeError(rw, gimlet.ErrorResponse{
+			StatusCode: http.StatusNotFound,
+			Message:    err.Error(),
+		})
+		return
+	}
+
+	if err := se.Cleanup(ctx); err != nil {
+		writeError(rw, gimlet.ErrorResponse{
+			StatusCode: http.StatusInternalServerError,
+			Message:    err.Error(),
+		})
+		return
+	}
+	gimlet.WriteJSON(rw, struct{}{})
 }

@@ -10,7 +10,8 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-type remoteConfig struct {
+// RemoteConfig represents the arguments to connect to a remote host.
+type RemoteConfig struct {
 	Host string
 	User string
 
@@ -32,18 +33,18 @@ type remoteConfig struct {
 
 // Remote represents options to SSH into a remote machine.
 type Remote struct {
-	remoteConfig
+	RemoteConfig
 	Proxy *Proxy
 }
 
 // Proxy represents the remote configuration to access a remote proxy machine.
 type Proxy struct {
-	remoteConfig
+	RemoteConfig
 }
 
 const defaultSSHPort = 22
 
-func (opts *remoteConfig) validate() error {
+func (opts *RemoteConfig) validate() error {
 	catcher := grip.NewBasicCatcher()
 	if opts.Host == "" {
 		catcher.New("host cannot be empty")
@@ -66,12 +67,12 @@ func (opts *remoteConfig) validate() error {
 	return catcher.Resolve()
 }
 
-func (opts *remoteConfig) resolve() (*ssh.ClientConfig, error) {
+func (opts *RemoteConfig) resolve() (*ssh.ClientConfig, error) {
 	var auth []ssh.AuthMethod
 	if opts.Key != "" || opts.KeyFile != "" {
 		pubkey, err := opts.publicKeyAuth()
 		if err != nil {
-			return nil, errors.Wrap(err, "coudl not get public key")
+			return nil, errors.Wrap(err, "could not get public key")
 		}
 		auth = append(auth, pubkey)
 	}
@@ -86,7 +87,7 @@ func (opts *remoteConfig) resolve() (*ssh.ClientConfig, error) {
 	}, nil
 }
 
-func (opts *remoteConfig) publicKeyAuth() (ssh.AuthMethod, error) {
+func (opts *RemoteConfig) publicKeyAuth() (ssh.AuthMethod, error) {
 	var key []byte
 	if opts.KeyFile != "" {
 		var err error

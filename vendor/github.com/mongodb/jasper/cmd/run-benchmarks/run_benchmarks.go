@@ -4,14 +4,14 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/mongodb/jasper"
+	"github.com/mongodb/jasper/benchmarks"
 )
 
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	err := jasper.RunLogBenchmarks(ctx)
+	err := benchmarks.RunLogging(ctx)
 	if err != nil {
 		fmt.Println(err)
 	}
