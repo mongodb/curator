@@ -2,6 +2,7 @@ package operations
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -14,7 +15,6 @@ import (
 	"github.com/mongodb/grip/message"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -114,12 +114,13 @@ func toJSON() cli.Command {
 			}
 
 			for iter.Next() {
-				doc, err := bson.MarshalExtJSON(iter.Document(), false, false)
+				dmap := iter.Document().ExportMap()
+				jsondoc, err := json.Marshal(dmap)
 				if err != nil {
 					return errors.Wrap(err, "problem reading document to json")
 				}
 
-				_, err = jsonFile.WriteString(string(doc) + "\n")
+				_, err = jsonFile.WriteString(string(jsondoc) + "\n")
 				if err != nil {
 					return errors.Wrap(err, "problem writing json to document")
 				}

@@ -43,12 +43,15 @@ imports:
 - name: github.com/papertrail/go-tail
   version: 1b77c8dfcc6baca12dedfab119135396782b68a1
 
+- name: github.com/evergreen-ci/birch
+  version: 3a26bb67719ad6a9e7daed059abd5d018586f3cd
+
 - name: github.com/mongodb/ftdc
-  version: cc28b108ca74835f089d25b62b04669bda2aa76a
+  version: 8b996adb830457905c1f23c0f8738f6ec36e0917
 - name: github.com/mongodb/jasper
   version: f40a70e83b4fdb0eaeb636daa2a4dc7674e228ed
 - name: github.com/evergreen-ci/poplar
-  version: 902e78fa62bc4a16eac8139d20a30844d9cc0901
+  version: a2021707f4d452b931f587d96277380c82f3e58b
 - name: github.com/evergreen-ci/pail
   version: ffd9ec31ce96d39291ceb56668936ca6141e83b7
 - name: github.com/evergreen-ci/aviation

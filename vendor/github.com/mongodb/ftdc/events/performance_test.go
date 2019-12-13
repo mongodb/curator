@@ -44,7 +44,11 @@ func TestPerformanceType(t *testing.T) {
 		t.Run("Zero", func(t *testing.T) {
 			perf := &Performance{}
 			perf.Add(&Performance{})
+<<<<<<< HEAD
 			assert.Equal(t, &Performance{ID: 1}, perf)
+=======
+			assert.Equal(t, &Performance{}, perf)
+>>>>>>> MAKE-1065: revendor poplar, ftdc, and birch
 		})
 		t.Run("OverridesID", func(t *testing.T) {
 			perf := &Performance{}
