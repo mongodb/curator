@@ -1,20 +1,24 @@
 package birch
 
 import (
+	"io"
 	"math"
 	"time"
 
 	"github.com/pkg/errors"
 )
 
+// DC is a convenience variable provided for access to the DocumentConstructor methods.
 var DC DocumentConstructor
 
+// DocumentConstructor is used as a namespace for document constructor functions.
 type DocumentConstructor struct{}
 
+// New returns an empty document.
 func (DocumentConstructor) New() *Document { return DC.Make(0) }
 
 // Make returns a document with the underlying storage
-// allocated as specified. Provides some efficency when building
+// allocated as specified. Provides some efficiency when building
 // larger documents iteratively.
 func (DocumentConstructor) Make(n int) *Document {
 	return &Document{
@@ -23,10 +27,15 @@ func (DocumentConstructor) Make(n int) *Document {
 	}
 }
 
+// Elements returns a document initialized with the elements passed as
+// arguments.
 func (DocumentConstructor) Elements(elems ...*Element) *Document {
 	return DC.Make(len(elems)).Append(elems...)
 }
 
+// Reader constructs a document from a bson reader, which is a wrapper
+// around a byte slice representation of a bson document. Reader
+// panics if there is a problem reading the document.
 func (DocumentConstructor) Reader(r Reader) *Document {
 	doc, err := DC.ReaderErr(r)
 	if err != nil {
@@ -36,8 +45,44 @@ func (DocumentConstructor) Reader(r Reader) *Document {
 	return doc
 }
 
+// ReaderErr constructs a document from a bson reader, which is a wrapper
+// around a byte slice representation of a bson document. Reader
+// returns an error if there is a problem reading the document.
 func (DocumentConstructor) ReaderErr(r Reader) (*Document, error) {
 	return ReadDocument(r)
+}
+
+// ReadFrom builds a document reading a bytes sequence from an
+// io.Reader, panicing if there's a problem reading from the reader.
+func (DocumentConstructor) ReadFrom(in io.Reader) *Document {
+	doc, err := DC.ReadFromErr(in)
+	if err == io.EOF {
+		return nil
+	}
+
+	if err != nil {
+		panic(err)
+	}
+
+	return doc
+}
+
+// ReadFromErr builds a document reading a bytes sequence from an
+// io.Reader, returning an error if there's a problem reading from the
+// reader.
+func (DocumentConstructor) ReadFromErr(in io.Reader) (*Document, error) {
+	doc := DC.New()
+
+	_, err := doc.ReadFrom(in)
+	if err == io.EOF {
+		return nil, err
+	}
+
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	return doc, nil
 }
 
 func (DocumentConstructor) Marshaler(in Marshaler) *Document {
@@ -72,16 +117,19 @@ func (DocumentConstructor) MapInterface(in map[string]interface{}) *Document {
 	for k, v := range in {
 		elems = append(elems, EC.Interface(k, v))
 	}
+
 	return DC.Elements(elems...)
 }
 
 func (DocumentConstructor) MapInterfaceErr(in map[string]interface{}) (*Document, error) {
 	elems := make([]*Element, 0, len(in))
+
 	for k, v := range in {
 		elem, err := EC.InterfaceErr(k, v)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
+
 		if elem != nil {
 			elems = append(elems, elem)
 		}
@@ -164,6 +212,7 @@ func (DocumentConstructor) MapMarshaler(in map[string]Marshaler) *Document {
 
 func (DocumentConstructor) MapMarshalerErr(in map[string]Marshaler) (*Document, error) {
 	elems := make([]*Element, 0, len(in))
+
 	for k, v := range in {
 		elem, err := EC.MarshalerErr(k, v)
 		if err != nil {
@@ -195,6 +244,7 @@ func (DocumentConstructor) MapSliceMarshalerErr(in map[string][]Marshaler) (*Doc
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
+
 		if elem != nil {
 			elems = append(elems, elem)
 		}
@@ -214,6 +264,7 @@ func (DocumentConstructor) MapDocumentMarshaler(in map[string]DocumentMarshaler)
 
 func (DocumentConstructor) MapDocumentMarshalerErr(in map[string]DocumentMarshaler) (*Document, error) {
 	elems := make([]*Element, 0, len(in))
+
 	for k, v := range in {
 		elem, err := EC.DocumentMarshalerErr(k, v)
 		if err != nil {
@@ -245,6 +296,7 @@ func (DocumentConstructor) MapSliceDocumentMarshalerErr(in map[string][]Document
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
+
 		if elem != nil {
 			elems = append(elems, elem)
 		}
@@ -279,6 +331,7 @@ func (DocumentConstructor) MapSliceInterfaceErr(in map[string][]interface{}) (*D
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
+
 		if elem != nil {
 			elems = append(elems, elem)
 		}
@@ -423,14 +476,8 @@ func (DocumentConstructor) Interface(value interface{}) *Document {
 
 func (DocumentConstructor) InterfaceErr(value interface{}) (*Document, error) {
 	switch t := value.(type) {
-	case map[string]string, map[string][]string,
-		map[string]int64, map[string][]int64,
-		map[string]int32, map[string][]int32, map[string]int, map[string][]int,
-		map[string]time.Time, map[string][]time.Time, map[string]time.Duration,
-		map[string][]time.Duration, map[interface{}]interface{}:
-
+	case map[string]string, map[string][]string, map[string]int64, map[string][]int64, map[string]int32, map[string][]int32, map[string]int, map[string][]int, map[string]time.Time, map[string][]time.Time, map[string]time.Duration, map[string][]time.Duration, map[interface{}]interface{}:
 		return DC.Interface(t), nil
-
 	case map[string]Marshaler:
 		return DC.MapMarshalerErr(t)
 	case map[string][]Marshaler:
@@ -474,6 +521,7 @@ func (ElementConstructor) MarshalerErr(key string, val Marshaler) (*Element, err
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
+
 	return EC.SubDocumentFromReader(key, doc), nil
 }
 
@@ -499,6 +547,7 @@ func (ElementConstructor) Int(key string, i int) *Element {
 	if i < math.MaxInt32 {
 		return EC.Int32(key, int32(i))
 	}
+
 	return EC.Int64(key, int64(i))
 }
 
@@ -627,6 +676,7 @@ func (ElementConstructor) SliceMarshalerErr(key string, in []Marshaler) (*Elemen
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
+
 		if val != nil {
 			vals = append(vals, val)
 		}
@@ -653,6 +703,7 @@ func (ElementConstructor) SliceDocumentMarshalerErr(key string, in []DocumentMar
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
+
 		if val != nil {
 			vals = append(vals, val)
 		}
@@ -678,6 +729,7 @@ func (ValueConstructor) InterfaceErr(in interface{}) (*Value, error) {
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
+
 	return elem.value, nil
 }
 
@@ -848,8 +900,8 @@ func (ValueConstructor) SliceMarshalerErr(in []Marshaler) (*Value, error) {
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	return elem.value, nil
 
+	return elem.value, nil
 }
 
 func (ValueConstructor) SliceInterfaceErr(in []interface{}) (*Value, error) {

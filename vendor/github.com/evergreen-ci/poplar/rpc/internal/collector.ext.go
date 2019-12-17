@@ -9,22 +9,26 @@ func (m *EventMetrics) Export() *events.Performance {
 	dur, _ := ptypes.Duration(m.Timers.Duration)
 	total, _ := ptypes.Duration(m.Timers.Total)
 
-	return &events.Performance{
+	out := &events.Performance{
 		ID: m.Id,
-		Counters: events.PerformanceCounters{
-			Number:     m.Counters.Number,
-			Operations: m.Counters.Ops,
-			Size:       m.Counters.Size,
-			Errors:     m.Counters.Errors,
-		},
 		Timers: events.PerformanceTimers{
 			Duration: dur,
 			Total:    total,
 		},
-		Gauges: events.PerformanceGauges{
-			State:   m.Gauges.State,
-			Workers: m.Gauges.Workers,
-			Failed:  m.Gauges.Failed,
-		},
 	}
+
+	if m.Counters != nil {
+		out.Counters.Number = m.Counters.Number
+		out.Counters.Operations = m.Counters.Ops
+		out.Counters.Size = m.Counters.Size
+		out.Counters.Errors = m.Counters.Errors
+	}
+
+	if m.Gauges != nil {
+		out.Gauges.State = m.Gauges.State
+		out.Gauges.Workers = m.Gauges.Workers
+		out.Gauges.Failed = m.Gauges.Failed
+	}
+
+	return out
 }

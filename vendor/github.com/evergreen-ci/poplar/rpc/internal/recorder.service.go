@@ -35,7 +35,7 @@ func (s *recorderService) BeginEvent(ctx context.Context, id *PoplarID) (*Poplar
 		return nil, errors.Errorf("could not find recorder '%s'", id.Name)
 	}
 
-	rec.Begin()
+	rec.BeginIteration()
 
 	return &PoplarResponse{Name: id.Name, Status: true}, nil
 }
@@ -62,7 +62,7 @@ func (s *recorderService) EndEvent(ctx context.Context, val *EventSendDuration) 
 		return nil, errors.Wrap(err, "could not convert duration value")
 	}
 
-	rec.End(dur)
+	rec.EndIteration(dur)
 
 	return &PoplarResponse{Name: val.Name, Status: true}, nil
 }
@@ -165,7 +165,7 @@ func (s *recorderService) IncOps(ctx context.Context, val *EventSendInt) (*Popla
 		return nil, errors.Errorf("could not find recorder '%s'", val.Name)
 	}
 
-	rec.IncOps(val.Value)
+	rec.IncOperations(val.Value)
 
 	return &PoplarResponse{Name: val.Name, Status: true}, nil
 }

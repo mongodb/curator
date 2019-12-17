@@ -281,7 +281,7 @@ func (r *RecorderRegistry) Close(key string) error {
 				return errors.Wrap(err, "problem flushing interval summarizations")
 			}
 		} else {
-			if err := impl.recorder.Flush(); err != nil {
+			if err := impl.recorder.EndTest(); err != nil {
 				return errors.Wrap(err, "problem flushing recorder")
 			}
 		}
@@ -289,6 +289,7 @@ func (r *RecorderRegistry) Close(key string) error {
 		if err := ftdc.FlushCollector(impl.collector, impl.file); err != nil {
 			return errors.Wrap(err, "problem writing collector contents to file")
 		}
+
 		if err := impl.file.Close(); err != nil {
 			return errors.Wrap(err, "problem closing open file")
 		}

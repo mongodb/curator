@@ -56,8 +56,10 @@ func (s *collectorService) SendEvent(ctx context.Context, event *EventMetrics) (
 func (s *collectorService) StreamEvents(srv PoplarEventCollector_StreamEventsServer) error {
 	ctx := srv.Context()
 
-	var eventName string
-	var collector events.Collector
+	var (
+		collector events.Collector
+		eventName string
+	)
 
 	for {
 		event, err := srv.Recv()
@@ -72,18 +74,17 @@ func (s *collectorService) StreamEvents(srv PoplarEventCollector_StreamEventsSer
 				Status: false,
 			})
 		}
+		if collector == nil {
+			if event.Name == "" {
+				return status.Error(codes.InvalidArgument, "registries must be named")
+			}
 
-		if eventName == "" {
 			eventName = event.Name
-
 			var ok bool
 			collector, ok = s.registry.GetEventsCollector(eventName)
 			if !ok {
 				return status.Errorf(codes.NotFound, "no registry named %s", eventName)
 			}
-
-		} else if eventName != event.Name {
-			return status.Errorf(codes.InvalidArgument, "no registry named %s", eventName)
 		}
 
 		if err := collector.AddEvent(event.Export()); err != nil {

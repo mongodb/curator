@@ -11,12 +11,10 @@ variables:
     # correspond to a make target for the build operation.
     name: test
     commands:
-      - func: git-config-windows-api-length
       - command: git.get_project
         type: system
         params:
           directory: gopath/src/github.com/evergreen-ci/poplar
-      - func: setup-credentials
       - func: run-make
         vars: { target: "${task_name}" }
 
@@ -24,38 +22,6 @@ variables:
 #              Functions              #
 #######################################
 functions:
-  #TODO: remove this function once BUILD-8571 is complete.
-  git-config-windows-api-length:
-    command: shell.exec
-    type: setup
-    params:
-      silent: true
-      script: |
-        if [ "Windows_NT" == "$OS" ]; then
-          git config --system core.longpaths true
-        fi
-  setup-credentials:
-    command: shell.exec
-    type: setup
-    params:
-      silent: true
-      script: |
-        if [ "Windows_NT" == "$OS" ]; then
-          export AWS_DIR=/cygdrive/c/Users/$USER/.aws
-        else
-          export AWS_DIR=$HOME/.aws
-        fi
-
-        mkdir $AWS_DIR
-        cat <<EOF > $AWS_DIR/config
-        [default]
-        region = us-east-1
-        EOF
-        cat <<EOF > $AWS_DIR/credentials
-        [default]
-        aws_access_key_id = ${aws_key}
-        aws_secret_access_key = ${aws_secret}
-        EOF
   run-make:
     command: subprocess.exec
     type: test
@@ -71,6 +37,8 @@ functions:
         USERPROFILE: C:\\Users\\Administrator
         LDAP_USER: ${ldap_user}
         LDAP_PASSWORD: ${ldap_password}
+        AWS_ACCESS_KEY_ID: ${aws_key}
+        AWS_SECRET_ACCESS_KEY: ${aws_secret}
 
 #######################################
 #                Tasks                #
@@ -131,7 +99,6 @@ tasks:
         type: system
         params:
           directory: gopath/src/github.com/evergreen-ci/poplar
-      - func: setup-credentials
       - func: run-make
         vars:
           target: "coverage-html"
@@ -153,6 +120,8 @@ buildvariants:
     display_name: Race Detector (Arch Linux)
     expansions:
       mongodb_url: http://fastdl.mongodb.org/linux/mongodb-linux-x86_64-4.0.1.tgz
+      goroot: /opt/golang/go1.12
+      gobin: /opt/golang/go1.12/bin/go
     run_on:
       - archlinux-test
       - archlinux-build
