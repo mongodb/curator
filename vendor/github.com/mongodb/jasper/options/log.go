@@ -16,14 +16,14 @@ import (
 type LogType string
 
 const (
-	LogBuildloggerV2 LogType = "buildloggerv2" // nolint
-	LogBuildloggerV3         = "buildloggerv3" // nolint
-	LogDefault               = "default"       // nolint
-	LogFile                  = "file"          // nolint
-	LogInherit               = "inherit"       // nolint
-	LogSplunk                = "splunk"        // nolint
-	LogSumologic             = "sumologic"     // nolint
-	LogInMemory              = "inmemory"      // nolint
+	LogBuildloggerV2 LogType = "buildloggerv2"
+	LogBuildloggerV3 LogType = "buildloggerv3"
+	LogDefault       LogType = "default"
+	LogFile          LogType = "file"
+	LogInherit       LogType = "inherit"
+	LogSplunk        LogType = "splunk"
+	LogSumologic     LogType = "sumologic"
+	LogInMemory      LogType = "inmemory"
 )
 
 // Validate ensures that the LogType is valid.
@@ -47,10 +47,10 @@ const (
 type LogFormat string
 
 const (
-	LogFormatPlain   LogFormat = "plain"   // nolint
-	LogFormatDefault LogFormat = "default" // nolint
-	LogFormatJSON    LogFormat = "json"    // nolint
-	LogFormatInvalid LogFormat = "invalid" // nolint
+	LogFormatPlain   LogFormat = "plain"
+	LogFormatDefault LogFormat = "default"
+	LogFormatJSON    LogFormat = "json"
+	LogFormatInvalid LogFormat = "invalid"
 )
 
 // Validate ensures that the LogFormat is valid.
@@ -147,7 +147,7 @@ func (l Logger) Validate() error {
 
 // Configure will configure the grip/send.Sender used by the Logger to use the
 // specified LogType as specified in Logger.Type.
-func (l *Logger) Configure() (send.Sender, error) {
+func (l *Logger) Configure() (send.Sender, error) { //nolint: gocognit
 	if l.sender != nil {
 		return l.sender, nil
 	}
