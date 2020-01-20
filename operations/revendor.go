@@ -27,6 +27,18 @@ func Revendor() cli.Command {
 		revisionFlagName = "revision"
 		cleanCommandFlag = "clean"
 	)
+
+	_, err := os.Stat("makefile")
+	evgMakefileExists := !os.IsNotExist(err)
+	makefileFlag := cli.StringFlag{
+		Name:  cleanCommandFlag,
+		Usage: "command to run to perform clean up",
+	}
+
+	if evgMakefileExists {
+		makefileFlag.Value = "make vendor-clean"
+	}
+
 	return cli.Command{
 		Name: "revendor",
 		Flags: []cli.Flag{
@@ -38,10 +50,7 @@ func Revendor() cli.Command {
 				Name:  revisionFlagName,
 				Usage: "the updated package revision",
 			},
-			cli.StringFlag{
-				Name:  cleanCommandFlag,
-				Usage: "command to run to perform clean up",
-			},
+			makefileFlag,
 		},
 		Usage: "revendor an existing package in glide.lock",
 		Before: mergeBeforeFuncs(

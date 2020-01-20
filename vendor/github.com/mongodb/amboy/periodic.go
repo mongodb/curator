@@ -19,10 +19,15 @@ type QueueOperation func(context.Context, Queue) error
 
 // QueueOperationConfig describes the behavior of the periodic
 // interval schedulers.
+//
+// The theshold, if ResepectThreshold is set, causes the periodic
+// scheduler to noop if there are more than that many pending jobs.
 type QueueOperationConfig struct {
-	ContinueOnError bool `bson:"continue_on_error" json:"continue_on_error" yaml:"continue_on_error"`
-	LogErrors       bool `bson:"log_errors" json:"log_errors" yaml:"log_errors"`
-	DebugLogging    bool `bson:"debug_logging" json:"debug_logging" yaml:"debug_logging"`
+	ContinueOnError  bool `bson:"continue_on_error" json:"continue_on_error" yaml:"continue_on_error"`
+	LogErrors        bool `bson:"log_errors" json:"log_errors" yaml:"log_errors"`
+	DebugLogging     bool `bson:"debug_logging" json:"debug_logging" yaml:"debug_logging"`
+	RespectThreshold bool `bson:"respect_threshold" json:"respect_threshold" yaml:"respect_threshold"`
+	Threshold        int  `bson:"threshold" json:"threshold" yaml:"threshold"`
 }
 
 // ScheduleJobFactory produces a QueueOpertion that calls a single
@@ -96,55 +101,6 @@ func GroupQueueOperationFactory(first QueueOperation, ops ...QueueOperation) Que
 	}
 }
 
-// PeriodicQueueOperation launches a goroutine that runs the
-// QueueOperation on the specified Queue at the specified interval. If
-// ignoreErrors is true, then a QueueOperation that returns an error will
-// *not* interrupt the background process. Otherwise, the background
-// process will exit if a QueueOperation fails. Use the context to
-// terminate the background process.
-func PeriodicQueueOperation(ctx context.Context, q Queue, interval time.Duration, conf QueueOperationConfig, op QueueOperation) {
-	go func() {
-		var err error
-
-		defer func() {
-			err = recovery.HandlePanicWithError(recover(), err, "periodic background scheduler error")
-			if err != nil {
-				if !conf.ContinueOnError {
-					return
-				}
-
-				if ctx.Err() != nil {
-					return
-				}
-
-				PeriodicQueueOperation(ctx, q, interval, conf, op)
-			}
-		}()
-
-		timer := time.NewTimer(0)
-		defer timer.Stop()
-		count := 0
-
-		for {
-			select {
-			case <-ctx.Done():
-				grip.InfoWhen(conf.DebugLogging, message.Fields{
-					"message":    "exiting periodic job scheduler",
-					"numPeriods": count,
-				})
-				return
-			case <-timer.C:
-				if err = scheduleOp(ctx, q, op, conf); err != nil {
-					return
-				}
-
-				count++
-				timer.Reset(interval)
-			}
-		}
-	}()
-}
-
 // IntervalQueueOperation runs a queue scheduling operation on a
 // regular interval, starting at specific time. Use this method to
 // schedule jobs every hour, or similar use-cases.
@@ -173,12 +129,7 @@ func IntervalQueueOperation(ctx context.Context, q Queue, interval time.Duration
 			}
 		}()
 
-		for {
-			if !startAt.Before(time.Now()) {
-				break
-			}
-			startAt = startAt.Add(interval)
-		}
+		waitUntilInterval(ctx, startAt, interval)
 
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
@@ -198,6 +149,7 @@ func IntervalQueueOperation(ctx context.Context, q Queue, interval time.Duration
 				grip.InfoWhen(conf.DebugLogging, message.Fields{
 					"message":       "exiting interval job scheduler",
 					"num_intervals": count,
+					"queue":         "single",
 					"reason":        "operation canceled",
 					"conf":          conf,
 				})
@@ -214,6 +166,10 @@ func IntervalQueueOperation(ctx context.Context, q Queue, interval time.Duration
 }
 
 func scheduleOp(ctx context.Context, q Queue, op QueueOperation, conf QueueOperationConfig) error {
+	if conf.RespectThreshold && q.Stats(ctx).Pending > conf.Threshold {
+		return nil
+	}
+
 	if err := errors.Wrap(op(ctx, q), "problem encountered during periodic job scheduling"); err != nil {
 		if conf.ContinueOnError {
 			grip.WarningWhen(conf.LogErrors, err)
@@ -224,4 +180,27 @@ func scheduleOp(ctx context.Context, q Queue, op QueueOperation, conf QueueOpera
 	}
 
 	return nil
+}
+
+func waitUntilInterval(ctx context.Context, startAt time.Time, interval time.Duration) {
+	if startAt.Before(time.Now()) {
+		for {
+			startAt = startAt.Add(interval)
+			if startAt.Before(time.Now()) {
+				continue
+			}
+
+			break
+		}
+	}
+
+	timer := time.NewTimer(-time.Since(startAt))
+	defer timer.Stop()
+
+	select {
+	case <-ctx.Done():
+		return
+	case <-timer.C:
+		return
+	}
 }

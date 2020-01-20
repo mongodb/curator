@@ -29,7 +29,7 @@ imports:
 - name: github.com/mongodb/grip
   version: 1108173df60c955f82a84cd1ef932af1ed6882a4
 - name: github.com/mongodb/amboy
-  version: 2b8431d235ec6c322dba74eff51988ebd8ac1f7f
+  version: a323bf090a252d61da5944938fc464a2538cc3dd.
 - name: github.com/evergreen-ci/gimlet
   version: 179b5518bae02593ac2c0678cfbf675bdf27d379
 - name: github.com/tychoish/lru
@@ -47,7 +47,7 @@ imports:
   version: 3a26bb67719ad6a9e7daed059abd5d018586f3cd
 
 - name: github.com/mongodb/ftdc
-  version: ace4001f734a29be4925f7dbcf5fa8c3b341507f
+  version: 8b996adb830457905c1f23c0f8738f6ec36e0917
 - name: github.com/mongodb/jasper
   version: f40a70e83b4fdb0eaeb636daa2a4dc7674e228ed
 - name: github.com/evergreen-ci/poplar

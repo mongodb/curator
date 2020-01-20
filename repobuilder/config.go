@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 
 	"github.com/mongodb/grip"
+	"github.com/mongodb/grip/message"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 )
@@ -29,6 +30,9 @@ type RepositoryConfig struct {
 		Index string            `bson:"index_page" json:"index_page" yaml:"index_page"`
 		Deb   map[string]string `bson:"deb" json:"deb" yaml:"deb"`
 	} `bson:"templates" json:"templates" yaml:"templates"`
+	DryRun           bool   `bson:"dry_run" json:"dry_run" yaml:"dry_run"`
+	Verbose          bool   `bson:"verbose" json:"verbose" yaml:"verbose"`
+	WorkSpace        string `bson:"workspace" json:"workspace" yaml:"workspace"`
 	Region           string `bson:"region" json:"region" yaml:"region"`
 	fileName         string
 	definitionLookup map[string]map[string]*RepositoryDefinition
@@ -75,18 +79,20 @@ func NewRepositoryConfig() *RepositoryConfig {
 func GetConfig(fileName string) (*RepositoryConfig, error) {
 	c := NewRepositoryConfig()
 
-	err := c.read(fileName)
-	if err != nil {
-		return nil, err
+	if err := c.read(fileName); err != nil {
+		return nil, errors.WithStack(err)
 	}
 
-	err = c.processRepos()
-	if err != nil {
-		return nil, err
+	if err := c.processRepos(); err != nil {
+		return nil, errors.WithStack(err)
 	}
 
 	if c.Services.NotaryURL == "" {
-		grip.Warning("no notary service url specified")
+		grip.Warning(message.Fields{
+			"message":   "no notary service url specified",
+			"file":      fileName,
+			"num_repos": len(c.Repos),
+		})
 	}
 
 	return c, nil

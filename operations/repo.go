@@ -178,13 +178,14 @@ func buildRepo(ctx context.Context, packages, configPath, workingDir, distro, ed
 		}
 	}
 
+	conf.DryRun = dryRun
+	conf.Verbose = verbose
+	conf.WorkSpace = workingDir
+
 	job, err := repobuilder.NewBuildRepoJob(conf, repo, version, arch, profile, pkgs...)
 	if err != nil {
 		return errors.Wrap(err, "problem constructing task for building repository")
 	}
-	job.WorkSpace = workingDir
-	job.DryRun = dryRun
-	job.Verbose = verbose
 
 	if retries < 1 {
 		retries = 1

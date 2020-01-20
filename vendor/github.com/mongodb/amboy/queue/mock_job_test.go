@@ -9,6 +9,7 @@ import (
 	"github.com/mongodb/amboy/dependency"
 	"github.com/mongodb/amboy/job"
 	"github.com/mongodb/amboy/registry"
+	uuid "github.com/satori/go.uuid"
 )
 
 var mockJobCounters *mockJobRunEnv
@@ -42,6 +43,7 @@ func (e *mockJobRunEnv) Reset() {
 func init() {
 	mockJobCounters = &mockJobRunEnv{}
 	registry.AddJobType("mock", func() amboy.Job { return newMockJob() })
+	registry.AddJobType("sleep", func() amboy.Job { return newSleepJob() })
 }
 
 //
@@ -54,7 +56,7 @@ func newMockJob() *mockJob {
 		Base: job.Base{
 			JobType: amboy.JobType{
 				Name:    "mock",
-				Version: 1,
+				Version: 0,
 			},
 		},
 	}
@@ -68,25 +70,39 @@ func (j *mockJob) Run(_ context.Context) {
 	mockJobCounters.Inc()
 }
 
-type jobThatPanics struct {
-	sleep time.Duration
-	job.Base
-}
-
-func (j *jobThatPanics) Run(_ context.Context) {
-	defer j.MarkComplete()
-
-	time.Sleep(j.sleep)
-	panic("panic err")
-}
-
 type sleepJob struct {
-	sleep time.Duration
+	Sleep time.Duration
 	job.Base
 }
 
-func (j *sleepJob) Run(_ context.Context) {
+func newSleepJob() *sleepJob {
+	j := &sleepJob{
+		Base: job.Base{
+			JobType: amboy.JobType{
+				Name:    "sleep",
+				Version: 0,
+			},
+		},
+	}
+	j.SetDependency(dependency.NewAlways())
+	j.SetID(uuid.NewV4().String())
+	return j
+}
+
+func (j *sleepJob) Run(ctx context.Context) {
 	defer j.MarkComplete()
 
-	time.Sleep(j.sleep)
+	if j.Sleep == 0 {
+		return
+	}
+
+	timer := time.NewTimer(j.Sleep)
+	defer timer.Stop()
+
+	select {
+	case <-timer.C:
+		return
+	case <-ctx.Done():
+		return
+	}
 }

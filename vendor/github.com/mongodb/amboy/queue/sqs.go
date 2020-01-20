@@ -19,6 +19,7 @@ import (
 	"github.com/mongodb/grip/message"
 	"github.com/mongodb/grip/recovery"
 	"github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 )
 
 const region string = "us-east-1"
@@ -26,8 +27,10 @@ const region string = "us-east-1"
 type sqsFIFOQueue struct {
 	sqsClient  *sqs.SQS
 	sqsURL     string
+	id         string
 	started    bool
 	numRunning int
+	dispatcher Dispatcher
 	tasks      struct { // map jobID to job information
 		completed map[string]bool
 		all       map[string]amboy.Job
@@ -41,14 +44,16 @@ type sqsFIFOQueue struct {
 // removed from the queue, and therefore may not handle jobs across
 // restarts.
 func NewSQSFifoQueue(queueName string, workers int) (amboy.Queue, error) {
-	q := &sqsFIFOQueue{}
+	q := &sqsFIFOQueue{
+		sqsClient: sqs.New(session.Must(session.NewSession(&aws.Config{
+			Region: aws.String(region),
+		}))),
+		id: fmt.Sprintf("queue.remote.sqs.fifo..%s", uuid.NewV4().String()),
+	}
 	q.tasks.completed = make(map[string]bool)
 	q.tasks.all = make(map[string]amboy.Job)
 	q.runner = pool.NewLocalWorkers(workers, q)
-	sess := session.Must(session.NewSession(&aws.Config{
-		Region: aws.String(region),
-	}))
-	q.sqsClient = sqs.New(sess)
+	q.dispatcher = NewDispatcher(q)
 	result, err := q.sqsClient.CreateQueue(&sqs.CreateQueueInput{
 		QueueName: aws.String(fmt.Sprintf("%s.fifo", queueName)),
 		Attributes: map[string]*string{
@@ -62,8 +67,24 @@ func NewSQSFifoQueue(queueName string, workers int) (amboy.Queue, error) {
 	return q, nil
 }
 
+func (q *sqsFIFOQueue) ID() string {
+	q.mutex.RLock()
+	defer q.mutex.RUnlock()
+
+	return q.id
+}
+
 func (q *sqsFIFOQueue) Put(ctx context.Context, j amboy.Job) error {
 	name := j.ID()
+
+	j.UpdateTimeInfo(amboy.JobTimeInfo{
+		Created: time.Now(),
+	})
+
+	if err := j.TimeInfo().Validate(); err != nil {
+		return errors.Wrap(err, "invalid job timeinfo")
+	}
+
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 
@@ -79,9 +100,6 @@ func (q *sqsFIFOQueue) Put(ctx context.Context, j amboy.Job) error {
 	curStatus := j.Status()
 	curStatus.ID = dedupID
 	j.SetStatus(curStatus)
-	j.UpdateTimeInfo(amboy.JobTimeInfo{
-		Created: time.Now(),
-	})
 	jobItem, err := registry.MakeJobInterchange(j, amboy.JSON)
 	if err != nil {
 		return errors.Wrap(err, "Error converting job in Put")
@@ -101,8 +119,27 @@ func (q *sqsFIFOQueue) Put(ctx context.Context, j amboy.Job) error {
 	if err != nil {
 		return errors.Wrap(err, "Error sending message in Put")
 	}
-	q.tasks.all[j.ID()] = j
+	q.tasks.all[name] = j
 	return nil
+}
+
+func (q *sqsFIFOQueue) Save(ctx context.Context, j amboy.Job) error {
+	name := j.ID()
+
+	q.mutex.Lock()
+	defer q.mutex.Unlock()
+
+	if !q.Started() {
+		return errors.Errorf("cannot save job %s; queue not started", name)
+	}
+
+	if _, ok := q.tasks.all[name]; !ok {
+		return errors.Errorf("cannot save '%s' because a job does not exist with that name", name)
+	}
+
+	q.tasks.all[name] = j
+	return nil
+
 }
 
 // Returns the next job in the queue. These calls are
@@ -139,6 +176,16 @@ func (q *sqsFIFOQueue) Next(ctx context.Context) amboy.Job {
 	if err != nil {
 		return nil
 	}
+
+	if err := q.dispatcher.Dispatch(ctx, job); err != nil {
+		_ = q.Put(ctx, job)
+		return nil
+	}
+
+	if job.TimeInfo().IsStale() {
+		return nil
+	}
+
 	q.numRunning++
 	return job
 }
@@ -163,6 +210,7 @@ func (q *sqsFIFOQueue) Complete(ctx context.Context, job amboy.Job) {
 		return
 	}
 	name := job.ID()
+	q.dispatcher.Complete(ctx, job)
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 	if ctx.Err() != nil {
@@ -179,7 +227,6 @@ func (q *sqsFIFOQueue) Complete(ctx context.Context, job amboy.Job) {
 		savedJob.SetStatus(job.Status())
 		savedJob.UpdateTimeInfo(job.TimeInfo())
 	}
-
 }
 
 // Returns a channel that produces completed Job objects.

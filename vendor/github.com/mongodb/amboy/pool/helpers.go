@@ -3,6 +3,7 @@ package pool
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"sync"
 	"time"
 
@@ -12,61 +13,47 @@ import (
 	"github.com/mongodb/grip/recovery"
 )
 
-type workUnit struct {
-	job    amboy.Job
-	cancel context.CancelFunc
+const (
+	nilJobWaitIntervalMax = time.Second
+	baseJobInterval       = time.Millisecond
+)
+
+func jitterNilJobWait() time.Duration {
+	return time.Duration(rand.Int63n(int64(nilJobWaitIntervalMax)))
+
 }
 
 func executeJob(ctx context.Context, id string, job amboy.Job, q amboy.Queue) {
-	runJob(ctx, job, q, time.Now())
-
+	job.Run(ctx)
+	q.Complete(ctx, job)
+	ti := job.TimeInfo()
 	r := message.Fields{
 		"job":           job.ID(),
 		"job_type":      job.Type().Name,
-		"duration_secs": job.TimeInfo().Duration().Seconds(),
+		"duration_secs": ti.Duration().Seconds(),
 		"queue_type":    fmt.Sprintf("%T", q),
+		"stat":          job.Status(),
 		"pool":          id,
+		"max_time_secs": ti.MaxTime.Seconds(),
 	}
-	if err := job.Error(); err != nil {
+	err := job.Error()
+	if err != nil {
 		r["error"] = err.Error()
+	}
+
+	if err != nil {
 		grip.Error(r)
 	} else {
 		grip.Debug(r)
 	}
-
 }
 
-func runJob(ctx context.Context, job amboy.Job, q amboy.Queue, startAt time.Time) {
-	ti := amboy.JobTimeInfo{
-		Start: time.Now(),
-	}
-	job.UpdateTimeInfo(ti)
-
-	maxTime := job.TimeInfo().MaxTime
-	if maxTime > 0 {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, maxTime)
-		defer cancel()
-	}
-
-	job.Run(ctx)
-
-	// we want the final end time to include
-	// marking complete, but setting it twice is
-	// necessary for some queues
-	ti.End = time.Now()
-	job.UpdateTimeInfo(ti)
-
-	q.Complete(ctx, job)
-	ti.End = time.Now()
-	job.UpdateTimeInfo(ti)
-}
-
-func worker(ctx context.Context, id string, jobs <-chan workUnit, q amboy.Queue, wg *sync.WaitGroup) {
+func worker(bctx context.Context, id string, q amboy.Queue, wg *sync.WaitGroup) {
 	var (
 		err    error
 		job    amboy.Job
 		cancel context.CancelFunc
+		ctx    context.Context
 	)
 
 	wg.Add(1)
@@ -77,10 +64,10 @@ func worker(ctx context.Context, id string, jobs <-chan workUnit, q amboy.Queue,
 		if err != nil {
 			if job != nil {
 				job.AddError(err)
-				q.Complete(ctx, job)
+				q.Complete(bctx, job)
 			}
 			// start a replacement worker.
-			go worker(ctx, id, jobs, q, wg)
+			go worker(bctx, id, q, wg)
 		}
 
 		if cancel != nil {
@@ -88,54 +75,23 @@ func worker(ctx context.Context, id string, jobs <-chan workUnit, q amboy.Queue,
 		}
 	}()
 
+	timer := time.NewTimer(baseJobInterval)
+	defer timer.Stop()
 	for {
 		select {
-		case <-ctx.Done():
+		case <-bctx.Done():
 			return
-		case wu := <-jobs:
-			if wu.job == nil {
+		case <-timer.C:
+			job := q.Next(bctx)
+			if job == nil {
+				timer.Reset(jitterNilJobWait())
 				continue
 			}
 
-			job = wu.job
-			cancel = wu.cancel
+			ctx, cancel = context.WithCancel(bctx)
 			executeJob(ctx, id, job, q)
 			cancel()
+			timer.Reset(baseJobInterval)
 		}
 	}
-}
-
-func startWorkerServer(ctx context.Context, q amboy.Queue, wg *sync.WaitGroup) <-chan workUnit {
-	var nctx context.Context
-
-	output := make(chan workUnit)
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				wu := workUnit{}
-				nctx, wu.cancel = context.WithCancel(ctx)
-
-				job := q.Next(nctx)
-				if job == nil {
-					continue
-				}
-
-				if job.Status().Completed {
-					grip.Debugf("job '%s' was dispatched from the queue but was completed",
-						job.ID())
-					continue
-				}
-				wu.job = job
-				output <- wu
-			}
-		}
-	}()
-
-	return output
 }
