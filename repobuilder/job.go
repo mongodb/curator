@@ -140,17 +140,6 @@ func (j *repoBuilderJob) linkPackages(dest string) error {
 
 		mirror := filepath.Join(dest, filepath.Base(pkg))
 		if j.release.IsDevelopmentBuild() {
-			if _, err := os.Stat(mirror); os.IsNotExist(err) {
-				grip.Warning(message.WrapError(os.Remove(mirror), message.Fields{
-					"message":   "problem removing previous development build",
-					"job_id":    j.ID(),
-					"job_scope": j.Scopes(),
-					"repo":      j.Distro.Name,
-					"version":   j.release.String(),
-					"package":   pkg,
-				}))
-			}
-
 			new := strings.Replace(mirror, j.release.String(), j.release.Series(), 1)
 			if new != mirror {
 				grip.Debug(message.Fields{
