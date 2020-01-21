@@ -4,6 +4,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/mongodb/grip"
 	"github.com/mongodb/grip/message"
@@ -14,10 +15,11 @@ import (
 // repositories using createrepo.
 type rpmRepoBuilder struct {
 	*repoBuilderJob
+	mutex sync.Mutex
 }
 
 func setupRPMJob(j *repoBuilderJob) {
-	r := &rpmRepoBuilder{j}
+	r := &rpmRepoBuilder{repoBuilderJob: j}
 	r.builder = r
 }
 

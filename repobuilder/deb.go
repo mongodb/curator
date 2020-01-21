@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"text/template"
 
 	"github.com/mongodb/grip"
@@ -20,10 +21,11 @@ import (
 // and Ubuntu repositories.
 type debRepoBuilder struct {
 	*repoBuilderJob
+	mutex sync.Mutex
 }
 
 func setupDEBJob(j *repoBuilderJob) {
-	r := &debRepoBuilder{j}
+	r := &debRepoBuilder{repoBuilderJob: j}
 	r.builder = r
 }
 
