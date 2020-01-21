@@ -39,7 +39,7 @@ func (s *OptionsSuite) SetupSuite() {
 	s.require.NoError(err)
 	s.tmpDir = tmpDir
 
-	s.queue = queue.NewLocalUnordered(2)
+	s.queue = queue.NewLocalLimitedSize(2, 1024)
 	s.require.NoError(s.queue.Start(ctx))
 	num := 5
 	for i := 0; i < num; i++ {

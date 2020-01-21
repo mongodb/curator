@@ -7,13 +7,12 @@ func (s *RepoJobSuite) TestRPMConstructedObjectHasExpectedValues() {
 	s.NoError(err)
 	repo, ok := conf.GetRepositoryDefinition("rhel5", "enterprise")
 	s.True(ok)
-	s.j, err = NewBuildRepoJob(conf, repo, "2.8.8", "x86_64", "default", "foo", "bar", "baz")
-	s.NoError(err)
+	s.createJob(conf, repo, "2.8.8", "x86_64", "default", "foo", "bar", "baz")
 
 	// basic checks to make sure we create the instance
 	s.Equal(s.j.Version, s.j.release.String())
 	s.Equal([]string{"foo", "bar", "baz"}, s.j.PackagePaths)
-	s.False(s.j.DryRun)
+	s.False(s.j.Conf.DryRun)
 }
 
 func (s *RepoJobSuite) TestRPMConstructorReturnsErrorForInvalidVersion() {
@@ -32,11 +31,10 @@ func (s *RepoJobSuite) TestRPMCompletedSetter() {
 	repo, ok := conf.GetRepositoryDefinition("rhel5", "enterprise")
 	repo.Bucket = "build-curator-testing"
 	s.True(ok)
-	s.j, err = NewBuildRepoJob(conf, repo, "2.8.8", "x86_64", "default")
-	s.NoError(err)
+	s.createJob(conf, repo, "2.8.8", "x86_64", "default")
 
-	s.False(s.j.DryRun)
-	s.j.DryRun = true
+	s.False(s.j.Conf.DryRun)
+	s.j.Conf.DryRun = true
 
 	s.False(s.j.Status().Completed)
 

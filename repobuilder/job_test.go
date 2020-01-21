@@ -12,7 +12,7 @@ import (
 )
 
 type RepoJobSuite struct {
-	j       *Job
+	j       *repoBuilderJob
 	require *require.Assertions
 	suite.Suite
 }
@@ -32,7 +32,7 @@ func (s *RepoJobSuite) SetupTest() {
 
 func (s *RepoJobSuite) TearDownTest() {
 	for _, path := range s.j.workingDirs {
-		grip.Error(os.RemoveAll(filepath.Join(s.j.WorkSpace, path)))
+		grip.Error(os.RemoveAll(filepath.Join(s.j.Conf.WorkSpace, path)))
 	}
 }
 

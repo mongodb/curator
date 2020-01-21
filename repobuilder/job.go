@@ -76,9 +76,12 @@ func NewBuildRepoJob(conf *RepositoryConfig, distro *RepositoryDefinition, versi
 		return nil, err
 	}
 
-	j.Conf.WorkSpace, err = os.Getwd()
-	if err != nil {
-		return nil, err
+	j.Conf = conf
+	if j.Conf.WorkSpace == "" {
+		j.Conf.WorkSpace, err = os.Getwd()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	j.SetID(fmt.Sprintf("build-%s-repo.%d", distro.Type, job.GetNumber()))
@@ -106,7 +109,7 @@ func (j *repoBuilderJob) setup() {
 	} else if j.Distro.Type == RPM {
 		setupRPMJob(j)
 	} else {
-		j.AddError(errors.Errorf("invalid distro definition", j.Distro.Type))
+		j.AddError(errors.Errorf("invalid distro definition '%s'", j.Distro.Type))
 	}
 
 }
@@ -341,6 +344,7 @@ func (j *repoBuilderJob) signFile(fileName, archiveExtension string, overwrite b
 
 // Run is the main execution entry point into repository building, and is a component
 func (j *repoBuilderJob) Run(ctx context.Context) {
+	j.setup()
 	opts := pail.S3Options{
 		Region:                   j.Distro.Region,
 		SharedCredentialsProfile: j.Profile,
