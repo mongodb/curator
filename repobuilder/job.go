@@ -43,8 +43,10 @@ type repoBuilderJob struct {
 	builder     jobImpl
 }
 
+const jobName = "build-repo"
+
 func init() {
-	registry.AddJobType("build-repo", func() amboy.Job { return buildRepoJob() })
+	registry.AddJobType(jobName, func() amboy.Job { return buildRepoJob() })
 }
 
 func buildRepoJob() *repoBuilderJob {
@@ -52,7 +54,7 @@ func buildRepoJob() *repoBuilderJob {
 		Output: make(map[string]string),
 		Base: &job.Base{
 			JobType: amboy.JobType{
-				Name:    "build-repo",
+				Name:    jobName,
 				Version: 3,
 			},
 		},
