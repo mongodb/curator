@@ -40,7 +40,6 @@ type repoBuilderJob struct {
 
 	workingDirs []string
 	release     *bond.MongoDBVersion
-	mutex       sync.RWMutex
 	builder     jobImpl
 }
 
