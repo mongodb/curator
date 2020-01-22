@@ -9,24 +9,27 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"text/template"
 
 	"github.com/mongodb/grip"
+	"github.com/mongodb/grip/message"
 	"github.com/pkg/errors"
 )
 
-// BuildDEBRepoJob is an amboy.Job implementation that builds Debian
+// debRepoBuilder is an amboy.Job implementation that builds Debian
 // and Ubuntu repositories.
-type BuildDEBRepoJob struct {
-	*Job
+type debRepoBuilder struct {
+	*repoBuilderJob
+	mutex sync.Mutex
 }
 
-func setupDEBJob(j *Job) {
-	r := &BuildDEBRepoJob{j}
-	r.Job.builder = r
+func setupDEBJob(j *repoBuilderJob) {
+	r := &debRepoBuilder{repoBuilderJob: j}
+	r.builder = r
 }
 
-func (j *BuildDEBRepoJob) createArchDirs(basePath string) error {
+func (j *debRepoBuilder) createArchDirs(basePath string) error {
 	catcher := grip.NewCatcher()
 
 	for _, arch := range j.Distro.Architectures {
@@ -45,25 +48,25 @@ func (j *BuildDEBRepoJob) createArchDirs(basePath string) error {
 				continue
 			}
 
-			catcher.Add(gzipAndWriteToFile(filepath.Join(path, "Packages.gz"), []byte("")))
+			catcher.Add(j.gzipAndWriteToFile(filepath.Join(path, "Packages.gz"), []byte("")))
 		}
 	}
 
 	return catcher.Resolve()
 }
 
-func (j *BuildDEBRepoJob) injectPackage(local, repoName string) (string, error) {
+func (j *debRepoBuilder) injectPackage(local, repoName string) (string, error) {
 	catcher := grip.NewCatcher()
 
 	repoPath := filepath.Join(local, repoName, j.Distro.Component)
-	err := j.createArchDirs(repoPath)
+
+	catcher.Add(j.createArchDirs(repoPath))
 	catcher.Add(j.linkPackages(filepath.Join(repoPath, "binary-"+j.Arch)))
-	catcher.Add(err)
 
 	return repoPath, catcher.Resolve()
 }
 
-func gzipAndWriteToFile(fileName string, content []byte) error {
+func (j *debRepoBuilder) gzipAndWriteToFile(fileName string, content []byte) error {
 	var gz bytes.Buffer
 
 	w, err := gzip.NewWriterLevel(&gz, flate.BestCompression)
@@ -85,11 +88,16 @@ func gzipAndWriteToFile(fileName string, content []byte) error {
 		return errors.Wrapf(err, "writing compressed file '%s'", fileName)
 	}
 
-	grip.Noticeln("wrote zipped packages file to:", fileName)
+	grip.Debug(message.Fields{
+		"job_id":    j.ID(),
+		"job_scope": j.Scopes(),
+		"message":   "wrote zipped packages",
+		"file":      fileName,
+	})
 	return nil
 }
 
-func (j *BuildDEBRepoJob) rebuildRepo(workingDir string) error {
+func (j *debRepoBuilder) rebuildRepo(workingDir string) error {
 	arch := "binary-" + j.Arch
 
 	// start by running dpkg-scanpackages to generate a packages file
@@ -98,7 +106,12 @@ func (j *BuildDEBRepoJob) rebuildRepo(workingDir string) error {
 	cmd := exec.Command("dpkg-scanpackages", "--multiversion", filepath.Join(filepath.Join(dirParts[len(dirParts)-5:]...), arch))
 	cmd.Dir = string(filepath.Separator) + filepath.Join(dirParts[:len(dirParts)-5]...)
 
-	grip.Infof("running command='%s' path='%s'", strings.Join(cmd.Args, " "), cmd.Dir)
+	grip.Info(message.Fields{
+		"job_id":    j.ID(),
+		"job_scope": j.Scopes(),
+		"path":      cmd.Dir,
+		"cmd":       strings.Join(cmd.Args, " "),
+	})
 	out, err := cmd.Output()
 	if err != nil {
 		return errors.Wrapf(err, "building 'Packages': [%s]", string(out))
@@ -113,7 +126,7 @@ func (j *BuildDEBRepoJob) rebuildRepo(workingDir string) error {
 
 	// Compress/gzip the packages file
 
-	if err = gzipAndWriteToFile(pkgsFile+".gz", out); err != nil {
+	if err = j.gzipAndWriteToFile(pkgsFile+".gz", out); err != nil {
 		return errors.Wrap(err, "compressing the 'Packages' file")
 	}
 
@@ -149,7 +162,15 @@ func (j *BuildDEBRepoJob) rebuildRepo(workingDir string) error {
 	cmd = exec.Command("apt-ftparchive", "release", "../")
 	cmd.Dir = workingDir
 	out, err = cmd.Output()
-	grip.Infof("generating release file: [command='%s', path='%s']", strings.Join(cmd.Args, " "), cmd.Dir)
+
+	grip.Info(message.Fields{
+		"job_id":    j.ID(),
+		"job_scope": j.Scopes(),
+		"message":   "generating release file",
+		"path":      cmd.Dir,
+		"command":   strings.Join(cmd.Args, " "),
+	})
+
 	outString := string(out)
 	grip.Debug(outString)
 	if err != nil {
@@ -173,7 +194,12 @@ func (j *BuildDEBRepoJob) rebuildRepo(workingDir string) error {
 		return errors.Wrapf(err, "writing Release file to disk %s", relFileName)
 	}
 
-	grip.Noticeln("wrote release files to:", relFileName)
+	grip.Notice(message.Fields{
+		"message":   "wrote release files",
+		"path":      relFileName,
+		"job_id":    j.ID(),
+		"job_scope": j.Scopes(),
+	})
 
 	// sign the file using the notary service. To remove the
 	// MongoDB-specificity we could make this configurable, or

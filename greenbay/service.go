@@ -135,10 +135,13 @@ func (s *Service) runTestHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) runAdhocTests(ctx context.Context, jobs <-chan JobWithError) (interface{}, error) {
-	catcher := grip.NewCatcher()
-	q := queue.NewLocalUnordered(2)
+	q := queue.NewLocalLimitedSize(2, 2048)
+	if err := q.Start(ctx); err != nil {
+		return nil, errors.WithStack(err)
+	}
 	defer q.Runner().Close(ctx)
 
+	catcher := grip.NewCatcher()
 	for unit := range jobs {
 		if unit.Err != nil {
 			catcher.Add(unit.Err)

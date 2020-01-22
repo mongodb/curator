@@ -10,6 +10,8 @@ import (
 	"strings"
 
 	"github.com/mongodb/grip"
+	"github.com/mongodb/grip/message"
+	"github.com/pkg/errors"
 )
 
 // TODO: in the future we may want to add an entry point or method for
@@ -22,7 +24,7 @@ import (
 func (c *RepositoryConfig) BuildIndexPageForDirectory(path, repoName string) error {
 	tmpl, err := template.New("index").Parse(c.Templates.Index)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "problem parsing index file template")
 	}
 
 	catcher := grip.NewCatcher()
@@ -89,7 +91,11 @@ func (c *RepositoryConfig) BuildIndexPageForDirectory(path, repoName string) err
 				return nil
 			}
 
-			grip.Noticeln("writing file at:", filepath.Join(p, "index.html"))
+			grip.Debug(message.Fields{
+				"message": "wrote index file",
+				"path":    filepath.Join(p, "index.html"),
+				"repo":    repoName,
+			})
 			return nil
 		}
 		return nil

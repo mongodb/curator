@@ -21,20 +21,22 @@ interface, or needing more constrained options for some values
 package job
 
 import (
-	"errors"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/mongodb/amboy"
 	"github.com/mongodb/amboy/dependency"
+	"github.com/pkg/errors"
 )
 
 // Base is a type that all new checks should compose, and provides
 // an implementation of most common Job methods which most jobs
 // need not implement themselves.
 type Base struct {
-	TaskID  string        `bson:"name" json:"name" yaml:"name"`
-	JobType amboy.JobType `bson:"job_type" json:"job_type" yaml:"job_type"`
+	TaskID         string        `bson:"name" json:"name" yaml:"name"`
+	JobType        amboy.JobType `bson:"job_type" json:"job_type" yaml:"job_type"`
+	RequiredScopes []string      `bson:"required_scopes" json:"required_scopes" yaml:"required_scopes"`
 
 	priority int
 	timeInfo amboy.JobTimeInfo
@@ -104,6 +106,42 @@ func (b *Base) ID() string {
 	return b.TaskID
 }
 
+// Lock allows pools to modify the state of a job before saving it to
+// the queue to take the lock. The value of the argument should
+// uniquely identify the runtime instance of the queue that holds the
+// lock, and the method returns an error if the lock cannot be
+// acquired.
+func (b *Base) Lock(id string) error {
+	b.mutex.Lock()
+	defer b.mutex.Unlock()
+
+	if b.status.InProgress && time.Since(b.status.ModificationTime) < amboy.LockTimeout && b.status.Owner != id {
+		return errors.Errorf("cannot take lock for '%s' because lock has been held for %s by %s",
+			id, time.Since(b.status.ModificationTime), b.status.Owner)
+	}
+	b.status.InProgress = true
+	b.status.Owner = id
+	b.status.ModificationTime = time.Now()
+	b.status.ModificationCount++
+	return nil
+}
+
+// Unlock attempts to remove the current lock state in the job, if
+// possible.
+func (b *Base) Unlock(id string) {
+	b.mutex.Lock()
+	defer b.mutex.Unlock()
+
+	if b.status.InProgress && time.Since(b.status.ModificationTime) < amboy.LockTimeout && b.status.Owner != id {
+		return
+	}
+
+	b.status.InProgress = false
+	b.status.ModificationTime = time.Now()
+	b.status.ModificationCount++
+	b.status.Owner = ""
+}
+
 // Type returns the JobType specification for this object, and
 // is a component of the Job interface.
 func (b *Base) Type() amboy.JobType {
@@ -138,15 +176,6 @@ func (b *Base) Error() error {
 	}
 
 	return errors.New(strings.Join(b.status.Errors, "\n"))
-}
-
-// ErrorCount reflects the total number of errors that the job has
-// encountered.
-func (b *Base) ErrorCount() int {
-	b.mutex.RLock()
-	defer b.mutex.RUnlock()
-
-	return len(b.status.Errors)
 }
 
 // Priority returns the priority value, and is part of the amboy.Job
@@ -218,7 +247,38 @@ func (b *Base) UpdateTimeInfo(i amboy.JobTimeInfo) {
 		b.timeInfo.WaitUntil = i.WaitUntil
 	}
 
+	if !i.DispatchBy.IsZero() {
+		b.timeInfo.DispatchBy = i.DispatchBy
+	}
+
 	if i.MaxTime != 0 {
 		b.timeInfo.MaxTime = i.MaxTime
 	}
+}
+
+// SetScopes overrides the jobs current scopes with those from the
+// argument. To unset scopes, pass nil to this method.
+func (b *Base) SetScopes(scopes []string) {
+	b.mutex.Lock()
+	defer b.mutex.Unlock()
+
+	if len(scopes) == 0 {
+		b.RequiredScopes = nil
+		return
+	}
+
+	b.RequiredScopes = scopes
+}
+
+// Scopes returns the required scopes for the job.
+func (b *Base) Scopes() []string {
+	b.mutex.RLock()
+	defer b.mutex.RUnlock()
+
+	if len(b.RequiredScopes) == 0 {
+		return nil
+	}
+
+	return b.RequiredScopes
+
 }

@@ -5,7 +5,12 @@ import (
 	"time"
 
 	"github.com/mongodb/amboy/dependency"
+	"github.com/mongodb/grip"
 )
+
+// LockTimeout describes the period of time that a queue will respect
+// a stale lock from another queue before beginning work on a job.
+const LockTimeout = 10 * time.Minute
 
 // Job describes a unit of work. Implementations of Job instances are
 // the content of the Queue. The amboy/job package contains several
@@ -62,6 +67,23 @@ type Job interface {
 	// Error returns an error object if the task was an
 	// error. Typically if the job has not run, this is nil.
 	Error() error
+
+	// Lock and Unlock are responsible for handling the locking
+	// behavor for the job. Lock is responsible for setting the
+	// owner (its argument), incrementing the modification count
+	// and marking the job in progress, and returning an error if
+	// another worker has access to the job. Unlock is responsible
+	// for unsetting the owner and marking the job as
+	// not-in-progress, and should be a no-op if the job does not
+	// belong to the owner. In general the owner should be the value
+	// of queue.ID()
+	Lock(string) error
+	Unlock(string)
+
+	// Scope provides the ability to provide more configurable
+	// exclusion a job can provide.
+	Scopes() []string
+	SetScopes([]string)
 }
 
 // JobType contains information about the type of a job, which queues
@@ -89,19 +111,53 @@ type JobStatusInfo struct {
 
 // JobTimeInfo stores timing information for a job and is used by both
 // the Runner and Job implementations to track how long jobs take to
-// execute. Additionally, the Queue implementations __may__ use this
-// data to delay execution of a job when WaitUntil refers to a time
-// in the future.
+// execute.
+//
+// Additionally, the Queue implementations __may__ use WaitUntil to
+// defer the execution of a job, until WaitUntil refers to a time in
+// the past.
+//
+// If the deadline is specified, and the queue
+// implementation supports it, the queue may drop the job if the
+// deadline is in the past when the job would be dispatched.
 type JobTimeInfo struct {
-	Created   time.Time     `bson:"created,omitempty" json:"created,omitempty" yaml:"created,omitempty"`
-	Start     time.Time     `bson:"start" json:"start,omitempty" yaml:"start,omitempty"`
-	End       time.Time     `bson:"end" json:"end,omitempty" yaml:"end,omitempty"`
-	WaitUntil time.Time     `bson:"wait_until" json:"wait_until,omitempty" yaml:"wait_until,omitempty"`
-	MaxTime   time.Duration `bson:"max_time" json:"max_time,omitempty" yaml:"max_time,omitempty"`
+	Created    time.Time     `bson:"created,omitempty" json:"created,omitempty" yaml:"created,omitempty"`
+	Start      time.Time     `bson:"start,omitempty" json:"start,omitempty" yaml:"start,omitempty"`
+	End        time.Time     `bson:"end,omitempty" json:"end,omitempty" yaml:"end,omitempty"`
+	WaitUntil  time.Time     `bson:"wait_until" json:"wait_until,omitempty" yaml:"wait_until,omitempty"`
+	DispatchBy time.Time     `bson:"dispatch_by" json:"dispatch_by,omitempty" yaml:"dispatch_by,omitempty"`
+	MaxTime    time.Duration `bson:"max_time" json:"max_time,omitempty" yaml:"max_time,omitempty"`
 }
 
 // Duration is a convenience function to return a duration for a job.
 func (j JobTimeInfo) Duration() time.Duration { return j.End.Sub(j.Start) }
+
+// IsStale determines if the job is too old to be dispatched, and if
+// so, queues may remove or drop the job entirely.
+func (j JobTimeInfo) IsStale() bool {
+	if j.DispatchBy.IsZero() {
+		return false
+	}
+
+	return j.DispatchBy.Before(time.Now())
+}
+
+// IsDispatchable determines if the job should be dispatched based on
+// the value of WaitUntil.
+func (j JobTimeInfo) IsDispatchable() bool {
+	return time.Now().After(j.WaitUntil)
+}
+
+// Validate ensures that the structure has reasonable values set.
+func (j JobTimeInfo) Validate() error {
+	catcher := grip.NewBasicCatcher()
+
+	catcher.NewWhen(!j.DispatchBy.IsZero() && j.WaitUntil.After(j.DispatchBy), "invalid for wait_until to be after dispatch_by")
+	catcher.NewWhen(j.Created.IsZero(), "must specify non-zero created timestamp")
+	catcher.NewWhen(j.MaxTime < 0, "must specify 0 or positive max_time")
+
+	return catcher.Resolve()
+}
 
 // Queue describes a very simple Job queue interface that allows users
 // to define Job objects, add them to a worker queue and execute tasks
@@ -111,8 +167,12 @@ func (j JobTimeInfo) Duration() time.Duration { return j.End.Sub(j.Start) }
 // organization properties.
 type Queue interface {
 	// Used to add a job to the queue. Should only error if the
-	// Queue cannot accept jobs.
+	// Queue cannot accept jobs if the job already exists in a
+	// queue.
 	Put(context.Context, Job) error
+
+	// Returns a unique identifier for the instance of the queue.
+	ID() string
 
 	// Given a job id, get that job. The second return value is a
 	// Boolean, which indicates if the named job had been
@@ -130,6 +190,12 @@ type Queue interface {
 	// Used to mark a Job complete and remove it from the pending
 	// work of the queue.
 	Complete(context.Context, Job)
+
+	// Saves the state of a current job to the underlying storage,
+	// generally in support of locking and incremental
+	// persistance. Should error if the job does not exist (use
+	// put,) or if the queue does not have ownership of the job.
+	Save(context.Context, Job) error
 
 	// Returns a channel that produces completed Job objects.
 	Results(context.Context) <-chan Job

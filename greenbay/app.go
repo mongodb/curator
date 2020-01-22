@@ -76,7 +76,7 @@ func (a *Application) Run(ctx context.Context) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	q := queue.NewLocalUnordered(a.NumWorkers)
+	q := queue.NewLocalLimitedSize(a.NumWorkers, 2048)
 
 	if err := q.Start(ctx); err != nil {
 		return errors.Wrap(err, "problem starting workers")

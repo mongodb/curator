@@ -4,30 +4,33 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/mongodb/grip"
+	"github.com/mongodb/grip/message"
 	"github.com/pkg/errors"
 )
 
-// BuildRPMRepoJob contains specific implementation for building RPM
+// rpmRepoBuilder contains specific implementation for building RPM
 // repositories using createrepo.
-type BuildRPMRepoJob struct {
-	*Job
+type rpmRepoBuilder struct {
+	*repoBuilderJob
+	mutex sync.Mutex
 }
 
-func setupRPMJob(j *Job) {
-	r := &BuildRPMRepoJob{j}
-	r.Job.builder = r
+func setupRPMJob(j *repoBuilderJob) {
+	r := &rpmRepoBuilder{repoBuilderJob: j}
+	r.builder = r
 }
 
-func (j *BuildRPMRepoJob) injectPackage(local, repoName string) (string, error) {
+func (j *rpmRepoBuilder) injectPackage(local, repoName string) (string, error) {
 	repoPath := filepath.Join(local, repoName, j.Arch)
 	err := j.linkPackages(filepath.Join(repoPath, "RPMS"))
 
 	return repoPath, errors.Wrapf(err, "linking packages for %s", repoPath)
 }
 
-func (j *BuildRPMRepoJob) rebuildRepo(workingDir string) error {
+func (j *rpmRepoBuilder) rebuildRepo(workingDir string) error {
 	var output string
 	var err error
 	var out []byte
@@ -42,22 +45,39 @@ func (j *BuildRPMRepoJob) rebuildRepo(workingDir string) error {
 
 	cmd := exec.Command("createrepo", "-d", "-s", "sha", workingDir)
 
-	if j.DryRun {
-		grip.Noticeln("[dry-run] would run:", strings.Join(cmd.Args, " "))
+	if j.Conf.DryRun {
 		output = "no output: dry run"
 	} else {
-		grip.Noticeln("building repo with operation:", strings.Join(cmd.Args, " "))
+		grip.Notice(message.Fields{
+			"cmd":       strings.Join(cmd.Args, " "),
+			"message":   "building repo with operation",
+			"job_id":    j.ID(),
+			"job_scope": j.Scopes(),
+		})
 		out, err = cmd.CombinedOutput()
 		output = string(out)
+
 		if err != nil {
-			grip.Error(err)
-			grip.Info(output)
+			grip.Error(message.WrapError(err, message.Fields{
+				"cmd":       strings.Join(cmd.Args, " "),
+				"job_id":    j.ID(),
+				"job_scope": j.Scopes(),
+				"output":    output,
+			}))
 			return errors.Wrap(err, "problem building repo")
 		}
-		grip.Debug(output)
 	}
 
-	grip.Infoln("rebuilt repo for:", workingDir)
+	grip.Info(message.Fields{
+		"distro":    j.Distro.Name,
+		"dry_run":   j.Conf.DryRun,
+		"cmd":       strings.Join(cmd.Args, " "),
+		"job_id":    j.ID(),
+		"job_scope": j.Scopes(),
+		"dir":       workingDir,
+		"output":    output,
+	})
+
 	j.Output[workingDir] = output
 
 	metaDataFile := filepath.Join(workingDir, "repodata", "repomd.xml")

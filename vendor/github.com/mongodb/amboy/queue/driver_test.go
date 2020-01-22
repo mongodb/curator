@@ -18,8 +18,8 @@ import (
 
 type DriverSuite struct {
 	uuid              string
-	driver            Driver
-	driverConstructor func() Driver
+	driver            remoteQueueDriver
+	driverConstructor func() remoteQueueDriver
 	tearDown          func()
 	ctx               context.Context
 	cancel            context.CancelFunc
@@ -28,62 +28,19 @@ type DriverSuite struct {
 
 // Each driver should invoke this suite:
 
-func TestDriverSuiteWithLocalInstance(t *testing.T) {
-	tests := new(DriverSuite)
-	tests.uuid = uuid.NewV4().String()
-	tests.driverConstructor = func() Driver {
-		return NewInternalDriver()
-	}
-
-	suite.Run(t, tests)
-}
-
-func TestDriverSuiteWithPriorityInstance(t *testing.T) {
-	tests := new(DriverSuite)
-	tests.uuid = uuid.NewV4().String()
-	tests.driverConstructor = func() Driver {
-		return NewPriorityDriver()
-	}
-
-	suite.Run(t, tests)
-}
-
-func TestDriverSuiteWithMgoInstance(t *testing.T) {
-	tests := new(DriverSuite)
-	tests.uuid = uuid.NewV4().String()
-	opts := DefaultMongoDBOptions()
-	opts.DB = "amboy_test"
-	mDriver := NewMgoDriver(
-		"test-"+tests.uuid,
-		opts).(*mgoDriver)
-
-	tests.driverConstructor = func() Driver {
-		return mDriver
-	}
-
-	tests.tearDown = func() {
-		session, jobs := mDriver.getJobsCollection()
-		defer session.Close()
-		err := jobs.DropCollection()
-		grip.Infof("removed %s collection (%+v)", jobs.Name, err)
-	}
-
-	suite.Run(t, tests)
-}
-
 func TestDriverSuiteWithMongoDBInstance(t *testing.T) {
 	tests := new(DriverSuite)
 	tests.uuid = uuid.NewV4().String()
 	opts := DefaultMongoDBOptions()
 	opts.DB = "amboy_test"
-	mDriver := NewMongoDriver(
+	mDriver := newMongoDriver(
 		"test-"+tests.uuid,
 		opts).(*mongoDriver)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	tests.driverConstructor = func() Driver {
+	tests.driverConstructor = func() remoteQueueDriver {
 		return mDriver
 	}
 
@@ -181,33 +138,6 @@ func (s *DriverSuite) TestSaveAndGetRoundTripObjects() {
 	}
 }
 
-func (s *DriverSuite) TestSaveAndSaveStatus() {
-	j := job.NewShellJob("echo foo", "")
-	name := j.ID()
-	status := j.Status()
-
-	s.Require().Equal(0, s.driver.Stats(s.ctx).Total)
-
-	s.Require().NoError(s.driver.Put(s.ctx, j))
-	s.Equal(1, s.driver.Stats(s.ctx).Total)
-
-	s.Require().NoError(s.driver.Save(s.ctx, j))
-
-	n, err := s.driver.Get(s.ctx, name)
-	s.Require().NoError(err)
-	status = n.Status()
-	status.Completed = true
-	status.InProgress = false
-	s.Require().NoError(s.driver.SaveStatus(s.ctx, j, status))
-
-	n, err = s.driver.Get(s.ctx, name)
-	s.Require().NoError(err)
-	s.Equal(name, n.ID())
-	s.Equal(status.Completed, n.Status().Completed)
-	s.Equal(status.InProgress, n.Status().InProgress)
-	s.Equal(1, s.driver.Stats(s.ctx).Total)
-}
-
 func (s *DriverSuite) TestReloadRefreshesJobFromMemory() {
 	j := job.NewShellJob("echo foo", "")
 
@@ -255,29 +185,6 @@ func (s *DriverSuite) TestStatsCallReportsCompletedJobs() {
 	s.Equal(0, s.driver.Stats(s.ctx).Pending)
 	s.Equal(0, s.driver.Stats(s.ctx).Blocked)
 	s.Equal(0, s.driver.Stats(s.ctx).Running)
-}
-
-func (s *DriverSuite) TestNextMethodReturnsJob() {
-	s.Equal(0, s.driver.Stats(s.ctx).Total)
-
-	j := job.NewShellJob("echo foo", "")
-
-	s.NoError(s.driver.Put(s.ctx, j))
-	stats := s.driver.Stats(s.ctx)
-	s.Equal(1, stats.Total, "%+v", stats)
-	s.Equal(1, stats.Pending)
-
-	nj := s.driver.Next(s.ctx)
-	stats = s.driver.Stats(s.ctx)
-	s.Equal(0, stats.Completed)
-	s.Equal(1, stats.Pending)
-	s.Equal(0, stats.Blocked)
-	s.Equal(0, stats.Running)
-
-	if s.NotNil(nj) {
-		s.Equal(j.ID(), nj.ID())
-		s.NoError(s.driver.Lock(s.ctx, j))
-	}
 }
 
 func (s *DriverSuite) TestNextMethodSkipsCompletedJos() {

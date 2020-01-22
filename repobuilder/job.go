@@ -17,6 +17,7 @@ import (
 	"github.com/mongodb/amboy/job"
 	"github.com/mongodb/amboy/registry"
 	"github.com/mongodb/grip"
+	"github.com/mongodb/grip/message"
 	"github.com/pkg/errors"
 	"github.com/tychoish/bond"
 )
@@ -26,39 +27,35 @@ type jobImpl interface {
 	injectPackage(string, string) (string, error)
 }
 
-// Job provides the common structure for a repository building Job.
-type Job struct {
+// repoBuilderJob provides the common structure for a repository building Job.
+type repoBuilderJob struct {
 	Distro       *RepositoryDefinition `bson:"distro" json:"distro" yaml:"distro"`
 	Conf         *RepositoryConfig     `bson:"conf" json:"conf" yaml:"conf"`
-	DryRun       bool                  `bson:"dry_run" json:"dry_run" yaml:"dry_run"`
-	Verbose      bool                  `bson:"verbose" json:"verbose" yaml:"verbose"`
 	Output       map[string]string     `bson:"output" json:"output" yaml:"output"`
 	Version      string                `bson:"version" json:"version" yaml:"version"`
 	Arch         string                `bson:"arch" json:"arch" yaml:"arch"`
 	Profile      string                `bson:"aws_profile" json:"aws_profile" yaml:"aws_profile"`
-	WorkSpace    string                `bson:"local_workdir" json:"local_workdir" yaml:"local_workdir"`
 	PackagePaths []string              `bson:"package_paths" json:"package_paths" yaml:"package_paths"`
 	*job.Base    `bson:"metadata" json:"metadata" yaml:"metadata"`
 
 	workingDirs []string
 	release     *bond.MongoDBVersion
-	mutex       sync.RWMutex
 	builder     jobImpl
 }
 
+const jobName = "build-repo"
+
 func init() {
-	registry.AddJobType("build-repo", func() amboy.Job {
-		return buildRepoJob()
-	})
+	registry.AddJobType(jobName, func() amboy.Job { return buildRepoJob() })
 }
 
-func buildRepoJob() *Job {
-	j := &Job{
+func buildRepoJob() *repoBuilderJob {
+	j := &repoBuilderJob{
 		Output: make(map[string]string),
 		Base: &job.Base{
 			JobType: amboy.JobType{
-				Name:    "build-repo",
-				Version: 2,
+				Name:    jobName,
+				Version: 3,
 			},
 		},
 	}
@@ -70,26 +67,22 @@ func buildRepoJob() *Job {
 
 // NewBuildRepoJob constructs a repository building job, which
 // implements the amboy.Job interface.
-func NewBuildRepoJob(conf *RepositoryConfig, distro *RepositoryDefinition, version, arch, profile string, pkgs ...string) (*Job, error) {
+func NewBuildRepoJob(conf *RepositoryConfig, distro *RepositoryDefinition, version, arch, profile string, pkgs ...string) (amboy.Job, error) {
 	var err error
 
 	j := buildRepoJob()
-	if distro.Type == DEB {
-		setupDEBJob(j)
-	} else if distro.Type == RPM {
-		setupRPMJob(j)
-	}
 
 	j.release, err = bond.NewMongoDBVersion(version)
 	if err != nil {
 		return nil, err
 	}
 
-	j.WorkSpace, err = os.Getwd()
-	if err != nil {
-		grip.Errorln("system error: cannot determine the current working directory.",
-			"not creating a job object.")
-		return nil, err
+	j.Conf = conf
+	if j.Conf.WorkSpace == "" {
+		j.Conf.WorkSpace, err = os.Getwd()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	j.SetID(fmt.Sprintf("build-%s-repo.%d", distro.Type, job.GetNumber()))
@@ -103,7 +96,26 @@ func NewBuildRepoJob(conf *RepositoryConfig, distro *RepositoryDefinition, versi
 	return j, nil
 }
 
-func (j *Job) linkPackages(dest string) error {
+func (j *repoBuilderJob) setup() {
+	if j.builder != nil {
+		return
+	}
+
+	if j.Distro == nil {
+		j.AddError(errors.New("invalid job definition, missing distro"))
+	}
+
+	if j.Distro.Type == DEB {
+		setupDEBJob(j)
+	} else if j.Distro.Type == RPM {
+		setupRPMJob(j)
+	} else {
+		j.AddError(errors.Errorf("invalid distro definition '%s'", j.Distro.Type))
+	}
+
+}
+
+func (j *repoBuilderJob) linkPackages(dest string) error {
 	catcher := grip.NewCatcher()
 	wg := &sync.WaitGroup{}
 	defer wg.Wait()
@@ -128,14 +140,18 @@ func (j *Job) linkPackages(dest string) error {
 
 		mirror := filepath.Join(dest, filepath.Base(pkg))
 		if j.release.IsDevelopmentBuild() {
-			if _, err := os.Stat(mirror); os.IsNotExist(err) {
-				err = errors.Wrap(os.Remove(mirror), "problem removing previous development build")
-				grip.Notice(err)
-			}
-
 			new := strings.Replace(mirror, j.release.String(), j.release.Series(), 1)
 			if new != mirror {
-				grip.Infof("renaming development package from '%s' to '%s'", mirror, new)
+				grip.Debug(message.Fields{
+					"op":        "renaming development packages",
+					"from":      mirror,
+					"to":        new,
+					"job_id":    j.ID(),
+					"job_scope": j.Scopes(),
+					"repo":      j.Distro.Name,
+					"version":   j.release.String(),
+					"package":   pkg,
+				})
 				if err := os.Rename(mirror, new); err != nil {
 					return errors.Wrap(err, "problem renaming development release")
 				}
@@ -144,7 +160,15 @@ func (j *Job) linkPackages(dest string) error {
 		}
 
 		if _, err := os.Stat(mirror); os.IsNotExist(err) {
-			grip.Infof("copying package %s to local staging %s", pkg, dest)
+			grip.Debug(message.Fields{
+				"op":        "copying packages to local staging",
+				"from":      pkg,
+				"to":        dest,
+				"job_id":    j.ID(),
+				"job_scope": j.Scopes(),
+				"repo":      j.Distro.Name,
+				"version":   j.release.String(),
+			})
 
 			if err = os.Link(pkg, mirror); err != nil {
 				catcher.Add(errors.Wrapf(err, "problem copying package %s to %s",
@@ -162,19 +186,17 @@ func (j *Job) linkPackages(dest string) error {
 				}(mirror)
 			}
 
-		} else {
-			grip.Infof("file %s is already mirrored", mirror)
 		}
 	}
 
 	return catcher.Resolve()
 }
 
-func (j *Job) injectNewPackages(local string) (string, error) {
+func (j *repoBuilderJob) injectNewPackages(local string) (string, error) {
 	return j.builder.injectPackage(local, j.getPackageLocation())
 }
 
-func (j *Job) getPackageLocation() string {
+func (j *repoBuilderJob) getPackageLocation() string {
 	if j.release.IsDevelopmentBuild() {
 		// nightlies to the a "development" repo.
 		return "development"
@@ -194,7 +216,7 @@ func (j *Job) getPackageLocation() string {
 // overwrite the existing file, removing the archive's
 // signature. Using overwrite=true and a non-nil string is not logical
 // and returns a warning, but is passed to the client.
-func (j *Job) signFile(fileName, archiveExtension string, overwrite bool) error {
+func (j *repoBuilderJob) signFile(fileName, archiveExtension string, overwrite bool) error {
 	// In the future it would be nice if we could talk to the
 	// notary service directly rather than shelling out here. The
 	// final option controls if we overwrite this file.
@@ -228,54 +250,97 @@ func (j *Job) signFile(fileName, archiveExtension string, overwrite bool) error 
 		"--outputs", "sig",
 	}
 
-	grip.AlertWhenf(strings.HasPrefix(archiveExtension, "."),
-		"extension '%s', has a leading dot, which is almost certainly undesirable.", archiveExtension)
+	grip.AlertWhen(strings.HasPrefix(archiveExtension, "."),
+		message.Fields{
+			"job_id":    j.ID(),
+			"job_scope": j.Scopes(),
+			"repo":      j.Distro.Name,
+			"version":   j.release.String(),
+			"extension": archiveExtension,
+			"message":   "extension has leading dot, which is ususally problem",
+		})
 
-	grip.AlertWhenln(overwrite && len(archiveExtension) != 0,
-		"specified overwrite with an archive extension:", archiveExtension,
-		"this is probably an error, (not impacting packages,) but is passed to the client.")
+	grip.CriticalWhen(overwrite && len(archiveExtension) != 0,
+		message.Fields{
+			"job_id":    j.ID(),
+			"job_scope": j.Scopes(),
+			"repo":      j.Distro.Name,
+			"version":   j.release.String(),
+			"extension": archiveExtension,
+			"message":   "specified overwrite with an archive extension",
+			"impact":    "no package impact",
+		})
 
 	if overwrite {
-		grip.Noticef("overwriting existing contents of file '%s' while signing it", fileName)
 		args = append(args, "--package-file-suffix", "")
 	} else {
 		// if we're not overwriting the unsigned source file
 		// with the signed file, then we should remove the
 		// signed artifact before. Unclear if this is needed,
 		// the cronjob did this.
-		grip.Warning(os.Remove(fileName + "." + archiveExtension))
+		grip.Warning(message.WrapError(os.Remove(fileName+"."+archiveExtension),
+			message.Fields{
+				"mesage":    "problem removing file",
+				"filename":  fileName + "." + archiveExtension,
+				"job_id":    j.ID(),
+				"job_scope": j.Scopes(),
+				"repo":      j.Distro.Name,
+				"version":   j.release.String(),
+			}))
 	}
 
 	args = append(args, filepath.Base(fileName))
 	cmd := exec.Command(args[0], args[1:]...)
 	cmd.Dir = filepath.Dir(fileName)
 
-	grip.Infoln("running notary command:", strings.Replace(
-		strings.Join(cmd.Args, " "),
-		token, "XXXXX", -1))
+	grip.Info(message.Fields{
+		"message":   "running notary-client command",
+		"cmd":       strings.Replace(strings.Join(cmd.Args, " "), token, "XXXXX", -1),
+		"job_id":    j.ID(),
+		"job_scope": j.Scopes(),
+		"repo":      j.Distro.Name,
+		"version":   j.release.String(),
+	})
 
 	out, err := cmd.CombinedOutput()
 	output := strings.Trim(string(out), " \n\t")
 
 	if err != nil {
-		grip.Warningf("error signed file '%s': %s (%s)",
-			fileName, err.Error(), output)
+		grip.Warning(message.WrapError(err,
+			message.Fields{
+				"message":   "error signing file",
+				"path":      fileName,
+				"output":    output,
+				"job_id":    j.ID(),
+				"job_scope": j.Scopes(),
+				"repo":      j.Distro.Name,
+				"version":   j.release.String(),
+			}))
 		return errors.Wrap(err, "problem with notary service client signing file")
 	}
 
-	grip.Noticef("successfully signed file: %s (%s)", fileName, output)
+	grip.Info(message.Fields{
+		"message":   "signed file",
+		"path":      fileName,
+		"output":    output,
+		"job_id":    j.ID(),
+		"job_scope": j.Scopes(),
+		"repo":      j.Distro.Name,
+		"version":   j.release.String(),
+	})
 
 	return nil
 }
 
 // Run is the main execution entry point into repository building, and is a component
-func (j *Job) Run(ctx context.Context) {
+func (j *repoBuilderJob) Run(ctx context.Context) {
+	j.setup()
 	opts := pail.S3Options{
 		Region:                   j.Distro.Region,
 		SharedCredentialsProfile: j.Profile,
 		Name:                     j.Distro.Bucket,
-		DryRun:                   j.DryRun,
-		Verbose:                  j.Verbose,
+		DryRun:                   j.Conf.DryRun,
+		Verbose:                  j.Conf.Verbose,
 		UseSingleFileChecksums:   true,
 		Permissions:              pail.S3PermissionsPublicRead,
 		MaxRetries:               10,
@@ -307,9 +372,17 @@ func (j *Job) Run(ctx context.Context) {
 	// at the moment there is only multiple repos for RPM distros
 	for _, remote := range j.Distro.Repos {
 		j.workingDirs = append(j.workingDirs, remote)
-		grip.Infof("rebuilding %s.%s", bucket, remote)
+		grip.Debug(message.Fields{
+			"message":   "rebuilding repo",
+			"job_id":    j.ID(),
+			"job_scope": j.Scopes(),
+			"repo":      j.Distro.Name,
+			"version":   j.release.String(),
+			"remote":    remote,
+			"bucket":    bucket,
+		})
 
-		local := filepath.Join(j.WorkSpace, remote)
+		local := filepath.Join(j.Conf.WorkSpace, remote)
 
 		var err error
 
@@ -317,8 +390,16 @@ func (j *Job) Run(ctx context.Context) {
 			j.AddError(errors.Wrapf(err, "problem creating directory %s", local))
 			return
 		}
+		grip.Debug(message.Fields{
+			"message":   "downloading package",
+			"job_id":    j.ID(),
+			"job_scope": j.Scopes(),
+			"repo":      j.Distro.Name,
+			"version":   j.release.String(),
+			"remote":    remote,
+			"local":     local,
+		})
 
-		grip.Infof("downloading from %s to %s", remote, local)
 		pkgLocation := j.getPackageLocation()
 		syncOpts := pail.SyncOptions{
 			Local:  filepath.Join(local, pkgLocation),
@@ -372,6 +453,18 @@ func (j *Job) Run(ctx context.Context) {
 		}
 	}
 
-	grip.WarningWhen(j.HasErrors(), "encountered error rebuilding and uploading repositories. operation complete.")
-	grip.NoticeWhen(!j.HasErrors(), "completed rebuilding all repositories")
+	msg := message.Fields{
+		"message":   "completed rebuilding repositories",
+		"job_id":    j.ID(),
+		"job_scope": j.Scopes(),
+		"repo":      j.Distro.Name,
+		"version":   j.release.String(),
+	}
+
+	if j.HasErrors() {
+		msg["outcome"] = "encountered problem"
+		grip.Warning(message.WrapError(j.Error(), msg))
+	} else {
+		grip.Info(msg)
+	}
 }

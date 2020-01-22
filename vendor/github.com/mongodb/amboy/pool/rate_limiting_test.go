@@ -2,6 +2,7 @@ package pool
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
 	"testing"
 	"time"
@@ -120,7 +121,9 @@ func TestAvergeTimeCalculator(t *testing.T) {
 	defer cancel()
 	j := job.NewShellJob("hostname", "")
 	assert.False(j.Status().Completed)
-	assert.True(p.runJob(ctx, j) > time.Nanosecond)
+	val := p.runJob(ctx, j)
+	fmt.Println(val)
+	assert.True(val > time.Microsecond)
 	assert.True(j.Status().Completed)
 
 	// mess with the target number of tasks to make sure that we
@@ -141,10 +144,10 @@ func TestSimpleRateLimitingWorkerHandlesPanicingJobs(t *testing.T) {
 
 	p := &simpleRateLimited{}
 	p.queue = &QueueTester{
-		toProcess: make(chan amboy.Job),
+		toProcess: jobsChanWithPanicingJobs(ctx, 10),
 		storage:   make(map[string]amboy.Job),
 	}
-	assert.NotPanics(func() { p.worker(ctx, jobsChanWithPanicingJobs(ctx, 10)) })
+	assert.NotPanics(func() { p.worker(ctx) })
 }
 
 func TestEWMARateLimitingWorkerHandlesPanicingJobs(t *testing.T) {
@@ -154,10 +157,10 @@ func TestEWMARateLimitingWorkerHandlesPanicingJobs(t *testing.T) {
 
 	p := &ewmaRateLimiting{}
 	p.queue = &QueueTester{
-		toProcess: make(chan amboy.Job),
+		toProcess: jobsChanWithPanicingJobs(ctx, 10),
 		storage:   make(map[string]amboy.Job),
 	}
-	assert.NotPanics(func() { p.worker(ctx, jobsChanWithPanicingJobs(ctx, 10)) })
+	assert.NotPanics(func() { p.worker(ctx) })
 }
 
 func TestMultipleWorkers(t *testing.T) {

@@ -78,7 +78,7 @@ func (s *ProducerSuite) SetupSuite() {
 	ctx, cancel := context.WithCancel(context.Background())
 	s.cancel = cancel
 	s.require = s.Require()
-	s.queue = queue.NewLocalUnordered(2)
+	s.queue = queue.NewLocalLimitedSize(2, 1024)
 	s.require.NoError(s.queue.Start(ctx))
 	tmpDir, err := ioutil.TempDir("", uuid.Must(uuid.NewV4()).String())
 	s.require.NoError(err)
@@ -158,7 +158,7 @@ func (s *ProducerSuite) TestWithQueueAndInvalidJobs() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	q := queue.NewLocalUnordered(2)
+	q := queue.NewLocalLimitedSize(2, 1024)
 	s.require.NoError(q.Start(ctx))
 
 	s.NoError(q.Put(ctx, job.NewShellJob("echo foo", "")))
