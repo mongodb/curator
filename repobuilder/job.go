@@ -3,6 +3,7 @@ package repobuilder
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -128,7 +129,6 @@ func (j *repoBuilderJob) linkPackages(dest string) error {
 			// clear, we should skip these files.
 			continue
 		}
-
 		if _, err := os.Stat(dest); os.IsNotExist(err) {
 			grip.Noticeln("creating directory:", dest)
 			if err := os.MkdirAll(dest, 0744); err != nil {
@@ -332,6 +332,37 @@ func (j *repoBuilderJob) signFile(fileName, archiveExtension string, overwrite b
 	return nil
 }
 
+func (j *repoBuilderJob) processPackages() error {
+	// TODO:
+	// - process the Package paths to convert links:
+	// - create temp directory
+	// - if the package ends in .deb or rpm just download them to tmp,
+	// - if path ends in tgz, tar.gz, zip, etc, download and extract
+	// - delete temp at end of the repo
+	// Questions:
+	// - how to inject jasper manager or other tools to extract (mholt/archiver)
+	// -
+
+	tmpdir, err := ioutil.TempDir("", j.ID())
+	if err != nil {
+		return errors.Wrap(err, "problem making tempdir")
+	}
+
+	paths := []string{}
+	catcher := grip.NewBasicCatcher()
+	for _, path := range j.PackagePaths {
+		if !strings.HasPrefix(path, "http") {
+			paths = append(paths, path)
+			continue
+		}
+	}
+
+	catcher.Add(os.Remove(tmpdir))
+
+	j.PackagePaths = paths
+	return catcher.Resolve()
+}
+
 // Run is the main execution entry point into repository building, and is a component
 func (j *repoBuilderJob) Run(ctx context.Context) {
 	j.setup()
@@ -367,6 +398,11 @@ func (j *repoBuilderJob) Run(ctx context.Context) {
 
 		ctx, cancel = context.WithTimeout(ctx, timeout)
 		defer cancel()
+	}
+
+	if err = j.processPackages(); err != nil {
+		j.AddError(err)
+		return
 	}
 
 	// at the moment there is only multiple repos for RPM distros
