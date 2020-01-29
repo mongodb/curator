@@ -40,6 +40,8 @@ imports:
 - name: github.com/stretchr/testify
   version: 890a5c3458b43e6104ff5da8dfa139d013d77544
 
+- name: github.com/mholt/archiver
+  version: e4ef56d48eb029648b0e895bb0b6a393ef0829c3
 - name: github.com/papertrail/go-tail
   version: 1b77c8dfcc6baca12dedfab119135396782b68a1
 - name: github.com/PuerkitoBio/rehttp
