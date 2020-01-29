@@ -369,11 +369,13 @@ func (j *repoBuilderJob) processPackages(ctx context.Context) error {
 			paths = append(paths, path)
 			continue
 		}
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, path, nil)
+		req, err := http.NewRequest(http.MethodGet, path, nil)
 		if err != nil {
 			catcher.Add(err)
 			continue
 		}
+		req = req.WithContext(ctx)
+
 		resp, err := j.client.Do(req)
 		if err != nil {
 			catcher.Add(err)
