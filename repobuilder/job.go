@@ -386,7 +386,7 @@ func (j *repoBuilderJob) processPackages(ctx context.Context) error {
 			continue
 		}
 		localPath := filepath.Join(j.tmpdir, filepath.Base(path))
-		defer resp.Body.Close()
+		defer func() { catcher.Add(resp.Body.Close()) }()
 		file, err := os.Create(localPath)
 		if err != nil {
 			catcher.Add(err)

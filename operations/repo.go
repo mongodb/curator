@@ -201,9 +201,5 @@ func buildRepo(ctx context.Context, packages, configPath, workingDir, distro, ed
 		catcher.Add(err)
 	}
 
-	if catcher.HasErrors() {
-		return errors.Wrapf(catcher.Resolve(), "encountered problem rebuilding repository after %d retries", retries)
-	}
-
-	return nil
+	return errors.Wrapf(catcher.Resolve(), "encountered problem rebuilding repository after %d retries", retries)
 }
