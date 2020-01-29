@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/evergreen-ci/pail"
-	"github.com/evergreen-ci/pulp"
+	"github.com/evergreen-ci/utility"
 	"github.com/mholt/archiver"
 	"github.com/mongodb/amboy"
 	"github.com/mongodb/amboy/dependency"
@@ -121,7 +121,7 @@ func (j *repoBuilderJob) setup() {
 	}
 
 	if j.client == nil {
-		j.client = pulp.GetDefaultHTTPRetryableClient()
+		j.client = utility.GetDefaultHTTPRetryableClient()
 	}
 
 	var err error
@@ -133,7 +133,7 @@ func (j *repoBuilderJob) setup() {
 }
 
 func (j *repoBuilderJob) cleanup() {
-	pulp.PutHTTPClient(j.client)
+	utility.PutHTTPClient(j.client)
 	j.AddError(os.RemoveAll(j.tmpdir))
 }
 
