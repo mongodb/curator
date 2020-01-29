@@ -49,6 +49,7 @@ func buildApp() *cli.App {
 		operations.Poplar(),
 		operations.FTDC(),
 		operations.Timber(),
+		operations.Backup(),
 	}
 
 	// These are global options. Use this to configure logging or

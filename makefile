@@ -156,6 +156,14 @@ vendor-clean:
 	rm -rf vendor/github.com/mongodb/amboy/vendor/github.com/mongodb/grip/
 	rm -rf vendor/github.com/mongodb/amboy/vendor/github.com/pkg/errors/
 	rm -rf vendor/github.com/mongodb/amboy/vendor/github.com/stretchr/testify/
+	rm -rf vendor/github.com/mongodb/anser/vendor/go.mongodb.org/mongo-driver/
+	rm -rf vendor/github.com/mongodb/anser/vendor/github.com/stretchr
+	rm -rf vendor/github.com/mongodb/anser/vendor/github.com/pkg/errors
+	rm -rf vendor/github.com/mongodb/anser/vendor/github.com/mongodb/grip
+	rm -rf vendor/github.com/mongodb/anser/vendor/github.com/mongodb/amboy
+	rm -rf vendor/github.com/mongodb/anser/vendor/github.com/mongodb/ftdc
+	rm -rf vendor/github.com/mongodb/anser/vendor/github.com/satori
+	rm -rf vendor/github.com/mongodb/anser/vendor/github.com/evergreen-ci/birch
 	rm -rf vendor/github.com/mongodb/ftdc/vendor/go.mongodb.org/
 	rm -rf vendor/github.com/mongodb/ftdc/vendor/github.com/papertrail/
 	rm -rf vendor/github.com/mongodb/ftdc/vendor/github.com/evergreen-ci/birch/
