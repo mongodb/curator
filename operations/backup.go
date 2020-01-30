@@ -75,7 +75,7 @@ func Backup() cli.Command {
 				return errors.Wrap(err, "problem client")
 			}
 			seen := 0
-			colls := c.StringSlce("collection")
+			colls := c.StringSlice("collection")
 			catcher := grip.NewBasicCatcher()
 			for _, coll := range colls {
 				seen++
@@ -96,7 +96,7 @@ func Backup() cli.Command {
 				}
 				catcher.Add(err)
 				grip.InfoWhen(err == nil, msg)
-				grip.Error(message.WrapError(err, m))
+				grip.Error(message.WrapError(err, msg))
 
 			}
 			return catcher.Resolve()
