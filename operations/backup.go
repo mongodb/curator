@@ -50,6 +50,15 @@ func Backup() cli.Command {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
+			colls := c.StringSlice("collection")
+			if len(colls) == 0 {
+				return errors.New("must specify one or more collection")
+			}
+			dbName := c.String("database")
+			if dbName == "" {
+				return errors.New("must specify a database name")
+			}
+
 			startAt := time.Now()
 
 			client, err := mongo.NewClient(options.Client().ApplyURI(c.String("mongodbURI")))
@@ -72,16 +81,16 @@ func Backup() cli.Command {
 					Prefix:                   c.String("prefix"),
 				})
 			if err != nil {
-				return errors.Wrap(err, "problem client")
+				return errors.Wrap(err, "problem constructing bucket client client")
 			}
+
 			seen := 0
-			colls := c.StringSlice("collection")
 			catcher := grip.NewBasicCatcher()
 			for _, coll := range colls {
 				seen++
 				opts := backup.Options{
 					NS: model.Namespace{
-						DB:         c.String("database"),
+						DB:         dbName,
 						Collection: coll,
 					},
 					Target:        bucket.Writer,
