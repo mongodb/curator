@@ -3,6 +3,9 @@ package repobuilder
 import (
 	"context"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -12,6 +15,8 @@ import (
 	"time"
 
 	"github.com/evergreen-ci/pail"
+	"github.com/evergreen-ci/utility"
+	"github.com/mholt/archiver"
 	"github.com/mongodb/amboy"
 	"github.com/mongodb/amboy/dependency"
 	"github.com/mongodb/amboy/job"
@@ -38,6 +43,8 @@ type repoBuilderJob struct {
 	PackagePaths []string              `bson:"package_paths" json:"package_paths" yaml:"package_paths"`
 	*job.Base    `bson:"metadata" json:"metadata" yaml:"metadata"`
 
+	tmpdir      string
+	client      *http.Client
 	workingDirs []string
 	release     *bond.MongoDBVersion
 	builder     jobImpl
@@ -113,6 +120,21 @@ func (j *repoBuilderJob) setup() {
 		j.AddError(errors.Errorf("invalid distro definition '%s'", j.Distro.Type))
 	}
 
+	if j.client == nil {
+		j.client = utility.GetDefaultHTTPRetryableClient()
+	}
+
+	var err error
+
+	j.tmpdir, err = ioutil.TempDir("", j.ID())
+	if err != nil {
+		j.AddError(errors.Wrap(err, "problem making tempdir"))
+	}
+}
+
+func (j *repoBuilderJob) cleanup() {
+	utility.PutHTTPClient(j.client)
+	j.AddError(os.RemoveAll(j.tmpdir))
 }
 
 func (j *repoBuilderJob) linkPackages(dest string) error {
@@ -126,6 +148,9 @@ func (j *repoBuilderJob) linkPackages(dest string) error {
 			// harmless, as we regenerate these files
 			// later, but just to be careful and more
 			// clear, we should skip these files.
+			continue
+		}
+		if j.Distro.Type == RPM && !strings.HasSuffix(pkg, ".rpm") {
 			continue
 		}
 
@@ -332,9 +357,118 @@ func (j *repoBuilderJob) signFile(fileName, archiveExtension string, overwrite b
 	return nil
 }
 
+func (j *repoBuilderJob) processPackages(ctx context.Context) error {
+	paths := []string{}
+	catcher := grip.NewBasicCatcher()
+	for _, path := range j.PackagePaths {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+
+		if !strings.HasPrefix(path, "http") {
+			paths = append(paths, path)
+			continue
+		}
+		req, err := http.NewRequest(http.MethodGet, path, nil)
+		if err != nil {
+			catcher.Add(err)
+			continue
+		}
+		req = req.WithContext(ctx)
+
+		resp, err := j.client.Do(req)
+		if err != nil {
+			catcher.Add(err)
+			continue
+		}
+		if resp.StatusCode != 200 {
+			catcher.Errorf("got status %d downloading packages", resp.StatusCode)
+			continue
+		}
+		localPath := filepath.Join(j.tmpdir, filepath.Base(path))
+		defer func() { catcher.Add(resp.Body.Close()) }()
+		file, err := os.Create(localPath)
+		if err != nil {
+			catcher.Add(err)
+			break
+		}
+		_, err = io.Copy(file, resp.Body)
+		if err != nil {
+			catcher.Add(err)
+			catcher.Add(file.Close())
+			break
+		}
+
+		if err = file.Close(); err != nil {
+			catcher.Add(err)
+			break
+		}
+
+		if strings.HasSuffix(localPath, ".deb") || strings.HasSuffix(localPath, ".rpm") {
+			paths = append(paths, localPath)
+			continue
+		}
+
+		var expandedPath string
+		for _, ff := range archiver.SupportedFormats {
+			if !ff.Match(localPath) {
+				continue
+			}
+			expandedPath = filepath.Join(j.tmpdir, fmt.Sprintf("extracted-%s", filepath.Base(path)))
+
+			if err := ff.Open(localPath, expandedPath); err != nil {
+				catcher.Add(err)
+			}
+
+			break
+		}
+		if expandedPath == "" {
+			catcher.Errorf("could not expand archive for %s", localPath)
+		}
+
+		catcher.Add(filepath.Walk(filepath.Base(localPath), func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if info.IsDir() {
+				return nil
+			}
+			if strings.HasSuffix(path, ".deb") || strings.HasSuffix(path, ".rpm") {
+				paths = append(paths, path)
+			}
+			return nil
+		}))
+	}
+
+	catcher.Add(os.Remove(j.tmpdir))
+
+	grip.Info(message.Fields{
+		"message":    "processed paths",
+		"job_scope":  j.Scopes(),
+		"repo":       j.Distro.Name,
+		"version":    j.release.String(),
+		"paths":      paths,
+		"input":      j.PackagePaths,
+		"has_errors": catcher.HasErrors(),
+	})
+
+	if !catcher.HasErrors() {
+		j.PackagePaths = paths
+	}
+
+	return catcher.Resolve()
+}
+
 // Run is the main execution entry point into repository building, and is a component
 func (j *repoBuilderJob) Run(ctx context.Context) {
+	defer j.MarkComplete()
+
 	j.setup()
+	if j.HasErrors() {
+		return
+	}
+
+	defer j.cleanup()
 	opts := pail.S3Options{
 		Region:                   j.Distro.Region,
 		SharedCredentialsProfile: j.Profile,
@@ -350,7 +484,6 @@ func (j *repoBuilderJob) Run(ctx context.Context) {
 		j.AddError(errors.Wrapf(err, "problem getting s3 bucket %s", j.Distro.Bucket))
 		return
 	}
-	defer j.MarkComplete()
 
 	bucket = pail.NewParallelSyncBucket(pail.ParallelBucketOptions{Workers: runtime.NumCPU() * 2}, bucket)
 
@@ -367,6 +500,11 @@ func (j *repoBuilderJob) Run(ctx context.Context) {
 
 		ctx, cancel = context.WithTimeout(ctx, timeout)
 		defer cancel()
+	}
+
+	if err = j.processPackages(ctx); err != nil {
+		j.AddError(err)
+		return
 	}
 
 	// at the moment there is only multiple repos for RPM distros
@@ -410,7 +548,14 @@ func (j *repoBuilderJob) Run(ctx context.Context) {
 			return
 		}
 
-		grip.Info("copying new packages into local staging area")
+		grip.Info(message.Fields{
+			"message":   "copying new packages into local staging area",
+			"job_id":    j.ID(),
+			"job_scope": j.Scopes(),
+			"repo":      j.Distro.Name,
+			"version":   j.release.String(),
+		})
+
 		changed, err := j.injectNewPackages(local)
 		if err != nil {
 			j.AddError(errors.Wrap(err, "problem copying packages into staging repos"))
