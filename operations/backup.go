@@ -2,17 +2,22 @@ package operations
 
 import (
 	"context"
+	"time"
 
 	"github.com/evergreen-ci/pail"
 	"github.com/evergreen-ci/utility"
 	"github.com/mongodb/anser/backup"
 	"github.com/mongodb/anser/model"
+	"github.com/mongodb/grip"
+	"github.com/mongodb/grip/message"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+// Backup provides a commandline tool for backing up mongodb
+// collections to s3.
 func Backup() cli.Command {
 	return cli.Command{
 		Name:  "backup",
@@ -36,7 +41,7 @@ func Backup() cli.Command {
 				Name:  "database, db, d",
 				Usage: "specify a database name",
 			},
-			cli.StringFlag{
+			cli.StringSliceFlag{
 				Name:  "collection, c",
 				Usage: "specify a collection name",
 			},
@@ -44,6 +49,8 @@ func Backup() cli.Command {
 		Action: func(c *cli.Context) error {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
+
+			startAt := time.Now()
 
 			client, err := mongo.NewClient(options.Client().ApplyURI(c.String("mongodbURI")))
 			if err != nil {
@@ -67,17 +74,32 @@ func Backup() cli.Command {
 			if err != nil {
 				return errors.Wrap(err, "problem client")
 			}
+			seen := 0
+			colls := c.StringSlce("collection")
+			catcher := grip.NewBasicCatcher()
+			for _, coll := range colls {
+				seen++
+				opts := backup.Options{
+					NS: model.Namespace{
+						DB:         c.String("database"),
+						Collection: coll,
+					},
+					Target:        bucket.Writer,
+					EnableLogging: true,
+				}
+				err := backup.Collection(ctx, client, opts)
+				msg := message.Fields{
+					"ns":        opts.NS.String(),
+					"total":     len(colls),
+					"completed": seen,
+					"dur_secs":  time.Since(startAt).Seconds(),
+				}
+				catcher.Add(err)
+				grip.InfoWhen(err == nil, msg)
+				grip.Error(message.WrapError(err, m))
 
-			opts := backup.Options{
-				NS: model.Namespace{
-					DB:         c.String("database"),
-					Collection: c.String("collection"),
-				},
-				Target:        bucket.Writer,
-				EnableLogging: true,
 			}
-
-			return backup.Collection(ctx, client, opts)
+			return catcher.Resolve()
 		},
 	}
 }
