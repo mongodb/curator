@@ -122,7 +122,12 @@ func (j *debRepoBuilder) rebuildRepo(workingDir string) error {
 	if err = ioutil.WriteFile(pkgsFile, out, 0644); err != nil {
 		return errors.Wrapf(err, "problem writing packages file to '%s'", pkgsFile)
 	}
-	grip.Noticeln("wrote packages file to:", pkgsFile)
+	grip.Notice(message.Fields{
+		"job_id":    j.ID(),
+		"job_scope": j.Scopes(),
+		"mesage":    "wrote packages",
+		"path":      pkgsFile,
+	})
 
 	// Compress/gzip the packages file
 

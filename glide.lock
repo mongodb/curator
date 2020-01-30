@@ -40,8 +40,12 @@ imports:
 - name: github.com/stretchr/testify
   version: 890a5c3458b43e6104ff5da8dfa139d013d77544
 
+- name: github.com/mholt/archiver
+  version: e4ef56d48eb029648b0e895bb0b6a393ef0829c3
 - name: github.com/papertrail/go-tail
   version: 1b77c8dfcc6baca12dedfab119135396782b68a1
+- name: github.com/PuerkitoBio/rehttp
+  version: 11cf6ea5d3e9afda34846e1db511aa218049471c
 
 - name: github.com/evergreen-ci/birch
   version: 3a26bb67719ad6a9e7daed059abd5d018586f3cd
@@ -64,6 +68,8 @@ imports:
   version: 1cdd00ad2f2eaf6fb1cb9dedacaddbc3b0e03149
 - name: github.com/evergreen-ci/birch
   version: 3a26bb67719ad6a9e7daed059abd5d018586f3cd
+- name: github.com/evergreen-ci/utility
+  version: 38c144444477dabd8d40cc5b115e4b26d03dea19
 
 # grpc and dependencies
 - name: google.golang.org/grpc

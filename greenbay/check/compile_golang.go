@@ -42,6 +42,7 @@ func goCompilerAuto() compiler {
 		[]string{"/usr/bin/go", ""},
 		[]string{"/usr/local/go/bin/go", ""},
 		[]string{"/usr/local/bin/go", ""},
+		[]string{"/opt/golang/go1.10/bin/go", "/opt/golang/go1.10"},
 	}
 	c := compileGolang{}
 
