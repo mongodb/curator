@@ -88,6 +88,7 @@ func Backup() cli.Command {
 			catcher := grip.NewBasicCatcher()
 			for _, coll := range colls {
 				seen++
+				collStartAt := time.Now()
 				opts := backup.Options{
 					NS: model.Namespace{
 						DB:         dbName,
@@ -101,13 +102,24 @@ func Backup() cli.Command {
 					"ns":        opts.NS.String(),
 					"total":     len(colls),
 					"completed": seen,
-					"dur_secs":  time.Since(startAt).Seconds(),
+					"dur_secs":  time.Since(collStartAt).Seconds(),
 				}
 				catcher.Add(err)
 				grip.InfoWhen(err == nil, msg)
 				grip.Error(message.WrapError(err, msg))
-
 			}
+
+			msg := message.Fields{
+				"db":          dbName,
+				"collections": colls,
+				"dur_secs":    time.Since(startAt).Seconds(),
+				"target":      c.String("bucket"),
+				"prefix":      c.String("prefix"),
+			}
+
+			grip.InfoWhen(!catcher.HasErrors(), msg)
+			grip.Error(message.WrapError(catcher.Resolve(), msg))
+
 			return catcher.Resolve()
 		},
 	}
