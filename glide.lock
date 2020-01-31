@@ -54,6 +54,8 @@ imports:
   version: 8b996adb830457905c1f23c0f8738f6ec36e0917
 - name: github.com/mongodb/jasper
   version: fb146af6f3727b94280220b6d8b239237cd56b22
+- name: github.com/mongodb/anser
+  version: c65a2d95b0615d79b53ef467c2f836a576972857
 - name: github.com/evergreen-ci/poplar
   version: 902e78fa62bc4a16eac8139d20a30844d9cc0901
 - name: github.com/evergreen-ci/pail
