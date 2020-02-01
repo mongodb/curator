@@ -110,7 +110,6 @@ func (opts *RepoBuilderJobOptions) Validate() error {
 	catcher := grip.NewBasicCatcher()
 	catcher.NewWhen(opts.Configuration == nil, "configuration must not be nil")
 	catcher.NewWhen(opts.Distro == nil, "distro specification must not be nil")
-	catcher.NewWhen(len(opts.Packages) == 0, "must specify one or more packages")
 
 	return catcher.Resolve()
 }
