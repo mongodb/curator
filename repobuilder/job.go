@@ -40,6 +40,9 @@ type repoBuilderJob struct {
 	Version      string                `bson:"version" json:"version" yaml:"version"`
 	Arch         string                `bson:"arch" json:"arch" yaml:"arch"`
 	Profile      string                `bson:"aws_profile" json:"aws_profile" yaml:"aws_profile"`
+	Key          strings               `bson:"aws_key" json:"aws_key" yaml:"aws_key"`
+	Secret       string                `bson:"aws_secret" json:"aws_secret" yaml:"aws_secret"`
+	Token        string                `bson:"aws_token" json:"aws_token" yaml:"aws_token"`
 	PackagePaths []string              `bson:"package_paths" json:"package_paths" yaml:"package_paths"`
 	*job.Base    `bson:"metadata" json:"metadata" yaml:"metadata"`
 
@@ -62,7 +65,7 @@ func buildRepoJob() *repoBuilderJob {
 		Base: &job.Base{
 			JobType: amboy.JobType{
 				Name:    jobName,
-				Version: 3,
+				Version: 4,
 			},
 		},
 	}
@@ -94,9 +97,13 @@ type RepoBuilderJobOptions struct {
 	Distro        *RepositoryDefinition `bson:"distro" json:"distro" yaml:"distro"`
 	Version       string                `bson:"version" json:"version" yaml:"version"`
 	Arch          string                `bson:"arch" json:"arch" yaml:"arch"`
-	Profile       string                `bson:"profile" json:"profile" yaml:"profile"`
 	Packages      []string              `bson:"packages" json:"packages" yaml:"packages"`
 	JobID         string                `bson:"job_id" json:"job_id" yaml:"job_id"`
+
+	Profile string  `bson:"aws_profile" json:"aws_profile" yaml:"aws_profile"`
+	Key     strings `bson:"aws_key" json:"aws_key" yaml:"aws_key"`
+	Secret  string  `bson:"aws_secret" json:"aws_secret" yaml:"aws_secret"`
+	Token   string  `bson:"aws_token" json:"aws_token" yaml:"aws_token"`
 }
 
 func (opts *RepoBuilderJobOptions) Validate() error {
@@ -136,7 +143,9 @@ func NewRepoBuilderJob(opts RepoBuilderJobOptions) (amboy.Job, error) {
 	j.PackagePaths = opts.Packages
 	j.Version = opts.Version
 	j.Profile = opts.Profile
-
+	j.Key = opts.Key
+	j.Secret = opts.Secret
+	j.Token = opts.Token
 	return j, nil
 }
 
@@ -516,6 +525,11 @@ func (j *repoBuilderJob) Run(ctx context.Context) {
 		Permissions:              pail.S3PermissionsPublicRead,
 		MaxRetries:               10,
 	}
+
+	if j.Key != "" {
+		opts.Credentials = pail.CreateAWSCredentials(j.Key, j.Secret, j.Token)
+	}
+
 	bucket, err := pail.NewS3Bucket(opts)
 	if err != nil {
 		j.AddError(errors.Wrapf(err, "problem getting s3 bucket %s", j.Distro.Bucket))
