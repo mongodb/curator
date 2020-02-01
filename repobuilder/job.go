@@ -100,10 +100,10 @@ type RepoBuilderJobOptions struct {
 	Packages      []string              `bson:"packages" json:"packages" yaml:"packages"`
 	JobID         string                `bson:"job_id" json:"job_id" yaml:"job_id"`
 
-	Profile string  `bson:"aws_profile" json:"aws_profile" yaml:"aws_profile"`
-	Key     strings `bson:"aws_key" json:"aws_key" yaml:"aws_key"`
-	Secret  string  `bson:"aws_secret" json:"aws_secret" yaml:"aws_secret"`
-	Token   string  `bson:"aws_token" json:"aws_token" yaml:"aws_token"`
+	Profile string `bson:"aws_profile" json:"aws_profile" yaml:"aws_profile"`
+	Key     string `bson:"aws_key" json:"aws_key" yaml:"aws_key"`
+	Secret  string `bson:"aws_secret" json:"aws_secret" yaml:"aws_secret"`
+	Token   string `bson:"aws_token" json:"aws_token" yaml:"aws_token"`
 }
 
 func (opts *RepoBuilderJobOptions) Validate() error {
