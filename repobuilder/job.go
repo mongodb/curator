@@ -79,7 +79,7 @@ func buildRepoJob() *repoBuilderJob {
 // implements the amboy.Job interface. Provides a legacy interface for
 // NewRepoBuilderJob.
 func NewBuildRepoJob(conf *RepositoryConfig, distro *RepositoryDefinition, version, arch, profile string, pkgs ...string) (amboy.Job, error) {
-	return NewRepoBuilderJob(RepoBuilderJobOptions{
+	return NewRepoBuilderJob(JobOptions{
 		Configuration: conf,
 		Distro:        distro,
 		Version:       version,
@@ -90,9 +90,9 @@ func NewBuildRepoJob(conf *RepositoryConfig, distro *RepositoryDefinition, versi
 	})
 }
 
-// RepoBuilderJobOptions describes the options to construct a
+// JobOptions describes the options to construct a
 // RepoBuilderJob.
-type RepoBuilderJobOptions struct {
+type JobOptions struct {
 	Configuration *RepositoryConfig     `bson:"conf" json:"conf" yaml:"conf"`
 	Distro        *RepositoryDefinition `bson:"distro" json:"distro" yaml:"distro"`
 	Version       string                `bson:"version" json:"version" yaml:"version"`
@@ -106,7 +106,9 @@ type RepoBuilderJobOptions struct {
 	Token   string `bson:"aws_token" json:"aws_token" yaml:"aws_token"`
 }
 
-func (opts *RepoBuilderJobOptions) Validate() error {
+// Validate returns an error if the job options struct is not
+// logically valid.
+func (opts *JobOptions) Validate() error {
 	catcher := grip.NewBasicCatcher()
 	catcher.NewWhen(opts.Configuration == nil, "configuration must not be nil")
 	catcher.NewWhen(opts.Distro == nil, "distro specification must not be nil")
@@ -115,7 +117,7 @@ func (opts *RepoBuilderJobOptions) Validate() error {
 }
 
 // NewRepoBuilderJob produces a new repo job.
-func NewRepoBuilderJob(opts RepoBuilderJobOptions) (amboy.Job, error) {
+func NewRepoBuilderJob(opts JobOptions) (amboy.Job, error) {
 	err := opts.Validate()
 	if err != nil {
 		return nil, errors.WithStack(err)
