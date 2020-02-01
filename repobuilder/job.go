@@ -103,7 +103,7 @@ func (opts *RepoBuilderJobOptions) Validate() error {
 	catcher := grip.NewBasicCatcher()
 	catcher.NewWhen(opts.Configuration == nil, "configuration must not be nil")
 	catcher.NewWhen(opts.Distro == nil, "distro specification must not be nil")
-	catcher.NewWhen(len(packages) == 0, "must specify one or more packages")
+	catcher.NewWhen(len(opts.Packages) == 0, "must specify one or more packages")
 
 	return catcher.Resolve()
 }
@@ -111,7 +111,9 @@ func (opts *RepoBuilderJobOptions) Validate() error {
 // NewRepoBuilderJob produces a new repo job.
 func NewRepoBuilderJob(opts RepoBuilderJobOptions) (amboy.Job, error) {
 	err := opts.Validate()
-	err
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
 
 	j := buildRepoJob()
 
@@ -128,7 +130,7 @@ func NewRepoBuilderJob(opts RepoBuilderJobOptions) (amboy.Job, error) {
 		}
 	}
 
-	j.SetID(fmt.Sprintf("%s.distro.%s.repo.%s", jobName, distro.Type, opts.JobID))
+	j.SetID(fmt.Sprintf("%s.distro.%s.repo.%s", jobName, opts.Distro.Type, opts.JobID))
 	j.Arch = opts.Distro.getArchForDistro(opts.Arch)
 	j.Distro = opts.Distro
 	j.PackagePaths = opts.Packages
