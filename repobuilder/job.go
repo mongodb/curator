@@ -40,7 +40,7 @@ type repoBuilderJob struct {
 	Version      string                `bson:"version" json:"version" yaml:"version"`
 	Arch         string                `bson:"arch" json:"arch" yaml:"arch"`
 	Profile      string                `bson:"aws_profile" json:"aws_profile" yaml:"aws_profile"`
-	Key          strings               `bson:"aws_key" json:"aws_key" yaml:"aws_key"`
+	Key          string                `bson:"aws_key" json:"aws_key" yaml:"aws_key"`
 	Secret       string                `bson:"aws_secret" json:"aws_secret" yaml:"aws_secret"`
 	Token        string                `bson:"aws_token" json:"aws_token" yaml:"aws_token"`
 	PackagePaths []string              `bson:"package_paths" json:"package_paths" yaml:"package_paths"`
