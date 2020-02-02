@@ -45,6 +45,10 @@ func Backup() cli.Command {
 				Name:  "collection, c",
 				Usage: "specify a collection name",
 			},
+			cli.BoolFlag{
+				Name:  "gzip, z",
+				Usage: "specify to enable compression of artifacts",
+			},
 		),
 		Action: func(c *cli.Context) error {
 			ctx, cancel := context.WithCancel(context.Background())
@@ -79,6 +83,7 @@ func Backup() cli.Command {
 					Permissions:              pail.S3Permissions(c.String("permissions")),
 					Verbose:                  c.Bool("verbose"),
 					Prefix:                   c.String("prefix"),
+					Compress:                 c.Bool("gzip"),
 				})
 			if err != nil {
 				return errors.Wrap(err, "problem constructing bucket client client")
