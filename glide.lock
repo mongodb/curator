@@ -65,7 +65,7 @@ imports:
 - name: go.mongodb.org/mongo-driver
   version: 305bc4a5e4131420fe8ba5628e6faa9e6ade4e86
 - name: github.com/evergreen-ci/timber
-  version: 1cdd00ad2f2eaf6fb1cb9dedacaddbc3b0e03149
+  version: 9a33c650233106e021bcb51bfc87de1910a8b6fc
 - name: github.com/evergreen-ci/birch
   version: 3a26bb67719ad6a9e7daed059abd5d018586f3cd
 - name: github.com/evergreen-ci/utility
