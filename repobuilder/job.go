@@ -40,6 +40,9 @@ type repoBuilderJob struct {
 	Version      string                `bson:"version" json:"version" yaml:"version"`
 	Arch         string                `bson:"arch" json:"arch" yaml:"arch"`
 	Profile      string                `bson:"aws_profile" json:"aws_profile" yaml:"aws_profile"`
+	Key          string                `bson:"aws_key" json:"aws_key" yaml:"aws_key"`
+	Secret       string                `bson:"aws_secret" json:"aws_secret" yaml:"aws_secret"`
+	Token        string                `bson:"aws_token" json:"aws_token" yaml:"aws_token"`
 	PackagePaths []string              `bson:"package_paths" json:"package_paths" yaml:"package_paths"`
 	*job.Base    `bson:"metadata" json:"metadata" yaml:"metadata"`
 
@@ -62,7 +65,7 @@ func buildRepoJob() *repoBuilderJob {
 		Base: &job.Base{
 			JobType: amboy.JobType{
 				Name:    jobName,
-				Version: 3,
+				Version: 4,
 			},
 		},
 	}
@@ -73,18 +76,61 @@ func buildRepoJob() *repoBuilderJob {
 }
 
 // NewBuildRepoJob constructs a repository building job, which
-// implements the amboy.Job interface.
+// implements the amboy.Job interface. Provides a legacy interface for
+// NewRepoBuilderJob.
 func NewBuildRepoJob(conf *RepositoryConfig, distro *RepositoryDefinition, version, arch, profile string, pkgs ...string) (amboy.Job, error) {
-	var err error
+	return NewRepoBuilderJob(JobOptions{
+		Configuration: conf,
+		Distro:        distro,
+		Version:       version,
+		Arch:          arch,
+		Profile:       profile,
+		Packages:      pkgs,
+		JobID:         fmt.Sprint(job.GetNumber()),
+	})
+}
+
+// JobOptions describes the options to construct a
+// RepoBuilderJob.
+type JobOptions struct {
+	Configuration *RepositoryConfig     `bson:"conf" json:"conf" yaml:"conf"`
+	Distro        *RepositoryDefinition `bson:"distro" json:"distro" yaml:"distro"`
+	Version       string                `bson:"version" json:"version" yaml:"version"`
+	Arch          string                `bson:"arch" json:"arch" yaml:"arch"`
+	Packages      []string              `bson:"packages" json:"packages" yaml:"packages"`
+	JobID         string                `bson:"job_id" json:"job_id" yaml:"job_id"`
+
+	Profile string `bson:"aws_profile" json:"aws_profile" yaml:"aws_profile"`
+	Key     string `bson:"aws_key" json:"aws_key" yaml:"aws_key"`
+	Secret  string `bson:"aws_secret" json:"aws_secret" yaml:"aws_secret"`
+	Token   string `bson:"aws_token" json:"aws_token" yaml:"aws_token"`
+}
+
+// Validate returns an error if the job options struct is not
+// logically valid.
+func (opts *JobOptions) Validate() error {
+	catcher := grip.NewBasicCatcher()
+	catcher.NewWhen(opts.Configuration == nil, "configuration must not be nil")
+	catcher.NewWhen(opts.Distro == nil, "distro specification must not be nil")
+
+	return catcher.Resolve()
+}
+
+// NewRepoBuilderJob produces a new repo job.
+func NewRepoBuilderJob(opts JobOptions) (amboy.Job, error) {
+	err := opts.Validate()
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
 
 	j := buildRepoJob()
 
-	j.release, err = bond.NewMongoDBVersion(version)
+	j.release, err = bond.NewMongoDBVersion(opts.Version)
 	if err != nil {
 		return nil, err
 	}
 
-	j.Conf = conf
+	j.Conf = opts.Configuration
 	if j.Conf.WorkSpace == "" {
 		j.Conf.WorkSpace, err = os.Getwd()
 		if err != nil {
@@ -92,14 +138,15 @@ func NewBuildRepoJob(conf *RepositoryConfig, distro *RepositoryDefinition, versi
 		}
 	}
 
-	j.SetID(fmt.Sprintf("build-%s-repo.%d", distro.Type, job.GetNumber()))
-	j.Arch = distro.getArchForDistro(arch)
-	j.Distro = distro
-	j.Conf = conf
-	j.PackagePaths = pkgs
-	j.Version = version
-	j.Profile = profile
-
+	j.SetID(fmt.Sprintf("%s.distro.%s.repo.%s", jobName, opts.Distro.Type, opts.JobID))
+	j.Arch = opts.Distro.getArchForDistro(opts.Arch)
+	j.Distro = opts.Distro
+	j.PackagePaths = opts.Packages
+	j.Version = opts.Version
+	j.Profile = opts.Profile
+	j.Key = opts.Key
+	j.Secret = opts.Secret
+	j.Token = opts.Token
 	return j, nil
 }
 
@@ -479,6 +526,11 @@ func (j *repoBuilderJob) Run(ctx context.Context) {
 		Permissions:              pail.S3PermissionsPublicRead,
 		MaxRetries:               10,
 	}
+
+	if j.Key != "" {
+		opts.Credentials = pail.CreateAWSCredentials(j.Key, j.Secret, j.Token)
+	}
+
 	bucket, err := pail.NewS3Bucket(opts)
 	if err != nil {
 		j.AddError(errors.Wrapf(err, "problem getting s3 bucket %s", j.Distro.Bucket))
