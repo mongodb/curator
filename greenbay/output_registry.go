@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/mongodb/grip"
+	"github.com/mongodb/grip/message"
 )
 
 // ResultsFactory defines the signature used by constructor functions
@@ -51,7 +52,10 @@ func (r *resultsFactoryRegistry) add(name string, factory ResultsFactory) {
 	defer r.mutex.Unlock()
 
 	_, ok := r.factories[name]
-	grip.AlertWhenf(ok, "overwriting existing factory named '%s'", name)
+	grip.AlertWhen(ok, message.Fields{
+		"message": "overwriting existing factory",
+		"factory": name,
+	})
 
 	r.factories[name] = factory
 }
@@ -62,7 +66,10 @@ func (r *resultsFactoryRegistry) get(name string) (ResultsFactory, bool) {
 
 	factory, ok := r.factories[name]
 
-	grip.AlertWhenf(!ok, "factory named '%s' does not exist", name)
+	grip.AlertWhen(!ok, message.Fields{
+		"message": "factory does not exist",
+		"name":    name,
+	})
 
 	return factory, ok
 }

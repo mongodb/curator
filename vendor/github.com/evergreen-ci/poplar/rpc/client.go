@@ -31,7 +31,7 @@ func UploadReport(ctx context.Context, opts UploadReportOptions) error {
 }
 
 func (opts *UploadReportOptions) convertAndUploadArtifacts(ctx context.Context) error {
-	jobQueue := queue.NewLocalUnordered(runtime.NumCPU())
+	jobQueue := queue.NewLocalLimitedSize(runtime.NumCPU(), len(opts.Report.Tests)*2)
 	if !opts.SerializeUpload {
 		if err := jobQueue.Start(ctx); err != nil {
 			return errors.Wrap(err, "problem starting artifact upload queue")

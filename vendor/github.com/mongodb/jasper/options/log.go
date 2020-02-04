@@ -103,16 +103,16 @@ func (opts Buffer) Validate() error {
 //
 // By default, logger reads from both standard output and standard error.
 type Log struct {
-	BufferOptions        Buffer                    `json:"buffer_options,omitempty"`
-	BuildloggerOptions   send.BuildloggerConfig    `json:"buildlogger_options,omitempty"`
-	BuildloggerV3Options timber.LoggerOptions      `json:"buildlogger_v3_options"`
-	DefaultPrefix        string                    `json:"default_prefix,omitempty"`
-	FileName             string                    `json:"file_name,omitempty"`
-	Format               LogFormat                 `json:"format"`
-	InMemoryCap          int                       `json:"in_memory_cap,omitempty"`
-	Level                send.LevelInfo            `json:"level,omitempty"`
-	SplunkOptions        send.SplunkConnectionInfo `json:"splunk_options,omitempty"`
-	SumoEndpoint         string                    `json:"sumo_endpoint,omitempty"`
+	BufferOptions        Buffer                    `json:"buffer_options,omitempty" bson:"buffer_options"`
+	BuildloggerOptions   send.BuildloggerConfig    `json:"buildlogger_options,omitempty" bson:"buildlogger_options"`
+	BuildloggerV3Options timber.LoggerOptions      `json:"buildlogger_v3_options" bson:"buildlogger_v_3_options"`
+	DefaultPrefix        string                    `json:"default_prefix,omitempty" bson:"default_prefix"`
+	FileName             string                    `json:"file_name,omitempty" bson:"file_name"`
+	Format               LogFormat                 `json:"format" bson:"format"`
+	InMemoryCap          int                       `json:"in_memory_cap,omitempty" bson:"in_memory_cap"`
+	Level                send.LevelInfo            `json:"level,omitempty" bson:"level"`
+	SplunkOptions        send.SplunkConnectionInfo `json:"splunk_options,omitempty" bson:"splunk_options"`
+	SumoEndpoint         string                    `json:"sumo_endpoint,omitempty" bson:"sumo_endpoint"`
 }
 
 // Validate ensures that LogOptions is valid.
