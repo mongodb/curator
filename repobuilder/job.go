@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -104,6 +105,8 @@ type JobOptions struct {
 	Key     string `bson:"aws_key" json:"aws_key" yaml:"aws_key"`
 	Secret  string `bson:"aws_secret" json:"aws_secret" yaml:"aws_secret"`
 	Token   string `bson:"aws_token" json:"aws_token" yaml:"aws_token"`
+
+	release *bond.MongoDBVersion
 }
 
 // Validate returns an error if the job options struct is not
@@ -112,6 +115,10 @@ func (opts *JobOptions) Validate() error {
 	catcher := grip.NewBasicCatcher()
 	catcher.NewWhen(opts.Configuration == nil, "configuration must not be nil")
 	catcher.NewWhen(opts.Distro == nil, "distro specification must not be nil")
+
+	release, err := bond.NewMongoDBVersion(opts.Version)
+	catcher.Add(err)
+	opts.release = release
 
 	return catcher.Resolve()
 }
@@ -125,11 +132,6 @@ func NewRepoBuilderJob(opts JobOptions) (amboy.Job, error) {
 
 	j := buildRepoJob()
 
-	j.release, err = bond.NewMongoDBVersion(opts.Version)
-	if err != nil {
-		return nil, err
-	}
-
 	j.Conf = opts.Configuration
 	if j.Conf.WorkSpace == "" {
 		j.Conf.WorkSpace, err = os.Getwd()
@@ -138,6 +140,20 @@ func NewRepoBuilderJob(opts JobOptions) (amboy.Job, error) {
 		}
 	}
 
+	repoName := j.getPackageLocation()
+	scopes := []string{}
+	for _, repo := range opts.Distro.Repos {
+		switch opts.Distro.Type {
+		case RPM:
+			scopes = append(scopes, path.Join(repo, repoName, opts.Arch))
+		case DEB:
+			scopes = append(scopes, path.Join(repo, repoName))
+		default:
+			return nil, errors.Errorf("repo type %s is not supported", opts.Distro.Type)
+		}
+	}
+
+	j.SetScopes(scopes)
 	j.SetID(fmt.Sprintf("%s.distro.%s.repo.%s", jobName, opts.Distro.Type, opts.JobID))
 	j.Arch = opts.Distro.getArchForDistro(opts.Arch)
 	j.Distro = opts.Distro
@@ -147,6 +163,8 @@ func NewRepoBuilderJob(opts JobOptions) (amboy.Job, error) {
 	j.Key = opts.Key
 	j.Secret = opts.Secret
 	j.Token = opts.Token
+	j.release = opts.release
+
 	return j, nil
 }
 
@@ -172,6 +190,13 @@ func (j *repoBuilderJob) setup() {
 	}
 
 	var err error
+
+	if j.release == nil {
+		j.release, err = bond.NewMongoDBVersion(j.Version)
+		if err != nil {
+			j.AddError(err)
+		}
+	}
 
 	j.tmpdir, err = ioutil.TempDir("", j.ID())
 	if err != nil {
