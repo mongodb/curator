@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -115,16 +116,12 @@ func (opts *JobOptions) Validate() error {
 	catcher.NewWhen(opts.Configuration == nil, "configuration must not be nil")
 	catcher.NewWhen(opts.Distro == nil, "distro specification must not be nil")
 
-	var err error
-	opts.release, err = bond.NewMongoDBVersion(opts.Version)
+	release, err := bond.NewMongoDBVersion(opts.Version)
 	catcher.Add(err)
+	opts.release = release
 
 	return catcher.Resolve()
 }
-
-// Release returns the parsed version information about the specified
-// release. You must only call this after calling Validate.
-func (opts *JobOptions) Release() *bond.MongoDBVersion { return opts.release }
 
 // NewRepoBuilderJob produces a new repo job.
 func NewRepoBuilderJob(opts JobOptions) (amboy.Job, error) {
@@ -143,7 +140,6 @@ func NewRepoBuilderJob(opts JobOptions) (amboy.Job, error) {
 		}
 	}
 
-	j.SetID(fmt.Sprintf("%s.distro.%s.repo.%s", jobName, opts.Distro.Type, opts.JobID))
 	j.Arch = opts.Distro.getArchForDistro(opts.Arch)
 	j.Distro = opts.Distro
 	j.PackagePaths = opts.Packages
@@ -153,6 +149,22 @@ func NewRepoBuilderJob(opts JobOptions) (amboy.Job, error) {
 	j.Secret = opts.Secret
 	j.Token = opts.Token
 	j.release = opts.release
+	j.SetID(fmt.Sprintf("%s.distro.%s.repo.%s", jobName, opts.Distro.Type, opts.JobID))
+
+	repoName := j.getPackageLocation()
+	scopes := []string{}
+	for _, repo := range opts.Distro.Repos {
+		switch opts.Distro.Type {
+		case RPM:
+			scopes = append(scopes, path.Join(repo, repoName, opts.Arch))
+		case DEB:
+			scopes = append(scopes, path.Join(repo, repoName))
+		default:
+			return nil, errors.Errorf("repo type %s is not supported", opts.Distro.Type)
+		}
+	}
+	j.SetScopes(scopes)
+
 	return j, nil
 }
 
@@ -178,6 +190,13 @@ func (j *repoBuilderJob) setup() {
 	}
 
 	var err error
+
+	if j.release == nil {
+		j.release, err = bond.NewMongoDBVersion(j.Version)
+		if err != nil {
+			j.AddError(err)
+		}
+	}
 
 	j.tmpdir, err = ioutil.TempDir("", j.ID())
 	if err != nil {
@@ -271,21 +290,19 @@ func (j *repoBuilderJob) linkPackages(dest string) error {
 }
 
 func (j *repoBuilderJob) injectNewPackages(local string) (string, error) {
-	return j.builder.injectPackage(local, GetRepositoryName(j.release))
+	return j.builder.injectPackage(local, j.getPackageLocation())
 }
 
-// GetRepositoryName produces the name of the specific repository
-// where the packages for a given version will push.
-func GetRepositoryName(release *bond.MongoDBVersion) string {
-	if release.IsDevelopmentBuild() {
+func (j *repoBuilderJob) getPackageLocation() string {
+	if j.release.IsDevelopmentBuild() {
 		// nightlies to the a "development" repo.
 		return "development"
-	} else if release.IsReleaseCandidate() {
+	} else if j.release.IsReleaseCandidate() {
 		// release candidates go into the testing repo:
 		return "testing"
 	} else {
 		// there are repos for each series:
-		return release.Series()
+		return j.release.Series()
 	}
 }
 
@@ -598,7 +615,7 @@ func (j *repoBuilderJob) Run(ctx context.Context) {
 			"local":     local,
 		})
 
-		pkgLocation := GetRepositoryName(j.release)
+		pkgLocation := j.getPackageLocation()
 		syncOpts := pail.SyncOptions{
 			Local:  filepath.Join(local, pkgLocation),
 			Remote: filepath.Join(remote, pkgLocation),
