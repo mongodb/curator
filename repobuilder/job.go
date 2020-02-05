@@ -104,8 +104,6 @@ type JobOptions struct {
 	Key     string `bson:"aws_key" json:"aws_key" yaml:"aws_key"`
 	Secret  string `bson:"aws_secret" json:"aws_secret" yaml:"aws_secret"`
 	Token   string `bson:"aws_token" json:"aws_token" yaml:"aws_token"`
-
-	release *bond.MongoDBVersion
 }
 
 // Validate returns an error if the job options struct is not
@@ -115,16 +113,8 @@ func (opts *JobOptions) Validate() error {
 	catcher.NewWhen(opts.Configuration == nil, "configuration must not be nil")
 	catcher.NewWhen(opts.Distro == nil, "distro specification must not be nil")
 
-	var err error
-	opts.release, err = bond.NewMongoDBVersion(opts.Version)
-	catcher.Add(err)
-
 	return catcher.Resolve()
 }
-
-// Release returns the parsed version information about the specified
-// release. You must only call this after calling Validate.
-func (opts *JobOptions) Release() *bond.MongoDBVersion { return opts.release }
 
 // NewRepoBuilderJob produces a new repo job.
 func NewRepoBuilderJob(opts JobOptions) (amboy.Job, error) {
@@ -134,6 +124,11 @@ func NewRepoBuilderJob(opts JobOptions) (amboy.Job, error) {
 	}
 
 	j := buildRepoJob()
+
+	j.release, err = bond.NewMongoDBVersion(opts.Version)
+	if err != nil {
+		return nil, err
+	}
 
 	j.Conf = opts.Configuration
 	if j.Conf.WorkSpace == "" {
@@ -152,7 +147,6 @@ func NewRepoBuilderJob(opts JobOptions) (amboy.Job, error) {
 	j.Key = opts.Key
 	j.Secret = opts.Secret
 	j.Token = opts.Token
-	j.release = opts.release
 	return j, nil
 }
 
@@ -271,21 +265,19 @@ func (j *repoBuilderJob) linkPackages(dest string) error {
 }
 
 func (j *repoBuilderJob) injectNewPackages(local string) (string, error) {
-	return j.builder.injectPackage(local, GetRepositoryName(j.release))
+	return j.builder.injectPackage(local, j.getPackageLocation())
 }
 
-// GetRepositoryName produces the name of the specific repository
-// where the packages for a given version will push.
-func GetRepositoryName(release *bond.MongoDBVersion) string {
-	if release.IsDevelopmentBuild() {
+func (j *repoBuilderJob) getPackageLocation() string {
+	if j.release.IsDevelopmentBuild() {
 		// nightlies to the a "development" repo.
 		return "development"
-	} else if release.IsReleaseCandidate() {
+	} else if j.release.IsReleaseCandidate() {
 		// release candidates go into the testing repo:
 		return "testing"
 	} else {
 		// there are repos for each series:
-		return release.Series()
+		return j.release.Series()
 	}
 }
 
@@ -598,7 +590,7 @@ func (j *repoBuilderJob) Run(ctx context.Context) {
 			"local":     local,
 		})
 
-		pkgLocation := GetRepositoryName(j.release)
+		pkgLocation := j.getPackageLocation()
 		syncOpts := pail.SyncOptions{
 			Local:  filepath.Join(local, pkgLocation),
 			Remote: filepath.Join(remote, pkgLocation),
