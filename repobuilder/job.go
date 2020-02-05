@@ -140,6 +140,17 @@ func NewRepoBuilderJob(opts JobOptions) (amboy.Job, error) {
 		}
 	}
 
+	j.Arch = opts.Distro.getArchForDistro(opts.Arch)
+	j.Distro = opts.Distro
+	j.PackagePaths = opts.Packages
+	j.Version = opts.Version
+	j.Profile = opts.Profile
+	j.Key = opts.Key
+	j.Secret = opts.Secret
+	j.Token = opts.Token
+	j.release = opts.release
+	j.SetID(fmt.Sprintf("%s.distro.%s.repo.%s", jobName, opts.Distro.Type, opts.JobID))
+
 	repoName := j.getPackageLocation()
 	scopes := []string{}
 	for _, repo := range opts.Distro.Repos {
@@ -152,18 +163,7 @@ func NewRepoBuilderJob(opts JobOptions) (amboy.Job, error) {
 			return nil, errors.Errorf("repo type %s is not supported", opts.Distro.Type)
 		}
 	}
-
 	j.SetScopes(scopes)
-	j.SetID(fmt.Sprintf("%s.distro.%s.repo.%s", jobName, opts.Distro.Type, opts.JobID))
-	j.Arch = opts.Distro.getArchForDistro(opts.Arch)
-	j.Distro = opts.Distro
-	j.PackagePaths = opts.Packages
-	j.Version = opts.Version
-	j.Profile = opts.Profile
-	j.Key = opts.Key
-	j.Secret = opts.Secret
-	j.Token = opts.Token
-	j.release = opts.release
 
 	return j, nil
 }
