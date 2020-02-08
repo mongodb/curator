@@ -14,6 +14,8 @@ import (
 	"github.com/urfave/cli"
 )
 
+// Archive provides a top level command for interacting with tarball
+// archives in a cross-platform manner.
 func Archive() cli.Command {
 	return cli.Command{
 		Name: "archive",
@@ -23,6 +25,7 @@ func Archive() cli.Command {
 	}
 }
 
+// MakeTarball produces a tarball.
 func MakeTarball() cli.Command {
 	return cli.Command{
 		Name: "create",
@@ -109,7 +112,7 @@ func addFile(tw *tar.Writer, prefix string, unit archiveWorkUnit) error {
 	if err != nil {
 		return errors.WithStack(err)
 	}
-	defer file.Close()
+	defer func() { grip.Error(file.Close()) }()
 	// now lets create the header as needed for this file within the tarball
 	header := new(tar.Header)
 	header.Name = filepath.Join(prefix, unit.path)
@@ -139,13 +142,13 @@ func createArchive(fileName, prefix string, paths []string, exclude []string) er
 	if err != nil {
 		return errors.Wrapf(err, "problem creating file %s", fileName)
 	}
-	defer func() { grip.Error(file.Close()) }()
+	defer func() { grip.Error(errors.Wrapf(file.Close(), "problem closing file %s", fileName)) }()
 
 	// set up the  gzip writer
 	gw := gzip.NewWriter(file)
-	defer gw.Close()
+	defer func() { grip.Error(errors.Wrapf(gw.Close(), "problem closing gzip writer %s", fileName)) }()
 	tw := tar.NewWriter(gw)
-	defer tw.Close()
+	defer func() { grip.Error(errors.Wrapf(tw.Close(), "problem closing tar writer %s", fileName)) }()
 
 	grip.Infoln("creating archive:", fileName)
 
