@@ -7,11 +7,11 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/mongodb/curator"
 	"github.com/mongodb/curator/repobuilder"
 	"github.com/mongodb/grip"
 	"github.com/pkg/errors"
-	"github.com/satori/go.uuid"
 	"github.com/urfave/cli"
 )
 
@@ -57,7 +57,7 @@ func repoFlags() []cli.Flag {
 
 	pwd, err := os.Getwd()
 	grip.EmergencyFatal(err)
-	workingDir := filepath.Join(pwd, uuid.Must(uuid.NewV4()).String())
+	workingDir := filepath.Join(pwd, uuid.New().String())
 
 	return []cli.Flag{
 		cli.StringFlag{

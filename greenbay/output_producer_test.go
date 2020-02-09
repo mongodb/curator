@@ -9,12 +9,12 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/mongodb/amboy"
 	"github.com/mongodb/amboy/job"
 	"github.com/mongodb/amboy/queue"
 	"github.com/mongodb/grip"
 	"github.com/pkg/errors"
-	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -80,7 +80,7 @@ func (s *ProducerSuite) SetupSuite() {
 	s.require = s.Require()
 	s.queue = queue.NewLocalLimitedSize(2, 1024)
 	s.require.NoError(s.queue.Start(ctx))
-	tmpDir, err := ioutil.TempDir("", uuid.Must(uuid.NewV4()).String())
+	tmpDir, err := ioutil.TempDir("", uuid.New().String())
 	s.require.NoError(err)
 	s.tmpDir = tmpDir
 	for i := 0; i < 10; i++ {

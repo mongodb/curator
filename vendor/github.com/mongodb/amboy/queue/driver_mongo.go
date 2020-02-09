@@ -9,12 +9,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/mongodb/amboy"
 	"github.com/mongodb/amboy/registry"
 	"github.com/mongodb/grip"
 	"github.com/mongodb/grip/message"
 	"github.com/pkg/errors"
-	uuid "github.com/satori/go.uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -44,7 +44,7 @@ func newMongoDriver(name string, opts MongoDBOptions) remoteQueueDriver {
 	return &mongoDriver{
 		name:       name,
 		opts:       opts,
-		instanceID: fmt.Sprintf("%s.%s.%s", name, host, uuid.NewV4()),
+		instanceID: fmt.Sprintf("%s.%s.%s", name, host, uuid.New()),
 	}
 }
 
@@ -77,7 +77,7 @@ func newMongoGroupDriver(name string, opts MongoDBOptions, group string) remoteQ
 	return &mongoDriver{
 		name:       name,
 		opts:       opts,
-		instanceID: fmt.Sprintf("%s.%s.%s.%s", name, group, host, uuid.NewV4()),
+		instanceID: fmt.Sprintf("%s.%s.%s.%s", name, group, host, uuid.New()),
 	}
 }
 

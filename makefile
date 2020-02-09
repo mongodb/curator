@@ -177,6 +177,8 @@ vendor-clean:
 	rm -rf vendor/github.com/mongodb/ftdc/vendor/github.com/stretchr/testify
 	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/pkg/
 	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/stretchr/testify/
+	rm -rf vendor/github.com/mongodb/amboy/vendor/github.com/google/uuid
+	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/google/uuid
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/evergreen-ci/aviation/
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/evergreen-ci/birch/
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/evergreen-ci/gimlet/
@@ -184,6 +186,7 @@ vendor-clean:
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/evergreen-ci/pail/
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/evergreen-ci/timber/
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/golang/
+	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/google/uuid
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/mongodb/amboy
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/mongodb/ftdc
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/mongodb/grip

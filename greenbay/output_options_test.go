@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/mongodb/amboy"
 	"github.com/mongodb/amboy/queue"
-	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -35,7 +35,7 @@ func (s *OptionsSuite) SetupSuite() {
 	s.cancel = cancel
 	s.require = s.Require()
 
-	tmpDir, err := ioutil.TempDir("", uuid.Must(uuid.NewV4()).String())
+	tmpDir, err := ioutil.TempDir("", uuid.New().String())
 	s.require.NoError(err)
 	s.tmpDir = tmpDir
 

@@ -9,9 +9,9 @@ import (
 	"runtime"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/mongodb/amboy"
 	"github.com/mongodb/amboy/job"
-	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -28,7 +28,7 @@ func TestConfigSuite(t *testing.T) {
 }
 
 func (s *ConfigSuite) SetupSuite() {
-	dir, err := ioutil.TempDir("", uuid.Must(uuid.NewV4()).String())
+	dir, err := ioutil.TempDir("", uuid.New().String())
 	s.Require().NoError(err)
 	s.tempDir = dir
 
