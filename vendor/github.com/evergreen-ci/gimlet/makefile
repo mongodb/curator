@@ -1,7 +1,7 @@
 # start project configuration
 name := gimlet
 buildDir := build
-packages := $(name) ldap
+packages := $(name) acl ldap okta rolemanager
 orgPath := github.com/evergreen-ci
 projectPath := $(orgPath)/$(name)
 # end project configuration
@@ -13,12 +13,14 @@ else
 gobin := go
 endif
 
-goos := $(shell $(gobin) env GOOS)
-goarch := $(shell $(gobin) env GOARCH)
 gopath := $(GOPATH)
 ifeq ($(OS),Windows_NT)
 gopath := $(shell cygpath -m $(gopath))
 endif
+ifeq (,$(gopath))
+gopath := $($(gobin) env GOPATH)
+endif
+goEnv := GOPATH=$(gopath) $(if $(GO_BIN_PATH),PATH="$(shell dirname $(GO_BIN_PATH)):$(PATH)")
 # end go environment configuration
 
 
@@ -32,7 +34,8 @@ lintDeps += github.com/richardsamuels/evg-lint/...
 lintArgs := --tests --deadline=1m --vendor --aggregate --sort=line
 #   gotype produces false positives because it reads .a files which
 #   are rarely up to date.
-lintArgs += --disable="gotype" --enable=goimports
+lintArgs += --disable="gotype" --disable="golint" --disable="gosec" --disable="staticcheck"
+lintArgs += --enable="goimports"
 lintArgs += --vendored-linters --enable-gc
 #  add and configure additional linters
 lintArgs += --line-length=100 --dupl-threshold=175 --cyclo-over=17
@@ -58,17 +61,16 @@ lintArgs += --linter="evg:$(gopath)/bin/evg-lint:PATH:LINE:COL:MESSAGE" --enable
 
 # start dependency installation tools
 #   implementation details for being able to lazily install dependencies
-gopath := $(shell go env GOPATH)
 lintDeps := $(addprefix $(gopath)/src/,$(lintDeps))
 srcFiles := makefile $(shell find . -name "*.go" -not -path "./$(buildDir)/*" -not -name "*_test.go")
 testSrcFiles := makefile $(shell find . -name "*.go" -not -path "./$(buildDir)/*")
-testOutput := $(subst -,/,$(foreach target,$(packages),$(buildDir)/test.$(target).out))
-raceOutput := $(subst -,/,$(foreach target,$(packages),$(buildDir)/race.$(target).out))
-coverageOutput := $(subst -,/,$(foreach target,$(packages),$(buildDir)/coverage.$(target).out))
-coverageHtmlOutput := $(subst -,/,$(foreach target,$(packages),$(buildDir)/coverage.$(target).html))
+testOutput := $(subst -,/,$(foreach target,$(packages),$(buildDir)/output.$(target).test))
+raceOutput := $(subst -,/,$(foreach target,$(packages),$(buildDir)/output.$(target).race))
+coverageOutput := $(subst -,/,$(foreach target,$(packages),$(buildDir)/output.$(target).coverage))
+coverageHtmlOutput := $(subst -,/,$(foreach target,$(packages),$(buildDir)/output.$(target).coverage.html))
 $(gopath)/src/%:
 	@-[ ! -d $(gopath) ] && mkdir -p $(gopath) || true
-	$(gobin) get $(subst $(gopath)/src/,,$@)
+	$(goEnv) $(gobin) get $(subst $(gopath)/src/,,$@)
 # end dependency installation tools
 
 
@@ -77,9 +79,9 @@ lintDeps := $(addprefix $(gopath)/src/,$(lintDeps))
 lintTargets := $(foreach target,$(packages),lint-$(target))
 $(buildDir)/.lintSetup:$(lintDeps)
 	@mkdir -p $(buildDir)
-	@$(gopath)/bin/gometalinter --force --install >/dev/null && touch $@
+	@-$(goEnv) $(gopath)/bin/gometalinter --force --install >/dev/null && touch $@
 $(buildDir)/run-linter:buildscripts/run-linter.go
-	$(gobin) build -o $@ $<
+	$(goEnv) $(gobin) build -o $@ $<
 .PRECIOUS:$(buildDir)/output.lint
 # end lint setup targets
 
@@ -88,9 +90,9 @@ lint:$(buildDir)/output.lint
 lint-deps:$(lintDeps)
 build:$(deps) $(srcFiles) $(gopath)/src/$(projectPath)
 	@mkdir -p $(buildDir)
-	$(gobin) build ./.
+	$(goEnv) $(gobin) build ./.
 build-race:$(deps) $(srcFiles) $(gopath)/src/$(projectPath)
-	$(gobin) build -race $(subst -,/,$(foreach pkg,$(packages),./$(pkg)))
+	$(goEnv) $(gobin) build -race $(subst -,/,$(foreach pkg,$(packages),./$(pkg)))
 test:$(testOutput)
 race:$(raceOutput)
 coverage:$(coverageOutput)
@@ -108,11 +110,12 @@ $(gopath)/src/$(orgPath):
 $(gopath)/src/$(projectPath):$(gopath)/src/$(orgPath)
 	@[ -L $@ ] || ln -s $(shell pwd) $@
 $(buildDir)/$(name):$(gopath)/src/$(projectPath) $(srcFiles) $(deps)
-	$(gobin) build -o $@ main/$(name).go
+	$(goEnv) $(gobin) build -o $@ main/$(name).go
 $(buildDir)/$(name).race:$(gopath)/src/$(projectPath) $(srcFiles) $(deps)
-	$(gobin) build -race -o $@ main/$(name).go
+	$(goEnv) $(gobin) build -race -o $@ main/$(name).go
 # end main build
 
+$(buildDir)/output.%.test:
 
 # convenience targets for runing tests and coverage tasks on a
 # specific package.
@@ -122,7 +125,7 @@ test-%:$(buildDir)/output.%.test
 	@grep -s -q -e "^PASS" $<
 coverage-%:$(buildDir)/output.%.coverage
 	@grep -s -q -e "^PASS" $(subst coverage,test,$<)
-html-coverage-%:$(buildDir)/output.%.coverage $(buildDir)/output.%.coverage.html
+html-coverage-%:$(buildDir)/output.%.coverage.html $(buildDir)/output.%.coverage.html
 	@grep -s -q -e "^PASS" $(subst coverage,test,$<)
 lint-%:$(buildDir)/output.%.lint
 	@grep -v -s -q "^--- FAIL" $<
@@ -151,22 +154,22 @@ testArgs += -test.timeout=10m
 endif
 #    implementation for package coverage and test running,mongodb to produce
 #    and save test output.
-$(buildDir)/coverage.%.html:$(buildDir)/coverage.%.out
-	$(gobin) tool cover -html=$(buildDir)/coverage.$(subst /,-,$*).out -o $(buildDir)/coverage.$(subst /,-,$*).html
-$(buildDir)/coverage.%.out:$(testRunDeps)
-	GOPATH=$(gopath) $(gobin) test $(testArgs) -covermode=count -coverprofile=$(buildDir)/coverage.$(subst /,-,$*).out $(projectPath)/$(subst -,/,$*)
-	@-[ -f $(buildDir)/coverage.$(subst /,-,$*).out ] && go tool cover -func=$(buildDir)/coverage.$(subst /,-,$*).out | sed 's%$(projectPath)/%%' | column -t
-$(buildDir)/coverage.$(name).out:$(testRunDeps)
-	GOPATH=$(gopath) $(gobin) test -covermode=count -coverprofile=$@ $(projectPath)
-	@-[ -f $@ ] && go tool cover -func=$@ | sed 's%$(projectPath)/%%' | column -t
-$(buildDir)/test.%.out:$(testRunDeps) .FORCE
-	GOPATH=$(gopath) $(gobin) test $(testArgs) ./$(subst -,/,$*) | tee $(buildDir)/test.$(subst /,-,$*).out
-$(buildDir)/race.%.out:$(testRunDeps) .FORCE
-	GOPATH=$(gopath) $(gobin) test $(testArgs) -race ./$(subst -,/,$*) | tee $(buildDir)/race.$(subst /,-,$*).out
-$(buildDir)/test.$(name).out:$(testRunDeps) .FORCE
-	GOPATH=$(gopath) $(gobin) test $(testArgs) ./ | tee $@
-$(buildDir)/race.$(name).out:$(testRunDeps) .FORCE
-	GOPATH=$(gopath) $(gobin) test $(testArgs) -race ./ | tee $@
+$(buildDir)/output.%.coverage.html:$(buildDir)/output.%.coverage
+	$(goEnv) $(gobin) tool cover -html=$(buildDir)/output.$(subst /,-,$*).coverage -o $(buildDir)/output.$(subst /,-,$*).coverage.html
+$(buildDir)/output.%.coverage:$(testRunDeps)
+	$(goEnv) $(gobin) test $(testArgs) -covermode=count -coverprofile=$(buildDir)/output.$(subst /,-,$*).coverage $(projectPath)/$(subst -,/,$*)
+	@-[ -f $(buildDir)/output.$(subst /,-,$*).coverage ] && $(goEnv) $(gobin) tool cover -func=$(buildDir)/output.$(subst /,-,$*).coverage | sed 's%$(projectPath)/%%' | column -t
+$(buildDir)/output.$(name).coverage:$(testRunDeps)
+	$(goEnv) $(gobin) test -covermode=count -coverprofile=$@ $(projectPath)
+	@-[ -f $@ ] && $(goEnv) $(gobin) tool cover -func=$@ | sed 's%$(projectPath)/%%' | column -t
+$(buildDir)/output.%.test:$(testRunDeps) .FORCE
+	$(goEnv) $(gobin) test $(testArgs) ./$(subst -,/,$*) | tee $(buildDir)/output.$(subst /,-,$*).test
+$(buildDir)/output.%.race:$(testRunDeps) .FORCE
+	$(goEnv) $(gobin) test $(testArgs) -race ./$(subst -,/,$*) | tee $(buildDir)/output.$(subst /,-,$*).race
+$(buildDir)/output.$(name).test:$(testRunDeps) .FORCE
+	$(goEnv) $(gobin) test $(testArgs) ./ | tee $@
+$(buildDir)/output.$(name).race:$(testRunDeps) .FORCE
+	$(goEnv) $(gobin) test $(testArgs) -race ./ | tee $@
 #  targets to generate gotest output from the linter.
 $(buildDir)/output.%.lint:$(buildDir)/run-linter $(testSrcFiles)  $(buildDir)/.lintSetup .FORCE
 	@./$< --output=$@ --lintArgs='$(lintArgs)' --packages='$*'
@@ -180,16 +183,36 @@ vendor-clean:
 	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/pkg/
 	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/stretchr/
 	rm -rf vendor/gopkg.in/asn1-ber.v1/tests/
+	rm -rf vendor/github.com/rs/cors/examples/
 	find vendor/ -name "*.gif" -o -name "*.gz" -o -name "*.png" -o -name "*.ico" -o -name "*.dat" -o -name "*testdata" | xargs rm -rf
+	find vendor/ -type d -name '.git' | xargs rm -rf
 phony += vendor-clean
 # end vendoring tooling configuration
 
 
 # clean and other utility targets
 clean:
-	rm -rf $(name) $(lintDeps) $(buildDir)/test.* $(buildDir)/coverage.* $(buildDir)/race.*
+	rm -rf $(name) $(lintDeps) $(buildDir)/output.*
 phony += clean
 # end dependency targets
+
+# mongodb utility targets
+mongodb/.get-mongodb:
+	rm -rf mongodb
+	mkdir -p mongodb
+	cd mongodb && curl "$(MONGODB_URL)" -o mongodb.tgz && $(DECOMPRESS) mongodb.tgz && chmod +x ./mongodb-*/bin/*
+	cd mongodb && mv ./mongodb-*/bin/* . && rm -rf db_files && rm -rf db_logs && mkdir -p db_files && mkdir -p db_logs
+get-mongodb: mongodb/.get-mongodb
+	@touch $<
+start-mongod: mongodb/.get-mongodb
+	./mongodb/mongod --dbpath ./mongodb/db_files --port 27017 --replSet evg --smallfiles --oplogSize 10
+	@echo "waiting for mongod to start up"
+init-rs:mongodb/.get-mongodb
+	./mongodb/mongo --eval 'rs.initiate()'
+check-mongod: mongodb/.get-mongodb
+	./mongodb/mongo --nodb --eval "assert.soon(function(x){try{var d = new Mongo(\"localhost:27017\"); return true}catch(e){return false}}, \"timed out connecting\")"
+	@echo "mongod is up"
+# end mongodb targets
 
 # configure phony targets
 .FORCE:

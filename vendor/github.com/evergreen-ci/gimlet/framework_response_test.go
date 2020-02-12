@@ -7,6 +7,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -53,7 +54,7 @@ func (s *ResponderSuite) TesteStatusSetter() {
 		s.Equal(good, s.resp.Status())
 	}
 
-	for _, bad := range []int{42, 99, 103, 150, 199, 227, 299, 309, 399, 419, 452, 420, 499, 512, 9001} {
+	for _, bad := range []int{42, 99, 120, 150, 199, 227, 299, 309, 399, 419, 452, 420, 499, 512, 9001} {
 		s.Error(s.resp.SetStatus(bad))
 		s.NotEqual(bad, s.resp.Status())
 		s.NotZero(s.resp.Status())
@@ -146,6 +147,7 @@ func TestResponseBuilderConstructor(t *testing.T) {
 	)
 
 	assert := assert.New(t)
+	require := require.New(t)
 
 	resp, err = NewBasicResponder(http.StatusOK, TEXT, "foo")
 	assert.NoError(err)
@@ -176,14 +178,14 @@ func TestResponseBuilderConstructor(t *testing.T) {
 	assert.Error(resp.Validate())
 
 	resp = &responseBuilder{pages: &ResponsePages{Next: &Page{}}}
-	resp.SetFormat(TEXT)
-	resp.SetStatus(http.StatusTeapot)
+	require.NoError(resp.SetFormat(TEXT))
+	require.NoError(resp.SetStatus(http.StatusTeapot))
 	assert.Error(resp.Validate())
 
 	resp = &responseBuilder{}
 	assert.Error(resp.Validate())
-	resp.SetFormat(TEXT)
-	resp.SetStatus(http.StatusTeapot)
+	require.NoError(resp.SetFormat(TEXT))
+	require.NoError(resp.SetStatus(http.StatusTeapot))
 	assert.NoError(resp.Validate())
 
 }
@@ -270,7 +272,7 @@ func TestSimpleResponseBuilder(t *testing.T) {
 			MakeYAMLInternalErrorResponder(er),
 			MakeTextInternalErrorResponder(er),
 		} {
-			assert.Equal(t, resp.Status(), 418, "%d", idx)
+			assert.Equal(t, 418, resp.Status(), "%d", idx)
 			assert.NoError(t, resp.Validate())
 		}
 	})

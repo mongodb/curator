@@ -9,6 +9,7 @@ import (
 
 	"github.com/mongodb/grip"
 	"github.com/mongodb/grip/message"
+	"github.com/pkg/errors"
 )
 
 // UserMiddlewareConfiguration is an keyed-arguments struct used to
@@ -21,6 +22,7 @@ type UserMiddlewareConfiguration struct {
 	CookieName      string
 	CookiePath      string
 	CookieTTL       time.Duration
+	CookieDomain    string
 }
 
 // Validate ensures that the UserMiddlewareConfiguration is correct
@@ -66,6 +68,7 @@ func (umc UserMiddlewareConfiguration) AttachCookie(token string, rw http.Respon
 		Value:    token,
 		HttpOnly: true,
 		Expires:  time.Now().Add(umc.CookieTTL),
+		Domain:   umc.CookieDomain,
 	})
 }
 
@@ -74,6 +77,7 @@ func (umc UserMiddlewareConfiguration) ClearCookie(rw http.ResponseWriter) {
 	http.SetCookie(rw, &http.Cookie{
 		Name:   umc.CookieName,
 		Path:   umc.CookiePath,
+		Domain: umc.CookieDomain,
 		Value:  "",
 		MaxAge: -1,
 	})
@@ -120,8 +124,11 @@ func UserMiddleware(um UserManager, conf UserMiddlewareConfiguration) Middleware
 	}
 }
 
+var ErrNeedsReauthentication = errors.New("user session has expired so they must be reauthenticated")
+
 func (u *userMiddleware) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 	var err error
+	var usr User
 	ctx := r.Context()
 	reqID := GetRequestID(ctx)
 	logger := GetLogger(ctx)
@@ -141,14 +148,14 @@ func (u *userMiddleware) ServeHTTP(rw http.ResponseWriter, r *http.Request, next
 		// set the user, preferring the cookie, maye change
 		if len(token) > 0 {
 			ctx := r.Context()
-			usr, err := u.manager.GetUserByToken(ctx, token)
+			usr, err = u.manager.GetUserByToken(ctx, token)
+			needsReauth := errors.Cause(err) == ErrNeedsReauthentication
 
-			if err != nil {
-				logger.Debug(message.WrapError(err, message.Fields{
-					"request": reqID,
-					"message": "problem getting user by token",
-				}))
-			} else {
+			logger.DebugWhen(err != nil && !needsReauth, message.WrapError(err, message.Fields{
+				"request": reqID,
+				"message": "problem getting user by token",
+			}))
+			if err == nil {
 				usr, err = u.manager.GetOrCreateUser(usr)
 				// Get the user's full details from the DB or create them if they don't exists
 				if err != nil {
@@ -159,7 +166,7 @@ func (u *userMiddleware) ServeHTTP(rw http.ResponseWriter, r *http.Request, next
 				}
 			}
 
-			if usr != nil {
+			if usr != nil && !needsReauth {
 				r = setUserForRequest(r, usr)
 			}
 		}
@@ -180,7 +187,7 @@ func (u *userMiddleware) ServeHTTP(rw http.ResponseWriter, r *http.Request, next
 		}
 
 		if len(authDataAPIKey) > 0 {
-			usr, err := u.manager.GetUserByID(authDataName)
+			usr, err = u.manager.GetUserByID(authDataName)
 			logger.Debug(message.WrapError(err, message.Fields{
 				"message":   "problem getting user by id",
 				"operation": "header check",

@@ -40,10 +40,12 @@ type repoBuilderJob struct {
 	Output       map[string]string     `bson:"output" json:"output" yaml:"output"`
 	Version      string                `bson:"version" json:"version" yaml:"version"`
 	Arch         string                `bson:"arch" json:"arch" yaml:"arch"`
-	Profile      string                `bson:"aws_profile" json:"aws_profile" yaml:"aws_profile"`
-	Key          string                `bson:"aws_key" json:"aws_key" yaml:"aws_key"`
-	Secret       string                `bson:"aws_secret" json:"aws_secret" yaml:"aws_secret"`
-	Token        string                `bson:"aws_token" json:"aws_token" yaml:"aws_token"`
+	AWSProfile   string                `bson:"aws_profile" json:"aws_profile" yaml:"aws_profile"`
+	AWSKey       string                `bson:"aws_key" json:"aws_key" yaml:"aws_key"`
+	AWSSecret    string                `bson:"aws_secret" json:"aws_secret" yaml:"aws_secret"`
+	AWSToken     string                `bson:"aws_token" json:"aws_token" yaml:"aws_token"`
+	NotaryKey    string                `bson:"notary_key" json:"notary_key" yaml:"notary_key"`
+	NotaryToken  string                `bson:"notary_token" json:"notary_token" yaml:"notary_token"`
 	PackagePaths []string              `bson:"package_paths" json:"package_paths" yaml:"package_paths"`
 	*job.Base    `bson:"metadata" json:"metadata" yaml:"metadata"`
 
@@ -85,7 +87,7 @@ func NewBuildRepoJob(conf *RepositoryConfig, distro *RepositoryDefinition, versi
 		Distro:        distro,
 		Version:       version,
 		Arch:          arch,
-		Profile:       profile,
+		AWSProfile:    profile,
 		Packages:      pkgs,
 		JobID:         fmt.Sprint(job.GetNumber()),
 	})
@@ -101,10 +103,13 @@ type JobOptions struct {
 	Packages      []string              `bson:"packages" json:"packages" yaml:"packages"`
 	JobID         string                `bson:"job_id" json:"job_id" yaml:"job_id"`
 
-	Profile string `bson:"aws_profile" json:"aws_profile" yaml:"aws_profile"`
-	Key     string `bson:"aws_key" json:"aws_key" yaml:"aws_key"`
-	Secret  string `bson:"aws_secret" json:"aws_secret" yaml:"aws_secret"`
-	Token   string `bson:"aws_token" json:"aws_token" yaml:"aws_token"`
+	AWSProfile string `bson:"aws_profile" json:"aws_profile" yaml:"aws_profile"`
+	AWSKey     string `bson:"aws_key" json:"aws_key" yaml:"aws_key"`
+	AWSSecret  string `bson:"aws_secret" json:"aws_secret" yaml:"aws_secret"`
+	AWSToken   string `bson:"aws_token" json:"aws_token" yaml:"aws_token"`
+
+	NotaryKey   string `bson:"notary_key" json:"notary_key" yaml:"notary_key"`
+	NotaryToken string `bson:"notary_token" json:"notary_token" yaml:"notary_token"`
 
 	release *bond.MongoDBVersion
 }
@@ -144,10 +149,12 @@ func NewRepoBuilderJob(opts JobOptions) (amboy.Job, error) {
 	j.Distro = opts.Distro
 	j.PackagePaths = opts.Packages
 	j.Version = opts.Version
-	j.Profile = opts.Profile
-	j.Key = opts.Key
-	j.Secret = opts.Secret
-	j.Token = opts.Token
+	j.AWSProfile = opts.AWSProfile
+	j.AWSKey = opts.AWSKey
+	j.AWSSecret = opts.AWSSecret
+	j.AWSToken = opts.AWSToken
+	j.NotaryKey = opts.NotaryKey
+	j.NotaryToken = opts.NotaryToken
 	j.release = opts.release
 	j.SetID(fmt.Sprintf("%s.distro.%s.repo.%s", jobName, opts.Distro.Type, opts.JobID))
 
@@ -201,6 +208,26 @@ func (j *repoBuilderJob) setup() {
 	j.tmpdir, err = ioutil.TempDir("", j.ID())
 	if err != nil {
 		j.AddError(errors.Wrap(err, "problem making tempdir"))
+	}
+
+	if j.NotaryKey == "" {
+		j.NotaryKey = os.Getenv("NOTARY_KEY_NAME")
+		if j.NotaryKey == "" && j.release != nil {
+			if j.Distro.Type == DEB && (j.release.Series() == "3.0" || j.release.Series() == "2.6") {
+				j.NotaryKey = "richard"
+				j.NotaryToken = os.Getenv("NOTARY_TOKEN_DEB_LEGACY")
+			} else {
+				j.NotaryKey = "server-" + j.release.StableReleaseSeries()
+			}
+		}
+	}
+
+	if j.NotaryToken == "" {
+		j.NotaryToken = os.Getenv("NOTARY_TOKEN")
+	}
+
+	if j.NotaryKey == "" {
+		j.AddError(errors.New("the notary service auth token (NOTARY_TOKEN) is not defined in the environment"))
 	}
 }
 
@@ -318,29 +345,10 @@ func (j *repoBuilderJob) signFile(fileName, archiveExtension string, overwrite b
 	// notary service directly rather than shelling out here. The
 	// final option controls if we overwrite this file.
 
-	var keyName string
-	var token string
-
-	keyName = os.Getenv("NOTARY_KEY_NAME")
-	token = os.Getenv("NOTARY_TOKEN")
-	if keyName == "" {
-		if j.Distro.Type == DEB && (j.release.Series() == "3.0" || j.release.Series() == "2.6") {
-			keyName = "richard"
-			token = os.Getenv("NOTARY_TOKEN_DEB_LEGACY")
-		} else {
-			keyName = "server-" + j.release.StableReleaseSeries()
-		}
-	}
-
-	if token == "" {
-		return errors.New(fmt.Sprintln("the notary service auth token",
-			"(NOTARY_TOKEN) is not defined in the environment"))
-	}
-
 	args := []string{
 		"notary-client.py",
-		"--key-name", keyName,
-		"--auth-token", token,
+		"--key-name", j.NotaryKey,
+		"--auth-token", j.NotaryToken,
 		"--comment", "\"curator package signing\"",
 		"--notary-url", j.Conf.Services.NotaryURL,
 		"--archive-file-ext", archiveExtension,
@@ -392,7 +400,7 @@ func (j *repoBuilderJob) signFile(fileName, archiveExtension string, overwrite b
 
 	grip.Info(message.Fields{
 		"message":   "running notary-client command",
-		"cmd":       strings.Replace(strings.Join(cmd.Args, " "), token, "XXXXX", -1),
+		"cmd":       strings.Replace(strings.Join(cmd.Args, " "), j.NotaryToken, "XXXXX", -1),
 		"job_id":    j.ID(),
 		"job_scope": j.Scopes(),
 		"repo":      j.Distro.Name,
@@ -543,7 +551,7 @@ func (j *repoBuilderJob) Run(ctx context.Context) {
 	defer j.cleanup()
 	opts := pail.S3Options{
 		Region:                   j.Distro.Region,
-		SharedCredentialsProfile: j.Profile,
+		SharedCredentialsProfile: j.AWSProfile,
 		Name:                     j.Distro.Bucket,
 		DryRun:                   j.Conf.DryRun,
 		Verbose:                  j.Conf.Verbose,
@@ -552,8 +560,8 @@ func (j *repoBuilderJob) Run(ctx context.Context) {
 		MaxRetries:               10,
 	}
 
-	if j.Key != "" {
-		opts.Credentials = pail.CreateAWSCredentials(j.Key, j.Secret, j.Token)
+	if j.AWSKey != "" {
+		opts.Credentials = pail.CreateAWSCredentials(j.AWSKey, j.AWSSecret, j.AWSToken)
 	}
 
 	bucket, err := pail.NewS3Bucket(opts)

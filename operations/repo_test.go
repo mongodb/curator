@@ -28,19 +28,15 @@ func (s *CommandsSuite) TestRepoFlags() {
 		}
 	}
 
-	s.Len(names, 13)
-	s.Len(flags, 13)
+	s.Len(names, 7)
+	s.Len(flags, 7)
 	s.True(names["config"])
-	s.True(names["retries"])
 	s.True(names["distro"])
 	s.True(names["version"])
 	s.True(names["edition"])
 	s.True(names["timeout"])
 	s.True(names["arch"])
-	s.True(names["packages"])
 	s.True(names["profile"])
-	s.True(names["dry-run"])
-	s.True(names["verbose"])
 }
 
 func (s *CommandsSuite) TestRebuildOperationOnProcess() {

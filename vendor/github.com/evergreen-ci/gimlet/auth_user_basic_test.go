@@ -12,8 +12,8 @@ func TestBasicUserImplementation(t *testing.T) {
 	// constructors
 	assert.Implements((*User)(nil), &basicUser{})
 	assert.Implements((*User)(nil), MakeBasicUser())
-	assert.Implements((*User)(nil), NewBasicUser("", "", "", "", "", []string{}, false))
-	assert.Equal(MakeBasicUser(), NewBasicUser("", "", "", "", "", nil, false))
+	assert.Implements((*User)(nil), NewBasicUser("", "", "", "", "", "", "", []string{}, false, nil))
+	assert.Equal(MakeBasicUser(), NewBasicUser("", "", "", "", "", "", "", nil, false, nil))
 
 	var usr *basicUser
 
@@ -22,6 +22,8 @@ func TestBasicUserImplementation(t *testing.T) {
 		ID:           "usrid",
 		EmailAddress: "usr@example.net",
 		Key:          "sekret",
+		AccessToken:  "access_token",
+		RefreshToken: "refresh_token",
 		AccessRoles:  []string{"admin"},
 		Name:         "name",
 	}
@@ -29,6 +31,8 @@ func TestBasicUserImplementation(t *testing.T) {
 	assert.Equal(usr.Username(), "usrid")
 	assert.Equal(usr.Email(), "usr@example.net")
 	assert.Equal(usr.GetAPIKey(), "sekret")
+	assert.Equal(usr.GetAccessToken(), "access_token")
+	assert.Equal(usr.GetRefreshToken(), "refresh_token")
 	assert.Equal(usr.Roles()[0], "admin")
 	assert.Equal(usr.DisplayName(), "name")
 

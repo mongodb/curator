@@ -428,6 +428,10 @@ func (d *mongoDriver) Put(ctx context.Context, j amboy.Job) error {
 	d.processJobForGroup(job)
 
 	if _, err = d.getCollection().InsertOne(ctx, job); err != nil {
+		if isMongoDupKey(err) {
+			return amboy.NewDuplicateJobErrorf("job '%s' already exists", j.ID())
+		}
+
 		return errors.Wrapf(err, "problem saving new job %s", j.ID())
 	}
 
@@ -460,7 +464,7 @@ func getAtomicQuery(owner, jobName string, modCount int) bson.M {
 }
 
 func isMongoDupKey(err error) bool {
-	wce, ok := err.(mongo.WriteConcernError)
+	wce, ok := errors.Cause(err).(mongo.WriteConcernError)
 	if !ok {
 		return false
 	}
@@ -768,20 +772,8 @@ RETRY:
 					grip.NoticeWhen(err == nil, msg)
 					continue CURSOR
 				}
-				// TODO check here to see if this is
-				// lockable
 
 				if err := d.dispatcher.Dispatch(ctx, job); err != nil {
-					grip.Info(message.WrapError(err, message.Fields{
-						"id":        d.instanceID,
-						"service":   "amboy.queue.mongo",
-						"is_group":  d.opts.UseGroups,
-						"group":     d.opts.GroupName,
-						"operation": "dispatching job",
-						"job":       job.ID(),
-						"job_type":  job.Type().Name,
-					}))
-
 					continue CURSOR
 				}
 				break CURSOR
