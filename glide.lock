@@ -3,8 +3,8 @@ updated: 2016-06-16T14:14:58.047959949-04:00
 imports:
 - name: github.com/pkg/errors
   version: ff09b135c25aae272398c51a07235b90a75aa4f0
-- name: github.com/satori/go.uuid
-  version: b2ce2384e17bbe0c6d34077efa39dbab3e09123b
+- name: github.com/google/uuid
+  version: c2e93f3ae59f2904160ceaab466009f965df46d6
 
 - name: github.com/blang/semver
   version: aea32c919a18e5ef4537bbd283ff29594b1b0165
@@ -27,9 +27,9 @@ imports:
   version: bea76d6a4713e18b7f5321a2b020738552def3ea
 
 - name: github.com/mongodb/grip
-  version: 2e402613ba129030dffcf05f53f185ea52d350c2
+  version: 505d1051058d81836ddb3cb839ba06009588a14e
 - name: github.com/mongodb/amboy
-  version: 85bb9679689a39093947de9b5590064e2a264ae5
+  version: 4f089ad3c37346a21d0b69b6d3c3523628a72a29
 - name: github.com/evergreen-ci/gimlet
   version: 179b5518bae02593ac2c0678cfbf675bdf27d379
 - name: github.com/tychoish/lru
@@ -53,7 +53,7 @@ imports:
 - name: github.com/mongodb/ftdc
   version: 8b996adb830457905c1f23c0f8738f6ec36e0917
 - name: github.com/mongodb/jasper
-  version: 1e6d6e1d9e32949d7407c6798a37db3a9a97493e
+  version: 5fb1ab4916bb2cce94a003fc0277d62dccd9cc90
 - name: github.com/mongodb/anser
   version: c65a2d95b0615d79b53ef467c2f836a576972857
 - name: github.com/evergreen-ci/poplar
