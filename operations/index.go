@@ -7,9 +7,9 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/google/uuid"
 	"github.com/mongodb/curator/repobuilder"
 	"github.com/mongodb/grip"
-	"github.com/satori/go.uuid"
 	"github.com/urfave/cli"
 )
 
@@ -25,7 +25,7 @@ func Index() cli.Command {
 
 	pwd, err := os.Getwd()
 	grip.EmergencyFatal(err)
-	workingDir := filepath.Join(pwd, uuid.Must(uuid.NewV4()).String())
+	workingDir := filepath.Join(pwd, uuid.New().String())
 
 	return cli.Command{
 		Name:  "rebuild-index-pages",

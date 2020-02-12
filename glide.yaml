@@ -9,7 +9,7 @@ import:
 - package: github.com/evergreen-ci/gimlet
 - package: github.com/vaughan0/go-ini
 - package: github.com/stretchr/testify
-- package: github.com/satori/go.uuid
+- package: github.com/google/uuid
 - package: gopkg.in/yaml.v2
 - package: github.com/pkg/errors
   version: ^0.7.0
@@ -18,7 +18,6 @@ import:
 - package: github.com/tychoish/lru
 - package: github.com/tychoish/bond
 - package: github.com/anmitsu/go-shlex
-- package: github.com/satori/go.uuid
 - package: github.com/papertrail/go-tail
 - package: github.com/mongodb/jasper
 - package: google.golang.org/grpc

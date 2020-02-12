@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/mongodb/amboy"
 	"github.com/mongodb/amboy/rest"
 	"github.com/mongodb/grip"
 	"github.com/pkg/errors"
-	uuid "github.com/satori/go.uuid"
 )
 
 // Client provides all of the core greenbay operations by
@@ -76,7 +76,7 @@ func (c *Client) Run(ctx context.Context) error {
 			continue
 		}
 		j := check.Job.(Checker)
-		j.SetID(fmt.Sprintf("%s-%d-%s", j.ID(), time.Now().Unix(), uuid.Must(uuid.NewV4()).String()))
+		j.SetID(fmt.Sprintf("%s-%d-%s", j.ID(), time.Now().Unix(), uuid.New().String()))
 		id, err := c.client.SubmitJob(ctx, j)
 		if err != nil {
 			catcher.Add(err)
