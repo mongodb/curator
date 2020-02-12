@@ -93,21 +93,22 @@ func repoSubmit() cli.Command {
 				Name:  "packages",
 				Usage: "path to packages, searches for valid packages recursively",
 			},
-
 			cli.StringFlag{
 				Name:  "service",
+				Usage: "specify the path to a repobuilder service",
 				Value: "https://barque.mongodb.comm",
 			},
 			cli.StringFlag{
 				Name:   "username",
+				Usage:  "specify the username for a user to authenticate to the repobuilding service",
 				EnvVar: "BARQUE_USERNAME",
 			},
 			cli.StringFlag{
 				Name:   "password",
+				Usage:  "specify the password to authenticate to the repobuilding service",
 				EnvVar: "BARQUE_PASSWORD",
 			},
 		),
-		Subcommands: []cli.Command{},
 		Action: func(c *cli.Context) error {
 			ctx, cancel := ctxWithTimeout(c.Duration("timeout"))
 			defer cancel()
