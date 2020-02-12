@@ -31,7 +31,7 @@ imports:
 - name: github.com/mongodb/amboy
   version: 4f089ad3c37346a21d0b69b6d3c3523628a72a29
 - name: github.com/evergreen-ci/gimlet
-  version: 179b5518bae02593ac2c0678cfbf675bdf27d379
+  version: 7ad1845db582cfcaa26503d841f77a6277b2a258
 - name: github.com/tychoish/lru
   version: f77a748d12a924cfbfcf396426dd58de5aa3a9e2
 - name: github.com/tychoish/bond
