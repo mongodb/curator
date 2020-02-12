@@ -102,10 +102,9 @@ func (c *Client) Login(ctx context.Context, username, password string) error {
 	if err != nil {
 		return errors.Wrap(err, "problem making login request")
 	}
-	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return errors.Errorf("login request returned %d", resp.StatusCode)
+		return c.handleError(resp.StatusCode, resp.Body)
 	}
 
 	data := &userAPIKeyResponse{}
@@ -118,6 +117,7 @@ func (c *Client) Login(ctx context.Context, username, password string) error {
 	}
 
 	c.apiKey = data.Key
+	c.username = data.Username
 	return nil
 }
 
@@ -139,10 +139,9 @@ func (c *Client) SubmitJob(ctx context.Context, opts repobuilder.JobOptions) (st
 	if err != nil {
 		return "", errors.Wrap(err, "problem making job submission request")
 	}
-	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", c.handleError(resp.Body)
+		return "", c.handleError(resp.StatusCode, resp.Body)
 	}
 
 	out := struct {
@@ -166,12 +165,12 @@ type JobStatus struct {
 	Error       string              `json:"error"`
 }
 
-func (c *Client) handleError(body io.ReadCloser) gimlet.ErrorResponse {
+func (c *Client) handleError(code int, body io.ReadCloser) gimlet.ErrorResponse {
 	out := gimlet.ErrorResponse{}
 	err := gimlet.GetJSON(body, &out)
 	if err != nil {
 		out.Message = errors.Wrap(err, "problem parsing error response").Error()
-		out.StatusCode = http.StatusUnprocessableEntity
+		out.StatusCode = code
 	}
 	return out
 }
@@ -189,14 +188,13 @@ func (c *Client) CheckJobStatus(ctx context.Context, id string) (*JobStatus, err
 	if err != nil {
 		return nil, errors.Wrap(err, "problem making job submission request")
 	}
-	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, c.handleError(resp.Body)
+		return nil, c.handleError(resp.StatusCode, resp.Body)
 	}
 	out := &JobStatus{}
-	if err = gimlet.GetJSON(resp.Body, &out); err != nil {
-		return nil, errors.Wrap(err, "problem reading body of login response")
+	if err = gimlet.GetJSON(resp.Body, out); err != nil {
+		return nil, errors.Wrap(err, "problem reading body of job status response")
 	}
 
 	return out, nil

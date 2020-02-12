@@ -74,7 +74,7 @@ func Repo() cli.Command {
 				c.String("edition"),
 				c.String("version"),
 				c.String("arch"),
-				c.String("prqofile"),
+				c.String("profile"),
 				c.Bool("dry-run"),
 				c.Bool("verbose"),
 				c.Bool("rebuild"),
@@ -96,7 +96,7 @@ func repoSubmit() cli.Command {
 			cli.StringFlag{
 				Name:  "service",
 				Usage: "specify the path to a repobuilder service",
-				Value: "https://barque.mongodb.comm",
+				Value: "https://barque.mongodb.com",
 			},
 			cli.StringFlag{
 				Name:   "username",
@@ -293,6 +293,8 @@ func submitRepo(ctx context.Context, info barqueServiceInfo, configPath, distro,
 		Version:       version,
 		Arch:          arch,
 		Packages:      packages,
+		NotaryKey:     os.Getenv("NOTARY_KEY_NAME"),
+		NotaryToken:   os.Getenv("NOTARY_TOKEN"),
 		JobID:         "tk",
 	}
 
@@ -333,6 +335,7 @@ RETRY:
 					"wallclock_seconds": time.Since(startAt).Seconds(),
 					"duration_seconds":  time.Since(stat.Timing.Start).Seconds(),
 					"in_progress":       stat.Status.InProgress,
+					"complete":          stat.Status.Completed,
 					"checks":            checks,
 				})
 				timer.Reset(30*time.Second + time.Duration(rand.Int63n(int64(time.Minute))))
@@ -355,6 +358,8 @@ RETRY:
 				"job":               stat.ID,
 				"duration_seconds":  stat.Timing.Duration().Seconds(),
 				"wallclock_seconds": time.Since(startAt).Seconds(),
+				"complete":          stat.Status.Completed,
+				"in_progress":       stat.Status.InProgress,
 				"checks":            checks,
 			})
 			return nil
