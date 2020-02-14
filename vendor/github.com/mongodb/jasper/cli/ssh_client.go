@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"strings"
 
 	"github.com/mongodb/jasper"
 	"github.com/mongodb/jasper/options"
@@ -27,10 +28,18 @@ func NewSSHClient(remoteOpts options.Remote, clientOpts ClientOptions, trackProc
 	if err := remoteOpts.Validate(); err != nil {
 		return nil, errors.Wrap(err, "problem validating remote options")
 	}
-	// We have to suppress logs from SSH, because it will prevent the JSON
+	for _, arg := range remoteOpts.Args {
+		if strings.HasPrefix(arg, "-v") {
+			return nil, errors.New("cannot use verbose arguments in non-interactive SSH client")
+		}
+	}
+	// We have to run SSH without output, because it will prevent the JSON
 	// output from the Jasper CLI from being parsed correctly (e.g. adding a
 	// host to the known hosts file generates a warning).
-	remoteOpts.Args = append([]string{"-o", "LogLevel=QUIET"}, remoteOpts.Args...)
+	remoteOpts.Args = append(remoteOpts.Args,
+		"-T",
+		"-o", "LogLevel=QUIET",
+	)
 
 	if err := clientOpts.Validate(); err != nil {
 		return nil, errors.Wrap(err, "problem validating client options")
