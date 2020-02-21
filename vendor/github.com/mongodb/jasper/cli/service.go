@@ -255,7 +255,8 @@ func buildRunCommand(c *cli.Context, serviceType string) []string {
 func serviceOptions(c *cli.Context) service.KeyValue {
 	opts := service.KeyValue{
 		// launchd-specific options
-		"RunAtLoad": true,
+		"RunAtLoad":     true,
+		"SessionCreate": true,
 		// Windows-specific options
 		"Password": c.String(passwordFlagName),
 	}
