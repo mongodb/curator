@@ -50,7 +50,7 @@ func (c *Client) getURL(p string) string {
 		return p
 	}
 
-	return path.Join(c.baseURL, p)
+	return strings.Join([]string{c.baseURL, p}, "/")
 }
 
 func (c *Client) makeRequest(ctx context.Context, url, method string, body io.Reader) (*http.Request, error) {

@@ -96,7 +96,7 @@ func repoSubmit() cli.Command {
 			cli.StringFlag{
 				Name:  "service",
 				Usage: "specify the path to a repobuilder service",
-				Value: "https://barque.mongodb.com",
+				Value: "https://barque.mongodb.com/",
 			},
 			cli.StringFlag{
 				Name:   "username",
