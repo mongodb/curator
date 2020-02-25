@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-	"path"
 	"strings"
 
 	"github.com/evergreen-ci/gimlet"
@@ -36,8 +35,8 @@ func New(baseURL string) (*Client, error) {
 		baseURL += "/"
 	}
 
-	if !strings.HasSuffix(baseURL, "/rest/v1/") {
-		baseURL += "rest/v1/"
+	if !strings.HasSuffix(baseURL, "/rest/v1") {
+		baseURL += "rest/v1"
 	}
 
 	return &Client{
@@ -179,7 +178,7 @@ func (c *Client) CheckJobStatus(ctx context.Context, id string) (*JobStatus, err
 	client := utility.GetDefaultHTTPRetryableClient()
 	defer utility.PutHTTPClient(client)
 
-	req, err := c.makeRequest(ctx, path.Join("repobuilder", id), http.MethodGet, nil)
+	req, err := c.makeRequest(ctx, strings.Join([]string{"repobuilder", id}, "/"), http.MethodGet, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "problem building job request")
 	}
