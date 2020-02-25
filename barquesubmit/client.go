@@ -92,7 +92,7 @@ func (c *Client) Login(ctx context.Context, username, password string) error {
 		return errors.Wrap(err, "problem marshaling login payload")
 	}
 
-	req, err := c.makeRequest(ctx, "admin/login", http.MethodGet, bytes.NewBuffer(payload))
+	req, err := c.makeRequest(ctx, "admin/login", http.MethodPost, bytes.NewBuffer(payload))
 	if err != nil {
 		return errors.Wrap(err, "problem building login request")
 	}
