@@ -26,7 +26,7 @@ imports:
   - name: github.com/urfave/cli
     version: 693af58b4d51b8fcc7f9d89576da170765980581
   - name: github.com/evergreen-ci/service
-    version: 6a120a364c348396879d3e3a27df7dce23c9c89a
+    version: d9382e39d76857e2fe92a379d89f3c86fe507c4d
   - name: github.com/cheynewallace/tabby
     version: b7224f6123093cc04ce961170a360e1d22e214a5
   - name: github.com/evergreen-ci/aviation

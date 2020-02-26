@@ -257,6 +257,7 @@ func serviceOptions(c *cli.Context) service.KeyValue {
 		// launchd-specific options
 		"RunAtLoad":     true,
 		"SessionCreate": true,
+		"ProcessType":   "Interactive",
 		// Windows-specific options
 		"Password": c.String(passwordFlagName),
 	}
