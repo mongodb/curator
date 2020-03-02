@@ -507,7 +507,7 @@ func (j *repoBuilderJob) processPackages(ctx context.Context) error {
 			catcher.Errorf("could not expand archive for %s", localPath)
 		}
 
-		catcher.Add(filepath.Walk(filepath.Base(localPath), func(path string, info os.FileInfo, err error) error {
+		catcher.Add(filepath.Walk(localPath, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
 				return err
 			}
