@@ -37,7 +37,7 @@ func (j *debRepoBuilder) createArchDirs(basePath string) error {
 		if _, err := os.Stat(path); os.IsNotExist(err) {
 			err = os.MkdirAll(path, 0755)
 			if err != nil {
-				catcher.Add(err)
+				catcher.Add(errors.Wrapf(err, "failed to make dir '%s'", path))
 				continue
 			}
 
