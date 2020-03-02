@@ -178,7 +178,7 @@ func (c *Client) CheckJobStatus(ctx context.Context, id string) (*JobStatus, err
 	client := utility.GetDefaultHTTPRetryableClient()
 	defer utility.PutHTTPClient(client)
 
-	req, err := c.makeRequest(ctx, strings.Join([]string{"repobuilder", id}, "/"), http.MethodGet, nil)
+	req, err := c.makeRequest(ctx, strings.Join([]string{"repobuilder", "check", id}, "/"), http.MethodGet, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "problem building job request")
 	}
