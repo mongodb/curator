@@ -470,7 +470,7 @@ func (j *repoBuilderJob) processPackages(ctx context.Context) error {
 		defer func() { catcher.Add(resp.Body.Close()) }()
 		file, err := os.Create(localPath)
 		if err != nil {
-			catcher.Add(err)
+			catcher.Add(errors.Wrapf(err, "failed to create local path '%s'", localPath))
 			break
 		}
 		_, err = io.Copy(file, resp.Body)
