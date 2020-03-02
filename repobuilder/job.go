@@ -183,6 +183,7 @@ func (j *repoBuilderJob) setup() {
 
 	if j.Distro == nil {
 		j.AddError(errors.New("invalid job definition, missing distro"))
+		return
 	}
 
 	if j.Distro.Type == DEB {
