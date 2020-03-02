@@ -104,7 +104,7 @@ func (j *debRepoBuilder) rebuildRepo(workingDir string) error {
 	// in the source.
 	dirParts := strings.Split(workingDir, string(filepath.Separator))
 	cmd := exec.Command("dpkg-scanpackages", "--multiversion", filepath.Join(filepath.Join(dirParts[len(dirParts)-5:]...), arch))
-	cmd.Dir = string(filepath.Separator) + filepath.Join(dirParts[:len(dirParts)-5]...)
+	//cmd.Dir = string(filepath.Separator) + filepath.Join(dirParts[:len(dirParts)-5]...)
 
 	grip.Info(message.Fields{
 		"job_id":    j.ID(),
