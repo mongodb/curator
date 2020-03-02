@@ -17,6 +17,7 @@ import (
 
 	"github.com/evergreen-ci/pail"
 	"github.com/evergreen-ci/utility"
+	"github.com/google/uuid"
 	"github.com/mholt/archiver"
 	"github.com/mongodb/amboy"
 	"github.com/mongodb/amboy/dependency"
@@ -89,7 +90,7 @@ func NewBuildRepoJob(conf *RepositoryConfig, distro *RepositoryDefinition, versi
 		Arch:          arch,
 		AWSProfile:    profile,
 		Packages:      pkgs,
-		JobID:         fmt.Sprint(job.GetNumber()),
+		JobID:         uuid.New().String(),
 	})
 }
 
@@ -520,7 +521,7 @@ func (j *repoBuilderJob) processPackages(ctx context.Context) error {
 		}))
 	}
 
-	catcher.Add(os.Remove(j.tmpdir))
+	catcher.Add(os.RemoveAll(j.tmpdir))
 
 	grip.Info(message.Fields{
 		"message":    "processed paths",
