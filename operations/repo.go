@@ -295,7 +295,7 @@ func submitRepo(ctx context.Context, info barqueServiceInfo, configPath, distro,
 		Packages:      packages,
 		NotaryKey:     os.Getenv("NOTARY_KEY_NAME"),
 		NotaryToken:   os.Getenv("NOTARY_TOKEN"),
-		JobID:         "tk",
+		JobID:         uuid.New().String(),
 	}
 
 	client, err := barquesubmit.New(info.url)
