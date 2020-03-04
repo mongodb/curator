@@ -1,9 +1,0 @@
-project: demo
-task_id: demo_and_drinks
-test_name: test_demo06
-storage: 0
-flush_interval: 10s
-rpc_address: cedar.mongodb.com:7070
-ca_file: /Users/julian.edwards/.ssh/cedar/cedar.ca
-cert_file: /Users/julian.edwards/.ssh/cedar/julian.edwards.crt
-key_file: /Users/julian.edwards/.ssh/cedar/julian.edwards.key
