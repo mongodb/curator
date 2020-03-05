@@ -104,7 +104,7 @@ func (j *debRepoBuilder) rebuildRepo(workingDir string) error {
 	// in the source.
 	dirParts := strings.Split(workingDir, string(filepath.Separator))
 	cmd := exec.Command("dpkg-scanpackages", "--multiversion", filepath.Join(filepath.Join(dirParts[len(dirParts)-5:]...), arch))
-	//cmd.Dir = string(filepath.Separator) + filepath.Join(dirParts[:len(dirParts)-5]...)
+	cmd.Dir = string(filepath.Separator) + filepath.Join(dirParts[:len(dirParts)-5]...)
 
 	grip.Info(message.Fields{
 		"job_id":    j.ID(),
@@ -112,7 +112,7 @@ func (j *debRepoBuilder) rebuildRepo(workingDir string) error {
 		"path":      cmd.Dir,
 		"cmd":       strings.Join(cmd.Args, " "),
 	})
-	out, err := cmd.Output()
+	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return errors.Wrapf(err, "building 'Packages': [%s]", string(out))
 	}
@@ -166,7 +166,7 @@ func (j *debRepoBuilder) rebuildRepo(workingDir string) error {
 	// from the template above.
 	cmd = exec.Command("apt-ftparchive", "release", "../")
 	cmd.Dir = workingDir
-	out, err = cmd.Output()
+	out, err = cmd.CombinedOutput()
 
 	grip.Info(message.Fields{
 		"job_id":    j.ID(),
