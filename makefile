@@ -23,7 +23,6 @@ ldFlags += -X=github.com/mongodb/curator.CedarMetricsChecksum=$(shell shasum ven
 # end build configuration
 
 
-# start linting configuration
 # lint setup targets
 lintDeps := $(buildDir)/golangci-lint $(buildDir)/.lintSetup $(buildDir)/run-linter
 $(buildDir)/.lintSetup:$(buildDir)/golangci-lint
@@ -35,7 +34,6 @@ $(buildDir)/run-linter:cmd/run-linter/run-linter.go $(buildDir)/.lintSetup
 	@mkdir -p $(buildDir)
 	go build -o $@ $<
 # end lint setup targets
-# end linting configuration
 
 
 # start dependency installation tools
