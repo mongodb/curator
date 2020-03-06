@@ -39,7 +39,6 @@ $(buildDir)/run-linter:cmd/run-linter/run-linter.go $(buildDir)/.lintSetup
 # start dependency installation tools
 #   implementation details for being able to lazily install dependencies
 .DEFAULT_GOAL := $(binary)
-gopath := $(shell go env GOPATH)
 srcFiles := makefile $(shell find . -name "*.go" -not -path "./$(buildDir)/*" -not -name "*_test.go" )
 testSrcFiles := makefile $(shell find . -name "*.go" -not -path "./$(buildDir)/*")
 testOutput := $(foreach target,$(packages),$(buildDir)/output.$(target).test)
@@ -239,9 +238,6 @@ endif
 ifneq (,$(RUN_CASE))
 testArgs += -testify.m='$(RUN_CASE)'
 endif
-#    to avoid vendoring the coverage tool, install it as needed
-coverDeps := $(if $(DISABLE_COVERAGE),,golang.org/x/tools/cmd/cover)
-coverDeps := $(addprefix $(gopath)/src/,$(coverDeps))
 #    implementation for package coverage and test running,mongodb to produce
 #    and save test output.
 $(buildDir)/test.operations:$(name)
