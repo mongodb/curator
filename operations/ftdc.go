@@ -134,7 +134,7 @@ func toJSON() cli.Command {
 func fromJSON() cli.Command {
 	return cli.Command{
 		Name:  "json",
-		Usage: "write data from new line seperated JSON to FTDC files",
+		Usage: "write data from new line separated JSON to FTDC files",
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:  input,

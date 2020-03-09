@@ -42,7 +42,7 @@ type Checker interface {
 	Suites() []string
 
 	// Name returns the name of the checker. Use ID(), in the
-	// amboy.Job interface to get a unique identifer for the
+	// amboy.Job interface to get a unique identifier for the
 	// task. This is typically the same as the
 	// amboy.Job.Type().Name value.
 	Name() string

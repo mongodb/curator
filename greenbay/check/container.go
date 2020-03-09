@@ -102,7 +102,6 @@ func (c *containerCheck) Run(_ context.Context) {
 
 	if err := c.validate(); err != nil {
 		c.setState(false)
-		failed = true
 		c.AddError(err)
 		return
 	}

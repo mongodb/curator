@@ -38,7 +38,7 @@ func Splunk() cli.Command {
 			},
 			cli.StringFlag{
 				Name:  "json",
-				Usage: "when specified, all input is parsed as new-line seperated json",
+				Usage: "when specified, all input is parsed as new-line separated json",
 			},
 			cli.StringFlag{
 				Name:  "addMeta",

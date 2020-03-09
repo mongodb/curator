@@ -23,54 +23,28 @@ ldFlags += -X=github.com/mongodb/curator.CedarMetricsChecksum=$(shell shasum ven
 # end build configuration
 
 
-# start linting configuration
-#   package, testing, and linter dependencies specified
-#   separately. This is a temporary solution: eventually we should
-#   vendorize all of these dependencies.
-lintDeps := github.com/alecthomas/gometalinter
-#   include test files and give linters 40s to run to avoid timeouts
-lintArgs := --tests --deadline=3m --vendor
-#   gotype produces false positives because it reads .a files which
-#   are rarely up to date.
-lintArgs += --disable="gotype" --disable="gosec"
-lintArgs += --skip="build"
-#   enable and configure additional linters
-lintArgs += --enable="goimports"
-lintArgs += --line-length=100 --dupl-threshold=150 --cyclo-over=25
-#   the gotype linter has an imperfect compilation simulator and
-#   produces the following false postive errors:
-lintArgs += --exclude="error: could not import github.com/mongodb/curator"
-#   go lint warns on an error in docstring format, erroneously because
-#   it doesn't consider the entire package.
-lintArgs += --exclude="warning: package comment should be of the form \"Package .* ...\""
-#   known issues that the linter picks up that are not relevant in our cases
-lintArgs += --exclude="warning: jobImpl is unused.*" # this interface is used for testing
-lintArgs += --exclude="file is not goimported" # top-level mains aren't imported
-lintArgs += --exclude="duplicate of (rpm|deb)_test.go"  # these suites are very similar by design
-lintArgs += --exclude="unused struct field .*repobuilder.Job.mutex" # this is used by type that compose this type.
-lintArgs += --exclude="should check returned error before deferring.*Close()"
-# end linting configuration
+# lint setup targets
+lintDeps := $(buildDir)/golangci-lint $(buildDir)/.lintSetup $(buildDir)/run-linter
+$(buildDir)/.lintSetup:$(buildDir)/golangci-lint
+	@mkdir -p $(buildDir)
+	@touch $@
+$(buildDir)/golangci-lint:$(buildDir)
+	@curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/76a82c6ed19784036bbf2d4c84d0228ca12381a4/install.sh | sh -s -- -b $(buildDir) v1.23.8 >/dev/null 2>&1
+$(buildDir)/run-linter:cmd/run-linter/run-linter.go $(buildDir)/.lintSetup
+	@mkdir -p $(buildDir)
+	go build -o $@ $<
+# end lint setup targets
 
 
 # start dependency installation tools
 #   implementation details for being able to lazily install dependencies
 .DEFAULT_GOAL := $(binary)
-gopath := $(shell go env GOPATH)
-lintDeps := $(addprefix $(gopath)/src/,$(lintDeps))
 srcFiles := makefile $(shell find . -name "*.go" -not -path "./$(buildDir)/*" -not -name "*_test.go" )
 testSrcFiles := makefile $(shell find . -name "*.go" -not -path "./$(buildDir)/*")
 testOutput := $(foreach target,$(packages),$(buildDir)/output.$(target).test)
 raceOutput := $(foreach target,$(packages),$(buildDir)/output.$(target).race)
 coverageOutput := $(foreach target,$(packages),$(buildDir)/output.$(target).coverage)
 coverageHtmlOutput := $(foreach target,$(packages),$(buildDir)/output.$(target).coverage.html)
-$(gopath)/src/%:
-	@-[ ! -d $(gopath) ] && mkdir -p $(gopath) || true
-	go get $(subst $(gopath)/src/,,$@)
-$(buildDir)/run-linter:cmd/run-linter/run-linter.go $(buildDir)/.lintSetup
-	go build -o $@ $<
-$(buildDir)/.lintSetup:$(lintDeps)
-	@mkdir -p $(buildDir)
-	@-$(gopath)/bin/gometalinter --install >/dev/null && touch $@
 # end dependency installation tools
 
 
@@ -264,9 +238,6 @@ endif
 ifneq (,$(RUN_CASE))
 testArgs += -testify.m='$(RUN_CASE)'
 endif
-#    to avoid vendoring the coverage tool, install it as needed
-coverDeps := $(if $(DISABLE_COVERAGE),,golang.org/x/tools/cmd/cover)
-coverDeps := $(addprefix $(gopath)/src/,$(coverDeps))
 #    implementation for package coverage and test running,mongodb to produce
 #    and save test output.
 $(buildDir)/test.operations:$(name)
@@ -287,9 +258,9 @@ $(buildDir)/output.%.race:$(buildDir)/race.% .FORCE
 	$(testRunEnv) ./$< $(testArgs) 2>&1 | tee $@
 #  targets to generate gotest output from the linter.
 $(buildDir)/output.%.lint:$(buildDir)/run-linter $(testSrcFiles) .FORCE
-	@./$< --output=$@ --lintArgs='$(lintArgs)' --packages='$*'
+	@./$< --output=$@ --lintBin="$(buildDir)/golangci-lint" --packages='$*'
 $(buildDir)/output.lint:$(buildDir)/run-linter .FORCE
-	@./$< --output="$@" --lintArgs='$(lintArgs)' --packages="$(packages)"
+	@./$< --output=$@ --lintBin="$(buildDir)/golangci-lint" --packages='$(packages)'
 #  targets to process and generate coverage reports
 $(buildDir)/output.%.coverage:$(buildDir)/test.% .FORCE $(coverDeps)
 	$(testRunEnv) ./$< $(testArgs) -test.coverprofile=$@ | tee $(subst coverage,test,$@)
