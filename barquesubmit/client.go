@@ -120,6 +120,11 @@ func (c *Client) Login(ctx context.Context, username, password string) error {
 	return nil
 }
 
+func (c *Client) SetCredentials(username, key string) {
+	c.username = username
+	c.apiKey = key
+}
+
 func (c *Client) SubmitJob(ctx context.Context, opts repobuilder.JobOptions) (string, error) {
 	client := utility.GetDefaultHTTPRetryableClient()
 	defer utility.PutHTTPClient(client)

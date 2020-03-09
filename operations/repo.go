@@ -108,6 +108,11 @@ func repoSubmit() cli.Command {
 				Usage:  "specify the password to authenticate to the repobuilding service",
 				EnvVar: "BARQUE_PASSWORD",
 			},
+			cli.StringFlag{
+				Name:   "api_key",
+				Usage:  "specify the API key to authenticate to the repobuilding service",
+				EnvVar: "BARQUE_API_KEY",
+			},
 		),
 		Action: func(c *cli.Context) error {
 			ctx, cancel := ctxWithTimeout(c.Duration("timeout"))
@@ -120,6 +125,7 @@ func repoSubmit() cli.Command {
 					url:      c.String("service"),
 					username: c.String("username"),
 					password: c.String("password"),
+					apiKey:   c.String("api_key"),
 				},
 				c.String("config"),
 				c.String("distro"),
@@ -265,6 +271,7 @@ type barqueServiceInfo struct {
 	url      string
 	username string
 	password string
+	apiKey   string
 }
 
 func submitRepo(ctx context.Context, info barqueServiceInfo, configPath, distro, edition, version, arch string, packages []string) error {
@@ -303,7 +310,9 @@ func submitRepo(ctx context.Context, info barqueServiceInfo, configPath, distro,
 		return errors.Wrap(err, "problem constructing barque client")
 	}
 
-	if err = client.Login(ctx, info.username, info.password); err != nil {
+	if info.username != "" && info.apiKey != "" {
+		client.SetCredentials(info.username, info.apiKey)
+	} else if err = client.Login(ctx, info.username, info.password); err != nil {
 		return errors.Wrap(err, "problem authenticating to barque")
 	}
 
