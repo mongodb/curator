@@ -607,7 +607,7 @@ func (j *repoBuilderJob) Run(ctx context.Context) {
 			"bucket":    bucket,
 		})
 
-		local := filepath.Join(j.Conf.WorkSpace, remote)
+		local := filepath.Join(j.Conf.WorkSpace, bucket, remote)
 
 		var err error
 
