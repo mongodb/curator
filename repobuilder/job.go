@@ -604,10 +604,10 @@ func (j *repoBuilderJob) Run(ctx context.Context) {
 			"repo":      j.Distro.Name,
 			"version":   j.release.String(),
 			"remote":    remote,
-			"bucket":    bucket,
+			"bucket":    j.Distro.Bucket,
 		})
 
-		local := filepath.Join(j.Conf.WorkSpace, bucket, remote)
+		local := filepath.Join(j.Conf.WorkSpace, j.Distro.Bucket, remote)
 
 		var err error
 
@@ -680,7 +680,7 @@ func (j *repoBuilderJob) Run(ctx context.Context) {
 		err = bucket.Push(ctx, syncOpts)
 		if err != nil {
 			j.AddError(errors.Wrapf(err, "problem uploading %s to %s/%s",
-				syncSource, bucket, changedComponent))
+				syncSource, j.Distro.Bucket, changedComponent))
 			return
 		}
 	}
