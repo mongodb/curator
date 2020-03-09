@@ -159,7 +159,7 @@ func NewRepoBuilderJob(opts JobOptions) (amboy.Job, error) {
 	j.SetID(fmt.Sprintf("%s.distro.%s.repo.%s", jobName, opts.Distro.Type, opts.JobID))
 
 	repoName := j.getPackageLocation()
-	scopes := []string{}
+	scopes := []string{j.Distro.Bucket}
 	for _, repo := range opts.Distro.Repos {
 		switch opts.Distro.Type {
 		case RPM:
