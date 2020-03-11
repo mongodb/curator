@@ -160,13 +160,13 @@ func NewRepoBuilderJob(opts JobOptions) (amboy.Job, error) {
 	j.SetID(fmt.Sprintf("%s.distro.%s.repo.%s", jobName, opts.Distro.Type, opts.JobID))
 
 	repoName := j.getPackageLocation()
-	scopes := []string{j.Distro.Bucket}
+	scopes := []string{}
 	for _, repo := range opts.Distro.Repos {
 		switch opts.Distro.Type {
 		case RPM:
-			scopes = append(scopes, path.Join(repo, repoName, opts.Arch))
+			scopes = append(scopes, path.Join(j.Distro.Bucket, repo, repoName, opts.Arch))
 		case DEB:
-			scopes = append(scopes, path.Join(repo, repoName))
+			scopes = append(scopes, path.Join(j.Distro.Bucket, repo, repoName))
 		default:
 			return nil, errors.Errorf("repo type %s is not supported", opts.Distro.Type)
 		}
