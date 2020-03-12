@@ -582,7 +582,7 @@ func (j *repoBuilderJob) Run(ctx context.Context) {
 		// builds from the repo, but for the moment, we'll
 		// just wait longer for these builds.
 		if j.release.IsDevelopmentSeries() || j.release.IsDevelopmentBuild() {
-			timeout = 60 * time.Minute
+			timeout = 120 * time.Minute
 		}
 
 		ctx, cancel = context.WithTimeout(ctx, timeout)
