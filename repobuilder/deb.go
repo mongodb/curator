@@ -166,7 +166,7 @@ func (j *debRepoBuilder) rebuildRepo(workingDir string) error {
 	// from the template above.
 	cmd = exec.Command("apt-ftparchive", "release", "../")
 	cmd.Dir = workingDir
-	out, err = cmd.CombinedOutput()
+	out, err = cmd.Output()
 
 	grip.Info(message.Fields{
 		"job_id":    j.ID(),
@@ -174,10 +174,10 @@ func (j *debRepoBuilder) rebuildRepo(workingDir string) error {
 		"message":   "generating release file",
 		"path":      cmd.Dir,
 		"command":   strings.Join(cmd.Args, " "),
+		"std_err":   string(cmd.Stderr),
 	})
 
 	outString := string(out)
-	grip.Debug(outString)
 	if err != nil {
 		return errors.Wrapf(err, "generating Release content for %s", workingDir)
 	}
