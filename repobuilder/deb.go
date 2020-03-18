@@ -105,6 +105,8 @@ func (j *debRepoBuilder) rebuildRepo(workingDir string) error {
 	dirParts := strings.Split(workingDir, string(filepath.Separator))
 	cmd := exec.Command("dpkg-scanpackages", "--multiversion", filepath.Join(filepath.Join(dirParts[len(dirParts)-5:]...), arch))
 	cmd.Dir = string(filepath.Separator) + filepath.Join(dirParts[:len(dirParts)-5]...)
+	stdErr := &bytes.Buffer{}
+	cmd.Stderr = stdErr
 
 	grip.Info(message.Fields{
 		"job_id":    j.ID(),
@@ -112,9 +114,10 @@ func (j *debRepoBuilder) rebuildRepo(workingDir string) error {
 		"path":      cmd.Dir,
 		"cmd":       strings.Join(cmd.Args, " "),
 	})
-	out, err := cmd.CombinedOutput()
+
+	out, err := cmd.Output()
 	if err != nil {
-		return errors.Wrapf(err, "building 'Packages': [%s]", string(out))
+		return errors.Wrapf(err, "building 'Packages': [%s] [%s]", string(out), stdErr.String())
 	}
 
 	// Write the packages file to disk.
@@ -166,7 +169,9 @@ func (j *debRepoBuilder) rebuildRepo(workingDir string) error {
 	// from the template above.
 	cmd = exec.Command("apt-ftparchive", "release", "../")
 	cmd.Dir = workingDir
-	out, err = cmd.CombinedOutput()
+	stdErr = &bytes.Buffer{}
+	cmd.Stderr = stdErr
+	out, err = cmd.Output()
 
 	grip.Info(message.Fields{
 		"job_id":    j.ID(),
@@ -174,10 +179,10 @@ func (j *debRepoBuilder) rebuildRepo(workingDir string) error {
 		"message":   "generating release file",
 		"path":      cmd.Dir,
 		"command":   strings.Join(cmd.Args, " "),
+		"std_err":   stdErr.String(),
 	})
 
 	outString := string(out)
-	grip.Debug(outString)
 	if err != nil {
 		return errors.Wrapf(err, "generating Release content for %s", workingDir)
 	}
