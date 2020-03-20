@@ -207,7 +207,7 @@ func (j *repoBuilderJob) setup() {
 		}
 	}
 
-	j.tmpdir, err = ioutil.TempDir("/data", j.ID())
+	j.tmpdir, err = ioutil.TempDir("/data/tmp", j.ID())
 	if err != nil {
 		j.AddError(errors.Wrap(err, "problem making tempdir"))
 	}
