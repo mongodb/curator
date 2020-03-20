@@ -207,7 +207,11 @@ func (j *repoBuilderJob) setup() {
 		}
 	}
 
-	j.tmpdir, err = ioutil.TempDir("", j.ID())
+	if err = os.MkdirAll("/data/tmp"); err != nil {
+		j.AddError(errors.Wrap(err, "could not create temp directory"))
+		return
+	}
+	j.tmpdir, err = ioutil.TempDir("/data/tmp", j.ID())
 	if err != nil {
 		j.AddError(errors.Wrap(err, "problem making tempdir"))
 	}
