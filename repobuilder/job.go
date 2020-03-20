@@ -207,7 +207,7 @@ func (j *repoBuilderJob) setup() {
 		}
 	}
 
-	if err = os.MkdirAll("/data/tmp"); err != nil {
+	if err = os.MkdirAll("/data/tmp", 755); err != nil {
 		j.AddError(errors.Wrap(err, "could not create temp directory"))
 		return
 	}
