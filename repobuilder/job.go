@@ -522,8 +522,6 @@ func (j *repoBuilderJob) processPackages(ctx context.Context) error {
 		}))
 	}
 
-	catcher.Add(os.RemoveAll(j.tmpdir))
-
 	grip.Info(message.Fields{
 		"message":    "processed paths",
 		"job_scope":  j.Scopes(),
