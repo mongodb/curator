@@ -442,7 +442,7 @@ func (j *repoBuilderJob) signFile(fileName, archiveExtension string, overwrite b
 func (j *repoBuilderJob) processPackages(ctx context.Context) error {
 	paths := []string{}
 	catcher := grip.NewBasicCatcher()
-	for _, path := range j.PackagePaths {
+	for idx, path := range j.PackagePaths {
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
@@ -492,12 +492,12 @@ func (j *repoBuilderJob) processPackages(ctx context.Context) error {
 		}
 
 		var expandedPath string
-		for _, ff := range archiver.SupportedFormats {
+		for archiverName, ff := range archiver.SupportedFormats {
 			if !ff.Match(localPath) {
 				continue
 			}
-			expandedPath = filepath.Join(j.tmpdir, fmt.Sprintf("extracted-%s", filepath.Base(path)))
 
+			expandedPath = filepath.Join(j.tmpdir, fmt.Sprintf("extracted-%d-%s", idx, archiverName))
 			if err := ff.Open(localPath, expandedPath); err != nil {
 				catcher.Add(err)
 			}
@@ -507,8 +507,7 @@ func (j *repoBuilderJob) processPackages(ctx context.Context) error {
 		if expandedPath == "" {
 			catcher.Errorf("could not expand archive for %s", localPath)
 		}
-
-		catcher.Add(filepath.Walk(localPath, func(path string, info os.FileInfo, err error) error {
+		catcher.Add(filepath.Walk(expandedPath, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
 				return err
 			}

@@ -1,14 +1,19 @@
 package repobuilder
 
 import (
+	"context"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
 
+	"github.com/evergreen-ci/utility"
 	"github.com/mongodb/amboy/dependency"
 	"github.com/mongodb/grip"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"github.com/tychoish/bond"
 )
 
 type RepoJobSuite struct {
@@ -48,4 +53,23 @@ func (s *RepoJobSuite) TestSetDependencyAcceptsDifferentAlwaysRunInstances() {
 	s.j.SetDependency(newDep)
 	s.True(originalDep != s.j.Dependency())
 	s.Exactly(newDep, s.j.Dependency())
+}
+
+func TestProcessPackages(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	j := buildRepoJob()
+	var err error
+	j.release, err = bond.NewMongoDBVersion("4.2.5-rc1")
+	require.NoError(t, err)
+	j.client = utility.GetDefaultHTTPRetryableClient()
+	j.Distro = &RepositoryDefinition{Name: "test"}
+	defer func() { utility.PutHTTPClient(j.client) }()
+	j.PackagePaths = []string{"https://s3.amazonaws.com/mciuploads/mongo-release/enterprise-rhel-62-64-bit/98d10b50208db52f3aa0f16a634ec6fa73d465bc/artifacts/mongo_release_enterprise_rhel_62_64_bit_98d10b50208db52f3aa0f16a634ec6fa73d465bc_20_03_19_17_13_06-packages.tgz"}
+	j.tmpdir, err = ioutil.TempDir("", "test-process-packages")
+	require.NoError(t, err)
+
+	assert.NoError(t, j.processPackages(ctx))
+	assert.Len(t, j.PackagePaths, 6)
 }
