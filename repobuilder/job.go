@@ -171,7 +171,11 @@ func NewRepoBuilderJob(opts JobOptions) (amboy.Job, error) {
 			return nil, errors.Errorf("repo type %s is not supported", opts.Distro.Type)
 		}
 	}
+
 	j.SetScopes(scopes)
+	if j.release.IsRelease() {
+		j.SetPriority(10)
+	}
 
 	return j, nil
 }
@@ -207,11 +211,7 @@ func (j *repoBuilderJob) setup() {
 		}
 	}
 
-	if err = os.MkdirAll("/data/tmp", 755); err != nil {
-		j.AddError(errors.Wrap(err, "could not create temp directory"))
-		return
-	}
-	j.tmpdir, err = ioutil.TempDir("/data/tmp", j.ID())
+	j.tmpdir, err = ioutil.TempDir(j.Conf.TempSpace, j.ID())
 	if err != nil {
 		j.AddError(errors.Wrap(err, "problem making tempdir"))
 	}

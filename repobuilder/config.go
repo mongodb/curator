@@ -33,6 +33,7 @@ type RepositoryConfig struct {
 	DryRun           bool   `bson:"dry_run" json:"dry_run" yaml:"dry_run"`
 	Verbose          bool   `bson:"verbose" json:"verbose" yaml:"verbose"`
 	WorkSpace        string `bson:"workspace" json:"workspace" yaml:"workspace"`
+	TempSpace        string `bson:"temp" json:"temp" yaml:"temp"`
 	Region           string `bson:"region" json:"region" yaml:"region"`
 	fileName         string
 	definitionLookup map[string]map[string]*RepositoryDefinition
