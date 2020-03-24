@@ -133,7 +133,7 @@
 //		suite.Standard(registry)(b)
 //      }
 //
-// Each test in the suite is reported as a seperate sub-benchmark.
+// Each test in the suite is reported as a separate sub-benchmark.
 //
 //
 // Workloads

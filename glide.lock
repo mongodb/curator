@@ -57,7 +57,7 @@ imports:
 - name: github.com/mongodb/anser
   version: c65a2d95b0615d79b53ef467c2f836a576972857
 - name: github.com/evergreen-ci/poplar
-  version: 04862ae248ad1dfd29738cfb16eaaeafa773bb80
+  version: 0f6a581bf9d1afba1dac3f472e1203c8400f96c0
 - name: github.com/evergreen-ci/pail
   version: ffd9ec31ce96d39291ceb56668936ca6141e83b7
 - name: github.com/evergreen-ci/aviation

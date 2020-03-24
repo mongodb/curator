@@ -61,7 +61,7 @@ post:
     params:
       aws_key: ${aws_s3_key}
       aws_secret: ${aws_s3_secret}
-      local_files_include_filter: ["gopath/src/github.com/evergreen-ci/poplar/build/cover.html"]
+      local_files_include_filter: ["gopath/src/github.com/evergreen-ci/poplar/build/output.coverage.html"]
       remote_file: poplar/${task_id}/
       bucket: mciuploads
       content_type: text/html
@@ -72,7 +72,7 @@ post:
     params:
       aws_key: ${aws_s3_key}
       aws_secret: ${aws_s3_secret}
-      local_files_include_filter: ["gopath/src/github.com/evergreen-ci/poplar/build/cover.out"]
+      local_files_include_filter: ["gopath/src/github.com/evergreen-ci/poplar/build/output.coverage"]
       remote_file: poplar/${task_id}/
       bucket: mciuploads
       content_type: text/plain

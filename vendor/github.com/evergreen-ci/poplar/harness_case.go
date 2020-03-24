@@ -135,7 +135,7 @@ func (c *BenchmarkCase) SetCount(v int) *BenchmarkCase { c.Count = v; return c }
 // test has been running for more than this period of time, then it
 // will stop running. If you do not specify a timeout, poplar
 // execution will use some factor of the max duration.
-func (c *BenchmarkCase) SetMaxDuration(dur time.Duration) *BenchmarkCase { c.MaxRuntime = dur; return c }
+func (c *BenchmarkCase) SetMaxDuration(dur time.Duration) *BenchmarkCase { c.MaxRuntime = dur; return c } //nolint: goimports
 
 // SetMaxIterations allows you to specify a maximum number of times
 // that the test will execute, and is part of the BenchmarkCase's

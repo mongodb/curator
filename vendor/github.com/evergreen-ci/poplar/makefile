@@ -1,6 +1,4 @@
 buildDir := build
-srcFiles := $(shell find . -name "*.go" -not -path "./$(buildDir)/*" -not -name "*_test.go" -not -path "*\#*")
-testFiles := $(shell find . -name "*.go" -not -path "./$(buildDir)/*" -not -path "*\#*")
 
 packages := ./ ./rpc ./rpc/internal
 lintPackages := poplar rpc rpc-internal
@@ -18,53 +16,17 @@ endif
 endif
 goEnv := GOPATH=$(gopath) $(if $(GO_BIN_PATH),PATH="$(shell dirname $(GO_BIN_PATH)):$(PATH)")
 
-# start linting configuration
-#   package, testing, and linter dependencies specified
-#   separately. This is a temporary solution: eventually we should
-#   vendorize all of these dependencies.
-lintDeps := github.com/alecthomas/gometalinter
-#   include test files and give linters 40s to run to avoid timeouts
-lintArgs := --tests --deadline=13m --vendor
-#   gotype produces false positives because it reads .a files which
-#   are rarely up to date.
-lintArgs += --disable="gotype" --disable="gosec" --disable="gocyclo" --disable="golint" 
-lintArgs += --disable="staticcheck"
-lintArgs += --skip="build"
-lintArgs += --exclude="rpc/internal/.*.pb.go"
-#   enable and configure additional linters
-lintArgs += --line-length=100 --dupl-threshold=150
-#   some test cases are structurally similar, and lead to dupl linter
-#   warnings, but are important to maintain separately, and would be
-#   difficult to test without a much more complex reflection/code
-#   generation approach, so we ignore dupl errors in tests.
-lintArgs += --exclude="warning: duplicate of .*_test.go"
-#   go lint warns on an error in docstring format, erroneously because
-#   it doesn't consider the entire package.
-lintArgs += --exclude="warning: package comment should be of the form \"Package .* ...\""
-#   known issues that the linter picks up that are not relevant in our cases
-lintArgs += --exclude="file is not goimported" # top-level mains aren't imported
-lintArgs += --exclude="error return value not checked .defer.*"
-lintArgs += --exclude="deadcode"
-# end linting configuration
 
-
-# start dependency installation tools
-#   implementation details for being able to lazily install dependencies
-$(gopath)/src/%:
-	@-[ ! -d $(gopath) ] && mkdir -p $(gopath) || true
-	$(goEnv) $(gobin) get $(subst $(gopath)/src/,,$@)
-# end dependency installation tools
-
-# lint setup targets
-lintDeps := $(addprefix $(gopath)/src/,$(lintDeps))
-$(buildDir)/.lintSetup:$(lintDeps)
-	@mkdir -p $(buildDir)
-	$(goEnv) $(gopath)/bin/gometalinter --force --install >/dev/null && touch $@
-$(buildDir)/run-linter:cmd/run-linter/run-linter.go $(buildDir)/.lintSetup
-	@mkdir -p $(buildDir)
-	$(goEnv) $(gobin) build -o $@ $<
-
+# start lint setup targets
+lintDeps := $(buildDir)/.lintSetup $(buildDir)/run-linter $(buildDir)/golangci-lint
+$(buildDir)/.lintSetup:$(buildDir)/golangci-lint
+	@touch $@
+$(buildDir)/golangci-lint:$(buildDir)
+	@curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/76a82c6ed19784036bbf2d4c84d0228ca12381a4/install.sh | sh -s -- -b $(buildDir) v1.23.8 >/dev/null 2>&1
+$(buildDir)/run-linter:cmd/run-linter/run-linter.go $(buildDir)/.lintSetup $(buildDir)
+	@$(goEnv) $(gobin) build -o $@ $<
 # end lint setup targets
+
 
 testArgs := -v
 ifneq (,$(RUN_TEST))
@@ -93,9 +55,9 @@ test:
 benchmark:
 	@mkdir -p $(buildDir)/
 	$(goEnv) $(gobin) test $(testArgs) -bench=$(benchPattern) $(if $(RUN_TEST),, -run=^^$$) | tee $(buildDir)/bench.out
-coverage:$(buildDir)/cover.out
+coverage:$(buildDir)/output.coverage
 	@$(goEnv) $(gobin) tool cover -func=$< | sed -E 's%github.com/.*/poplar/%%' | column -t
-coverage-html:$(buildDir)/cover.html
+coverage-html:$(buildDir)/output.coverage.html
 lint:$(foreach target,$(lintPackages),$(buildDir)/output.$(target).lint)
 
 phony += lint lint-deps build build-race race test coverage coverage-html
@@ -105,15 +67,15 @@ phony += lint lint-deps build build-race race test coverage coverage-html
 
 $(buildDir):$(srcFiles) compile
 	@mkdir -p $@
-$(buildDir)/cover.out:$(buildDir) $(testFiles) .FORCE
+$(buildDir)/output.coverage:$(buildDir) $(testFiles) .FORCE
 	$(goEnv) $(gobin) test $(testArgs) -coverprofile $@ -cover $(packages)
-$(buildDir)/cover.html:$(buildDir)/cover.out
+$(buildDir)/output.coverage.html:$(buildDir)/output.coverage
 	$(goEnv) $(gobin) tool cover -html=$< -o $@
 #  targets to generate gotest output from the linter.
 $(buildDir)/output.%.lint:$(buildDir)/run-linter $(buildDir)/ .FORCE
-	@$(goEnv) ./$< --output=$@ --lintArgs='$(lintArgs)' --packages='$*'
+	@$(goEnv) ./$< --output=$@ --lintBin=$(buildDir)/golangci-lint --packages='$*'
 $(buildDir)/output.lint:$(buildDir)/run-linter $(buildDir)/ .FORCE
-	@$(goEnv) ./$< --output="$@" --lintArgs='$(lintArgs)' --packages="$(lintPackages)"
+	@$(goEnv) ./$< --output=$@ --lintBin=$(buildDir)/golangci-lint --packages='$(lintPackages)'
 #  targets to process and generate coverage reports
 # end test and coverage artifacts
 
@@ -127,7 +89,7 @@ proto:vendor/cedar.proto
 	protoc --go_out=plugins=grpc:collector *.proto
 	mv rpc/internal/vendor/cedar.pb.go rpc/internal/cedar.pb.go
 clean:
-	rm -rf rpc/internal/*.pb.go
+	rm -rf $(lintDeps) rpc/internal/*.pb.go
 
 vendor/cedar.proto:
 	curl -L https://raw.githubusercontent.com/evergreen-ci/cedar/master/perf.proto -o $@
@@ -137,6 +99,8 @@ vendor:
 
 .PHONY:vendor
 vendor-clean:
+	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/google/uuid
+	rm -rf vendor/github.com/mongodb/amboy/vendor/github.com/google/uuid
 	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/montanaflynn/stats/
 	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/stretchr/testify/
 	rm -rf vendor/github.com/mongodb/grip/vendor/golang.org/x/sys/

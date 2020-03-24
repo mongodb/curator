@@ -8,9 +8,11 @@ import (
 func (m *EventMetrics) Export() *events.Performance {
 	dur, _ := ptypes.Duration(m.Timers.Duration)
 	total, _ := ptypes.Duration(m.Timers.Total)
+	time, _ := ptypes.Timestamp(m.Time)
 
 	out := &events.Performance{
-		ID: m.Id,
+		Timestamp: time,
+		ID:        m.Id,
 		Timers: events.PerformanceTimers{
 			Duration: dur,
 			Total:    total,

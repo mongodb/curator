@@ -46,7 +46,7 @@ const (
 	EventsCollectorInterval1s                           = "interval-1s"
 )
 
-// Validate the underyling recorder type.
+// Validate the underlying recorder type.
 func (t RecorderType) Validate() error {
 	switch t {
 	case RecorderPerf, RecorderPerfSingle, RecorderPerf100ms, RecorderPerf1s,
@@ -58,7 +58,7 @@ func (t RecorderType) Validate() error {
 	}
 }
 
-// Validate the underyling events collector type.
+// Validate the underlying events collector type.
 func (t EventsCollectorType) Validate() error {
 	switch t {
 	case EventsCollectorBasic, EventsCollectorInterval100ms, EventsCollectorInterval1s,
@@ -137,7 +137,7 @@ func NewRegistry() *RecorderRegistry {
 }
 
 // Create builds a new collector, of the given name with the specified
-// options controling the collector type and configuration.
+// options controlling the collector type and configuration.
 //
 // If the options specify a filename that already exists, then Create
 // will return an error.

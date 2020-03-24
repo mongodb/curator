@@ -110,6 +110,7 @@ vendor-clean:
 	rm -rf vendor/github.com/evergreen-ci/pail/vendor/github.com/stretchr/
 	rm -rf vendor/github.com/evergreen-ci/pail/{scripts,cmd,evergreen.yaml}
 	rm -rf vendor/github.com/evergreen-ci/poplar/vendor/github.com/golang/protobuf
+	rm -rf vendor/github.com/evergreen-ci/poplar/vendor/github.com/google/
 	rm -rf vendor/github.com/evergreen-ci/poplar/vendor/github.com/evergreen-ci/aviation/
 	rm -rf vendor/github.com/evergreen-ci/poplar/vendor/github.com/evergreen-ci/birch/
 	rm -rf vendor/github.com/evergreen-ci/poplar/vendor/github.com/evergreen-ci/pail/

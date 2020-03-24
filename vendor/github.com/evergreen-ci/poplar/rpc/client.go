@@ -55,7 +55,7 @@ func (opts *UploadReportOptions) convertAndUploadArtifacts(ctx context.Context) 
 		for i := range test.Artifacts {
 			var err error
 
-			if err := test.Artifacts[i].Convert(ctx); err != nil {
+			if err = test.Artifacts[i].Convert(ctx); err != nil {
 				return errors.Wrap(err, "problem converting artifact")
 			}
 

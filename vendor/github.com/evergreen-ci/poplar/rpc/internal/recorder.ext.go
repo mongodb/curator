@@ -25,8 +25,8 @@ func (rt CreateOptions_RecorderType) Export() poplar.RecorderType {
 	}
 }
 
-func (ect CreateOptions_EventsCollectorType) Export() poplar.EventsCollectorType {
-	switch ect {
+func (ect CreateOptions_EventsCollectorType) Export() poplar.EventsCollectorType { //nolint: misspell
+	switch ect { //nolint: misspell
 	case CreateOptions_BASIC:
 		return poplar.EventsCollectorBasic
 	case CreateOptions_PASSTHROUGH:
