@@ -18,7 +18,7 @@ type RemoteClient struct {
 	FailGetLogStream       bool
 	FailGetBuildloggerURLs bool
 	FailSignalEvent        bool
-
+	FailMessageSend        bool
 	// ConfigureCache input
 	CacheOptions options.Cache
 
@@ -37,6 +37,8 @@ type RemoteClient struct {
 	BuildloggerURLs []string
 
 	EventName string
+
+	SendMessagePayload options.LoggingPayload
 }
 
 // CloseConnection is a no-op. If FailCloseConnection is set, it returns an
@@ -117,5 +119,14 @@ func (c *RemoteClient) SignalEvent(ctx context.Context, name string) error {
 
 	c.EventName = name
 
+	return nil
+}
+
+func (c *RemoteClient) SendMessages(ctx context.Context, opts options.LoggingPayload) error {
+	if c.FailMessageSend {
+		return mockFail()
+	}
+
+	c.SendMessagePayload = opts
 	return nil
 }

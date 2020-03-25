@@ -318,6 +318,53 @@ message ScriptingHarnessTestResponse {
   repeated ScriptingHarnessTestResult results = 2;
 }
 
+message LoggingCacheCreateArgs {
+  string name = 1;
+  OutputOptions options = 2;
+}
+
+message LoggingCacheArgs {
+  string name = 1;
+}
+
+message LoggingCacheInstance {
+  OperationOutcome outcome = 1 ;
+  string id = 2;
+  string manager = 3;
+  google.protobuf.Timestamp accessed = 4;
+}
+
+message LoggingCacheSize {
+  OperationOutcome outcome = 1 ;
+  string id = 2;
+  int64 size = 3;
+}
+
+enum LoggingPayloadFormat {
+  FORMATUNKNONW = 0;
+  FORMATBSON = 1;
+  FORMATJSON = 2;
+  FORMATSTRING = 3;
+}
+
+message LoggingPayloadData {
+  oneof data {
+    string msg = 1;
+    bytes raw = 2;
+  }
+}
+
+message LoggingPayload {
+  string LoggerID = 1;
+  int32 priority = 2;
+  LoggingPayloadFormat format = 3;
+  bool is_multi = 4;
+  bool prefer_send_to_error = 5;
+  bool add_metadata = 6;
+  repeated LoggingPayloadData data = 7;
+}
+
+
 service JasperProcessManager {
   // Manager functions
   rpc ID(google.protobuf.Empty) returns (IDResponse);
@@ -347,7 +394,14 @@ service JasperProcessManager {
   rpc ScriptingHarnessRunScript(ScriptingHarnessRunScriptArgs) returns (OperationOutcome);
   rpc ScriptingHarnessTest(ScriptingHarnessTestArgs) returns (ScriptingHarnessTestResponse);
 
-  // RPC-specific functions
+  // Logging functions
+  rpc LoggingCacheCreate(LoggingCacheCreateArgs) returns (LoggingCacheInstance);
+  rpc LoggingCacheGet(LoggingCacheArgs) returns (LoggingCacheInstance);
+  rpc LoggingCacheRemove(LoggingCacheArgs) returns (OperationOutcome);
+  rpc LoggingCacheLen(google.protobuf.Empty) returns (LoggingCacheSize);
+  rpc LoggingCachePrune(google.protobuf.Timestamp) returns (OperationOutcome);
+
+  // Remote specific functions
   rpc Status(google.protobuf.Empty) returns (StatusResponse);
   rpc ConfigureCache(CacheOptions) returns (OperationOutcome);
   rpc DownloadFile(DownloadInfo) returns (OperationOutcome);
@@ -356,4 +410,5 @@ service JasperProcessManager {
   rpc GetBuildloggerURLs(JasperProcessID) returns (BuildloggerURLs);
   rpc SignalEvent(EventName) returns (OperationOutcome);
   rpc WriteFile(stream WriteFileInfo) returns (OperationOutcome);
+  rpc SendMessages(LoggingPayload) returns (OperationOutcome);
 }

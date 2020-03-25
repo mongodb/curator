@@ -21,7 +21,7 @@ import (
 	"github.com/tychoish/lru"
 )
 
-type service struct {
+type mdbService struct {
 	mrpc.Service
 	manager    jasper.Manager
 	cache      *lru.Cache
@@ -46,7 +46,7 @@ func StartMDBService(ctx context.Context, m jasper.Manager, addr net.Addr) (util
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create base service")
 	}
-	svc := &service{
+	svc := &mdbService{
 		Service: baseSvc,
 		manager: m,
 		cache:   lru.NewCache(),
@@ -72,7 +72,7 @@ func StartMDBService(ctx context.Context, m jasper.Manager, addr net.Addr) (util
 	return func() error { ccancel(); return nil }, nil
 }
 
-func (s *service) registerHandlers() error {
+func (s *mdbService) registerHandlers() error {
 	for name, handler := range map[string]mrpc.HandlerFunc{
 		// Manager commands
 		ManagerIDCommand:     s.managerID,
@@ -96,6 +96,23 @@ func (s *service) registerHandlers() error {
 		GetTagsCommand:                 s.processGetTags,
 		ResetTagsCommand:               s.processResetTags,
 
+		// Scripting commands
+		ScriptingGetCommand:       s.scriptingGet,
+		ScriptingCreateCommand:    s.scriptingCreate,
+		ScriptingSetupCommand:     s.scriptingSetup,
+		ScriptingCleanupCommand:   s.scriptingCleanup,
+		ScriptingRunCommand:       s.scriptingRun,
+		ScriptingRunScriptCommand: s.scriptingRunScript,
+		ScriptingBuildCommand:     s.scriptingBuild,
+		ScriptingTestCommand:      s.scriptingTest,
+
+		// Logging Commands
+		LoggingCacheSizeCommand:   s.loggingSize,
+		LoggingCacheCreateCommand: s.loggingCreate,
+		LoggingCacheDeleteCommand: s.loggingDelete,
+		LoggingCacheGetCommand:    s.loggingGet,
+		LoggingSendMessageCommand: s.loggingSendMessage,
+
 		// Remote client commands
 		ConfigureCacheCommand:     s.configureCache,
 		DownloadFileCommand:       s.downloadFile,
@@ -115,7 +132,7 @@ func (s *service) registerHandlers() error {
 	return nil
 }
 
-func (s *service) pruneCache(ctx context.Context) {
+func (s *mdbService) pruneCache(ctx context.Context) {
 	defer func() {
 		err := recovery.HandlePanicWithError(recover(), nil, "pruning cache")
 		if ctx.Err() != nil || err == nil {
@@ -152,7 +169,7 @@ const (
 	SignalEventCommand        = "signal_event"
 )
 
-func (s *service) configureCache(ctx context.Context, w io.Writer, msg mongowire.Message) {
+func (s *mdbService) configureCache(ctx context.Context, w io.Writer, msg mongowire.Message) {
 	req := configureCacheRequest{}
 	if err := shell.MessageToRequest(msg, &req); err != nil {
 		shell.WriteErrorResponse(ctx, w, mongowire.OP_REPLY, errors.Wrap(err, "could not read request"), ConfigureCacheCommand)
@@ -177,7 +194,7 @@ func (s *service) configureCache(ctx context.Context, w io.Writer, msg mongowire
 	shell.WriteOKResponse(ctx, w, mongowire.OP_REPLY, ConfigureCacheCommand)
 }
 
-func (s *service) downloadFile(ctx context.Context, w io.Writer, msg mongowire.Message) {
+func (s *mdbService) downloadFile(ctx context.Context, w io.Writer, msg mongowire.Message) {
 	req := downloadFileRequest{}
 	if err := shell.MessageToRequest(msg, &req); err != nil {
 		shell.WriteErrorResponse(ctx, w, mongowire.OP_REPLY, errors.Wrap(err, "could not read request"), DownloadFileCommand)
@@ -198,7 +215,7 @@ func (s *service) downloadFile(ctx context.Context, w io.Writer, msg mongowire.M
 	shell.WriteOKResponse(ctx, w, mongowire.OP_REPLY, DownloadFileCommand)
 }
 
-func (s *service) downloadMongoDB(ctx context.Context, w io.Writer, msg mongowire.Message) {
+func (s *mdbService) downloadMongoDB(ctx context.Context, w io.Writer, msg mongowire.Message) {
 	req := &downloadMongoDBRequest{}
 	if err := shell.MessageToRequest(msg, &req); err != nil {
 		shell.WriteErrorResponse(ctx, w, mongowire.OP_REPLY, errors.Wrap(err, "could not read request"), DownloadMongoDBCommand)
@@ -219,7 +236,7 @@ func (s *service) downloadMongoDB(ctx context.Context, w io.Writer, msg mongowir
 	shell.WriteOKResponse(ctx, w, mongowire.OP_REPLY, DownloadMongoDBCommand)
 }
 
-func (s *service) getLogStream(ctx context.Context, w io.Writer, msg mongowire.Message) {
+func (s *mdbService) getLogStream(ctx context.Context, w io.Writer, msg mongowire.Message) {
 	req := getLogStreamRequest{}
 	if err := shell.MessageToRequest(msg, &req); err != nil {
 		shell.WriteErrorResponse(ctx, w, mongowire.OP_REPLY, errors.Wrap(err, "could not read request"), DownloadMongoDBCommand)
@@ -252,7 +269,7 @@ func (s *service) getLogStream(ctx context.Context, w io.Writer, msg mongowire.M
 	shell.WriteResponse(ctx, w, resp, GetLogStreamCommand)
 }
 
-func (s *service) getBuildloggerURLs(ctx context.Context, w io.Writer, msg mongowire.Message) {
+func (s *mdbService) getBuildloggerURLs(ctx context.Context, w io.Writer, msg mongowire.Message) {
 	req := &getBuildloggerURLsRequest{}
 	if err := shell.MessageToRequest(msg, &req); err != nil {
 		shell.WriteErrorResponse(ctx, w, mongowire.OP_REPLY, errors.Wrap(err, "could not read request"), GetBuildloggerURLsCommand)
@@ -285,7 +302,7 @@ func (s *service) getBuildloggerURLs(ctx context.Context, w io.Writer, msg mongo
 	shell.WriteResponse(ctx, w, resp, GetBuildloggerURLsCommand)
 }
 
-func (s *service) signalEvent(ctx context.Context, w io.Writer, msg mongowire.Message) {
+func (s *mdbService) signalEvent(ctx context.Context, w io.Writer, msg mongowire.Message) {
 	req := &signalEventRequest{}
 	if err := shell.MessageToRequest(msg, &req); err != nil {
 		shell.WriteErrorResponse(ctx, w, mongowire.OP_REPLY, errors.Wrap(err, "could not read request"), SignalEventCommand)

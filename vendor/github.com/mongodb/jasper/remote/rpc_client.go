@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 	"syscall"
+	"time"
 
 	"github.com/evergreen-ci/certdepot"
 	empty "github.com/golang/protobuf/ptypes/empty"
@@ -303,6 +304,80 @@ func (c *rpcClient) WriteFile(ctx context.Context, jopts options.WriteFile) erro
 	}
 
 	return nil
+}
+
+func (c *rpcClient) SendMessages(ctx context.Context, lp options.LoggingPayload) error {
+	resp, err := c.client.SendMessages(ctx, internal.ConvertLoggingPayload(lp))
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	if !resp.Success {
+		return errors.New(resp.Text)
+	}
+
+	return nil
+}
+
+func (c *rpcClient) LoggingCache(ctx context.Context) jasper.LoggingCache {
+	return &rpcLoggingCache{ctx: ctx, client: c.client}
+}
+
+type rpcLoggingCache struct {
+	client internal.JasperProcessManagerClient
+	ctx    context.Context
+}
+
+func (lc *rpcLoggingCache) Create(id string, opts *options.Output) (*options.CachedLogger, error) {
+	resp, err := lc.client.LoggingCacheCreate(lc.ctx, internal.ConvertLoggingCreateArgs(id, opts))
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	out, err := resp.Export()
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	return out, nil
+}
+
+func (lc *rpcLoggingCache) Put(id string, opts *options.CachedLogger) error {
+	return errors.New("operation not supported for remote managers")
+}
+
+func (lc *rpcLoggingCache) Get(id string) *options.CachedLogger {
+	resp, err := lc.client.LoggingCacheGet(lc.ctx, &internal.LoggingCacheArgs{Name: id})
+	if err != nil {
+		return nil
+	}
+	if !resp.Outcome.Success {
+		return nil
+	}
+
+	out, err := resp.Export()
+	if err != nil {
+		return nil
+	}
+
+	return out
+}
+
+func (lc *rpcLoggingCache) Remove(id string) {
+	_, _ = lc.client.LoggingCacheRemove(lc.ctx, &internal.LoggingCacheArgs{Name: id})
+}
+
+func (lc *rpcLoggingCache) Prune(ts time.Time) {
+	_, _ = lc.client.LoggingCachePrune(lc.ctx, internal.MustConvertTimestamp(ts))
+}
+
+func (lc *rpcLoggingCache) Len() int {
+	resp, err := lc.client.LoggingCacheLen(lc.ctx, &empty.Empty{})
+	if err != nil {
+		return 0
+	}
+
+	return int(resp.Size)
 }
 
 type rpcProcess struct {

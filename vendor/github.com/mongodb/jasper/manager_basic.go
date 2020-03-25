@@ -8,6 +8,7 @@ import (
 	"github.com/mongodb/grip"
 	"github.com/mongodb/grip/message"
 	"github.com/mongodb/jasper/options"
+	"github.com/mongodb/jasper/util"
 	"github.com/pkg/errors"
 )
 
@@ -16,6 +17,7 @@ type basicProcessManager struct {
 	procs         map[string]Process
 	useSSHLibrary bool
 	tracker       ProcessTracker
+	loggers       LoggingCache
 }
 
 func newBasicProcessManager(procs map[string]Process, trackProcs bool, useSSHLibrary bool) (Manager, error) {
@@ -23,6 +25,7 @@ func newBasicProcessManager(procs map[string]Process, trackProcs bool, useSSHLib
 		procs:         procs,
 		id:            uuid.New().String(),
 		useSSHLibrary: useSSHLibrary,
+		loggers:       NewLoggingCache(),
 	}
 	if trackProcs {
 		tracker, err := NewProcessTracker(m.id)
@@ -50,6 +53,17 @@ func (m *basicProcessManager) CreateProcess(ctx context.Context, opts *options.C
 		return nil, errors.Wrap(err, "problem constructing process")
 	}
 
+	grip.Warning(message.WrapError(m.loggers.Put(proc.ID(), &options.CachedLogger{
+		ID:      proc.ID(),
+		Manager: m.id,
+		Error:   util.ConvertWriter(opts.Output.GetError()),
+		Output:  util.ConvertWriter(opts.Output.GetOutput()),
+	}), message.Fields{
+		"message": "problem caching logger for process",
+		"process": proc.ID(),
+		"manager": m.ID(),
+	}))
+
 	// This trigger is not guaranteed to be registered since the process may
 	// have already completed. One way to guarantee it runs could be to add this
 	// as a closer to CreateOptions.
@@ -66,6 +80,8 @@ func (m *basicProcessManager) CreateProcess(ctx context.Context, opts *options.C
 
 	return proc, nil
 }
+
+func (m *basicProcessManager) LoggingCache(_ context.Context) LoggingCache { return m.loggers }
 
 func (m *basicProcessManager) CreateCommand(ctx context.Context) *Command {
 	return NewCommand().ProcConstructor(m.CreateProcess)
@@ -162,6 +178,7 @@ func (m *basicProcessManager) Clear(ctx context.Context) {
 	for procID, proc := range m.procs {
 		if proc.Complete(ctx) {
 			delete(m.procs, procID)
+			m.loggers.Remove(procID)
 		}
 	}
 }

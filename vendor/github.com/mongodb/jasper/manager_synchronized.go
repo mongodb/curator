@@ -123,3 +123,10 @@ func (m *synchronizedProcessManager) Group(ctx context.Context, name string) ([]
 	}
 	return syncedProcs, errors.WithStack(err)
 }
+
+func (m *synchronizedProcessManager) LoggingCache(ctx context.Context) LoggingCache {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	return m.manager.LoggingCache(ctx)
+}

@@ -26,7 +26,8 @@ endif
 goEnv := GOPATH=$(gopath) GOCACHE=$(gocache)$(if $(GO_BIN_PATH), PATH="$(shell dirname $(GO_BIN_PATH)):$(PATH)")
 # end environment setup
 
-compile build:
+compile $(buildDir):
+	@mkdir -p $(buildDir)
 	$(goEnv) $(gobin) build $(_compilePackages)
 compile-base:
 	$(goEnv) $(gobin) build  ./
@@ -43,12 +44,15 @@ lint-%:$(buildDir)/output.%.lint
 	
 # end convienence targets
 
-# start linting configuration
-$(buildDir)/.lintSetup:$(lintDeps) $(buildDir)
-	@curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/c87c37210f99021721d039a9176fabd25d326843/install.sh | sh -s -- -b $(buildDir) v1.21.0 >/dev/null 2>&1
+# start lint setup targets
+lintDeps := $(buildDir)/.lintSetup $(buildDir)/run-linter $(buildDir)/golangci-lint
+$(buildDir)/.lintSetup:$(buildDir)/golangci-lint
+	@touch $@
+$(buildDir)/golangci-lint:$(buildDir)
+	@curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/76a82c6ed19784036bbf2d4c84d0228ca12381a4/install.sh | sh -s -- -b $(buildDir) v1.23.8 >/dev/null 2>&1
 $(buildDir)/run-linter:cmd/run-linter/run-linter.go $(buildDir)/.lintSetup $(buildDir)
 	@$(goEnv) $(gobin) build -o $@ $<
-# end lint configuration
+# end lint setup targets
 
 # benchmark setup targets
 $(buildDir)/run-benchmarks:cmd/run-benchmarks/run_benchmarks.go $(buildDir)
@@ -116,7 +120,7 @@ phony += lint $(buildDir) test coverage coverage-html
 .FORCE:
 
 clean:
-	rm -rf *.pb.go
+	rm -rf $(lintDeps) *.pb.go 
 
 clean-results:
 	rm -rf $(buildDir)/output.*

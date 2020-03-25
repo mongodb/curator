@@ -71,6 +71,14 @@ func (e *execSSHBinary) SetStderr(stderr io.Writer) {
 	e.cmd.Stderr = stderr
 }
 
+func (e *execSSHBinary) Stdout() io.Writer {
+	return e.cmd.Stdout
+}
+
+func (e *execSSHBinary) Stderr() io.Writer {
+	return e.cmd.Stderr
+}
+
 // Start begins running the remote process using the SSH binary.
 func (e *execSSHBinary) Start() error {
 	var resolvedArgs string

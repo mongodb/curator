@@ -238,7 +238,8 @@ func TestManagerSetsEnvironmentVariables(t *testing.T) {
 	for managerName, makeManager := range map[string]func() *basicProcessManager{
 		"Basic": func() *basicProcessManager {
 			return &basicProcessManager{
-				procs: map[string]Process{},
+				procs:   map[string]Process{},
+				loggers: NewLoggingCache(),
 				tracker: &mockProcessTracker{
 					Infos: []ProcessInfo{},
 				},

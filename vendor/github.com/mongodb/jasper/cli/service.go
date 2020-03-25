@@ -320,7 +320,7 @@ func serviceConfig(serviceType string, c *cli.Context, args []string) *service.C
 // makeUserEnvironment sets up the environment variables for the service. It
 // attempts to reads the common user environment variables from /etc/passwd for
 // upstart and sysv.
-func makeUserEnvironment(user string, vars []string) map[string]string {
+func makeUserEnvironment(user string, vars []string) map[string]string { //nolint: gocognit
 	env := map[string]string{}
 	for _, v := range vars {
 		keyAndValue := strings.Split(v, "=")

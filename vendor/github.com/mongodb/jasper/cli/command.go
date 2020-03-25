@@ -20,7 +20,7 @@ import (
 
 // RunCMD provides a simple user-centered command-line interface for
 // running commands on a remote instance.
-func RunCMD() cli.Command {
+func RunCMD() cli.Command { //nolint: gocognit
 	const (
 		commandFlagName = "command"
 		envFlagName     = "env"

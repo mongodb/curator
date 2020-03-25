@@ -22,12 +22,14 @@ type Manager struct {
 	FailCreateScripting bool
 	FailGetScripting    bool
 	FailWriteFile       bool
+	NilLoggingCache     bool
 	Create              func(*options.Create) Process
 	CreateConfig        Process
 	ManagerID           string
 	Procs               []jasper.Process
 	ScriptingEnv        scripting.Harness
 	WriteFileOptions    options.WriteFile
+	LoggingCacheVal     jasper.LoggingCache
 }
 
 func mockFail() error {
@@ -87,6 +89,14 @@ func (m *Manager) CreateScripting(ctx context.Context, opts options.ScriptingHar
 		return nil, mockFail()
 	}
 	return m.ScriptingEnv, nil
+}
+
+// LoggingCache returns the implementation's logging cache.
+func (m *Manager) LoggingCache(ctx context.Context) jasper.LoggingCache {
+	if m.NilLoggingCache {
+		return nil
+	}
+	return m.LoggingCacheVal
 }
 
 // WriteFile saves the options.WriteFile. If FailWriteFile is set, it returns an

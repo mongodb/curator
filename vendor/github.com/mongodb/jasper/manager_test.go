@@ -23,8 +23,9 @@ func TestManagerInterface(t *testing.T) {
 	for mname, factory := range map[string]func(context.Context, *testing.T) Manager{
 		"Basic/NoLock": func(_ context.Context, _ *testing.T) Manager {
 			return &basicProcessManager{
-				id:    "id",
-				procs: map[string]Process{},
+				id:      "id",
+				loggers: NewLoggingCache(),
+				procs:   map[string]Process{},
 			}
 		},
 		"Basic/Lock/BasicProcs": func(_ context.Context, t *testing.T) Manager {
@@ -39,8 +40,9 @@ func TestManagerInterface(t *testing.T) {
 		},
 		"Basic/NoLock/RemoteNil": func(_ context.Context, _ *testing.T) Manager {
 			m := &basicProcessManager{
-				id:    "id",
-				procs: map[string]Process{},
+				loggers: NewLoggingCache(),
+				id:      "id",
+				procs:   map[string]Process{},
 			}
 			return NewRemoteManager(m, nil)
 		},
@@ -55,6 +57,7 @@ func TestManagerInterface(t *testing.T) {
 				"ValidateFixture": func(ctx context.Context, t *testing.T, manager Manager, mod testutil.OptsModify) {
 					assert.NotNil(t, ctx)
 					assert.NotNil(t, manager)
+					assert.NotNil(t, manager.LoggingCache(ctx))
 				},
 				"IDReturnsNonempty": func(ctx context.Context, t *testing.T, manager Manager, mod testutil.OptsModify) {
 					assert.NotEmpty(t, manager.ID())
@@ -474,7 +477,8 @@ func TestTrackedManager(t *testing.T) {
 	for managerName, makeManager := range map[string]func() *basicProcessManager{
 		"Basic": func() *basicProcessManager {
 			return &basicProcessManager{
-				procs: map[string]Process{},
+				procs:   map[string]Process{},
+				loggers: NewLoggingCache(),
 				tracker: &mockProcessTracker{
 					Infos: []ProcessInfo{},
 				},
@@ -486,6 +490,7 @@ func TestTrackedManager(t *testing.T) {
 				"ValidateFixtureSetup": func(ctx context.Context, t *testing.T, manager *basicProcessManager, opts *options.Create) {
 					assert.NotNil(t, manager.tracker)
 					assert.Len(t, manager.procs, 0)
+					assert.NotNil(t, manager.LoggingCache(ctx))
 				},
 				"CreateProcessTracksProcess": func(ctx context.Context, t *testing.T, manager *basicProcessManager, opts *options.Create) {
 					proc, err := manager.CreateProcess(ctx, opts)
