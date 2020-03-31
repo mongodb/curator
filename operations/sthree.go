@@ -307,7 +307,11 @@ func s3SyncToCmd() cli.Command {
 					DryRun:       c.Bool("dry-run"),
 					DeleteOnSync: c.Bool("delete"),
 				}
-				bucket = pail.NewParallelSyncBucket(parallelOpts, bucket)
+				bucket, err = pail.NewParallelSyncBucket(parallelOpts, bucket)
+				if err != nil {
+					return errors.Wrap(err, "problem constructing parallel bucket")
+				}
+
 			}
 
 			syncOpts := pail.SyncOptions{
@@ -358,7 +362,11 @@ func s3SyncFromCmd() cli.Command {
 					DryRun:       c.Bool("dry-run"),
 					DeleteOnSync: c.Bool("delete"),
 				}
-				bucket = pail.NewParallelSyncBucket(parallelOpts, bucket)
+				bucket, err = pail.NewParallelSyncBucket(parallelOpts, bucket)
+				if err != nil {
+					return errors.Wrap(err, "problem constructing parallel bucket")
+				}
+
 			}
 
 			syncOpts := pail.SyncOptions{

@@ -559,6 +559,7 @@ func (j *repoBuilderJob) Run(ctx context.Context) {
 		DryRun:                   j.Conf.DryRun,
 		Verbose:                  j.Conf.Verbose,
 		UseSingleFileChecksums:   true,
+		DeleteOnPull:             true,
 		Permissions:              pail.S3PermissionsPublicRead,
 		MaxRetries:               10,
 	}
@@ -573,7 +574,11 @@ func (j *repoBuilderJob) Run(ctx context.Context) {
 		return
 	}
 
-	bucket = pail.NewParallelSyncBucket(pail.ParallelBucketOptions{Workers: runtime.NumCPU() * 2}, bucket)
+	bucket, err = pail.NewParallelSyncBucket(pail.ParallelBucketOptions{Workers: runtime.NumCPU() * 2, DeleteOnPull: true}, bucket)
+	if err != nil {
+		j.AddError(errors.Wrap(err, "problem constructing parallel bucket"))
+		return
+	}
 
 	var cancel context.CancelFunc
 	if _, ok := ctx.Deadline(); !ok {
