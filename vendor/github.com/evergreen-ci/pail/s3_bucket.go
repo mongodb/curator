@@ -61,7 +61,8 @@ type s3BucketLarge struct {
 
 type s3Bucket struct {
 	dryRun              bool
-	deleteOnSync        bool
+	deleteOnPush        bool
+	deleteOnPull        bool
 	singleFileChecksums bool
 	compress            bool
 	verbose             bool
@@ -83,6 +84,12 @@ type S3Options struct {
 	// exist in the source after the completion of a sync operation
 	// (Push/Pull).
 	DeleteOnSync bool
+	// DeleteOnPush will delete all objects from the target that do not
+	// exist in the source after the completion of Push.
+	DeleteOnPush bool
+	// DeleteOnPull will delete all objects from the target that do not
+	// exist in the source after the completion of Pull.
+	DeleteOnPull bool
 	// Compress enables gzipping of uploaded objects.
 	Compress bool
 	// UseSingleFileChecksums forces the bucket to checksum files before
@@ -92,7 +99,7 @@ type S3Options struct {
 	UseSingleFileChecksums bool
 	// Verbose sets the logging mode to "debug".
 	Verbose bool
-	// MaxRetries sets the number of retry attemps for s3 operations.
+	// MaxRetries sets the number of retry attempts for s3 operations.
 	MaxRetries int
 	// Credentials allows the passing in of explicit AWS credentials. These
 	// will override the default credentials chain. (Optional)
@@ -147,6 +154,10 @@ func newS3BucketBase(client *http.Client, options S3Options) (*s3Bucket, error) 
 		}
 	}
 
+	if (options.DeleteOnPush != options.DeleteOnPull) && options.DeleteOnSync {
+		return nil, errors.New("ambiguous delete on sync options set")
+	}
+
 	config := &aws.Config{
 		Region:     aws.String(options.Region),
 		HTTPClient: client,
@@ -196,7 +207,8 @@ func newS3BucketBase(client *http.Client, options S3Options) (*s3Bucket, error) 
 		contentType:         options.ContentType,
 		dryRun:              options.DryRun,
 		batchSize:           1000,
-		deleteOnSync:        options.DeleteOnSync,
+		deleteOnPush:        options.DeleteOnPush || options.DeleteOnSync,
+		deleteOnPull:        options.DeleteOnPull || options.DeleteOnSync,
 	}, nil
 }
 
@@ -846,8 +858,8 @@ func (s *s3Bucket) pushHelper(ctx context.Context, b Bucket, opts SyncOptions) e
 		}
 	}
 
-	if s.deleteOnSync && !s.dryRun {
-		return errors.Wrap(deleteOnPush(ctx, files, opts.Remote, b), "probelm with delete on sync after push")
+	if s.deleteOnPush && !s.dryRun {
+		return errors.Wrap(deleteOnPush(ctx, files, opts.Remote, b), "problem with delete on sync after push")
 	}
 	return nil
 }
@@ -905,7 +917,7 @@ func (s *s3Bucket) pullHelper(ctx context.Context, b Bucket, opts SyncOptions) e
 		keys = append(keys, name)
 	}
 
-	if s.deleteOnSync && !s.dryRun {
+	if s.deleteOnPull && !s.dryRun {
 		return errors.Wrap(deleteOnPull(ctx, keys, opts.Local), "problem with delete on sync after pull")
 	}
 	return nil

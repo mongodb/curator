@@ -47,7 +47,7 @@ func TestBucket(t *testing.T) {
 	ses, err := mgo.DialWithTimeout(mdburl, time.Second)
 	require.NoError(t, err)
 	defer ses.Close()
-	defer func() { ses.DB(uuid).DropDatabase() }()
+	defer func() { assert.NoError(t, ses.DB(uuid).DropDatabase()) }()
 
 	s3BucketName := "build-test-curator"
 	s3Prefix := newUUID() + "-"
@@ -273,7 +273,9 @@ func TestBucket(t *testing.T) {
 				require.NoError(t, os.MkdirAll(path, 0777))
 				bucket := &localFileSystem{path: path}
 
-				return NewParallelSyncBucket(ParallelBucketOptions{Workers: runtime.NumCPU()}, bucket)
+				b, err := NewParallelSyncBucket(ParallelBucketOptions{Workers: runtime.NumCPU()}, bucket)
+				require.NoError(t, err)
+				return b
 			},
 		},
 		{
@@ -288,7 +290,10 @@ func TestBucket(t *testing.T) {
 				}
 				b, err := NewS3Bucket(s3Options)
 				require.NoError(t, err)
-				return NewParallelSyncBucket(ParallelBucketOptions{Workers: runtime.NumCPU()}, b)
+
+				b, err = NewParallelSyncBucket(ParallelBucketOptions{Workers: runtime.NumCPU()}, b)
+				require.NoError(t, err)
+				return b
 			},
 		},
 		{
@@ -971,7 +976,8 @@ func TestBucket(t *testing.T) {
 					require.NoError(t, err)
 					counter := 0
 					for iter.Next(ctx) {
-						fn, err := filepath.Rel(remotePrefix, iter.Item().Name())
+						var fn string
+						fn, err = filepath.Rel(remotePrefix, iter.Item().Name())
 						require.NoError(t, err)
 						ok := filenames[fn]
 						if !ok {
@@ -1141,17 +1147,21 @@ func setDryRun(b Bucket, set bool) {
 func setDeleteOnSync(b Bucket, set bool) {
 	switch i := b.(type) {
 	case *localFileSystem:
-		i.deleteOnSync = set
+		i.deleteOnPush = set
+		i.deleteOnPull = set
 	case *gridfsLegacyBucket:
 		i.opts.DeleteOnSync = set
 	case *s3BucketSmall:
-		i.deleteOnSync = set
+		i.deleteOnPush = set
+		i.deleteOnPull = set
 	case *s3BucketLarge:
-		i.deleteOnSync = set
+		i.deleteOnPush = set
+		i.deleteOnPull = set
 	case *gridfsBucket:
 		i.opts.DeleteOnSync = set
 	case *parallelBucketImpl:
-		i.deleteOnSync = set
+		i.deleteOnPush = set
+		i.deleteOnPull = set
 		setDeleteOnSync(i.Bucket, set)
 	}
 }

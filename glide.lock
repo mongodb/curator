@@ -27,7 +27,7 @@ imports:
   version: bea76d6a4713e18b7f5321a2b020738552def3ea
 
 - name: github.com/mongodb/grip
-  version: 505d1051058d81836ddb3cb839ba06009588a14e
+  version: 0664a66cb7804cf423e8bd57f1462c84aec01603
 - name: github.com/mongodb/amboy
   version: 4f089ad3c37346a21d0b69b6d3c3523628a72a29
 - name: github.com/evergreen-ci/gimlet
@@ -59,7 +59,7 @@ imports:
 - name: github.com/evergreen-ci/poplar
   version: 0f6a581bf9d1afba1dac3f472e1203c8400f96c0
 - name: github.com/evergreen-ci/pail
-  version: ffd9ec31ce96d39291ceb56668936ca6141e83b7
+  version: 8bead7f820b8402b7c94c1554951c08199bdd3cd
 - name: github.com/evergreen-ci/aviation
   version: 8bdfd62dc19653045bea1cd8a9dc48c57a0d66f0
 - name: go.mongodb.org/mongo-driver

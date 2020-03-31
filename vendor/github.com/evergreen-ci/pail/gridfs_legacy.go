@@ -42,6 +42,10 @@ func (b *gridfsLegacyBucket) denormalizeKey(key string) string {
 // Mgo in general does not offer rich support for contexts, so
 // cancellation may not be robust.
 func NewLegacyGridFSBucket(opts GridFSOptions) (Bucket, error) {
+	if err := opts.validate(); err != nil {
+		return nil, err
+	}
+
 	if opts.MongoDBURI == "" {
 		return nil, errors.New("cannot create a new bucket without a URI")
 	}
@@ -69,6 +73,9 @@ func NewLegacyGridFSBucketWithSession(s *mgo.Session, opts GridFSOptions) (Bucke
 		return b, errors.WithStack(err)
 	}
 
+	if err := opts.validate(); err != nil {
+		return nil, err
+	}
 	return &gridfsLegacyBucket{
 		opts:    opts,
 		session: s,
@@ -302,8 +309,8 @@ func (b *gridfsLegacyBucket) Push(ctx context.Context, opts SyncOptions) error {
 		}
 	}
 
-	if b.opts.DeleteOnSync && !b.opts.DryRun {
-		return errors.Wrap(deleteOnPush(ctx, localPaths, opts.Remote, b), "probelm with delete on sync after push")
+	if (b.opts.DeleteOnPush || b.opts.DeleteOnSync) && !b.opts.DryRun {
+		return errors.Wrap(deleteOnPush(ctx, localPaths, opts.Remote, b), "problem with delete on sync after push")
 	}
 	return nil
 }
@@ -374,7 +381,7 @@ func (b *gridfsLegacyBucket) Pull(ctx context.Context, opts SyncOptions) error {
 		return errors.Wrap(err, "problem iterating bucket")
 	}
 
-	if b.opts.DeleteOnSync && !b.opts.DryRun {
+	if (b.opts.DeleteOnPull || b.opts.DeleteOnSync) && !b.opts.DryRun {
 		return errors.Wrap(deleteOnPull(ctx, keys, opts.Local), "problem with delete on sync after pull")
 	}
 	return nil
