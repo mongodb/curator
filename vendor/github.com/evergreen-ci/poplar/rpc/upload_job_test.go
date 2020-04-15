@@ -8,12 +8,15 @@ import (
 
 	"github.com/evergreen-ci/pail"
 	"github.com/evergreen-ci/poplar"
+	"github.com/evergreen-ci/utility"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestUploadJob(t *testing.T) {
-	ctx := context.TODO()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	s3Name := "build-test-curator"
 	s3Prefix := "poplar-upload-job-test"
 	s3Region := "us-east-1"
@@ -22,7 +25,11 @@ func TestUploadJob(t *testing.T) {
 		Prefix: s3Prefix,
 		Region: s3Region,
 	}
-	s3Bucket, err := pail.NewS3Bucket(s3Opts)
+
+	client := utility.GetHTTPClient()
+	defer utility.PutHTTPClient(client)
+
+	s3Bucket, err := pail.NewS3BucketWithHTTPClient(client, s3Opts)
 	require.NoError(t, err)
 
 	for _, test := range []struct {

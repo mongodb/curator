@@ -46,6 +46,9 @@ imports:
   version: 1b77c8dfcc6baca12dedfab119135396782b68a1
 - name: github.com/PuerkitoBio/rehttp
   version: 11cf6ea5d3e9afda34846e1db511aa218049471c
+- name: golang.org/x/oauth2
+  version: f047394b6d14284165300fd82dad67edb3a4d7f6
+
 
 - name: github.com/evergreen-ci/birch
   version: 3a26bb67719ad6a9e7daed059abd5d018586f3cd
@@ -57,7 +60,7 @@ imports:
 - name: github.com/mongodb/anser
   version: c65a2d95b0615d79b53ef467c2f836a576972857
 - name: github.com/evergreen-ci/poplar
-  version: 0f6a581bf9d1afba1dac3f472e1203c8400f96c0
+  version: aefef5e2e1092e0362b7b4c713f6457e263b121f
 - name: github.com/evergreen-ci/pail
   version: 8bead7f820b8402b7c94c1554951c08199bdd3cd
 - name: github.com/evergreen-ci/aviation
@@ -69,7 +72,7 @@ imports:
 - name: github.com/evergreen-ci/birch
   version: 3a26bb67719ad6a9e7daed059abd5d018586f3cd
 - name: github.com/evergreen-ci/utility
-  version: 38c144444477dabd8d40cc5b115e4b26d03dea19
+  version: 919337de206db45e5cb7192bacfcd95645bba2d5
 
 # grpc and dependencies
 - name: google.golang.org/grpc

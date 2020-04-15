@@ -352,6 +352,8 @@ func (opts *CreateOptions) build() (*recorderInstance, error) {
 		out.collector = ftdc.NewBufferedCollector(out.ctx, 4*opts.ChunkSize, out.collector)
 	}
 
+	out.collector = ftdc.NewSynchronizedCollector(out.collector)
+
 	switch opts.Events {
 	case EventsCollectorBasic:
 		out.eventsCollector = events.NewBasicCollector(out.collector)
@@ -377,7 +379,6 @@ func (opts *CreateOptions) build() (*recorderInstance, error) {
 		out.eventsCollector = events.NewIntervalCollector(out.collector, time.Second)
 	}
 
-	out.collector = ftdc.NewSynchronizedCollector(out.collector)
 	out.eventsCollector = events.NewSynchronizedCollector(out.eventsCollector)
 
 	switch opts.Recorder {

@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/evergreen-ci/pail"
+	"github.com/evergreen-ci/utility"
 	"github.com/mongodb/ftdc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -322,7 +323,10 @@ func TestUpload(t *testing.T) {
 							test.bucketConf.APIToken,
 						)
 					}
-					bucket, err := pail.NewS3Bucket(opts)
+					client := utility.GetHTTPClient()
+					defer utility.PutHTTPClient(client)
+
+					bucket, err := pail.NewS3BucketWithHTTPClient(client, opts)
 					require.NoError(t, err)
 
 					require.NoError(t, test.artifact.Upload(ctx, test.bucketConf, dryRun))

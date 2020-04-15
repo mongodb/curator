@@ -10,6 +10,7 @@ import (
 
 	"github.com/evergreen-ci/birch"
 	"github.com/evergreen-ci/pail"
+	"github.com/evergreen-ci/utility"
 	"github.com/mongodb/ftdc"
 	"github.com/mongodb/ftdc/metrics"
 	"github.com/mongodb/grip"
@@ -118,8 +119,10 @@ func (a *TestArtifact) Upload(ctx context.Context, conf BucketConfiguration, dry
 	if (conf.APIKey != "" && conf.APISecret != "") || conf.APIToken != "" {
 		opts.Credentials = pail.CreateAWSCredentials(conf.APIKey, conf.APISecret, conf.APIToken)
 	}
+	client := utility.GetHTTPClient()
+	defer utility.PutHTTPClient(client)
 
-	bucket, err := pail.NewS3Bucket(opts)
+	bucket, err := pail.NewS3MultiPartBucketWithHTTPClient(client, opts)
 	if err != nil {
 		return errors.Wrap(err, "could not construct bucket")
 	}

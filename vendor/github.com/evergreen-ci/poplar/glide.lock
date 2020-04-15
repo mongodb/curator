@@ -2,7 +2,7 @@ hash: ""
 updated: 2016-10-20T16:48:42.872025812-04:00
 imports:
   - name: github.com/mongodb/ftdc
-    version: 8b996adb830457905c1f23c0f8738f6ec36e0917
+    version: 6cd018a1279e89abfbb294371e571d25147a7f46
   - name: github.com/evergreen-ci/birch
     version: da7e58b5cca1d63dc9181790f6d69fca759bb78a
   - name: github.com/google/uuid
@@ -18,6 +18,13 @@ imports:
     version: 89691c8c27abb1d0374f24fb0b645143fc043f74
   - name: github.com/evergreen-ci/aviation
     version: d74791c0d819b6f7908cced0dd37e6ab3fb9eeae
+  - name: github.com/evergreen-ci/utility 
+    version: 919337de206db45e5cb7192bacfcd95645bba2d5
+
+  - name: github.com/PuerkitoBio/rehttp
+    version: 11cf6ea5d3e9afda34846e1db511aa218049471c
+  - name: golang.org/x/oauth2
+    version: f047394b6d14284165300fd82dad67edb3a4d7f6
 
   - name: github.com/pkg/errors
     version: 2b3a18b5f0fb6b4f9190549597d3f962c02bc5eb

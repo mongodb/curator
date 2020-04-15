@@ -178,6 +178,9 @@ vendor-clean:
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/urfave/
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/jpillora/backoff/
 	rm -rf vendor/github.com/mongodb/jasper/vendor/go.mongodb.org/mongo-driver/
+	rm -rf vendor/github.com/evergreen-ci/poplar/vendor/github.com/PuerkitoBio/rehttp/
+	rm -rf vendor/github.com/evergreen-ci/poplar/vendor/github.com/evergreen-ci/utility
+	rm -rf vendor/github.com/evergreen-ci/poplar/vendor/golang.org/x/oauth2/
 	rm -rf vendor/go.mongodb.org/mongo-driver/data/
 	rm -rf vendor/go.mongodb.org/mongo-driver/vendor/github.com/davecgh
 	rm -rf vendor/go.mongodb.org/mongo-driver/vendor/github.com/montanaflynn

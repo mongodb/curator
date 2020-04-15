@@ -11,6 +11,7 @@ import (
 	"github.com/evergreen-ci/pail"
 	"github.com/evergreen-ci/poplar"
 	"github.com/evergreen-ci/poplar/rpc/internal"
+	"github.com/evergreen-ci/utility"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/pkg/errors"
@@ -63,7 +64,9 @@ func mockUploadReport(ctx context.Context, report *poplar.Report, client interna
 }
 
 func TestClient(t *testing.T) {
-	ctx := context.TODO()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	testdataDir := filepath.Join("..", "testdata")
 	s3Name := "build-test-curator"
 	s3Prefix := "poplar-client-test"
@@ -72,7 +75,11 @@ func TestClient(t *testing.T) {
 		Prefix: s3Prefix,
 		Region: "us-east-1",
 	}
-	s3Bucket, err := pail.NewS3Bucket(s3Opts)
+
+	client := utility.GetHTTPClient()
+	defer utility.PutHTTPClient(client)
+
+	s3Bucket, err := pail.NewS3BucketWithHTTPClient(client, s3Opts)
 	require.NoError(t, err)
 
 	report := generateTestReport(testdataDir, s3Name, s3Prefix)
