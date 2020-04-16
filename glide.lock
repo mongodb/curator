@@ -64,7 +64,7 @@ imports:
 - name: github.com/evergreen-ci/pail
   version: 8bead7f820b8402b7c94c1554951c08199bdd3cd
 - name: github.com/evergreen-ci/aviation
-  version: 8bdfd62dc19653045bea1cd8a9dc48c57a0d66f0
+  version: 0d9addebe820f37b79433a37d0d53f06bfbb7f01
 - name: go.mongodb.org/mongo-driver
   version: 305bc4a5e4131420fe8ba5628e6faa9e6ade4e86
 - name: github.com/evergreen-ci/timber
