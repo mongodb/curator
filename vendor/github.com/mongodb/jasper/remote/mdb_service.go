@@ -16,6 +16,7 @@ import (
 	"github.com/mongodb/grip/recovery"
 	"github.com/mongodb/jasper"
 	"github.com/mongodb/jasper/options"
+	"github.com/mongodb/jasper/scripting"
 	"github.com/mongodb/jasper/util"
 	"github.com/pkg/errors"
 	"github.com/tychoish/lru"
@@ -23,10 +24,11 @@ import (
 
 type mdbService struct {
 	mrpc.Service
-	manager    jasper.Manager
-	cache      *lru.Cache
-	cacheOpts  options.Cache
-	cacheMutex sync.RWMutex
+	manager      jasper.Manager
+	harnessCache scripting.HarnessCache
+	cache        *lru.Cache
+	cacheOpts    options.Cache
+	cacheMutex   sync.RWMutex
 }
 
 // StartMDBService wraps an existing Jasper manager in a MongoDB wire protocol
@@ -47,9 +49,10 @@ func StartMDBService(ctx context.Context, m jasper.Manager, addr net.Addr) (util
 		return nil, errors.Wrap(err, "could not create base service")
 	}
 	svc := &mdbService{
-		Service: baseSvc,
-		manager: m,
-		cache:   lru.NewCache(),
+		Service:      baseSvc,
+		manager:      m,
+		harnessCache: scripting.NewCache(),
+		cache:        lru.NewCache(),
 		cacheOpts: options.Cache{
 			PruneDelay: jasper.DefaultCachePruneDelay,
 			MaxSize:    jasper.DefaultMaxCacheSize,
@@ -111,6 +114,7 @@ func (s *mdbService) registerHandlers() error {
 		LoggingCacheCreateCommand: s.loggingCreate,
 		LoggingCacheDeleteCommand: s.loggingDelete,
 		LoggingCacheGetCommand:    s.loggingGet,
+		LoggingCachePruneCommand:  s.loggingPrune,
 		LoggingSendMessageCommand: s.loggingSendMessage,
 
 		// Remote client commands
@@ -285,8 +289,15 @@ func (s *mdbService) getBuildloggerURLs(ctx context.Context, w io.Writer, msg mo
 
 	urls := []string{}
 	for _, logger := range getProcInfoNoHang(ctx, proc).Options.Output.Loggers {
-		if logger.Type == options.LogBuildloggerV2 || logger.Type == options.LogBuildloggerV3 {
-			urls = append(urls, logger.Options.BuildloggerOptions.GetGlobalLogURL())
+		if logger.Type() == options.LogBuildloggerV2 {
+			producer := logger.Producer()
+			if producer == nil {
+				continue
+			}
+			rawProducer, ok := producer.(*options.BuildloggerV2Options)
+			if ok {
+				urls = append(urls, rawProducer.Buildlogger.GetGlobalLogURL())
+			}
 		}
 	}
 	if len(urls) == 0 {

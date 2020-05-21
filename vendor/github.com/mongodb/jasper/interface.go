@@ -34,14 +34,14 @@ type Manager interface {
 	CreateCommand(context.Context) *Command
 	Register(context.Context, Process) error
 
-	LoggingCache(context.Context) LoggingCache
-	WriteFile(context.Context, options.WriteFile) error
-
 	List(context.Context, options.Filter) ([]Process, error)
 	Group(context.Context, string) ([]Process, error)
 	Get(context.Context, string) (Process, error)
 	Clear(context.Context)
 	Close(context.Context) error
+
+	LoggingCache(context.Context) LoggingCache
+	WriteFile(ctx context.Context, opts options.WriteFile) error
 }
 
 // Process objects reflect ways of starting and managing

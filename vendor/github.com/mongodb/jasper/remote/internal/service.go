@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/golang/protobuf/ptypes"
 	empty "github.com/golang/protobuf/ptypes/empty"
 	timestamp "github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/mongodb/grip"
@@ -78,10 +79,10 @@ func (s *jasperService) pruneCache(ctx context.Context) {
 	}
 }
 
-func getProcInfoNoHang(ctx context.Context, p jasper.Process) *ProcessInfo {
+func getProcInfoNoHang(ctx context.Context, p jasper.Process) jasper.ProcessInfo {
 	ctx, cancel := context.WithTimeout(ctx, 100*time.Millisecond)
 	defer cancel()
-	return ConvertProcessInfo(p.Info(ctx))
+	return p.Info(ctx)
 }
 
 type jasperService struct {
@@ -105,7 +106,10 @@ func (s *jasperService) ID(ctx context.Context, _ *empty.Empty) (*IDResponse, er
 }
 
 func (s *jasperService) Create(ctx context.Context, opts *CreateOptions) (*ProcessInfo, error) {
-	jopts := opts.Export()
+	jopts, err := opts.Export()
+	if err != nil {
+		return nil, errors.Wrap(err, "problem exporting create options")
+	}
 
 	// Spawn a new context so that the process' context is not potentially
 	// canceled by the request's. See how rest_service.go's createProcess() does
@@ -120,17 +124,20 @@ func (s *jasperService) Create(ctx context.Context, opts *CreateOptions) (*Proce
 	if err := proc.RegisterTrigger(ctx, func(_ jasper.ProcessInfo) {
 		cancel()
 	}); err != nil {
-		info := getProcInfoNoHang(ctx, proc)
 		cancel()
 		// If we get an error registering a trigger, then we should make sure
 		// that the reason for it isn't just because the process has exited
 		// already, since that should not be considered an error.
-		if !info.Complete {
+		if !getProcInfoNoHang(ctx, proc).Complete {
 			return nil, errors.WithStack(err)
 		}
 	}
 
-	return getProcInfoNoHang(ctx, proc), nil
+	info, err := ConvertProcessInfo(getProcInfoNoHang(ctx, proc))
+	if err != nil {
+		return nil, errors.Wrapf(err, "could not convert info for process '%s'", proc.ID())
+	}
+	return info, nil
 }
 
 func (s *jasperService) List(f *Filter, stream JasperProcessManager_ListServer) error {
@@ -145,7 +152,11 @@ func (s *jasperService) List(f *Filter, stream JasperProcessManager_ListServer) 
 			return errors.New("list canceled")
 		}
 
-		if err := stream.Send(getProcInfoNoHang(ctx, p)); err != nil {
+		info, err := ConvertProcessInfo(getProcInfoNoHang(ctx, p))
+		if err != nil {
+			return errors.Wrapf(err, "could not convert info for process '%s'", p.ID())
+		}
+		if err := stream.Send(info); err != nil {
 			return errors.Wrap(err, "problem sending process info")
 		}
 	}
@@ -165,7 +176,11 @@ func (s *jasperService) Group(t *TagName, stream JasperProcessManager_GroupServe
 			return errors.New("list canceled")
 		}
 
-		if err := stream.Send(getProcInfoNoHang(ctx, p)); err != nil {
+		info, err := ConvertProcessInfo(getProcInfoNoHang(ctx, p))
+		if err != nil {
+			return errors.Wrapf(err, "could not get info for process '%s'", p.ID())
+		}
+		if err := stream.Send(info); err != nil {
 			return errors.Wrap(err, "problem sending process info")
 		}
 	}
@@ -179,7 +194,11 @@ func (s *jasperService) Get(ctx context.Context, id *JasperProcessID) (*ProcessI
 		return nil, errors.Wrapf(err, "problem fetching process '%s'", id.Value)
 	}
 
-	return getProcInfoNoHang(ctx, proc), nil
+	info, err := ConvertProcessInfo(getProcInfoNoHang(ctx, proc))
+	if err != nil {
+		return nil, errors.Wrapf(err, "could not get info for process '%s'", id.Value)
+	}
+	return info, nil
 }
 
 func (s *jasperService) Signal(ctx context.Context, sig *SignalProcess) (*OperationOutcome, error) {
@@ -205,7 +224,7 @@ func (s *jasperService) Signal(ctx context.Context, sig *SignalProcess) (*Operat
 	return &OperationOutcome{
 		Success:  true,
 		Text:     fmt.Sprintf("sending '%s' to '%s'", sig.Signal, sig.ProcessID),
-		ExitCode: getProcInfoNoHang(ctx, proc).ExitCode,
+		ExitCode: int32(getProcInfoNoHang(ctx, proc).ExitCode),
 	}, nil
 }
 
@@ -262,14 +281,17 @@ func (s *jasperService) Respawn(ctx context.Context, id *JasperProcessID) (*Proc
 	if err := newProc.RegisterTrigger(ctx, func(_ jasper.ProcessInfo) {
 		cancel()
 	}); err != nil {
-		newProcInfo := getProcInfoNoHang(ctx, newProc)
 		cancel()
-		if !newProcInfo.Complete {
-			return newProcInfo, nil
+		if !getProcInfoNoHang(ctx, newProc).Complete {
+			return nil, errors.WithStack(err)
 		}
 	}
 
-	return getProcInfoNoHang(ctx, newProc), nil
+	newProcInfo, err := ConvertProcessInfo(getProcInfoNoHang(ctx, newProc))
+	if err != nil {
+		return nil, errors.Wrapf(err, "could not get info for process '%s'", newProc.ID())
+	}
+	return newProcInfo, nil
 }
 
 func (s *jasperService) Clear(ctx context.Context, _ *empty.Empty) (*OperationOutcome, error) {
@@ -327,7 +349,7 @@ func (s *jasperService) ResetTags(ctx context.Context, id *JasperProcessID) (*Op
 	if err != nil {
 		err = errors.Wrapf(err, "problem finding process '%s'", id.Value)
 		return &OperationOutcome{
-			ExitCode: 1,
+			ExitCode: -1,
 			Success:  false,
 			Text:     err.Error(),
 		}, err
@@ -422,9 +444,16 @@ func (s *jasperService) GetBuildloggerURLs(ctx context.Context, id *JasperProces
 	}
 
 	urls := []string{}
-	for _, logger := range getProcInfoNoHang(ctx, proc).Export().Options.Output.Loggers {
-		if logger.Type == options.LogBuildloggerV2 || logger.Type == options.LogBuildloggerV3 {
-			urls = append(urls, logger.Options.BuildloggerOptions.GetGlobalLogURL())
+	for _, logger := range getProcInfoNoHang(ctx, proc).Options.Output.Loggers {
+		if logger.Type() == options.LogBuildloggerV2 {
+			producer := logger.Producer()
+			if producer == nil {
+				continue
+			}
+			rawProducer, ok := producer.(*options.BuildloggerV2Options)
+			if ok {
+				urls = append(urls, rawProducer.Buildlogger.GetGlobalLogURL())
+			}
 		}
 	}
 
@@ -444,7 +473,8 @@ func (s *jasperService) RegisterSignalTriggerID(ctx context.Context, params *Sig
 		return &OperationOutcome{
 			Success:  false,
 			Text:     err.Error(),
-			ExitCode: -2}, nil
+			ExitCode: -2,
+		}, nil
 	}
 
 	makeTrigger, ok := jasper.GetSignalTriggerFactory(signalTriggerID)
@@ -571,7 +601,7 @@ func (s *jasperService) ScriptingHarnessCheck(ctx context.Context, id *Scripting
 		return &OperationOutcome{
 			Success:  false,
 			Text:     err.Error(),
-			ExitCode: 1,
+			ExitCode: -1,
 		}, nil
 	}
 
@@ -588,7 +618,7 @@ func (s *jasperService) ScriptingHarnessSetup(ctx context.Context, id *Scripting
 		return &OperationOutcome{
 			Success:  false,
 			Text:     err.Error(),
-			ExitCode: 1,
+			ExitCode: -1,
 		}, nil
 	}
 
@@ -598,7 +628,7 @@ func (s *jasperService) ScriptingHarnessSetup(ctx context.Context, id *Scripting
 		return &OperationOutcome{
 			Success:  false,
 			Text:     err.Error(),
-			ExitCode: 1,
+			ExitCode: -2,
 		}, nil
 	}
 
@@ -615,7 +645,7 @@ func (s *jasperService) ScriptingHarnessCleanup(ctx context.Context, id *Scripti
 		return &OperationOutcome{
 			Success:  false,
 			Text:     err.Error(),
-			ExitCode: 1,
+			ExitCode: -1,
 		}, nil
 	}
 
@@ -625,7 +655,7 @@ func (s *jasperService) ScriptingHarnessCleanup(ctx context.Context, id *Scripti
 		return &OperationOutcome{
 			Success:  false,
 			Text:     err.Error(),
-			ExitCode: 1,
+			ExitCode: -2,
 		}, nil
 	}
 
@@ -642,7 +672,7 @@ func (s *jasperService) ScriptingHarnessRun(ctx context.Context, args *Scripting
 		return &OperationOutcome{
 			Success:  false,
 			Text:     err.Error(),
-			ExitCode: 1,
+			ExitCode: -1,
 		}, nil
 	}
 
@@ -651,7 +681,7 @@ func (s *jasperService) ScriptingHarnessRun(ctx context.Context, args *Scripting
 		return &OperationOutcome{
 			Success:  false,
 			Text:     err.Error(),
-			ExitCode: 1,
+			ExitCode: -2,
 		}, nil
 	}
 
@@ -668,7 +698,7 @@ func (s *jasperService) ScriptingHarnessRunScript(ctx context.Context, args *Scr
 		return &OperationOutcome{
 			Success:  false,
 			Text:     err.Error(),
-			ExitCode: 1,
+			ExitCode: -1,
 		}, nil
 	}
 
@@ -677,7 +707,7 @@ func (s *jasperService) ScriptingHarnessRunScript(ctx context.Context, args *Scr
 		return &OperationOutcome{
 			Success:  false,
 			Text:     err.Error(),
-			ExitCode: 1,
+			ExitCode: -2,
 		}, nil
 	}
 
@@ -695,7 +725,7 @@ func (s *jasperService) ScriptingHarnessBuild(ctx context.Context, args *Scripti
 			Outcome: &OperationOutcome{
 				Success:  false,
 				Text:     err.Error(),
-				ExitCode: 1,
+				ExitCode: -1,
 			}}, nil
 	}
 
@@ -706,7 +736,7 @@ func (s *jasperService) ScriptingHarnessBuild(ctx context.Context, args *Scripti
 			Outcome: &OperationOutcome{
 				Success:  false,
 				Text:     err.Error(),
-				ExitCode: 1,
+				ExitCode: -2,
 			}}, nil
 	}
 
@@ -726,25 +756,50 @@ func (s *jasperService) ScriptingHarnessTest(ctx context.Context, args *Scriptin
 			Outcome: &OperationOutcome{
 				Success:  false,
 				Text:     err.Error(),
-				ExitCode: 1,
-			}}, nil
+				ExitCode: -1,
+			},
+		}, nil
 	}
 
-	res, err := se.Test(ctx, args.Directory, args.Export()...)
-	resp := &ScriptingHarnessTestResponse{
-		Outcome: &OperationOutcome{
-			Success: true,
-		},
-		Results: ConvertScriptingTestResults(res),
-	}
-
+	exportedArgs, err := args.Export()
 	if err != nil {
-		resp.Outcome.Success = false
-		resp.Outcome.Text = err.Error()
-		resp.Outcome.ExitCode = 1
+		return &ScriptingHarnessTestResponse{
+			Outcome: &OperationOutcome{
+				Success:  false,
+				Text:     err.Error(),
+				ExitCode: -2,
+			},
+		}, nil
 	}
 
-	return resp, nil
+	res, err := se.Test(ctx, args.Directory, exportedArgs...)
+	if err != nil {
+		return &ScriptingHarnessTestResponse{
+			Outcome: &OperationOutcome{
+				Success:  false,
+				Text:     err.Error(),
+				ExitCode: -3,
+			},
+		}, nil
+	}
+	convertedRes, err := ConvertScriptingTestResults(res)
+	if err != nil {
+		return &ScriptingHarnessTestResponse{
+			Outcome: &OperationOutcome{
+				Success:  false,
+				Text:     err.Error(),
+				ExitCode: -4,
+			},
+		}, nil
+	}
+
+	return &ScriptingHarnessTestResponse{
+		Outcome: &OperationOutcome{
+			Success:  true,
+			ExitCode: 0,
+		},
+		Results: convertedRes,
+	}, nil
 }
 
 func (s *jasperService) LoggingCacheCreate(ctx context.Context, args *LoggingCacheCreateArgs) (*LoggingCacheInstance, error) {
@@ -752,18 +807,33 @@ func (s *jasperService) LoggingCacheCreate(ctx context.Context, args *LoggingCac
 	if lc == nil {
 		return nil, errors.New("logging cache not supported")
 	}
-	opt := args.Options.Export()
+	opt, err := args.Options.Export()
+	if err != nil {
+		return nil, errors.Wrap(err, "problem exporting output options")
+	}
+
 	out, err := lc.Create(args.Name, &opt)
 	if err != nil {
 		return &LoggingCacheInstance{
 			Outcome: &OperationOutcome{
-				Success: false,
-				Text:    err.Error(),
+				Success:  false,
+				Text:     err.Error(),
+				ExitCode: -1,
 			},
 		}, nil
 	}
 
-	return ConvertCachedLogger(out), nil
+	logger, err := ConvertCachedLogger(out)
+	if err != nil {
+		return &LoggingCacheInstance{
+			Outcome: &OperationOutcome{
+				Success:  false,
+				Text:     err.Error(),
+				ExitCode: -2,
+			},
+		}, nil
+	}
+	return logger, nil
 }
 
 func (s *jasperService) LoggingCacheGet(ctx context.Context, args *LoggingCacheArgs) (*LoggingCacheInstance, error) {
@@ -776,19 +846,34 @@ func (s *jasperService) LoggingCacheGet(ctx context.Context, args *LoggingCacheA
 	if out == nil {
 		return &LoggingCacheInstance{
 			Outcome: &OperationOutcome{
-				Success: false,
-				Text:    "not found",
+				Success:  false,
+				Text:     "not found",
+				ExitCode: -1,
 			},
 		}, nil
 	}
 
-	return ConvertCachedLogger(out), nil
+	logger, err := ConvertCachedLogger(out)
+	if err != nil {
+		return &LoggingCacheInstance{
+			Outcome: &OperationOutcome{
+				Success:  false,
+				Text:     err.Error(),
+				ExitCode: -2,
+			},
+		}, nil
+	}
+	return logger, nil
 }
 
 func (s *jasperService) LoggingCacheRemove(ctx context.Context, args *LoggingCacheArgs) (*OperationOutcome, error) {
 	lc := s.manager.LoggingCache(ctx)
 	if lc == nil {
-		return nil, errors.New("logging cache not supported")
+		return &OperationOutcome{
+			Success:  false,
+			Text:     "logging cache is not supported",
+			ExitCode: -1,
+		}, nil
 	}
 
 	lc.Remove(args.Name)
@@ -804,7 +889,11 @@ func (s *jasperService) LoggingCachePrune(ctx context.Context, arg *timestamp.Ti
 		return nil, errors.New("logging cache not supported")
 	}
 
-	lc.Prune(mustConvertPTimestamp(arg))
+	ts, err := ptypes.Timestamp(arg)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not convert prune timestamp to equivalent protobuf RPC timestamp")
+	}
+	lc.Prune(ts)
 
 	return &OperationOutcome{
 		Success: true,
@@ -814,12 +903,19 @@ func (s *jasperService) LoggingCachePrune(ctx context.Context, arg *timestamp.Ti
 func (s *jasperService) LoggingCacheLen(ctx context.Context, _ *empty.Empty) (*LoggingCacheSize, error) {
 	lc := s.manager.LoggingCache(ctx)
 	if lc == nil {
-		return nil, errors.New("logging cache not supported")
+		return &LoggingCacheSize{
+			Outcome: &OperationOutcome{
+				Success:  false,
+				Text:     "logging cache is not supported",
+				ExitCode: -1,
+			},
+		}, nil
 	}
 
 	return &LoggingCacheSize{
 		Outcome: &OperationOutcome{
-			Success: true,
+			Success:  true,
+			ExitCode: 0,
 		},
 		Id:   s.manager.ID(),
 		Size: int64(lc.Len()),
@@ -829,19 +925,28 @@ func (s *jasperService) LoggingCacheLen(ctx context.Context, _ *empty.Empty) (*L
 func (s *jasperService) SendMessages(ctx context.Context, lp *LoggingPayload) (*OperationOutcome, error) {
 	lc := s.manager.LoggingCache(ctx)
 	if lc == nil {
-		return nil, errors.New("logging cache not supported")
+		return &OperationOutcome{
+			Success:  false,
+			Text:     "logging cache is not supported",
+			ExitCode: -1,
+		}, nil
 	}
 
 	logger := lc.Get(lp.LoggerID)
 	if logger == nil {
-		return nil, errors.New("named logger does not exist")
+		return &OperationOutcome{
+			Success:  false,
+			Text:     fmt.Sprintf("logging instance '%s' does not exist", lp.LoggerID),
+			ExitCode: -2,
+		}, nil
 	}
 
 	payload := lp.Export()
 	if err := logger.Send(payload); err != nil {
 		return &OperationOutcome{
-			Success: false,
-			Text:    err.Error(),
+			Success:  false,
+			Text:     err.Error(),
+			ExitCode: -3,
 		}, nil
 	}
 
