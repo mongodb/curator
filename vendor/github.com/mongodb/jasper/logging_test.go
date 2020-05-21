@@ -53,7 +53,9 @@ func TestLogging(t *testing.T) {
 			Case: func(t *testing.T, cache LoggingCache) {
 				assert.NoError(t, cache.Put("id", &options.CachedLogger{ID: "id"}))
 				assert.Equal(t, 1, cache.Len())
-				cache.Prune(time.Now())
+				cache.Prune(time.Now().Add(-time.Minute))
+				assert.Equal(t, 1, cache.Len())
+				cache.Prune(time.Now().Add(time.Minute))
 				assert.Equal(t, 0, cache.Len())
 			},
 		},

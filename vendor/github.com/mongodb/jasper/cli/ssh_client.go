@@ -93,7 +93,6 @@ func (c *sshClient) CreateProcess(ctx context.Context, opts *options.Create) (ja
 // CLI. Users should not use (*jasper.Command).SetRunFunc().
 func (c *sshClient) CreateCommand(ctx context.Context) *jasper.Command {
 	return c.manager.CreateCommand(ctx).SetRunFunc(func(opts options.Command) error {
-		opts.Remote = &options.Remote{}
 		output, err := c.runManagerCommand(ctx, CreateCommand, &opts)
 		if err != nil {
 			return errors.Wrap(err, "could not run command from given input")
@@ -294,6 +293,7 @@ func (c *sshClient) LoggingCache(ctx context.Context) jasper.LoggingCache {
 	return c.manager.LoggingCache(ctx)
 }
 
+// TODO: implement
 func (c *sshClient) SendMessages(_ context.Context, _ options.LoggingPayload) error {
 	return errors.New("message sending is not supported")
 }

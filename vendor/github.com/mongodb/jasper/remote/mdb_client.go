@@ -13,6 +13,7 @@ import (
 	"github.com/mongodb/jasper/options"
 	"github.com/mongodb/jasper/scripting"
 	"github.com/pkg/errors"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 type mdbClient struct {
@@ -80,19 +81,65 @@ func (c *mdbClient) CreateProcess(ctx context.Context, opts *options.Create) (ja
 	if err := resp.SuccessOrError(); err != nil {
 		return nil, errors.Wrap(err, "error in response")
 	}
-	return &process{info: resp.Info, doRequest: c.doRequest}, nil
+	return &mdbProcess{info: resp.Info, doRequest: c.doRequest}, nil
 }
 
 func (c *mdbClient) CreateCommand(ctx context.Context) *jasper.Command {
 	return jasper.NewCommand().ProcConstructor(c.CreateProcess)
 }
 
-func (c *mdbClient) CreateScripting(_ context.Context, _ options.ScriptingHarness) (scripting.Harness, error) {
-	return nil, errors.New("scripting environment is not supported")
+func (c *mdbClient) CreateScripting(ctx context.Context, opts options.ScriptingHarness) (scripting.Harness, error) {
+	marshalledOpts, err := bson.Marshal(opts)
+	if err != nil {
+		return nil, errors.Wrap(err, "problem marshalling options")
+	}
+
+	r := &scriptingCreateRequest{}
+	r.Params.Type = opts.Type()
+	r.Params.Options = marshalledOpts
+	req, err := shell.RequestToMessage(mongowire.OP_QUERY, r)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not create request")
+	}
+
+	msg, err := c.doRequest(ctx, req)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed during request")
+	}
+
+	resp := &scriptingCreateResponse{}
+	if err = shell.MessageToResponse(msg, resp); err != nil {
+		return nil, errors.Wrap(err, "could not read response")
+	}
+
+	if err = resp.SuccessOrError(); err != nil {
+		return nil, errors.Wrap(err, "error in response")
+	}
+	return &mdbScriptingClient{
+		client: c,
+		id:     resp.ID,
+	}, nil
 }
 
-func (c *mdbClient) GetScripting(_ context.Context, id string) (scripting.Harness, error) {
-	// TODO: check that scripting env exists before returning
+func (c *mdbClient) GetScripting(ctx context.Context, id string) (scripting.Harness, error) {
+	req, err := shell.RequestToMessage(mongowire.OP_QUERY, &scriptingGetRequest{ID: id})
+	if err != nil {
+		return nil, errors.Wrap(err, "could not create request")
+	}
+
+	msg, err := c.doRequest(ctx, req)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed during request")
+	}
+
+	resp := &shell.ErrorResponse{}
+	if err = shell.MessageToResponse(msg, resp); err != nil {
+		return nil, errors.Wrap(err, "could not read response")
+	}
+
+	if err = resp.SuccessOrError(); err != nil {
+		return nil, errors.Wrap(err, "error in response")
+	}
 	return &mdbScriptingClient{
 		client: c,
 		id:     id,
@@ -104,22 +151,252 @@ type mdbScriptingClient struct {
 	id     string
 }
 
-func (s *mdbScriptingClient) ID() string                                     { return s.id }
-func (s *mdbScriptingClient) Setup(ctx context.Context) error                { return nil }
-func (s *mdbScriptingClient) Cleanup(ctx context.Context) error              { return nil }
-func (s *mdbScriptingClient) Run(ctx context.Context, args []string) error   { return nil }
-func (s *mdbScriptingClient) RunScript(ctx context.Context, in string) error { return nil }
+func (s *mdbScriptingClient) ID() string { return s.id }
+func (s *mdbScriptingClient) Setup(ctx context.Context) error {
+	req, err := shell.RequestToMessage(mongowire.OP_QUERY, &scriptingSetupRequest{ID: s.id})
+	if err != nil {
+		return errors.Wrap(err, "could not create request")
+	}
+
+	msg, err := s.client.doRequest(ctx, req)
+	if err != nil {
+		return errors.Wrap(err, "failed during request")
+	}
+
+	resp := &shell.ErrorResponse{}
+	if err = shell.MessageToResponse(msg, resp); err != nil {
+		return errors.Wrap(err, "could not read response")
+	}
+
+	return errors.Wrap(resp.SuccessOrError(), "error in response")
+}
+
+func (s *mdbScriptingClient) Cleanup(ctx context.Context) error {
+	req, err := shell.RequestToMessage(mongowire.OP_QUERY, &scriptingCleanupRequest{ID: s.id})
+	if err != nil {
+		return errors.Wrap(err, "could not create request")
+	}
+
+	msg, err := s.client.doRequest(ctx, req)
+	if err != nil {
+		return errors.Wrap(err, "failed during request")
+	}
+
+	resp := &shell.ErrorResponse{}
+	if err = shell.MessageToResponse(msg, resp); err != nil {
+		return errors.Wrap(err, "could not read response")
+	}
+
+	return errors.Wrap(resp.SuccessOrError(), "error in response")
+}
+
+func (s *mdbScriptingClient) Run(ctx context.Context, args []string) error {
+	r := &scriptingRunRequest{}
+	r.Params.ID = s.id
+	r.Params.Args = args
+	req, err := shell.RequestToMessage(mongowire.OP_QUERY, r)
+	if err != nil {
+		return errors.Wrap(err, "could not create request")
+	}
+
+	msg, err := s.client.doRequest(ctx, req)
+	if err != nil {
+		return errors.Wrap(err, "failed during request")
+	}
+
+	resp := &shell.ErrorResponse{}
+	if err = shell.MessageToResponse(msg, resp); err != nil {
+		return errors.Wrap(err, "could not read response")
+	}
+
+	return errors.Wrap(resp.SuccessOrError(), "error in response")
+}
+
+func (s *mdbScriptingClient) RunScript(ctx context.Context, in string) error {
+	r := &scriptingRunScriptRequest{}
+	r.Params.ID = s.id
+	r.Params.Script = in
+	req, err := shell.RequestToMessage(mongowire.OP_QUERY, r)
+	if err != nil {
+		return errors.Wrap(err, "could not create request")
+	}
+
+	msg, err := s.client.doRequest(ctx, req)
+	if err != nil {
+		return errors.Wrap(err, "failed during request")
+	}
+
+	resp := &shell.ErrorResponse{}
+	if err = shell.MessageToResponse(msg, resp); err != nil {
+		return errors.Wrap(err, "could not read response")
+	}
+
+	return errors.Wrap(resp.SuccessOrError(), "error in response")
+}
+
 func (s *mdbScriptingClient) Build(ctx context.Context, dir string, args []string) (string, error) {
-	return "", nil
+	r := &scriptingBuildRequest{}
+	r.Params.ID = s.id
+	r.Params.Dir = dir
+	r.Params.Args = args
+	req, err := shell.RequestToMessage(mongowire.OP_QUERY, r)
+	if err != nil {
+		return "", errors.Wrap(err, "could not create request")
+	}
+
+	msg, err := s.client.doRequest(ctx, req)
+	if err != nil {
+		return "", errors.Wrap(err, "failed during request")
+	}
+
+	resp := &scriptingBuildResponse{}
+	if err = shell.MessageToResponse(msg, resp); err != nil {
+		return "", errors.Wrap(err, "could not read response")
+	}
+
+	return resp.Path, errors.Wrap(resp.SuccessOrError(), "error in response")
 }
+
 func (s *mdbScriptingClient) Test(ctx context.Context, dir string, opts ...scripting.TestOptions) ([]scripting.TestResult, error) {
-	return nil, nil
+	r := &scriptingTestRequest{}
+	r.Params.ID = s.id
+	r.Params.Dir = dir
+	r.Params.Options = opts
+	req, err := shell.RequestToMessage(mongowire.OP_QUERY, r)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not create request")
+	}
+
+	msg, err := s.client.doRequest(ctx, req)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed during request")
+	}
+
+	resp := &scriptingTestResponse{}
+	if err = shell.MessageToResponse(msg, resp); err != nil {
+		return nil, errors.Wrap(err, "could not read response")
+	}
+
+	return resp.Results, errors.Wrap(resp.SuccessOrError(), "error in response")
 }
 
-func (c *mdbClient) LoggingCache(_ context.Context) jasper.LoggingCache { return nil }
+func (c *mdbClient) LoggingCache(ctx context.Context) jasper.LoggingCache {
+	return &mdbLoggingCache{
+		client: c,
+		ctx:    ctx,
+	}
+}
 
-func (c *mdbClient) SendMessages(_ context.Context, _ options.LoggingPayload) error {
-	return errors.New("message sending is not supported")
+func (c *mdbClient) SendMessages(ctx context.Context, lp options.LoggingPayload) error {
+	req, err := shell.RequestToMessage(mongowire.OP_QUERY, &loggingSendMessageRequest{Payload: lp})
+	if err != nil {
+		return errors.Wrap(err, "could not create request")
+	}
+
+	msg, err := c.doRequest(ctx, req)
+	if err != nil {
+		return errors.Wrap(err, "failed during request")
+	}
+
+	resp := &shell.ErrorResponse{}
+	if err = shell.MessageToResponse(msg, resp); err != nil {
+		return errors.Wrap(err, "could not read response")
+	}
+
+	return errors.Wrap(resp.SuccessOrError(), "error in response")
+}
+
+type mdbLoggingCache struct {
+	client *mdbClient
+	ctx    context.Context
+}
+
+func (lc *mdbLoggingCache) Create(id string, opts *options.Output) (*options.CachedLogger, error) {
+	r := &loggingCacheCreateRequest{}
+	r.Params.ID = id
+	r.Params.Options = opts
+	req, err := shell.RequestToMessage(mongowire.OP_QUERY, r)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not create request")
+	}
+
+	msg, err := lc.client.doRequest(lc.ctx, req)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed during request")
+	}
+
+	resp := &loggingCacheCreateAndGetResponse{}
+	if err = shell.MessageToResponse(msg, resp); err != nil {
+		return nil, errors.Wrap(err, "could not read response")
+	}
+	if err = resp.SuccessOrError(); err != nil {
+		return nil, errors.Wrap(err, "error in response")
+	}
+
+	return resp.CachedLogger, nil
+}
+
+func (lc *mdbLoggingCache) Put(_ string, _ *options.CachedLogger) error {
+	return errors.New("operation not supported for remote managers")
+}
+
+func (lc *mdbLoggingCache) Get(id string) *options.CachedLogger {
+	req, err := shell.RequestToMessage(mongowire.OP_QUERY, &loggingCacheGetRequest{ID: id})
+	if err != nil {
+		return nil
+	}
+
+	msg, err := lc.client.doRequest(lc.ctx, req)
+	if err != nil {
+		return nil
+	}
+
+	resp := &loggingCacheCreateAndGetResponse{}
+	if err = shell.MessageToResponse(msg, resp); err != nil {
+		return nil
+	}
+	if err = resp.SuccessOrError(); err != nil {
+		return nil
+	}
+
+	return resp.CachedLogger
+}
+
+func (lc *mdbLoggingCache) Remove(id string) {
+	req, err := shell.RequestToMessage(mongowire.OP_QUERY, &loggingCacheDeleteRequest{ID: id})
+	if err != nil {
+		return
+	}
+
+	_, _ = lc.client.doRequest(lc.ctx, req)
+}
+
+func (lc *mdbLoggingCache) Prune(lastAccessed time.Time) {
+	req, err := shell.RequestToMessage(mongowire.OP_QUERY, &loggingCachePruneRequest{LastAccessed: lastAccessed})
+	if err != nil {
+		return
+	}
+
+	_, _ = lc.client.doRequest(lc.ctx, req)
+}
+
+func (lc *mdbLoggingCache) Len() int {
+	req, err := shell.RequestToMessage(mongowire.OP_QUERY, &loggingCacheLenRequest{})
+	if err != nil {
+		return -1
+	}
+
+	msg, err := lc.client.doRequest(lc.ctx, req)
+	if err != nil {
+		return -1
+	}
+
+	resp := &loggingCacheSizeResponse{}
+	if err = shell.MessageToResponse(msg, &resp); err != nil {
+		return -1
+	}
+
+	return resp.Size
 }
 
 func (c *mdbClient) Register(ctx context.Context, proc jasper.Process) error {
@@ -145,7 +422,7 @@ func (c *mdbClient) List(ctx context.Context, f options.Filter) ([]jasper.Proces
 	infos := resp.Infos
 	procs := make([]jasper.Process, 0, len(infos))
 	for _, info := range infos {
-		procs = append(procs, &process{info: info, doRequest: c.doRequest})
+		procs = append(procs, &mdbProcess{info: info, doRequest: c.doRequest})
 	}
 	return procs, nil
 }
@@ -169,7 +446,7 @@ func (c *mdbClient) Group(ctx context.Context, tag string) ([]jasper.Process, er
 	infos := resp.Infos
 	procs := make([]jasper.Process, 0, len(infos))
 	for _, info := range infos {
-		procs = append(procs, &process{info: info, doRequest: c.doRequest})
+		procs = append(procs, &mdbProcess{info: info, doRequest: c.doRequest})
 	}
 	return procs, nil
 }
@@ -191,7 +468,7 @@ func (c *mdbClient) Get(ctx context.Context, id string) (jasper.Process, error) 
 		return nil, errors.Wrap(err, "error in response")
 	}
 	info := resp.Info
-	return &process{info: info, doRequest: c.doRequest}, nil
+	return &mdbProcess{info: info, doRequest: c.doRequest}, nil
 }
 
 func (c *mdbClient) Clear(ctx context.Context) {

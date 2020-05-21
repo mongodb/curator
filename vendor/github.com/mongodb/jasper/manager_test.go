@@ -2,7 +2,7 @@ package jasper
 
 import (
 	"context"
-	"fmt"
+	"os"
 	"runtime"
 	"testing"
 
@@ -20,7 +20,7 @@ func TestManagerInterface(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	for mname, factory := range map[string]func(context.Context, *testing.T) Manager{
+	for mname, makeMngr := range map[string]func(context.Context, *testing.T) Manager{
 		"Basic/NoLock": func(_ context.Context, _ *testing.T) Manager {
 			return &basicProcessManager{
 				id:      "id",
@@ -28,30 +28,37 @@ func TestManagerInterface(t *testing.T) {
 				procs:   map[string]Process{},
 			}
 		},
-		"Basic/Lock/BasicProcs": func(_ context.Context, t *testing.T) Manager {
+		"Basic/Lock": func(_ context.Context, t *testing.T) Manager {
 			synchronizedManager, err := NewSynchronizedManager(false)
 			require.NoError(t, err)
 			return synchronizedManager
 		},
-		"SelfClearing/BasicProcs": func(ctx context.Context, t *testing.T) Manager {
+		"SelfClearing/NoLock": func(_ context.Context, t *testing.T) Manager {
 			selfClearingManager, err := NewSelfClearingProcessManager(10, false)
 			require.NoError(t, err)
 			return selfClearingManager
 		},
-		"Basic/NoLock/RemoteNil": func(_ context.Context, _ *testing.T) Manager {
-			m := &basicProcessManager{
-				loggers: NewLoggingCache(),
-				id:      "id",
-				procs:   map[string]Process{},
-			}
-			return NewRemoteManager(m, nil)
-		},
-		"Basic/Lock/RemoteNil": func(_ context.Context, t *testing.T) Manager {
-			m, err := NewSynchronizedManager(false)
+		"Remote/NoLock/NilOptions": func(_ context.Context, t *testing.T) Manager {
+			m, err := newBasicProcessManager(map[string]Process{}, false, false)
 			require.NoError(t, err)
 			return NewRemoteManager(m, nil)
 		},
+		"Docker/NoLock": func(_ context.Context, t *testing.T) Manager {
+			m, err := newBasicProcessManager(map[string]Process{}, false, false)
+			require.NoError(t, err)
+			image := os.Getenv("DOCKER_IMAGE")
+			if image == "" {
+				image = testutil.DefaultDockerImage
+			}
+			return NewDockerManager(m, &options.Docker{
+				Image: image,
+			})
+		},
 	} {
+		if testutil.IsDockerCase(mname) {
+			testutil.SkipDockerIfUnsupported(t)
+		}
+
 		t.Run(mname, func(t *testing.T) {
 			for name, test := range map[string]func(context.Context, *testing.T, Manager, testutil.OptsModify){
 				"ValidateFixture": func(ctx context.Context, t *testing.T, manager Manager, mod testutil.OptsModify) {
@@ -429,7 +436,7 @@ func TestManagerInterface(t *testing.T) {
 
 					assert.Len(t, newProcList, originalProcCount+len(subCmds))
 				},
-				"CommandProcIDsMatchManagerIDs": func(ctx context.Context, t *testing.T, manager Manager, mod testutil.OptsModify) {
+				"CommandProcessIDsMatchManagedProcessIDs": func(ctx context.Context, t *testing.T, manager Manager, mod testutil.OptsModify) {
 					cmd := manager.CreateCommand(ctx)
 					cmd.Extend([][]string{echoSubCmd, echoSubCmd, echoSubCmd})
 					mod(&cmd.opts.Process)
@@ -451,18 +458,18 @@ func TestManagerInterface(t *testing.T) {
 					}
 				},
 			} {
-				t.Run(name+"/Basic", func(t *testing.T) {
-					tctx, cancel := context.WithTimeout(ctx, testutil.ManagerTestTimeout)
-					defer cancel()
-					test(tctx, t, factory(tctx, t), func(o *options.Create) {
-						o.Implementation = options.ProcessImplementationBlocking
+				t.Run(name+"/BasicProcess", func(t *testing.T) {
+					tctx, tcancel := context.WithTimeout(ctx, testutil.ManagerTestTimeout)
+					defer tcancel()
+					test(tctx, t, makeMngr(tctx, t), func(opts *options.Create) {
+						opts.Implementation = options.ProcessImplementationBlocking
 					})
 				})
-				t.Run(name+"/Blocking", func(t *testing.T) {
-					tctx, cancel := context.WithTimeout(ctx, testutil.ManagerTestTimeout)
-					defer cancel()
-					test(tctx, t, factory(tctx, t), func(o *options.Create) {
-						o.Implementation = options.ProcessImplementationBlocking
+				t.Run(name+"/BlockingProcess", func(t *testing.T) {
+					tctx, tcancel := context.WithTimeout(ctx, testutil.ManagerTestTimeout)
+					defer tcancel()
+					test(tctx, t, makeMngr(tctx, t), func(opts *options.Create) {
+						opts.Implementation = options.ProcessImplementationBlocking
 					})
 				})
 			}
@@ -562,7 +569,6 @@ func TestTrackedManager(t *testing.T) {
 					cmd := manager.CreateCommand(ctx).Background(true).Add(opts.Args)
 					cmd.opts.Process = *opts
 
-					fmt.Println(cmd.opts.Process)
 					require.NoError(t, cmd.Run(ctx))
 					assert.Len(t, manager.procs, 1)
 
@@ -581,12 +587,12 @@ func TestTrackedManager(t *testing.T) {
 				tctx, cancel := context.WithTimeout(ctx, testutil.ManagerTestTimeout)
 				defer cancel()
 				t.Run(name+"Manager/BlockingProcess", func(t *testing.T) {
-					opts := testutil.YesCreateOpts(testutil.ManagerTestTimeout)
+					opts := testutil.SleepCreateOpts(1)
 					opts.Implementation = options.ProcessImplementationBlocking
 					test(tctx, t, makeManager(), opts)
 				})
 				t.Run(name+"Manager/BasicProcess", func(t *testing.T) {
-					opts := testutil.YesCreateOpts(testutil.ManagerTestTimeout)
+					opts := testutil.SleepCreateOpts(1)
 					opts.Implementation = options.ProcessImplementationBasic
 					test(tctx, t, makeManager(), opts)
 				})

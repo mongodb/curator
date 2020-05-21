@@ -20,7 +20,13 @@ type basicProcessManager struct {
 	loggers       LoggingCache
 }
 
+// newBasicProcessManager returns a manager which is not thread safe for
+// creating arbitrary processes. By default, processes are basic processes
+// unless otherwise specified when creating the process.
 func newBasicProcessManager(procs map[string]Process, trackProcs bool, useSSHLibrary bool) (Manager, error) {
+	if procs == nil {
+		procs = map[string]Process{}
+	}
 	m := basicProcessManager{
 		procs:         procs,
 		id:            uuid.New().String(),
@@ -85,14 +91,6 @@ func (m *basicProcessManager) LoggingCache(_ context.Context) LoggingCache { ret
 
 func (m *basicProcessManager) CreateCommand(ctx context.Context) *Command {
 	return NewCommand().ProcConstructor(m.CreateProcess)
-}
-
-func (m *basicProcessManager) WriteFile(ctx context.Context, opts options.WriteFile) error {
-	if err := opts.Validate(); err != nil {
-		return errors.Wrap(err, "invalid file options")
-	}
-
-	return errors.Wrap(opts.DoWrite(), "problem writing data")
 }
 
 func (m *basicProcessManager) Register(ctx context.Context, proc Process) error {
@@ -229,4 +227,12 @@ func (m *basicProcessManager) Group(ctx context.Context, name string) ([]Process
 	}
 
 	return out, nil
+}
+
+func (m *basicProcessManager) WriteFile(ctx context.Context, opts options.WriteFile) error {
+	if err := opts.Validate(); err != nil {
+		return errors.Wrap(err, "invalid write options")
+	}
+
+	return errors.Wrapf(opts.DoWrite(), "error writing file '%s'", opts.Path)
 }

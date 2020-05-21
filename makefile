@@ -160,6 +160,7 @@ vendor-clean:
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/evergreen-ci/poplar/
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/evergreen-ci/pail/
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/evergreen-ci/timber/
+	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/evergreen-ci/utility/
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/golang/
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/google/uuid
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/mongodb/amboy
@@ -168,9 +169,12 @@ vendor-clean:
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/pkg/errors/
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/tychoish/bond
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/tychoish/lru
-	rm -rf vendor/github.com/mongodb/jasper/vendor/golang.org/x/net
-	rm -rf vendor/github.com/mongodb/jasper/vendor/golang.org/x/sys
+	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/PuerkitoBio/rehttp/
+	rm -rf vendor/github.com/mongodb/jasper/vendor/golang.org/x/net/
+	rm -rf vendor/github.com/mongodb/jasper/vendor/golang.org/x/sys/
 	rm -rf vendor/github.com/mongodb/jasper/vendor/golang.org/x/text/
+	rm -rf vendor/github.com/mongodb/jasper/vendor/golang.org/x/oauth2/
+	rm -rf vendor/github.com/mongodb/jasper/vendor/gopkg.in/yaml.v2/
 	rm -rf vendor/github.com/mongodb/jasper/vendor/google.golang.org/genproto
 	rm -rf vendor/github.com/mongodb/jasper/vendor/google.golang.org/grpc
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/stretchr/
