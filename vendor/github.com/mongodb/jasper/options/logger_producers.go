@@ -241,7 +241,7 @@ func NewSplunkLoggerProducer() LoggerProducer { return &SplunkLoggerOptions{} }
 func (opts *SplunkLoggerOptions) Validate() error {
 	catcher := grip.NewBasicCatcher()
 
-	catcher.NewWhen(opts.Splunk.Populated(), "missing connection info for output type splunk")
+	catcher.NewWhen(!opts.Splunk.Populated(), "missing connection info for output type splunk")
 	catcher.Add(opts.Base.Validate())
 	return catcher.Resolve()
 }
