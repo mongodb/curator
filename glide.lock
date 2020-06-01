@@ -32,10 +32,10 @@ imports:
   version: 4f089ad3c37346a21d0b69b6d3c3523628a72a29
 - name: github.com/evergreen-ci/gimlet
   version: 7ad1845db582cfcaa26503d841f77a6277b2a258
-- name: github.com/tychoish/lru
-  version: f77a748d12a924cfbfcf396426dd58de5aa3a9e2
-- name: github.com/tychoish/bond
-  version: cbb37912b9cc70a8ccd7c4c77df3ce6bc8a62b64
+- name: github.com/evergreen-ci/bond
+  version: e4a29fb10c31b3651cb623b73655bc66035f83e7
+- name: github.com/evergreen-ci/lru
+  version: d1b427740b3b78780272eb34942e4ed27e0e101d
 
 - name: github.com/stretchr/testify
   version: 890a5c3458b43e6104ff5da8dfa139d013d77544
@@ -48,6 +48,8 @@ imports:
   version: 11cf6ea5d3e9afda34846e1db511aa218049471c
 - name: golang.org/x/oauth2
   version: f047394b6d14284165300fd82dad67edb3a4d7f6
+- name: github.com/sabhiram/go-git-ignore
+  version: d3107576ba9425fc1c85f4b3569c4631b805a02e
 
 
 - name: github.com/evergreen-ci/birch
@@ -56,7 +58,7 @@ imports:
 - name: github.com/mongodb/ftdc
   version: 8b996adb830457905c1f23c0f8738f6ec36e0917
 - name: github.com/mongodb/jasper
-  version: 1444ffda43ae8c8c939f3f0823a0daa3be6f4d72
+  version: baa486ab2ac50998e9ded0da9ae6a028da7e52eb
 - name: github.com/mongodb/anser
   version: c65a2d95b0615d79b53ef467c2f836a576972857
 - name: github.com/evergreen-ci/poplar
@@ -72,7 +74,7 @@ imports:
 - name: github.com/evergreen-ci/birch
   version: 3a26bb67719ad6a9e7daed059abd5d018586f3cd
 - name: github.com/evergreen-ci/utility
-  version: 919337de206db45e5cb7192bacfcd95645bba2d5
+  version: 282a6f91af567e4826cecb85349f1cfb379ae183
 
 # grpc and dependencies
 - name: google.golang.org/grpc

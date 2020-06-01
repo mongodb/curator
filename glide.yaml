@@ -15,8 +15,8 @@ import:
   version: ^0.7.0
 - package: github.com/jpillora/backoff
 - package: golang.org/x/net
-- package: github.com/tychoish/lru
-- package: github.com/tychoish/bond
+- package: github.com/evergreen-ci/lru
+- package: github.com/evergreen-ci/bond
 - package: github.com/anmitsu/go-shlex
 - package: github.com/papertrail/go-tail
 - package: github.com/mongodb/jasper

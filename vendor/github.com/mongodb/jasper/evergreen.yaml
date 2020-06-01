@@ -67,6 +67,14 @@ tasks:
     tags: ["test"]
     name: test-remote
 
+  - <<: *run-build
+    tags: ["test"]
+    name: test-buildsystem-generator
+
+  - <<: *run-build
+    tags: ["test"]
+    name: test-buildsystem-model
+
   - name: compile-base
     tags: ["legacy-check"]
     commands:
@@ -101,6 +109,14 @@ tasks:
   - <<: *run-build
     tags: ["report"]
     name: lint-testutil
+
+  - <<: *run-build
+    tags: ["report"]
+    name: lint-buildsystem-generator
+
+  - <<: *run-build
+    tags: ["report"]
+    name: lint-buildsystem-model
 
 task_groups:
   - name: lintGroup

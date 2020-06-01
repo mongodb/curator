@@ -2,7 +2,7 @@ name := jasper
 buildDir := build
 srcFiles := $(shell find . -name "*.go" -not -path "./$(buildDir)/*" -not -name "*_test.go" -not -path "*\#*")
 testFiles := $(shell find . -name "*.go" -not -path "./$(buildDir)/*" -not -path "*\#*")
-packages := $(name) cli remote remote-internal options mock testutil internal-executor buildsystem-generator
+packages := $(name) cli remote remote-internal options mock testutil internal-executor buildsystem-generator buildsystem-model
 lintPackages := $(packages) mock testutil
 testPackages := $(packages) mock
 projectPath := github.com/mongodb/jasper
@@ -146,7 +146,6 @@ clean-results:
 	rm -rf $(buildDir)/output.*
 
 vendor-clean:
-	rm -rf vendor/github.com/evergreen-ci/utility/parsing.go
 	rm -rf vendor/github.com/mongodb/amboy/vendor/github.com/google/uuid/
 	rm -rf vendor/github.com/mongodb/amboy/vendor/gopkg.in/yaml.v2/
 	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/google/uuid/
@@ -182,14 +181,14 @@ vendor-clean:
 	rm -rf vendor/github.com/mongodb/grip/vendor/golang.org/x/sys/
 	rm -rf vendor/github.com/mongodb/grip/vendor/golang.org/x/oauth2/
 	rm -rf vendor/github.com/mongodb/grip/buildscripts/
-	rm -rf vendor/github.com/tychoish/bond/vendor/github.com/mongodb/grip/
-	rm -rf vendor/github.com/tychoish/bond/vendor/github.com/stretchr/testify/
-	rm -rf vendor/github.com/tychoish/bond/vendor/github.com/pkg/errors/
-	rm -rf vendor/github.com/tychoish/bond/vendor/github.com/mholt/archiver/
-	rm -rf vendor/github.com/tychoish/bond/vendor/github.com/mongodb/amboy/
-	rm -rf vendor/github.com/tychoish/bond/vendor/github.com/satori/go.uuid/
-	rm -rf vendor/github.com/tychoish/lru/vendor/github.com/mongodb/grip/
-	rm -rf vendor/github.com/tychoish/lru/vendor/github.com/pkg/errors/
+	rm -rf vendor/github.com/evergreen-ci/bond/vendor/github.com/mongodb/grip/
+	rm -rf vendor/github.com/evergreen-ci/bond/vendor/github.com/stretchr/testify/
+	rm -rf vendor/github.com/evergreen-ci/bond/vendor/github.com/pkg/errors/
+	rm -rf vendor/github.com/evergreen-ci/bond/vendor/github.com/mholt/archiver/
+	rm -rf vendor/github.com/evergreen-ci/bond/vendor/github.com/mongodb/amboy/
+	rm -rf vendor/github.com/evergreen-ci/bond/vendor/github.com/satori/go.uuid/
+	rm -rf vendor/github.com/evergreen-ci/lru/vendor/github.com/mongodb/grip/
+	rm -rf vendor/github.com/evergreen-ci/lru/vendor/github.com/pkg/errors/
 	rm -rf vendor/github.com/evergreen-ci/gimlet/vendor/github.com/pkg/errors/
 	rm -rf vendor/github.com/mholt/archiver/rar.go
 	rm -rf vendor/github.com/mholt/archiver/tarbz2.go

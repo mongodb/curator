@@ -14,6 +14,8 @@ func TestWellformedOperations(t *testing.T) {
 		"s3Copy.copy":           CmdS3Copy{},
 		"s3.get":                CmdS3Get{},
 		"s3.put":                CmdS3Put{CredKey: "foo", CredSecret: "bar", LocalFile: "baz"},
+		"s3.push":               CmdS3Push{},
+		"s3.pull":               CmdS3Pull{},
 		"git.get_project":       CmdGetProject{},
 		"attach.artifacts":      CmdAttachArtifacts{},
 		"attach.results":        CmdResultsJSON{},

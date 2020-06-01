@@ -77,7 +77,7 @@ cache growth.
 Prune
 ~~~~~
 
-Prune is based on the `lru <https://github.com/tychoish/lru>`_
+Prune is based on the `lru <https://github.com/evergreen-ci/lru>`_
 library, and takes a file system tree and removes files, based on age,
 until the total size of the files is less than a specified maximum
 size. Prune uses modified time for age, in an attempt to have

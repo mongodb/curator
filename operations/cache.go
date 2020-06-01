@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/evergreen-ci/lru"
 	"github.com/pkg/errors"
-	"github.com/tychoish/lru"
 	"github.com/urfave/cli"
 )
 

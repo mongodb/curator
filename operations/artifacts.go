@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/evergreen-ci/bond"
+	"github.com/evergreen-ci/bond/recall"
 	"github.com/pkg/errors"
-	"github.com/tychoish/bond"
-	"github.com/tychoish/bond/recall"
 	"github.com/urfave/cli"
 )
 

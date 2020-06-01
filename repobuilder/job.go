@@ -15,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/evergreen-ci/bond"
 	"github.com/evergreen-ci/pail"
 	"github.com/evergreen-ci/utility"
 	"github.com/google/uuid"
@@ -26,7 +27,6 @@ import (
 	"github.com/mongodb/grip"
 	"github.com/mongodb/grip/message"
 	"github.com/pkg/errors"
-	"github.com/tychoish/bond"
 )
 
 type jobImpl interface {

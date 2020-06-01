@@ -19,6 +19,8 @@ func init() {
 		s3PutFactory,
 		s3GetFactory,
 		s3CopyFactory,
+		s3PushFactory,
+		s3PullFactory,
 		getProjectFactory,
 		jsonResultsFactory,
 		xunitResultsFactory,
