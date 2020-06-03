@@ -51,8 +51,8 @@ func (j *rpmRepoBuilder) rebuildRepo(workingDir string) error {
 	} else {
 		// remove olddata before running createrepo or else the command
 		// will fail if it exists.
-		if err = os.RemoveAll(".olddata"); err != nil {
-			return errors.Wrap("problem removing .olddata dir", err)
+		if err = os.RemoveAll(filepath.Join(workingDir, ".olddata")); err != nil {
+			return errors.Wrap(err, "problem removing .olddata dir")
 		}
 
 		grip.Notice(message.Fields{
