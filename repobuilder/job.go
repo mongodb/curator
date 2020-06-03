@@ -235,6 +235,8 @@ func (j *repoBuilderJob) setup() {
 	if j.NotaryKey == "" {
 		j.AddError(errors.New("the notary service auth token (NOTARY_TOKEN) is not defined in the environment"))
 	}
+
+	return errors.Wrap("problem removing .olddata dir", os.RemoveAll(".olddata"))
 }
 
 func (j *repoBuilderJob) cleanup() {
