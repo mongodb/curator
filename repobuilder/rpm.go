@@ -1,6 +1,7 @@
 package repobuilder
 
 import (
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -48,6 +49,12 @@ func (j *rpmRepoBuilder) rebuildRepo(workingDir string) error {
 	if j.Conf.DryRun {
 		output = "no output: dry run"
 	} else {
+		// remove olddata before running createrepo or else the command
+		// will fail if it exists.
+		if err = os.RemoveAll(".olddata"); err != nil {
+			return errors.Wrap("problem removing .olddata dir", err)
+		}
+
 		grip.Notice(message.Fields{
 			"cmd":       strings.Join(cmd.Args, " "),
 			"message":   "building repo with operation",
@@ -56,7 +63,6 @@ func (j *rpmRepoBuilder) rebuildRepo(workingDir string) error {
 		})
 		out, err = cmd.CombinedOutput()
 		output = string(out)
-
 		if err != nil {
 			grip.Error(message.WrapError(err, message.Fields{
 				"cmd":       strings.Join(cmd.Args, " "),
