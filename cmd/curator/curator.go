@@ -3,12 +3,14 @@ package main
 import (
 	"os"
 
+	"github.com/evergreen-ci/timber"
 	"github.com/mongodb/curator"
 	"github.com/mongodb/curator/operations"
 	"github.com/mongodb/grip"
 	"github.com/mongodb/grip/level"
 	"github.com/mongodb/grip/send"
 	jaspercli "github.com/mongodb/jasper/cli"
+	"github.com/mongodb/jasper/options"
 	"github.com/urfave/cli"
 )
 
@@ -79,6 +81,9 @@ func loggingSetup(name, l string) error {
 	sender := grip.GetSender()
 	info := sender.Level()
 	info.Threshold = level.FromString(l)
+
+	lr := options.GetGlobalLoggerRegistry()
+	lr.Register(timber.NewBuildloggerV3LoggerProducer)
 
 	return sender.SetLevel(info)
 }
