@@ -83,7 +83,11 @@ func loggingSetup(name, l string) error {
 	info.Threshold = level.FromString(l)
 
 	lr := options.GetGlobalLoggerRegistry()
-	lr.Register(timber.NewBuildloggerV3LoggerProducer)
+	lr.Register(newBuildloggerV3LoggerProducer)
 
 	return sender.SetLevel(info)
+}
+
+func newBuildloggerV3LoggerProducer() options.LoggerProducer {
+	return timber.NewBuildloggerV3LoggerProducer()
 }
