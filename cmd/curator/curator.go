@@ -82,12 +82,16 @@ func loggingSetup(name, l string) error {
 	info := sender.Level()
 	info.Threshold = level.FromString(l)
 
+	// register the buildlogger V3 logger producer factory into jasper's
+	// dependency injectable logger registry.
 	lr := options.GetGlobalLoggerRegistry()
 	lr.Register(newBuildloggerV3LoggerProducer)
 
 	return sender.SetLevel(info)
 }
 
+// newBuildloggerV3LoggerProducer wraps timber's NewBuildloggerV3LoggerProducer
+// function to implement timber.LoggerProducerFactory.
 func newBuildloggerV3LoggerProducer() options.LoggerProducer {
 	return timber.NewBuildloggerV3LoggerProducer()
 }
