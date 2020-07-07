@@ -43,11 +43,11 @@ func Revendor() cli.Command {
 		Name: "revendor",
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name:  packageFlagName,
+				Name:  joinFlagNames(packageFlagName, "p"),
 				Usage: "the name of the package to upgrade",
 			},
 			cli.StringFlag{
-				Name:  revisionFlagName,
+				Name:  joinFlagNames(revisionFlagName, "r"),
 				Usage: "the updated package revision",
 			},
 			makefileFlag,
