@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/evergreen-ci/timber"
+	"github.com/evergreen-ci/timber/buildlogger"
 	"github.com/mongodb/curator"
 	"github.com/mongodb/curator/operations"
 	"github.com/mongodb/grip"
@@ -93,5 +93,5 @@ func loggingSetup(name, l string) error {
 // newBuildloggerV3LoggerProducer wraps timber's NewBuildloggerV3LoggerProducer
 // function to implement timber.LoggerProducerFactory.
 func newBuildloggerV3LoggerProducer() options.LoggerProducer {
-	return timber.NewBuildloggerV3LoggerProducer()
+	return buildlogger.NewBuildloggerV3LoggerProducer()
 }

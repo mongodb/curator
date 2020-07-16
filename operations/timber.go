@@ -4,7 +4,7 @@ import (
 	"context"
 	"os"
 
-	"github.com/evergreen-ci/timber"
+	"github.com/evergreen-ci/timber/buildlogger"
 	"github.com/mongodb/grip"
 	"github.com/mongodb/grip/send"
 	"github.com/pkg/errors"
@@ -159,11 +159,11 @@ func setupTimber(ctx context.Context, path string, meta bool, data map[string]st
 
 	out.logger = grip.NewJournaler("timber")
 
-	opts, err := timber.LoadLoggerOptions(path)
+	opts, err := buildlogger.LoadLoggerOptions(path)
 	if err != nil {
 		return out, errors.Wrapf(err, "problem loading logger options from %s", path)
 	}
-	sender, err = timber.MakeLoggerWithContext(ctx, "curator", opts)
+	sender, err = buildlogger.MakeLoggerWithContext(ctx, "curator", opts)
 	if err != nil {
 		return out, errors.Wrap(err, "problem creating logger")
 	}
@@ -172,9 +172,9 @@ func setupTimber(ctx context.Context, path string, meta bool, data map[string]st
 	}
 
 	switch opts.Format {
-	case timber.LogFormatJSON:
+	case buildlogger.LogFormatJSON:
 		out.logLine = out.logJSONLine
-	case timber.LogFormatBSON:
+	case buildlogger.LogFormatBSON:
 		out.logLine = out.logBSONLine
 	default:
 		out.logLine = out.logTextLine

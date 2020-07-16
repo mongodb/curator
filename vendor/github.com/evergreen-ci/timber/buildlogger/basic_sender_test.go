@@ -1,4 +1,4 @@
-package timber
+package buildlogger
 
 import (
 	"context"
@@ -172,15 +172,15 @@ func TestLoggerOptionsValidate(t *testing.T) {
 		}
 		assert.Error(t, opts.validate())
 	})
-	t.Run("ClientConnNilAndNoRPCAddress", func(t *testing.T) {
+	t.Run("ClientConnNilAndNoAddressOrPort", func(t *testing.T) {
 		opts := &LoggerOptions{
 			Insecure: true,
 		}
 		assert.Error(t, opts.validate())
 	})
-	t.Run("InsecureFalseAndNoAuthFiles", func(t *testing.T) {
+	t.Run("InsecureFalseAndNoCreds", func(t *testing.T) {
 		opts := &LoggerOptions{
-			RPCAddress: "address",
+			BaseAddress: "cedar.mongodb.com",
 		}
 		assert.Error(t, opts.validate())
 	})
@@ -232,9 +232,10 @@ func TestNewLogger(t *testing.T) {
 		name := "test2"
 		l := send.LevelInfo{Default: level.Trace, Threshold: level.Alert}
 		opts := &LoggerOptions{
-			Local:      &mockSender{Base: send.NewBase("test")},
-			Insecure:   true,
-			RPCAddress: addr,
+			Local:       &mockSender{Base: send.NewBase("test")},
+			Insecure:    true,
+			BaseAddress: "localhost",
+			RPCPort:     "4000",
 		}
 
 		s, err := NewLoggerWithContext(ctx, name, l, opts)

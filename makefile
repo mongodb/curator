@@ -218,6 +218,8 @@ vendor-clean:
 	rm -rf vendor/github.com/evergreen-ci/timber/vendor/google.golang.org/grpc/
 	rm -rf vendor/github.com/evergreen-ci/timber/vendor/github.com/pkg/errors/
 	rm -rf vendor/github.com/evergreen-ci/timber/vendor/gopkg.in/yaml.v2/
+	rm -rf vendor/github.com/evergreen-ci/timber/internal/formats.pb.go
+	rm -rf vendor/github.com/evergreen-ci/timber/internal/system_metrics.pb.go
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/sabhiram/go-git-ignore/
 	rm -rf vendor/github.com/mholt/archiver/tarsz.go
 	rm -rf vendor/github.com/mholt/archiver/rar.go
