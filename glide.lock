@@ -74,7 +74,7 @@ imports:
 - name: github.com/evergreen-ci/birch
   version: 3a26bb67719ad6a9e7daed059abd5d018586f3cd
 - name: github.com/evergreen-ci/utility
-  version: 282a6f91af567e4826cecb85349f1cfb379ae183
+  version: fa4d444872daa04952cc1bbac12c76395248f436
 
 # grpc and dependencies
 - name: google.golang.org/grpc
