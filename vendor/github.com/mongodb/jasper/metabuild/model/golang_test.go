@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/evergreen-ci/utility"
@@ -106,134 +107,71 @@ func TestGolangVariant(t *testing.T) {
 				}
 				assert.Error(t, gv.Validate())
 			},
-		} {
-			t.Run(testName, func(t *testing.T) {
-				gv := GolangVariant{
-					VariantDistro: VariantDistro{
-						Name:    "var_name",
-						Distros: []string{"distro1", "distro2"},
-					},
-					GolangVariantParameters: GolangVariantParameters{
-						Packages: []GolangVariantPackage{
-							{Name: "name"},
-							{Path: "path"},
-							{Tag: "tag"},
-						},
-					},
-				}
-				testCase(t, &gv)
-			})
-		}
-	})
-}
-
-func TestGolangVariantParameters(t *testing.T) {
-	t.Run("Validate", func(t *testing.T) {
-		t.Run("SucceedsWithName", func(t *testing.T) {
-			gvp := GolangVariantParameters{
-				Packages: []GolangVariantPackage{
+			"SucceedsWithPackageName": func(t *testing.T, gv *GolangVariant) {
+				gv.Packages = []GolangVariantPackage{
 					{Name: "name"},
-				},
-			}
-			assert.NoError(t, gvp.Validate())
-		})
-		t.Run("SucceedsWithPath", func(t *testing.T) {
-			gvp := GolangVariantParameters{
-				Packages: []GolangVariantPackage{
+				}
+				assert.NoError(t, gv.Validate())
+			},
+			"SucceedsWithPackagePath": func(t *testing.T, gv *GolangVariant) {
+				gv.Packages = []GolangVariantPackage{
 					{Path: "path"},
-				},
-			}
-			assert.NoError(t, gvp.Validate())
-		})
-		t.Run("SucceedsWithTag", func(t *testing.T) {
-			gvp := GolangVariantParameters{
-				Packages: []GolangVariantPackage{
+				}
+				assert.NoError(t, gv.Validate())
+			},
+			"SucceedsWithPackageTag": func(t *testing.T, gv *GolangVariant) {
+				gv.Packages = []GolangVariantPackage{
 					{Tag: "tag"},
-				},
-			}
-			assert.NoError(t, gvp.Validate())
-		})
-		t.Run("SucceedsWithMultiple", func(t *testing.T) {
-			gvp := GolangVariantParameters{
-				Packages: []GolangVariantPackage{
+				}
+				assert.NoError(t, gv.Validate())
+			},
+			"SucceedsWithMultiplePackageReferences": func(t *testing.T, gv *GolangVariant) {
+				gv.Packages = []GolangVariantPackage{
 					{Name: "name1"},
 					{Name: "name2"},
 					{Path: "path1"},
 					{Path: "path2"},
 					{Tag: "tag1"},
 					{Tag: "tag2"},
-				},
-			}
-			assert.NoError(t, gvp.Validate())
-		})
-		t.Run("FailsWithEmpty", func(t *testing.T) {
-			gvp := GolangVariantParameters{}
-			assert.Error(t, gvp.Validate())
-		})
-		t.Run("FailsWithDuplicateName", func(t *testing.T) {
-			gvp := GolangVariantParameters{
-				Packages: []GolangVariantPackage{
-					{Name: "name"},
-					{Name: "name"},
-				},
-			}
-			assert.Error(t, gvp.Validate())
-		})
-		t.Run("FailsWithDuplicatePath", func(t *testing.T) {
-			gvp := GolangVariantParameters{
-				Packages: []GolangVariantPackage{
-					{Path: "path"},
-					{Path: "path"},
-				},
-			}
-			assert.Error(t, gvp.Validate())
-		})
-		t.Run("FailsWithInvalidOptions", func(t *testing.T) {
-			opts := GolangRuntimeOptions([]string{"-v"})
-			gvp := GolangVariantParameters{
-				Packages: []GolangVariantPackage{
-					{Name: "name"},
-				},
-				Options: &opts,
-			}
-			assert.Error(t, gvp.Validate())
-		})
-	})
-}
-
-func TestNamedGolangVariantParameters(t *testing.T) {
-	t.Run("Validate", func(t *testing.T) {
-		t.Run("Succeeds", func(t *testing.T) {
-			ngvp := NamedGolangVariantParameters{
-				Name: "variant",
-				GolangVariantParameters: GolangVariantParameters{
-					Packages: []GolangVariantPackage{
-						{Name: "package"},
+				}
+				assert.NoError(t, gv.Validate())
+			},
+			"FailsWithEmpty": func(t *testing.T, _ *GolangVariant) {
+				gv := &GolangVariant{}
+				assert.Error(t, gv.Validate())
+			},
+			"FailsWithInvalidFlags": func(t *testing.T, gv *GolangVariant) {
+				gv.Flags = GolangFlags([]string{"-v"})
+				assert.Error(t, gv.Validate())
+			},
+			"FailsWithAbsoluteGOPATH": func(t *testing.T, gv *GolangVariant) {
+				if runtime.GOOS == "windows" {
+					gv.Environment = map[string]string{
+						"GOPATH": util.ConsistentFilepath("C:", "/gopath"),
+					}
+				} else {
+					gv.Environment = map[string]string{
+						"GOPATH": util.ConsistentFilepath("/gopath"),
+					}
+				}
+				assert.Error(t, gv.Validate())
+			},
+		} {
+			t.Run(testName, func(t *testing.T) {
+				gv := GolangVariant{
+					VariantDistro: VariantDistro{
+						Name:    "variant",
+						Distros: []string{"distro1", "distro2"},
 					},
-				},
-			}
-			assert.NoError(t, ngvp.Validate())
-		})
-		t.Run("FailsWithEmpty", func(t *testing.T) {
-			ngvp := NamedGolangVariantParameters{}
-			assert.Error(t, ngvp.Validate())
-		})
-		t.Run("FailsWithoutName", func(t *testing.T) {
-			ngvp := NamedGolangVariantParameters{
-				GolangVariantParameters: GolangVariantParameters{
 					Packages: []GolangVariantPackage{
-						{Name: "package"},
+						{Name: "name"},
+						{Path: "path"},
+						{Tag: "tag"},
 					},
-				},
-			}
-			assert.Error(t, ngvp.Validate())
-		})
-		t.Run("FailsWithInvalidParameters", func(t *testing.T) {
-			ngvp := NamedGolangVariantParameters{
-				Name: "variant",
-			}
-			assert.Error(t, ngvp.Validate())
-		})
+				}
+				testCase(t, &gv)
+			})
+		}
 	})
 }
 
@@ -249,6 +187,7 @@ func TestGolangPackage(t *testing.T) {
 			},
 			"FailsWithDuplicateTags": func(t *testing.T, gp *GolangPackage) {
 				gp.Tags = []string{"tag1", "tag1"}
+				assert.Error(t, gp.Validate())
 			},
 		} {
 			t.Run(testName, func(t *testing.T) {
@@ -445,7 +384,7 @@ func TestGolangValidate(t *testing.T) {
 			assert.Error(t, g.Validate())
 		},
 		"SucceedsWithGOROOTInEnvironment": func(t *testing.T, g *Golang) {
-			goroot := os.Getenv("GOROOT")
+			goroot := util.ConsistentFilepath(os.Getenv("GOROOT"))
 			if goroot == "" {
 				t.Skip("GOROOT is not defined in environment")
 			}
@@ -474,6 +413,15 @@ func TestGolangValidate(t *testing.T) {
 			relGopath, err := filepath.Rel(g.WorkingDirectory, gopath)
 			require.NoError(t, err)
 			assert.Equal(t, util.ConsistentFilepath(relGopath), util.ConsistentFilepath(g.Environment["GOPATH"]))
+		},
+		"FailsIfGOPATHNotWithinWorkingDirectory": func(t *testing.T, g *Golang) {
+			if runtime.GOOS == "windows" {
+				g.Environment["GOPATH"] = util.ConsistentFilepath("C:", "/gopath")
+			} else {
+				g.Environment["GOPATH"] = util.ConsistentFilepath("/gopath")
+			}
+			g.WorkingDirectory = util.ConsistentFilepath("/working", "directory")
+			assert.Error(t, g.Validate())
 		},
 		"FailsWithoutGOPATHEnvVar": func(t *testing.T, g *Golang) {
 			if gopath, ok := os.LookupEnv("GOPATH"); ok {
@@ -525,11 +473,9 @@ func TestGolangValidate(t *testing.T) {
 						Name:    "variant",
 						Distros: []string{"distro"},
 					},
-					GolangVariantParameters: GolangVariantParameters{
-						Packages: []GolangVariantPackage{
-							{Name: "name1"},
-							{Name: "name2"},
-						},
+					Packages: []GolangVariantPackage{
+						{Name: "name1"},
+						{Name: "name2"},
 					},
 				},
 			}
@@ -564,10 +510,8 @@ func TestGolangValidate(t *testing.T) {
 						Name:    "variant",
 						Distros: []string{"distro"},
 					},
-					GolangVariantParameters: GolangVariantParameters{
-						Packages: []GolangVariantPackage{
-							{Path: "path1"},
-						},
+					Packages: []GolangVariantPackage{
+						{Path: "path1"},
 					},
 				},
 				{
@@ -575,10 +519,8 @@ func TestGolangValidate(t *testing.T) {
 						Name:    "variant",
 						Distros: []string{"distro"},
 					},
-					GolangVariantParameters: GolangVariantParameters{
-						Packages: []GolangVariantPackage{
-							{Path: "path1"},
-						},
+					Packages: []GolangVariantPackage{
+						{Path: "path1"},
 					},
 				},
 			}
@@ -594,10 +536,8 @@ func TestGolangValidate(t *testing.T) {
 						Name:    "variant",
 						Distros: []string{"distro"},
 					},
-					GolangVariantParameters: GolangVariantParameters{
-						Packages: []GolangVariantPackage{
-							{Name: "name"},
-						},
+					Packages: []GolangVariantPackage{
+						{Name: "name"},
 					},
 				},
 			}
@@ -610,10 +550,8 @@ func TestGolangValidate(t *testing.T) {
 						Name:    "variant",
 						Distros: []string{"distro"},
 					},
-					GolangVariantParameters: GolangVariantParameters{
-						Packages: []GolangVariantPackage{
-							{Name: "nonexistent"},
-						},
+					Packages: []GolangVariantPackage{
+						{Name: "nonexistent"},
 					},
 				},
 			}
@@ -629,10 +567,8 @@ func TestGolangValidate(t *testing.T) {
 						Name:    "variant",
 						Distros: []string{"distro"},
 					},
-					GolangVariantParameters: GolangVariantParameters{
-						Packages: []GolangVariantPackage{
-							{Path: "path"},
-						},
+					Packages: []GolangVariantPackage{
+						{Path: "path"},
 					},
 				},
 			}
@@ -648,11 +584,27 @@ func TestGolangValidate(t *testing.T) {
 						Name:    "variant",
 						Distros: []string{"distro"},
 					},
-					GolangVariantParameters: GolangVariantParameters{
-						Packages: []GolangVariantPackage{
-							{Path: "path"},
-							{Tag: "tag"},
-						},
+					Packages: []GolangVariantPackage{
+						{Path: "path"},
+						{Tag: "tag"},
+					},
+				},
+			}
+			assert.Error(t, g.Validate())
+		},
+		"FailsWithDuplicateGolangPackageNameReferences": func(t *testing.T, g *Golang) {
+			g.Packages = []GolangPackage{
+				{Name: "name", Path: "path"},
+			}
+			g.Variants = []GolangVariant{
+				{
+					VariantDistro: VariantDistro{
+						Name:    "variant",
+						Distros: []string{"distro"},
+					},
+					Packages: []GolangVariantPackage{
+						{Name: "name"},
+						{Name: "name"},
 					},
 				},
 			}
@@ -665,10 +617,8 @@ func TestGolangValidate(t *testing.T) {
 						Name:    "variant",
 						Distros: []string{"distro"},
 					},
-					GolangVariantParameters: GolangVariantParameters{
-						Packages: []GolangVariantPackage{
-							{Path: "nonexistent"},
-						},
+					Packages: []GolangVariantPackage{
+						{Path: "nonexistent"},
 					},
 				},
 			}
@@ -684,10 +634,8 @@ func TestGolangValidate(t *testing.T) {
 						Name:    "variant",
 						Distros: []string{"distro"},
 					},
-					GolangVariantParameters: GolangVariantParameters{
-						Packages: []GolangVariantPackage{
-							{Tag: "tag"},
-						},
+					Packages: []GolangVariantPackage{
+						{Tag: "tag"},
 					},
 				},
 			}
@@ -700,10 +648,8 @@ func TestGolangValidate(t *testing.T) {
 						Name:    "variant",
 						Distros: []string{"distro"},
 					},
-					GolangVariantParameters: GolangVariantParameters{
-						Packages: []GolangVariantPackage{
-							{Tag: "nonexistent"},
-						},
+					Packages: []GolangVariantPackage{
+						{Tag: "nonexistent"},
 					},
 				},
 			}
@@ -712,10 +658,14 @@ func TestGolangValidate(t *testing.T) {
 	} {
 		t.Run(testName, func(t *testing.T) {
 			g := Golang{
-				RootPackage: "root_package",
-				Environment: map[string]string{
-					"GOPATH": "gopath",
-					"GOROOT": "goroot",
+				GolangGeneralConfig: GolangGeneralConfig{
+					GeneralConfig: GeneralConfig{
+						Environment: map[string]string{
+							"GOPATH": "gopath",
+							"GOROOT": "goroot",
+						},
+					},
+					RootPackage: "root_package",
 				},
 				Packages: []GolangPackage{
 					{Path: "path1"},
@@ -727,10 +677,8 @@ func TestGolangValidate(t *testing.T) {
 							Name:    "variant",
 							Distros: []string{"distro"},
 						},
-						GolangVariantParameters: GolangVariantParameters{
-							Packages: []GolangVariantPackage{
-								{Path: "path1"},
-							},
+						Packages: []GolangVariantPackage{
+							{Path: "path1"},
 						},
 					},
 				},
@@ -742,15 +690,24 @@ func TestGolangValidate(t *testing.T) {
 
 func TestDiscoverPackages(t *testing.T) {
 	for testName, testCase := range map[string]func(t *testing.T, g *Golang, rootPath string){
+		"FailsIfEnvVarsMissing": func(t *testing.T, g *Golang, rootPath string) {
+			g.Environment = map[string]string{}
+			assert.Error(t, g.DiscoverPackages())
+		},
+		"FailsIfGOPATHIsOutsideWorkingDirectory": func(t *testing.T, g *Golang, rootPath string) {
+			g.Environment["GOPATH"] = util.ConsistentFilepath("/gopath")
+			g.WorkingDirectory = util.ConsistentFilepath("/working", "directory")
+			assert.Error(t, g.DiscoverPackages())
+		},
 		"FailsIfPackageNotFound": func(t *testing.T, g *Golang, rootPath string) {
 			g.RootPackage = "foo"
 			assert.Error(t, g.DiscoverPackages())
 		},
-		"DoesNotDiscoverPackageWithoutTestFiles": func(t *testing.T, g *Golang, rootPath string) {
+		"DoesNotDiscoverPackageWithoutFiles": func(t *testing.T, g *Golang, rootPath string) {
 			assert.NoError(t, g.DiscoverPackages())
 			assert.Empty(t, g.Packages)
 		},
-		"DiscoversPackageIfTestFilesPresent": func(t *testing.T, g *Golang, rootPath string) {
+		"FindsIfTestFilesPresent": func(t *testing.T, g *Golang, rootPath string) {
 			f, err := os.Create(filepath.Join(rootPath, "fake_test.go"))
 			require.NoError(t, err)
 			require.NoError(t, f.Close())
@@ -760,6 +717,29 @@ func TestDiscoverPackages(t *testing.T) {
 			assert.Equal(t, ".", g.Packages[0].Path)
 			assert.Empty(t, g.Packages[0].Name)
 			assert.Empty(t, g.Packages[0].Tags)
+		},
+		"DoesNotFindWithOnlySourceFiles": func(t *testing.T, g *Golang, rootPath string) {
+			f, err := os.Create(filepath.Join(rootPath, "fake.go"))
+			require.NoError(t, err)
+			require.NoError(t, f.Close())
+			assert.NoError(t, g.DiscoverPackages())
+			assert.Empty(t, g.Packages)
+		},
+		"FindsWithSourceFileDiscoveryIfSourcesFilesPresent": func(t *testing.T, g *Golang, rootPath string) {
+			f, err := os.Create(filepath.Join(rootPath, "fake.go"))
+			require.NoError(t, err)
+			require.NoError(t, f.Close())
+			g.DiscoverSourceFiles = true
+			assert.NoError(t, g.DiscoverPackages())
+			require.Len(t, g.Packages, 1)
+			assert.Equal(t, ".", g.Packages[0].Path)
+			assert.Empty(t, g.Packages[0].Name)
+			assert.Empty(t, g.Packages[0].Tags)
+		},
+		"DoesNotFindWithSourceFileDiscoveryWithoutFiles": func(t *testing.T, g *Golang, rootPath string) {
+			g.DiscoverSourceFiles = true
+			assert.NoError(t, g.DiscoverPackages())
+			assert.Empty(t, g.Packages)
 		},
 		"DoesNotModifyPackageDefinitionIfAlreadyDefined": func(t *testing.T, g *Golang, rootPath string) {
 			gp := GolangPackage{
@@ -788,6 +768,16 @@ func TestDiscoverPackages(t *testing.T) {
 			assert.NoError(t, g.DiscoverPackages())
 			assert.Empty(t, g.Packages)
 		},
+		"IgnoresTestDataDirectory": func(t *testing.T, g *Golang, rootPath string) {
+			testDataDir := filepath.Join(rootPath, golangTestDataDir)
+			require.NoError(t, os.Mkdir(testDataDir, 0777))
+			f, err := os.Create(filepath.Join(testDataDir, "fake_test.go"))
+			require.NoError(t, err)
+			require.NoError(t, f.Close())
+
+			assert.NoError(t, g.DiscoverPackages())
+			assert.Empty(t, g.Packages)
+		},
 	} {
 		t.Run(testName, func(t *testing.T) {
 			rootPackage := util.ConsistentFilepath("github.com", "fake_user", "fake_repo")
@@ -800,22 +790,26 @@ func TestDiscoverPackages(t *testing.T) {
 			require.NoError(t, os.MkdirAll(rootPath, 0777))
 
 			g := Golang{
-				Environment: map[string]string{
-					"GOPATH": gopath,
-					"GOROOT": "some_goroot",
+				GolangGeneralConfig: GolangGeneralConfig{
+					GeneralConfig: GeneralConfig{
+						Environment: map[string]string{
+							"GOPATH": gopath,
+							"GOROOT": "some_goroot",
+						},
+						WorkingDirectory: util.ConsistentFilepath(filepath.Dir(gopath)),
+					},
+					RootPackage: rootPackage,
 				},
-				RootPackage:      rootPackage,
-				WorkingDirectory: util.ConsistentFilepath(filepath.Dir(gopath)),
 			}
 			testCase(t, &g, rootPath)
 		})
 	}
 }
 
-func TestGolangRuntimeOptions(t *testing.T) {
+func TestGolangFlags(t *testing.T) {
 	t.Run("Validate", func(t *testing.T) {
 		for testName, testCase := range map[string]struct {
-			opts        GolangRuntimeOptions
+			opts        GolangFlags
 			expectError bool
 		}{
 			"SucceedsWithAllUniqueFlags": {
@@ -846,53 +840,53 @@ func TestGolangRuntimeOptions(t *testing.T) {
 	})
 	t.Run("Merge", func(t *testing.T) {
 		for testName, testCase := range map[string]struct {
-			opts      GolangRuntimeOptions
-			overwrite GolangRuntimeOptions
-			expected  GolangRuntimeOptions
+			flags     GolangFlags
+			overwrite GolangFlags
+			expected  GolangFlags
 		}{
 			"AllUniqueFlagsAreAppended": {
-				opts:      []string{"-cover", "-race=true"},
+				flags:     []string{"-cover", "-race=true"},
 				overwrite: []string{"-coverprofile", "-outputdir=./dir"},
 				expected:  []string{"-cover", "-race=true", "-coverprofile", "-outputdir=./dir"},
 			},
 			"DuplicateFlagsAreCombined": {
-				opts:      []string{"-cover"},
+				flags:     []string{"-cover"},
 				overwrite: []string{"-cover"},
 				expected:  []string{"-cover"},
 			},
 			"TestFlagsAreCheckedAgainstEquivalentFlags": {
-				opts:      []string{"-test.race"},
+				flags:     []string{"-test.race"},
 				overwrite: []string{"-race"},
 				expected:  []string{"-race"},
 			},
 			"ConflictingTestFlagsAreOverwritten": {
-				opts:      []string{"-test.race=true"},
+				flags:     []string{"-test.race=true"},
 				overwrite: []string{"-test.race=false"},
 				expected:  []string{"-test.race=false"},
 			},
 			"UniqueFlagsAreAppendedAndDuplicateFlagsAreCombined": {
-				opts:      []string{"-cover"},
+				flags:     []string{"-cover"},
 				overwrite: []string{"-cover", "-coverprofile"},
 				expected:  []string{"-cover", "-coverprofile"},
 			},
 			"ConflictingFlagValuesAreOverwritten": {
-				opts:      []string{"-race=false"},
+				flags:     []string{"-race=false"},
 				overwrite: []string{"-race=true"},
 				expected:  []string{"-race=true"},
 			},
 			"UniqueFlagsAreAppendedAndConflictingFlagsAreOverwritten": {
-				opts:      []string{"-cover", "-race=false"},
+				flags:     []string{"-cover", "-race=false"},
 				overwrite: []string{"-race=true"},
 				expected:  []string{"-cover", "-race=true"},
 			},
 			"DuplicateFlagsAreCombinedAndConflictingFlagsAreOverwritten": {
-				opts:      []string{"-cover", "-race=false"},
+				flags:     []string{"-cover", "-race=false"},
 				overwrite: []string{"-cover", "-race=true"},
 				expected:  []string{"-cover", "-race=true"},
 			},
 		} {
 			t.Run(testName, func(t *testing.T) {
-				merged := testCase.opts.Merge(testCase.overwrite)
+				merged := testCase.flags.Merge(testCase.overwrite)
 				assert.Len(t, merged, len(testCase.expected))
 				for _, flag := range merged {
 					assert.True(t, utility.StringSliceContains(testCase.expected, flag))
@@ -921,7 +915,7 @@ func TestGolangMergePackages(t *testing.T) {
 				Path: "path2",
 				Tags: []string{"tag1"},
 			}
-			_ = g.MergePackages(gp)
+			g.MergePackages(gp)
 			require.Len(t, g.Packages, 2)
 			assert.Equal(t, gp, g.Packages[0])
 			assert.Equal(t, gps[1], g.Packages[1])
@@ -931,7 +925,7 @@ func TestGolangMergePackages(t *testing.T) {
 				Path: "path1",
 				Tags: []string{"tag1"},
 			}
-			_ = g.MergePackages(gp)
+			g.MergePackages(gp)
 			require.Len(t, g.Packages, 2)
 			assert.Equal(t, gps[0], g.Packages[0])
 			assert.Equal(t, gp, g.Packages[1])
@@ -942,18 +936,17 @@ func TestGolangMergePackages(t *testing.T) {
 				Path: "path1",
 				Tags: []string{"tag1"},
 			}
-			_ = g.MergePackages(gp)
+			g.MergePackages(gp)
 			require.Len(t, g.Packages, 3)
 			assert.Equal(t, gps[0:2], g.Packages[0:2])
 			assert.Equal(t, gp, g.Packages[2])
 		},
 		"AddsNewUnnamedPackage": func(t *testing.T, g *Golang) {
 			gp := GolangPackage{
-				Name: "package2",
 				Path: "path2",
 				Tags: []string{"tag1"},
 			}
-			_ = g.MergePackages(gp)
+			g.MergePackages(gp)
 			require.Len(t, g.Packages, 3)
 			assert.Equal(t, gps[0:2], g.Packages[0:2])
 			assert.Equal(t, gp, g.Packages[2])
@@ -968,12 +961,15 @@ func TestGolangMergePackages(t *testing.T) {
 	}
 }
 
-func TestGolangMergeVariantDistros(t *testing.T) {
+func TestGolangMergeVariants(t *testing.T) {
 	gvs := []GolangVariant{
 		{
 			VariantDistro: VariantDistro{
 				Name:    "variant1",
 				Distros: []string{"distro1"},
+			},
+			Packages: []GolangVariantPackage{
+				{Name: "package1"},
 			},
 		},
 		{
@@ -986,87 +982,34 @@ func TestGolangMergeVariantDistros(t *testing.T) {
 
 	for testName, testCase := range map[string]func(t *testing.T, g *Golang){
 		"OverwritesExistingWithMatchingName": func(t *testing.T, g *Golang) {
-			vd := VariantDistro{
-				Name:    "variant1",
-				Distros: []string{"distro3"},
-			}
-			_ = g.MergeVariantDistros(vd)
-			require.Len(t, g.Variants, 2)
-			assert.Equal(t, vd, g.Variants[0].VariantDistro)
-			assert.Equal(t, gvs[1], g.Variants[1])
-		},
-		"AddsNewVariant": func(t *testing.T, g *Golang) {
-			vd := VariantDistro{
-				Name:    "variant3",
-				Distros: []string{"distro3"},
-			}
-			_ = g.MergeVariantDistros(vd)
-			require.Len(t, g.Variants, 3)
-			assert.Equal(t, gvs[0:2], g.Variants[0:2])
-			assert.Equal(t, vd, g.Variants[2].VariantDistro)
-		},
-	} {
-		t.Run(testName, func(t *testing.T) {
-			g := Golang{
-				Variants: gvs,
-			}
-			testCase(t, &g)
-		})
-	}
-}
-
-func TestGolangMergeVariantParameters(t *testing.T) {
-	gvs := []GolangVariant{
-		{
-			VariantDistro: VariantDistro{
-				Name: "variant1",
-			},
-			GolangVariantParameters: GolangVariantParameters{
-				Packages: []GolangVariantPackage{
-					{Name: "package1"},
+			gv := GolangVariant{
+				VariantDistro: VariantDistro{
+					Name:    "variant1",
+					Distros: []string{"distro3"},
 				},
-			},
-		},
-		{
-			VariantDistro: VariantDistro{
-				Name: "variant2",
-			},
-			GolangVariantParameters: GolangVariantParameters{
 				Packages: []GolangVariantPackage{
 					{Name: "package2"},
 				},
-			},
-		},
-	}
-
-	for testName, testCase := range map[string]func(t *testing.T, g *Golang){
-		"OverwritesExistingWithMatchingName": func(t *testing.T, g *Golang) {
-			ngvp := NamedGolangVariantParameters{
-				Name: "variant1",
-				GolangVariantParameters: GolangVariantParameters{
-					Packages: []GolangVariantPackage{
-						{Name: "package3"},
-					},
-				},
 			}
-			_ = g.MergeVariantParameters(ngvp)
+			g.MergeVariants(gv)
 			require.Len(t, g.Variants, 2)
-			assert.Equal(t, ngvp.GolangVariantParameters, g.Variants[0].GolangVariantParameters)
+			assert.Equal(t, gv, g.Variants[0])
 			assert.Equal(t, gvs[1], g.Variants[1])
 		},
 		"AddsNewVariant": func(t *testing.T, g *Golang) {
-			ngvp := NamedGolangVariantParameters{
-				Name: "variant3",
-				GolangVariantParameters: GolangVariantParameters{
-					Packages: []GolangVariantPackage{
-						{Name: "package3"},
-					},
+			gv := GolangVariant{
+				VariantDistro: VariantDistro{
+					Name:    "variant3",
+					Distros: []string{"distro3"},
+				},
+				Packages: []GolangVariantPackage{
+					{Name: "distro3"},
 				},
 			}
-			_ = g.MergeVariantParameters(ngvp)
+			g.MergeVariants(gv)
 			require.Len(t, g.Variants, 3)
 			assert.Equal(t, gvs[0:2], g.Variants[0:2])
-			assert.Equal(t, ngvp.GolangVariantParameters, g.Variants[2].GolangVariantParameters)
+			assert.Equal(t, gv, g.Variants[2])
 		},
 	} {
 		t.Run(testName, func(t *testing.T) {
@@ -1074,66 +1017,6 @@ func TestGolangMergeVariantParameters(t *testing.T) {
 				Variants: gvs,
 			}
 			testCase(t, &g)
-		})
-	}
-}
-
-func TestGolangMergeEnvironments(t *testing.T) {
-	env := map[string]string{
-		"key1": "val1",
-		"key2": "val2",
-	}
-	for testName, testCase := range map[string]func(t *testing.T, g *Golang){
-		"OverwritesExistingWithMatchingName": func(t *testing.T, g *Golang) {
-			newEnv := map[string]string{
-				"key1": "val3",
-			}
-			_ = g.MergeEnvironments(newEnv)
-			assert.Len(t, g.Environment, 2)
-			assert.Equal(t, newEnv["key1"], g.Environment["key1"])
-			assert.Equal(t, env["key2"], g.Environment["key2"])
-		},
-		"AddsNewEnvVars": func(t *testing.T, g *Golang) {
-			newEnv := map[string]string{
-				"key3": "val3",
-			}
-			_ = g.MergeEnvironments(newEnv)
-			assert.Len(t, g.Environment, 3)
-			assert.Equal(t, env["key1"], g.Environment["key1"])
-			assert.Equal(t, env["key2"], g.Environment["key2"])
-			assert.Equal(t, newEnv["key3"], g.Environment["key3"])
-		},
-	} {
-		t.Run(testName, func(t *testing.T) {
-			g := Golang{
-				Environment: env,
-			}
-			testCase(t, &g)
-		})
-	}
-}
-
-func TestGolangMergeDefaultTags(t *testing.T) {
-	defaultTags := []string{"tag"}
-	for testName, testCase := range map[string]func(t *testing.T, m *Golang){
-		"AddsNewTags": func(t *testing.T, m *Golang) {
-			_ = m.MergeDefaultTags("newTag1", "newTag2")
-			assert.Len(t, m.DefaultTags, len(defaultTags)+2)
-			assert.Subset(t, m.DefaultTags, defaultTags)
-			assert.Contains(t, m.DefaultTags, "newTag1")
-			assert.Contains(t, m.DefaultTags, "newTag2")
-		},
-		"IgnoresDuplicateTags": func(t *testing.T, m *Golang) {
-			_ = m.MergeDefaultTags("tag")
-			assert.Len(t, m.DefaultTags, len(defaultTags))
-			assert.Subset(t, m.DefaultTags, defaultTags)
-		},
-	} {
-		t.Run(testName, func(t *testing.T) {
-			m := Golang{
-				DefaultTags: defaultTags,
-			}
-			testCase(t, &m)
 		})
 	}
 }
@@ -1183,9 +1066,22 @@ func TestGolangApplyDefaultTags(t *testing.T) {
 	} {
 		t.Run(testName, func(t *testing.T) {
 			m := Golang{
-				DefaultTags: defaultTags,
+				GolangGeneralConfig: GolangGeneralConfig{
+					GeneralConfig: GeneralConfig{
+						DefaultTags: defaultTags,
+					},
+				},
 			}
 			testCase(t, &m)
 		})
 	}
+}
+
+func TestGolangRelProjectPath(t *testing.T) {
+	g := Golang{
+		GolangGeneralConfig: GolangGeneralConfig{
+			RootPackage: util.ConsistentFilepath("github.com", "fake_user", "fake_repo"),
+		},
+	}
+	assert.Equal(t, util.ConsistentFilepath("gopath", "src", "github.com", "fake_user", "fake_repo"), g.RelProjectPath("gopath"))
 }

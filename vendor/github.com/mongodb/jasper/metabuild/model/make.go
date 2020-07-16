@@ -8,26 +8,30 @@ import (
 
 // Make represents the configuration for Make-based projects.
 type Make struct {
+	// GeneralConfig defines general top-level configuration for Make.
+	// Environment defines global environment variables. Definitions can be
+	// overridden at the task or variant level.
+	// DefaultTags are applied to all defined tasks unless explicitly excluded.
+	// WorkingDirectory determines the directory where the project will be
+	// cloned.
+	GeneralConfig   `yaml:",inline"`
 	TargetSequences []MakeTargetSequence `yaml:"sequences,omitempty"`
 	Tasks           []MakeTask           `yaml:"tasks,omitempty"`
 	Variants        []MakeVariant        `yaml:"variants"`
-	DefaultTags     []string             `yaml:"default_tags,omitempty"`
-	// Environment defines global environment variables. Definitions can be
-	// overridden at the task or variant level.
-	Environment map[string]string `yaml:"environment,omitempty"`
-
-	WorkingDirectory string `yaml:"-"`
 }
 
 // NewMake creates a new evergreen config generator for Make from a single file
 // that contains all the necessary generation information.
 func NewMake(file, workingDir string) (*Make, error) {
-	m := Make{
-		WorkingDirectory: workingDir,
-	}
-	if err := utility.ReadYAMLFileStrict(file, &m); err != nil {
+	mv := struct {
+		Make      `yaml:",inline"`
+		Variables interface{} `yaml:"variables,omitempty"`
+	}{}
+	if err := utility.ReadYAMLFileStrict(file, &mv); err != nil {
 		return nil, errors.Wrap(err, "unmarshalling from YAML file")
 	}
+	m := mv.Make
+	m.WorkingDirectory = workingDir
 
 	m.ApplyDefaultTags()
 
@@ -53,7 +57,7 @@ func (m *Make) ApplyDefaultTags() {
 // MergeTargetSequences merges target sequence definitions with the existing
 // ones by sequence name. For a given sequence name, existing targets are
 // overwritten if they are already defined.
-func (m *Make) MergeTargetSequences(mtss ...MakeTargetSequence) *Make {
+func (m *Make) MergeTargetSequences(mtss ...MakeTargetSequence) {
 	for _, mts := range mtss {
 		if _, i, err := m.GetTargetSequenceIndexByName(mts.Name); err == nil {
 			m.TargetSequences[i] = mts
@@ -61,12 +65,11 @@ func (m *Make) MergeTargetSequences(mtss ...MakeTargetSequence) *Make {
 			m.TargetSequences = append(m.TargetSequences, mts)
 		}
 	}
-	return m
 }
 
 // MergeTasks merges task definitions with the existing ones by task name. For a
 // given task name, existing tasks are overwritten if they are already defined.
-func (m *Make) MergeTasks(mts ...MakeTask) *Make {
+func (m *Make) MergeTasks(mts ...MakeTask) {
 	for _, mt := range mts {
 		if _, i, err := m.GetTaskIndexByName(mt.Name); err == nil {
 			m.Tasks[i] = mt
@@ -74,42 +77,19 @@ func (m *Make) MergeTasks(mts ...MakeTask) *Make {
 			m.Tasks = append(m.Tasks, mt)
 		}
 	}
-	return m
 }
 
-// MergeVariantDistros merges variant-distro mappings with the existing ones by
-// variant name. For a given variant name, existing variant-distro mappings are
-// overwritten if they are already defined.
-func (m *Make) MergeVariantDistros(vds ...VariantDistro) *Make {
-	for _, vd := range vds {
-		if mv, i, err := m.GetVariantIndexByName(vd.Name); err == nil {
-			mv.VariantDistro = vd
-			m.Variants[i] = *mv
+// MergeVariants merges variants with the existing ones by name. For a
+// givenvariant name, existing variants are overwritten if they are already
+// defined.
+func (m *Make) MergeVariants(mvs ...MakeVariant) {
+	for _, mv := range mvs {
+		if _, i, err := m.GetVariantIndexByName(mv.Name); err == nil {
+			m.Variants[i] = mv
 		} else {
-			m.Variants = append(m.Variants, MakeVariant{
-				VariantDistro: vd,
-			})
+			m.Variants = append(m.Variants, mv)
 		}
 	}
-	return m
-}
-
-// MergeVariantParameters merges variant parameters with the existing ones by
-// name. For a given variant name, existing variant options are overwritten if
-// they are already defined.
-func (m *Make) MergeVariantParameters(nmvps ...NamedMakeVariantParameters) *Make {
-	for _, nmvp := range nmvps {
-		if mv, i, err := m.GetVariantIndexByName(nmvp.Name); err == nil {
-			mv.MakeVariantParameters = nmvp.MakeVariantParameters
-			m.Variants[i] = *mv
-		} else {
-			m.Variants = append(m.Variants, MakeVariant{
-				VariantDistro:         VariantDistro{Name: nmvp.Name},
-				MakeVariantParameters: nmvp.MakeVariantParameters,
-			})
-		}
-	}
-	return m
 }
 
 // MergeEnvironments merges the given environments with the existing environment
@@ -134,9 +114,10 @@ func (m *Make) MergeDefaultTags(tags ...string) *Make {
 // Validate checks that the entire Make build configuration is valid.
 func (m *Make) Validate() error {
 	catcher := grip.NewBasicCatcher()
-	catcher.Wrap(m.validateTargetSequences(), "invalid target sequence definitions")
-	catcher.Wrap(m.validateTasks(), "invalid task definitions")
-	catcher.Wrap(m.validateVariants(), "invalid variant definitions")
+	catcher.Wrap(m.GeneralConfig.Validate(), "invalid general config")
+	catcher.Wrap(m.validateTargetSequences(), "invalid target sequence definition(s)")
+	catcher.Wrap(m.validateTasks(), "invalid task definition(s)")
+	catcher.Wrap(m.validateVariants(), "invalid variant definition(s)")
 	return catcher.Resolve()
 }
 
@@ -191,7 +172,7 @@ func (m *Make) validateVariants() error {
 	catcher.NewWhen(len(m.Variants) == 0, "must have at least one variant")
 	varNames := map[string]struct{}{}
 	for _, mv := range m.Variants {
-		catcher.Wrapf(mv.Validate(), "invalid definitions for variant '%s'", mv.Name)
+		catcher.Wrapf(mv.Validate(), "invalid definition for variant '%s'", mv.Name)
 
 		if _, ok := varNames[mv.Name]; ok {
 			catcher.Errorf("cannot have duplicate variant name '%s'", mv.Name)
@@ -216,8 +197,8 @@ func (m *Make) validateVariants() error {
 	return catcher.Resolve()
 }
 
-// GetTargets returns the resolved targets from the reference specified in the
-// given MakeTaskTarget.
+// GetTargetsFromRef returns the resolved targets from the reference specified
+// in the given MakeTaskTarget.
 func (m *Make) GetTargetsFromRef(mtt MakeTaskTarget) ([]string, error) {
 	if mtt.Name != "" {
 		return []string{mtt.Name}, nil
@@ -243,7 +224,7 @@ func (m *Make) GetTargetSequenceIndexByName(name string) (mts *MakeTargetSequenc
 	return nil, -1, errors.Errorf("target sequence with name '%s' not found", name)
 }
 
-// GetTasks returns the tasks that match the reference specified in the
+// GetTasksFromRef returns the tasks that match the reference specified in the
 // given MakeVariantTask.
 func (m *Make) GetTasksFromRef(mvt MakeVariantTask) ([]MakeTask, error) {
 	if mvt.Tag != "" {
@@ -304,6 +285,7 @@ type MakeTargetSequence struct {
 	Targets []string `yaml:"targets"`
 }
 
+// Validate checks that it has a name and targets.
 func (mts *MakeTargetSequence) Validate() error {
 	catcher := grip.NewBasicCatcher()
 	catcher.NewWhen(mts.Name == "", "missing target sequence name")
@@ -325,33 +307,38 @@ type MakeTask struct {
 	// Environment defines task-specific environment variables. This has higher
 	// precedence than global environment variables but lower precedence than
 	// variant-specific environment variables.
-	Environment map[string]string `yaml:"environment,omitempty"`
-	// Options are task-specific options that modify runtime execution. If
-	// options are specified at the target level, these options will be appended.
-	Options MakeRuntimeOptions `yaml:"options,omitempty"`
+	Environment map[string]string `yaml:"env,omitempty"`
+	// Flags are task-specific flags that modify runtime execution. If
+	// flags are specified at the target level, these flags will be appended.
+	Flags MakeFlags `yaml:"flags,omitempty"`
+	// Report describe how test results are reported after the task is
+	// complete.
+	Reports []FileReport `yaml:"reports,omitempty"`
 }
 
-// MakeTarget represents a reference to a single Make target or a sequence of
-// targets.
+// MakeTaskTarget represents a reference to a single Make target or a sequence
+// of targets.
 type MakeTaskTarget struct {
 	// Name is the name of target to run.
 	Name string `yaml:"name"`
 	// Sequences is a reference to a defined target sequence.
 	Sequence string `yaml:"sequence"`
-	// Options are target-specific options that modify runtime execution.
-	Options MakeRuntimeOptions `yaml:"options,omitempty"`
+	// Flags are target-specific flags that modify runtime execution.
+	Flags MakeFlags `yaml:"flags,omitempty"`
+	// Reports describe how output files are reported after running the target.
+	Reports []FileReport `yaml:"reports,omitempty"`
 }
 
 // Validate checks that exactly one kind of reference is specified in a target
 // reference for a task.
 func (mtt *MakeTaskTarget) Validate() error {
-	if mtt.Name == "" && mtt.Sequence == "" {
-		return errors.New("must specify either a target name or sequence")
+	catcher := grip.NewBasicCatcher()
+	catcher.NewWhen(mtt.Name == "" && mtt.Sequence == "", "must specify either a target name or sequence")
+	catcher.NewWhen(mtt.Name != "" && mtt.Sequence != "", "cannot specify both a target name and sequence")
+	for _, fr := range mtt.Reports {
+		catcher.Wrap(fr.Validate(), "invalid file report specification")
 	}
-	if mtt.Name != "" && mtt.Sequence != "" {
-		return errors.New("cannot specify both a target name and sequence")
-	}
-	return nil
+	return catcher.Resolve()
 }
 
 // Validate checks that targets are valid and all tags are unique.
@@ -369,31 +356,37 @@ func (mt *MakeTask) Validate() error {
 		}
 		tags[tag] = struct{}{}
 	}
+	for _, fr := range mt.Reports {
+		catcher.Wrap(fr.Validate(), "invalid file report specification")
+	}
 	return catcher.Resolve()
 }
 
-// MakeRuntimeOptions specify additional optional to the make binary to modify
-// the behavior of runtime execution.
-type MakeRuntimeOptions []string
+// MakeFlags specify additional flags to the make binary to modify the behavior
+// of runtime execution.
+type MakeFlags []string
 
-// Merge appends the new runtime options to the existing ones. Duplicates and
+// Merge appends the new runtime flags to the existing ones. Duplicates and
 // conflicting flags are appended.
-func (mro MakeRuntimeOptions) Merge(toAdd ...MakeRuntimeOptions) MakeRuntimeOptions {
-	merged := mro
-	for _, opts := range toAdd {
-		merged = append(merged, opts...)
+func (mf MakeFlags) Merge(toAdd ...MakeFlags) MakeFlags {
+	merged := mf
+	for _, flags := range toAdd {
+		merged = append(merged, flags...)
 	}
 	return merged
 }
 
 // MakeVariant defines a variant that runs Make tasks.
 type MakeVariant struct {
-	VariantDistro         `yaml:",inline"`
-	MakeVariantParameters `yaml:",inline"`
-	// Options are variant-specific options that modify runtime execution. If
-	// options are specified at the task or target level, these options will be
+	VariantDistro `yaml:",inline"`
+	Tasks         []MakeVariantTask `yaml:"tasks"`
+	// Environment defines variant-specific environment variables. This has
+	// higher precedence than global or task-specific environment variables.
+	Environment map[string]string `yaml:"env,omitempty"`
+	// Flags are variant-specific flags that modify runtime execution. If
+	// flags are specified at the task or target level, these flags will be
 	// appended.
-	Options MakeRuntimeOptions `yaml:"options,omitempty"`
+	Flags MakeFlags `yaml:"flags,omitempty"`
 }
 
 // Validate checks that the variant-distro mapping and the Make-specific
@@ -401,26 +394,18 @@ type MakeVariant struct {
 func (mv *MakeVariant) Validate() error {
 	catcher := grip.NewBasicCatcher()
 	catcher.Add(mv.VariantDistro.Validate())
-	catcher.Add(mv.MakeVariantParameters.Validate())
+	catcher.Add(mv.validateTasks())
 	return catcher.Resolve()
 }
 
-// MakeVariantParameters describes Make-specific variant configuration.
-type MakeVariantParameters struct {
-	Tasks []MakeVariantTask `yaml:"tasks"`
-	// Environment defines variant-specific environment variables. This has
-	// higher precedence than global or task-specific environment variables.
-	Environment map[string]string `yaml:"environment,omitempty"`
-}
-
-// Validate checks that task references are specified and each reference is
+// validateTasks checks that task references are specified and each reference is
 // valid.
-func (mvp *MakeVariantParameters) Validate() error {
+func (mv *MakeVariant) validateTasks() error {
 	catcher := grip.NewBasicCatcher()
-	catcher.NewWhen(len(mvp.Tasks) == 0, "must specify at least one task")
+	catcher.NewWhen(len(mv.Tasks) == 0, "must specify at least one task")
 	taskNames := map[string]struct{}{}
 	taskTags := map[string]struct{}{}
-	for _, mvt := range mvp.Tasks {
+	for _, mvt := range mv.Tasks {
 		catcher.Wrap(mvt.Validate(), "invalid task reference")
 		if mvt.Name != "" {
 			if _, ok := taskNames[mvt.Name]; ok {
@@ -435,22 +420,6 @@ func (mvp *MakeVariantParameters) Validate() error {
 			taskTags[mvt.Tag] = struct{}{}
 		}
 	}
-	return catcher.Resolve()
-}
-
-// NamedMakeVariantParameters describes Make-specific variant configuration
-// associated with a particular variant name.
-type NamedMakeVariantParameters struct {
-	// Name is the variant name.
-	Name                  string `yaml:"name"`
-	MakeVariantParameters `yaml:",inline"`
-}
-
-// Validate checks that there is a variant name and valid parameters.
-func (nmvp *NamedMakeVariantParameters) Validate() error {
-	catcher := grip.NewBasicCatcher()
-	catcher.NewWhen(nmvp.Name == "", "must specify variant name")
-	catcher.Add(nmvp.MakeVariantParameters.Validate())
 	return catcher.Resolve()
 }
 

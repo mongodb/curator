@@ -69,11 +69,11 @@ tasks:
 
   - <<: *run-build
     tags: ["test"]
-    name: test-buildsystem-generator
+    name: test-metabuild-generator
 
   - <<: *run-build
     tags: ["test"]
-    name: test-buildsystem-model
+    name: test-metabuild-model
 
   - name: compile-base
     tags: ["legacy-check"]
@@ -84,11 +84,27 @@ tasks:
 
   - <<: *run-build
     tags: ["report"]
+    name: lint-benchmarks
+
+  - <<: *run-build
+    tags: ["report"]
     name: lint-cli
 
   - <<: *run-build
     tags: ["report"]
     name: lint-internal-executor
+
+  - <<: *run-build
+    tags: ["report"]
+    name: lint-jasper
+
+  - <<: *run-build
+    tags: ["report"]
+    name: lint-metabuild-generator
+
+  - <<: *run-build
+    tags: ["report"]
+    name: lint-metabuild-model
 
   - <<: *run-build
     tags: ["report"]
@@ -109,14 +125,6 @@ tasks:
   - <<: *run-build
     tags: ["report"]
     name: lint-testutil
-
-  - <<: *run-build
-    tags: ["report"]
-    name: lint-buildsystem-generator
-
-  - <<: *run-build
-    tags: ["report"]
-    name: lint-buildsystem-model
 
 task_groups:
   - name: lintGroup
