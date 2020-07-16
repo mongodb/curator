@@ -15,7 +15,7 @@ func TestVariantDistro(t *testing.T) {
 			}
 			assert.NoError(t, vd.Validate())
 		})
-		t.Run("FailsForEmpty", func(t *testing.T) {
+		t.Run("FailsWithEmpty", func(t *testing.T) {
 			vd := VariantDistro{}
 			assert.Error(t, vd.Validate())
 		})
@@ -54,5 +54,50 @@ func TestMergeEnvironments(t *testing.T) {
 		}
 		env := MergeEnvironments(envs...)
 		assert.Equal(t, "baz", env["foo"])
+	})
+}
+
+func TestFileReport(t *testing.T) {
+	t.Run("Validate", func(t *testing.T) {
+		t.Run("Succeeds", func(t *testing.T) {
+			fr := FileReport{
+				Files:  []string{"file1", "file2"},
+				Format: GoTest,
+			}
+			assert.NoError(t, fr.Validate())
+		})
+		t.Run("SucceedsWithValidFormat", func(t *testing.T) {
+			for _, format := range []ReportFormat{Artifact, EvergreenJSON, GoTest, XUnit} {
+				fr := FileReport{
+					Files:  []string{"file"},
+					Format: format,
+				}
+				assert.NoError(t, fr.Validate())
+			}
+		})
+		t.Run("FailsWithEmpty", func(t *testing.T) {
+			fr := FileReport{}
+			assert.Error(t, fr.Validate())
+		})
+		t.Run("FailsWithInvalidFormat", func(t *testing.T) {
+			fr := FileReport{
+				Files:  []string{"file"},
+				Format: "foo",
+			}
+			assert.Error(t, fr.Validate())
+		})
+		t.Run("FailsWithEvergreenJSONReportWithMultipleFiles", func(t *testing.T) {
+			fr := FileReport{
+				Files:  []string{"file1", "file2"},
+				Format: EvergreenJSON,
+			}
+			assert.Error(t, fr.Validate())
+		})
+		t.Run("FailsWithoutFiles", func(t *testing.T) {
+			fr := FileReport{
+				Format: GoTest,
+			}
+			assert.Error(t, fr.Validate())
+		})
 	})
 }
