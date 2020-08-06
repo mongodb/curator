@@ -124,12 +124,12 @@ func (m *basicProcessManager) Register(ctx context.Context, proc Process) error 
 }
 
 func (m *basicProcessManager) List(ctx context.Context, f options.Filter) ([]Process, error) {
-	out := []Process{}
 
 	if err := f.Validate(); err != nil {
-		return out, errors.Wrap(err, "invalid filter")
+		return nil, errors.Wrap(err, "invalid filter")
 	}
 
+	out := []Process{}
 	for _, proc := range m.procs {
 		if ctx.Err() != nil {
 			return nil, errors.WithStack(ctx.Err())

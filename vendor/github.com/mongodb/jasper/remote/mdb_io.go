@@ -281,8 +281,8 @@ type loggingCacheLenRequest struct {
 	Len bool `bson:"logging_cache_size"`
 }
 
-type loggingSendMessageRequest struct {
-	Payload options.LoggingPayload `bson:"send_message"`
+type loggingSendMessagesRequest struct {
+	Payload options.LoggingPayload `bson:"send_messages"`
 }
 
 type scriptingCreateRequest struct {

@@ -110,12 +110,12 @@ func (s *mdbService) registerHandlers() error {
 		ScriptingTestCommand:      s.scriptingTest,
 
 		// Logging Commands
-		LoggingCacheSizeCommand:   s.loggingSize,
-		LoggingCacheCreateCommand: s.loggingCreate,
-		LoggingCacheDeleteCommand: s.loggingDelete,
-		LoggingCacheGetCommand:    s.loggingGet,
-		LoggingCachePruneCommand:  s.loggingPrune,
-		LoggingSendMessageCommand: s.loggingSendMessage,
+		LoggingCacheSizeCommand:    s.loggingSize,
+		LoggingCacheCreateCommand:  s.loggingCreate,
+		LoggingCacheDeleteCommand:  s.loggingDelete,
+		LoggingCacheGetCommand:     s.loggingGet,
+		LoggingCachePruneCommand:   s.loggingPrune,
+		LoggingSendMessagesCommand: s.loggingSendMessages,
 
 		// Remote client commands
 		ConfigureCacheCommand:     s.configureCache,

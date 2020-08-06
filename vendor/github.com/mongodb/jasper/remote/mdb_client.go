@@ -288,7 +288,7 @@ func (c *mdbClient) LoggingCache(ctx context.Context) jasper.LoggingCache {
 }
 
 func (c *mdbClient) SendMessages(ctx context.Context, lp options.LoggingPayload) error {
-	req, err := shell.RequestToMessage(mongowire.OP_QUERY, &loggingSendMessageRequest{Payload: lp})
+	req, err := shell.RequestToMessage(mongowire.OP_QUERY, &loggingSendMessagesRequest{Payload: lp})
 	if err != nil {
 		return errors.Wrap(err, "could not create request")
 	}

@@ -106,9 +106,12 @@ func (c *sshClient) CreateCommand(ctx context.Context) *jasper.Command {
 	})
 }
 
+// TODO (EVG-12616): fix this.
 func (c *sshClient) CreateScripting(ctx context.Context, opts options.ScriptingHarness) (scripting.Harness, error) {
 	return c.shCache.Create(c.manager, opts)
 }
+
+// TODO (EVG-12616): fix this.
 func (c *sshClient) GetScripting(ctx context.Context, id string) (scripting.Harness, error) {
 	return c.shCache.Get(id)
 }
@@ -289,13 +292,22 @@ func (c *sshClient) SignalEvent(ctx context.Context, name string) error {
 	return nil
 }
 
+// TODO (EVG-12626): fix this.
 func (c *sshClient) LoggingCache(ctx context.Context) jasper.LoggingCache {
 	return c.manager.LoggingCache(ctx)
 }
 
-// TODO: implement
-func (c *sshClient) SendMessages(_ context.Context, _ options.LoggingPayload) error {
-	return errors.New("message sending is not supported")
+func (c *sshClient) SendMessages(ctx context.Context, opts options.LoggingPayload) error {
+	output, err := c.runRemoteCommand(ctx, SendMessagesCommand, opts)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	if _, err := ExtractOutcomeResponse(output); err != nil {
+		return errors.WithStack(err)
+	}
+
+	return nil
 }
 
 func (c *sshClient) runManagerCommand(ctx context.Context, managerSubcommand string, subcommandInput interface{}) ([]byte, error) {

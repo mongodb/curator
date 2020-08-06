@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"strings"
@@ -22,9 +23,9 @@ import (
 	"github.com/pkg/errors"
 )
 
-// NewRestClient creates a REST client that connecst to the given address
+// NewRESTClient creates a REST client that connects to the given address
 // running the Jasper REST service.
-func NewRestClient(addr net.Addr) Manager {
+func NewRESTClient(addr net.Addr) Manager {
 	return &restClient{
 		prefix: fmt.Sprintf("http://%s/jasper/v1", addr),
 		client: bond.GetHTTPClient(),
@@ -67,12 +68,20 @@ func handleError(resp *http.Response) error {
 		return nil
 	}
 
-	gimerr := gimlet.ErrorResponse{}
-	if err := gimlet.GetJSON(resp.Body, &gimerr); err != nil {
-		return errors.WithStack(err)
+	wrapError := func(err error) error {
+		return errors.Wrapf(err, "HTTP status code %d", resp.StatusCode)
 	}
 
-	return errors.WithStack(gimerr)
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return wrapError(errors.Wrap(err, "reading response body"))
+	}
+	gimerr := gimlet.ErrorResponse{}
+	if err := json.Unmarshal(body, &gimerr); err != nil {
+		return wrapError(errors.Errorf("received response: %s", string(body)))
+	}
+
+	return wrapError(gimerr)
 }
 
 func (c *restClient) doRequest(ctx context.Context, method string, url string, body io.Reader) (*http.Response, error) {
@@ -172,7 +181,7 @@ func (c *restClient) CreateScripting(ctx context.Context, opts options.Scripting
 }
 
 func (c *restClient) GetScripting(ctx context.Context, id string) (scripting.Harness, error) {
-	resp, err := c.doRequest(ctx, http.MethodPost, c.getURL("/scripting/%s", id), nil)
+	resp, err := c.doRequest(ctx, http.MethodGet, c.getURL("/scripting/%s", id), nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "request returned error")
 	}
@@ -353,7 +362,7 @@ func (c *restClient) DownloadFile(ctx context.Context, opts options.Download) er
 func (c *restClient) DownloadMongoDB(ctx context.Context, opts options.MongoDBDownload) error {
 	body, err := makeBody(opts)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "building request")
 	}
 
 	resp, err := c.doRequest(ctx, http.MethodPost, c.getURL("/download/mongodb"), body)
@@ -369,7 +378,7 @@ func (c *restClient) DownloadMongoDB(ctx context.Context, opts options.MongoDBDo
 func (c *restClient) ConfigureCache(ctx context.Context, opts options.Cache) error {
 	body, err := makeBody(opts)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "building request")
 	}
 
 	resp, err := c.doRequest(ctx, http.MethodPost, c.getURL("/download/cache"), body)
@@ -410,12 +419,12 @@ func (c *restClient) WriteFile(ctx context.Context, opts options.WriteFile) erro
 func (c *restClient) SendMessages(ctx context.Context, lp options.LoggingPayload) error {
 	body, err := makeBody(lp)
 	if err != nil {
-		return errors.WithStack(err)
+		return errors.Wrap(err, "building request")
 	}
 
 	resp, err := c.doRequest(ctx, http.MethodPost, c.getURL("/logging/%s/send", lp.LoggerID), body)
 	if err != nil {
-		return errors.WithStack(err)
+		return errors.Wrap(err, "request returned error")
 	}
 	defer resp.Body.Close()
 
@@ -441,12 +450,12 @@ type restLoggingCache struct {
 func (lc *restLoggingCache) Create(id string, opts *options.Output) (*options.CachedLogger, error) {
 	body, err := makeBody(opts)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errors.Wrap(err, "building request")
 	}
 
-	resp, err := lc.client.doRequest(lc.ctx, http.MethodPost, lc.client.getURL("/download/cache"), body)
+	resp, err := lc.client.doRequest(lc.ctx, http.MethodPost, lc.client.getURL("/logging/%s", id), body)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errors.Wrap(err, "request returned error")
 	}
 	defer resp.Body.Close()
 
@@ -456,7 +465,7 @@ func (lc *restLoggingCache) Create(id string, opts *options.Output) (*options.Ca
 
 	out := &options.CachedLogger{}
 	if err = gimlet.GetJSON(resp.Body, out); err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errors.Wrap(err, "getting cached logger info from response")
 	}
 
 	return out, nil
@@ -469,11 +478,13 @@ func (lc *restLoggingCache) Put(id string, cl *options.CachedLogger) error {
 func (lc *restLoggingCache) Get(id string) *options.CachedLogger {
 	resp, err := lc.client.doRequest(lc.ctx, http.MethodGet, lc.client.getURL("/logging/%s", id), nil)
 	if err != nil {
+		grip.Debug(errors.Wrap(err, "request returned error"))
 		return nil
 	}
 	defer resp.Body.Close()
 
 	if err = handleError(resp); err != nil {
+		grip.Debug(errors.WithStack(err))
 		return nil
 	}
 
@@ -486,44 +497,46 @@ func (lc *restLoggingCache) Get(id string) *options.CachedLogger {
 
 func (lc *restLoggingCache) Remove(id string) {
 	resp, err := lc.client.doRequest(lc.ctx, http.MethodDelete, lc.client.getURL("/logging/%s", id), nil)
-	grip.Info(message.Fields{
-		"has_error": err == nil,
-		"code":      resp.StatusCode,
-		"status":    resp.Status,
-		"op":        "delete",
-		"logger":    id,
-		"err":       err,
-	})
+	if err != nil {
+		grip.Debug(errors.Wrap(err, "request returned error"))
+		return
+	}
+	defer resp.Body.Close()
+
+	grip.Debug(errors.WithStack(handleError(resp)))
 }
 
 func (lc *restLoggingCache) Prune(ts time.Time) {
 	resp, err := lc.client.doRequest(lc.ctx, http.MethodDelete, lc.client.getURL("/logging/prune/%s", ts.Format(time.RFC3339)), nil)
-	grip.Info(message.Fields{
-		"has_error": err == nil,
-		"code":      resp.StatusCode,
-		"status":    resp.Status,
-		"op":        "prune",
-		"err":       err,
-	})
+	if err != nil {
+		grip.Debug(errors.Wrap(err, "request returned error"))
+		return
+	}
+	defer resp.Body.Close()
+
+	grip.Debug(errors.WithStack(handleError(resp)))
 }
 
 func (lc *restLoggingCache) Len() int {
-	resp, err := lc.client.doRequest(lc.ctx, http.MethodDelete, lc.client.getURL("/logging/size"), nil)
+	resp, err := lc.client.doRequest(lc.ctx, http.MethodGet, lc.client.getURL("/logging/len"), nil)
 	if err != nil {
+		grip.Debug(errors.Wrap(err, "request returned error"))
 		return 0
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
+	if err := handleError(resp); err != nil {
+		grip.Debug(errors.WithStack(err))
 		return 0
 	}
 
-	out := restLoggingCacheSize{}
+	out := restLoggingCacheLen{}
 	if err = gimlet.GetJSON(resp.Body, &out); err != nil {
+		grip.Debug(errors.Wrap(err, "getting logging cache length from response"))
 		return 0
 	}
 
-	return out.Size
+	return out.Len
 }
 
 type restProcess struct {

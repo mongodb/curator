@@ -165,7 +165,7 @@ func newRemoteClient(ctx context.Context, service, host string, port int, credsF
 	}
 
 	if service == RESTService {
-		return remote.NewRestClient(addr), nil
+		return remote.NewRESTClient(addr), nil
 	} else if service == RPCService {
 		return remote.NewRPCClientWithFile(ctx, addr, credsFilePath)
 	}

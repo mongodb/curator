@@ -124,13 +124,20 @@ func ConvertCreateOptions(opts *options.Create) (*CreateOptions, error) {
 // Export takes a protobuf RPC ProcessInfo struct and returns the analogous
 // Jasper ProcessInfo struct.
 func (info *ProcessInfo) Export() (jasper.ProcessInfo, error) {
-	startAt, err := ptypes.Timestamp(info.StartAt)
-	if err != nil {
-		return jasper.ProcessInfo{}, errors.Wrap(err, "could not convert end timestamp from equivalent protobuf RPC timestamp")
+	var startAt time.Time
+	var err error
+	if info.StartAt != nil {
+		startAt, err = ptypes.Timestamp(info.StartAt)
+		if err != nil {
+			return jasper.ProcessInfo{}, errors.Wrap(err, "could not convert start timestamp from equivalent protobuf RPC timestamp")
+		}
 	}
-	endAt, err := ptypes.Timestamp(info.EndAt)
-	if err != nil {
-		return jasper.ProcessInfo{}, errors.Wrap(err, "could not convert end timestamp from equivalent protobuf RPC timestamp")
+	var endAt time.Time
+	if info.EndAt != nil {
+		endAt, err = ptypes.Timestamp(info.EndAt)
+		if err != nil {
+			return jasper.ProcessInfo{}, errors.Wrap(err, "could not convert end timestamp from equivalent protobuf RPC timestamp")
+		}
 	}
 	opts, err := info.Options.Export()
 	if err != nil {
@@ -945,13 +952,20 @@ func ConvertScriptingTestResults(res []scripting.TestResult) ([]*ScriptingHarnes
 func (r *ScriptingHarnessTestResponse) Export() ([]scripting.TestResult, error) {
 	out := make([]scripting.TestResult, len(r.Results))
 	for idx, res := range r.Results {
-		startAt, err := ptypes.Timestamp(res.StartAt)
-		if err != nil {
-			return nil, errors.Wrapf(err, "could not convert start time from equivalent protobuf RPC time for script '%s'", res.Name)
+		var startAt time.Time
+		var err error
+		if res.StartAt != nil {
+			startAt, err = ptypes.Timestamp(res.StartAt)
+			if err != nil {
+				return nil, errors.Wrapf(err, "could not convert start time from equivalent protobuf RPC time for script '%s'", res.Name)
+			}
 		}
-		duration, err := ptypes.Duration(res.Duration)
-		if err != nil {
-			return nil, errors.Wrapf(err, "could not convert script duration from equivalent protobuf RPC duration for script '%s'", res.Name)
+		var duration time.Duration
+		if res.Duration != nil {
+			duration, err = ptypes.Duration(res.Duration)
+			if err != nil {
+				return nil, errors.Wrapf(err, "could not convert script duration from equivalent protobuf RPC duration for script '%s'", res.Name)
+			}
 		}
 
 		out[idx] = scripting.TestResult{

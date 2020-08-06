@@ -58,7 +58,7 @@ func NewRPCClient(ctx context.Context, addr net.Addr, creds *certdepot.Credentia
 // NewRPCClientWithFile is the same as NewRPCClient but the credentials will
 // be read from the file given by filePath if the filePath is non-empty. The
 // credentials file should contain the JSON-encoded bytes from
-// (*Credentials).Export().
+// (*certdepot.Credentials).Export().
 func NewRPCClientWithFile(ctx context.Context, addr net.Addr, filePath string) (Manager, error) {
 	var creds *certdepot.Credentials
 	if filePath != "" {
