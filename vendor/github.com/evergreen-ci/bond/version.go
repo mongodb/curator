@@ -10,7 +10,7 @@ import (
 
 // ArtifactVersion represents a document in the Version field of the
 // MongoDB build information feed. See
-// http://downloads.mongodb.org/full.json for an example.ownload
+// http://downloads.mongodb.org/full.json for an example download
 type ArtifactVersion struct {
 	Version   string
 	Downloads []ArtifactDownload
@@ -41,7 +41,7 @@ func (version *ArtifactVersion) GetDownload(key BuildOptions) (ArtifactDownload,
 	version.mutex.RLock()
 	defer version.mutex.RLock()
 
-	// TODO: this is the place to fix hanlding for the Base edition, which is not necessarily intuitive.
+	// TODO: this is the place to fix handling for the Base edition, which is not necessarily intuitive.
 	if key.Edition == Base {
 		if key.Target == "linux" {
 			key.Target += "_" + string(key.Arch)
@@ -51,11 +51,11 @@ func (version *ArtifactVersion) GetDownload(key BuildOptions) (ArtifactDownload,
 	// For OSX, the target depends on the version. Before 4.1, OSX targets are
 	// "osx". However, starting in 4.1.1, OSX targets are "macos".
 	if key.Target == "osx" {
-		parsedVersion, err := NewMongoDBVersion(version.Version)
+		parsedVersion, err := CreateMongoDBVersion(version.Version)
 		if err != nil {
 			return ArtifactDownload{}, errors.Wrap(err, "could not parse version")
 		}
-		macosVersion, err := NewMongoDBVersion("4.1.1")
+		macosVersion, err := CreateMongoDBVersion("4.1.1")
 		if err != nil {
 			return ArtifactDownload{}, errors.Wrap(err, "could not parse version for comparison")
 		}

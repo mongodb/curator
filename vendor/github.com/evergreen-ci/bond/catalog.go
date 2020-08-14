@@ -169,11 +169,11 @@ func (c *BuildCatalog) Get(version, edition, target, arch string, debug bool) (s
 			// targets are "osx". However, starting in 4.1.1, OSX targets are
 			// "macos".
 			if runtime.GOOS == "darwin" {
-				parsedVersion, err := NewMongoDBVersion(version)
+				parsedVersion, err := CreateMongoDBVersion(version)
 				if err != nil {
 					return "", errors.Wrap(err, "could not parse version")
 				}
-				macosVersion, err := NewMongoDBVersion("4.1.1")
+				macosVersion, err := CreateMongoDBVersion("4.1.1")
 				if err != nil {
 					return "", errors.Wrap(err, "could not parse version for comparison")
 				}

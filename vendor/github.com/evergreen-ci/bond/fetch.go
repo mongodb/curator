@@ -30,7 +30,7 @@ func createDirectory(path string) error {
 }
 
 // CacheDownload downloads a resource (url) into a file (path); if the
-// file already exists CaceheDownlod does not download a new copy of
+// file already exists CacheDownload does not download a new copy of
 // the file, unless local file is older than the ttl, or the force
 // option is specified. CacheDownload returns the contents of the file.
 func CacheDownload(ctx context.Context, ttl time.Duration, url, path string, force bool) ([]byte, error) {
