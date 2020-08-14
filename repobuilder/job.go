@@ -53,7 +53,7 @@ type repoBuilderJob struct {
 	tmpdir      string
 	client      *http.Client
 	workingDirs []string
-	release     *bond.MongoDBVersion
+	release     bond.MongoDBVersion
 	builder     jobImpl
 }
 
@@ -112,7 +112,7 @@ type JobOptions struct {
 	NotaryKey   string `bson:"notary_key" json:"notary_key" yaml:"notary_key"`
 	NotaryToken string `bson:"notary_token" json:"notary_token" yaml:"notary_token"`
 
-	release *bond.MongoDBVersion
+	release bond.MongoDBVersion
 }
 
 // Validate returns an error if the job options struct is not
@@ -122,7 +122,7 @@ func (opts *JobOptions) Validate() error {
 	catcher.NewWhen(opts.Configuration == nil, "configuration must not be nil")
 	catcher.NewWhen(opts.Distro == nil, "distro specification must not be nil")
 
-	release, err := bond.NewMongoDBVersion(opts.Version)
+	release, err := bond.CreateMongoDBVersion(opts.Version)
 	catcher.Add(err)
 	opts.release = release
 
@@ -205,7 +205,7 @@ func (j *repoBuilderJob) setup() {
 	var err error
 
 	if j.release == nil {
-		j.release, err = bond.NewMongoDBVersion(j.Version)
+		j.release, err = bond.CreateMongoDBVersion(j.Version)
 		if err != nil {
 			j.AddError(err)
 		}
@@ -223,6 +223,7 @@ func (j *repoBuilderJob) setup() {
 				j.NotaryKey = "richard"
 				j.NotaryToken = os.Getenv("NOTARY_TOKEN_DEB_LEGACY")
 			} else {
+				// TODO: maybe need to change this.
 				j.NotaryKey = "server-" + j.release.StableReleaseSeries()
 			}
 		}
@@ -269,7 +270,7 @@ func (j *repoBuilderJob) linkPackages(dest string) error {
 		}
 
 		mirror := filepath.Join(dest, filepath.Base(pkg))
-		if j.release.IsDevelopmentBuild() {
+		if j.release.IsDevelopmentBuild() || !j.release.IsLTS() {
 			new := strings.Replace(mirror, j.release.String(), j.release.Series(), 1)
 			if new != mirror {
 				grip.Debug(message.Fields{
@@ -327,14 +328,14 @@ func (j *repoBuilderJob) injectNewPackages(local string) (string, error) {
 }
 
 func (j *repoBuilderJob) getPackageLocation() string {
-	if j.release.IsDevelopmentBuild() {
-		// nightlies to the a "development" repo.
-		return "development"
-	} else if j.release.IsReleaseCandidate() {
-		// release candidates go into the testing repo:
+	if j.release.IsReleaseCandidate() {
+		// release candidates go into the testing repo.
 		return "testing"
+	} else if j.release.IsDevelopmentBuild() || j.release.IsContinuous() {
+		// nightlies and continuous releases to the a "development" repo.
+		return "development"
 	} else {
-		// there are repos for each series:
+		// stable releases and LTS releases have their own repos.
 		return j.release.Series()
 	}
 }
