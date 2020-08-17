@@ -222,8 +222,9 @@ func (j *repoBuilderJob) setup() {
 			if j.Distro.Type == DEB && (j.release.Series() == "3.0" || j.release.Series() == "2.6") {
 				j.NotaryKey = "richard"
 				j.NotaryToken = os.Getenv("NOTARY_TOKEN_DEB_LEGACY")
+			} else if j.release.IsLTS() || j.release.IsContinuous() {
+				j.NotaryKey = "server-" + j.release.Series()
 			} else {
-				// TODO: maybe need to change this.
 				j.NotaryKey = "server-" + j.release.StableReleaseSeries()
 			}
 		}
@@ -331,8 +332,8 @@ func (j *repoBuilderJob) getPackageLocation() string {
 	if j.release.IsReleaseCandidate() {
 		// release candidates go into the testing repo.
 		return "testing"
-	} else if j.release.IsDevelopmentBuild() || j.release.IsContinuous() {
-		// nightlies and continuous releases to the a "development" repo.
+	} else if j.release.IsDevelopmentBuild() || (j.release.IsLTS() && j.release.IsDevelopmentRelease()) || j.release.IsContinuous() {
+		// nightlies and continuous releases go into the "development" repo.
 		return "development"
 	} else {
 		// stable releases and LTS releases have their own repos.

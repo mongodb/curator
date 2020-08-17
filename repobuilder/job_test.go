@@ -87,18 +87,18 @@ func TestGetPackageLocation(t *testing.T) {
 		},
 		{
 			name:             "LegacyDevelopmentBuild",
-			version:          "4.2.5-pre-",
+			version:          "4.1.5-pre-",
 			expectedLocation: "development",
 		},
 		{
 			name:             "LegacyDevelopmentSeries",
-			version:          "4.2.5",
-			expectedLocation: "4.2",
+			version:          "4.1.5",
+			expectedLocation: "4.1",
 		},
 		{
 			name:             "LegacyProductionSeries",
-			version:          "4.1.5",
-			expectedLocation: "4.1",
+			version:          "4.2.5",
+			expectedLocation: "4.2",
 		},
 		{
 			name:             "NewReleaseCandidate",
@@ -106,7 +106,7 @@ func TestGetPackageLocation(t *testing.T) {
 			expectedLocation: "testing",
 		},
 		{
-			name:             "NewDevelopmentBuild",
+			name:             "NewDevelopmentRelease",
 			version:          "5.0.5-alpha1",
 			expectedLocation: "development",
 		},
