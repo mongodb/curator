@@ -271,7 +271,7 @@ func (j *repoBuilderJob) linkPackages(dest string) error {
 		}
 
 		mirror := filepath.Join(dest, filepath.Base(pkg))
-		if j.release.IsDevelopmentBuild() || j.release.IsContinuous() {
+		if j.release.IsDevelopmentBuild() || (j.release.IsLTS() && j.release.IsDevelopmentSeries()) || j.release.IsContinuous() {
 			new := strings.Replace(mirror, j.release.String(), j.release.Series(), 1)
 			if new != mirror {
 				grip.Debug(message.Fields{

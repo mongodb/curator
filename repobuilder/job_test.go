@@ -106,8 +106,13 @@ func TestGetPackageLocation(t *testing.T) {
 			expectedLocation: "testing",
 		},
 		{
-			name:             "NewDevelopmentRelease",
+			name:             "NewDevelopmentReleaseLTS",
 			version:          "5.0.5-alpha1",
+			expectedLocation: "development",
+		},
+		{
+			name:             "NewDevelopmentReleaseQuarterly",
+			version:          "5.2.5-alpha1",
 			expectedLocation: "development",
 		},
 		{
