@@ -73,7 +73,7 @@ func NewArtifactsFeed(path string) (*ArtifactsFeed, error) {
 		// if the thing we think should be the json file
 		// exists but isn't a file (i.e. directory,) then this
 		// should be an error.
-		return nil, errors.Errorf("path %s not a json file  directory", path)
+		return nil, errors.Errorf("path %s not a json file directory", path)
 	}
 
 	return f, nil
@@ -109,7 +109,6 @@ func (feed *ArtifactsFeed) Reload(data []byte) error {
 		return errors.Wrap(err, "problem converting data from json")
 	}
 
-	// this is a reload rather than a new load, and we shoiuld
 	if len(feed.table) > 0 {
 		feed.table = make(map[string]*ArtifactVersion)
 	}

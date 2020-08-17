@@ -61,7 +61,7 @@ func TestProcessPackages(t *testing.T) {
 
 	j := buildRepoJob()
 	var err error
-	j.release, err = bond.NewMongoDBVersion("4.2.5-rc1")
+	j.release, err = bond.CreateMongoDBVersion("4.2.5-rc1")
 	require.NoError(t, err)
 	j.client = utility.GetDefaultHTTPRetryableClient()
 	j.Distro = &RepositoryDefinition{Name: "test"}
@@ -72,4 +72,66 @@ func TestProcessPackages(t *testing.T) {
 
 	assert.NoError(t, j.processPackages(ctx))
 	assert.Len(t, j.PackagePaths, 6)
+}
+
+func TestGetPackageLocation(t *testing.T) {
+	for _, test := range []struct {
+		name             string
+		version          string
+		expectedLocation string
+	}{
+		{
+			name:             "LegacyReleaseCandidate",
+			version:          "4.2.5-rc1",
+			expectedLocation: "testing",
+		},
+		{
+			name:             "LegacyDevelopmentBuild",
+			version:          "4.1.5-pre-",
+			expectedLocation: "development",
+		},
+		{
+			name:             "LegacyDevelopmentSeries",
+			version:          "4.1.5",
+			expectedLocation: "4.1",
+		},
+		{
+			name:             "LegacyProductionSeries",
+			version:          "4.2.5",
+			expectedLocation: "4.2",
+		},
+		{
+			name:             "NewReleaseCandidate",
+			version:          "5.3.5-rc1",
+			expectedLocation: "testing",
+		},
+		{
+			name:             "NewDevelopmentReleaseLTS",
+			version:          "5.0.5-alpha1",
+			expectedLocation: "development",
+		},
+		{
+			name:             "NewDevelopmentReleaseQuarterly",
+			version:          "5.2.5-alpha1",
+			expectedLocation: "development",
+		},
+		{
+			name:             "NewQuarterly",
+			version:          "5.3.5",
+			expectedLocation: "development",
+		},
+		{
+			name:             "NewLTS",
+			version:          "5.0.5",
+			expectedLocation: "5.0",
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			var err error
+			j := buildRepoJob()
+			j.release, err = bond.CreateMongoDBVersion(test.version)
+			require.NoError(t, err)
+			assert.Equal(t, test.expectedLocation, j.getPackageLocation())
+		})
+	}
 }
