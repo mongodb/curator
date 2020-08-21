@@ -2,6 +2,8 @@ package check
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/mongodb/amboy/registry"
@@ -32,7 +34,10 @@ func TestFileExistsCheckImplementation(t *testing.T) {
 
 	// make sure it can find files that do exist
 	check = checkFactory()
-	check.FileName = "makefile"
+	wd, err := os.Getwd()
+	require.NoError(err)
+	wd = filepath.Dir(filepath.Dir(wd))
+	check.FileName = filepath.Join(wd, "makefile")
 	check.Run(ctx)
 	output = check.Output()
 
@@ -76,7 +81,10 @@ func TestFileDoesNotExistCheckImplementation(t *testing.T) {
 
 	// make sure files that exist fail
 	check = checkFactory()
-	check.FileName = "makefile"
+	wd, err := os.Getwd()
+	require.NoError(err)
+	wd = filepath.Dir(filepath.Dir(wd))
+	check.FileName = filepath.Join(wd, "makefile")
 	check.Run(ctx)
 	output = check.Output()
 

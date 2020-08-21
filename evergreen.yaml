@@ -95,10 +95,6 @@ tasks:
           display_name: dist.tar.gz
 
   - <<: *run-build
-    tags: ["race"]
-    name: build-race
-
-  - <<: *run-build
     tags: ["report"]
     name: lint
 
@@ -135,28 +131,18 @@ tasks:
   - <<: *run-go-test-suite
     name: race-operations
     tags: ["race"]
-    depends_on:
-      - name: build-race
   - <<: *run-go-test-suite
     name: race-cmd-curator
     tags: ["race"]
-    depends_on:
-      - name: build-race
   - <<: *run-go-test-suite
     name: race-repobuilder
     tags: ["race"]
-    depends_on:
-      - name: build-race
   - <<: *run-go-test-suite
     name: race-greenbay
     tags: ["race"]
-    depends_on:
-      - name: build-race
   - <<: *run-go-test-suite
     name: race-greenbay-check
     tags: ["race"]
-    depends_on:
-      - name: build-race
 
   - name: push
     patchable: false
