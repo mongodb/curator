@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"strconv"
 	"testing"
 
@@ -41,7 +42,7 @@ func TestFTDCParentCommandHasExpectedProperties(t *testing.T) {
 func TestBSONRoundtrip(t *testing.T) {
 	tempDir, err := ioutil.TempDir(".", "test_dir")
 	require.NoError(t, err)
-	bsonOriginal := path.Join(tempDir, "origina.bson")
+	bsonOriginal := path.Join(tempDir, "original.bson")
 	bsonRoundtrip := path.Join(tempDir, "roundtrip.bson")
 	ftdcFromOriginal := path.Join(tempDir, "ftdc")
 	err = createBSONFile(bsonOriginal, 3)
@@ -50,11 +51,15 @@ func TestBSONRoundtrip(t *testing.T) {
 		_ = os.RemoveAll(tempDir)
 	}()
 
-	cmd := exec.Command("./curator", "ftdc", "import", "bson", "--input", bsonOriginal, "--output", ftdcFromOriginal)
+	wd, err := os.Getwd()
+	require.NoError(t, err)
+	wd = filepath.Dir(wd)
+
+	cmd := exec.Command(filepath.Join(wd, "curator"), "ftdc", "import", "bson", "--input", bsonOriginal, "--output", ftdcFromOriginal)
 	_, err = cmd.CombinedOutput()
 	require.NoError(t, err)
 
-	cmd = exec.Command("./curator", "ftdc", "export", "bson", "--input", ftdcFromOriginal, "--output", bsonRoundtrip)
+	cmd = exec.Command(filepath.Join(wd, "curator"), "ftdc", "export", "bson", "--input", ftdcFromOriginal, "--output", bsonRoundtrip)
 	_, err = cmd.CombinedOutput()
 	require.NoError(t, err)
 
@@ -75,13 +80,17 @@ func TestCSVRoundtrip(t *testing.T) {
 		_ = os.RemoveAll(tempDir)
 	}()
 
+	wd, err := os.Getwd()
+	require.NoError(t, err)
+	wd = filepath.Dir(wd)
+
 	var output []byte
 
-	cmd := exec.Command("./curator", "ftdc", "import", "csv", "--input", csvOriginal, "--output", ftdcFromOriginal)
+	cmd := exec.Command(filepath.Join(wd, "curator"), "ftdc", "import", "csv", "--input", csvOriginal, "--output", ftdcFromOriginal)
 	output, err = cmd.CombinedOutput()
 	require.NoError(t, err, "output: %s", string(output))
 
-	cmd = exec.Command("./curator", "ftdc", "export", "csv", "--input", ftdcFromOriginal, "--output", csvRoundtrip)
+	cmd = exec.Command(filepath.Join(wd, "curator"), "ftdc", "export", "csv", "--input", ftdcFromOriginal, "--output", csvRoundtrip)
 	output, err = cmd.CombinedOutput()
 	require.NoError(t, err, "output: %s", string(output))
 
@@ -102,11 +111,15 @@ func TestJSONRoundtrip(t *testing.T) {
 		_ = os.RemoveAll(tempDir)
 	}()
 
-	cmd := exec.Command("./curator", "ftdc", "import", "json", "--input", jsonOriginal, "--prefix", ftdcFromOriginal)
+	wd, err := os.Getwd()
+	require.NoError(t, err)
+	wd = filepath.Dir(wd)
+
+	cmd := exec.Command(filepath.Join(wd, "curator"), "ftdc", "import", "json", "--input", jsonOriginal, "--prefix", ftdcFromOriginal)
 	_, err = cmd.CombinedOutput()
 	require.NoError(t, err)
 
-	cmd = exec.Command("./curator", "ftdc", "export", "json", "--input", ftdcFromOriginal+".0", "--output", jsonRoundtrip)
+	cmd = exec.Command(filepath.Join(wd, "curator"), "ftdc", "export", "json", "--input", ftdcFromOriginal+".0", "--output", jsonRoundtrip)
 	_, err = cmd.CombinedOutput()
 	require.NoError(t, err)
 

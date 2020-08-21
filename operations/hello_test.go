@@ -1,7 +1,9 @@
 package operations
 
 import (
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -30,7 +32,10 @@ func TestCommandSuite(t *testing.T) {
 }
 
 func (s *CommandsSuite) TestHelloWorldOperationViaDirectCall() {
-	cmd := exec.Command("./curator", "hello")
+	wd, err := os.Getwd()
+	s.Require().NoError(err)
+	wd = filepath.Dir(wd)
+	cmd := exec.Command(filepath.Join(wd, "curator"), "hello")
 	output, err := cmd.CombinedOutput()
 	s.NoError(err)
 

@@ -57,26 +57,15 @@ functions:
          aws_secret_access_key = ${aws_secret}
          EOF
   run-make:
-    command: shell.exec
+    command: subprocess.exec
     type: test
     params:
-       script: |
-         set -o errexit
-         set -o verbose
-
-         # Configure a local go path for this build.
-         export GOPATH=`pwd`/gopath
-
-         # on windows we need to turn the slashes the other way
-         if [ "Windows_NT" == "$OS" ]; then
-            export GOPATH=$(cygpath -m $GOPATH)
-         fi
-
-         cd gopath/src/github.com/mongodb/curator
-
-         # Run make, called with proper environment variables set,
-         # running the target.
-         ${build_env|} ${xc_env|} make ${target}
+      working_dir: gopath/src/github.com/mongodb/curator
+      binary: make
+      args: ["${make_args}", "${target}"]
+      add_expansions_to_env: true
+      env:
+        GOPATH: ${workdir}/gopath
 
 #######################################
 #                Tasks                #
@@ -232,7 +221,8 @@ buildvariants:
   - name: race-detector
     display_name: Race Detector (Arch Linux)
     expansions:
-      build_env: "GOROOT=/opt/golang/go1.12 PATH=/opt/golang/go1.12/bin:$PATH"
+      GO_BIN_PATH: /opt/golang/go1.12/bin/go
+      GOROOT: /opt/golang/go1.12
     run_on:
       - archlinux-test
       - archlinux-build
@@ -243,7 +233,8 @@ buildvariants:
   - name: rhel70
     display_name: RHEL 7.0
     expansions:
-      build_env: "GOROOT=/opt/golang/go1.10/ PATH=/opt/golang/go1.10/bin:$PATH"
+      GO_BIN_PATH: /opt/golang/go1.10/bin/go
+      GOROOT: /opt/golang/go1.10
       goarch: amd64
       goos: linux
     run_on:
@@ -260,7 +251,8 @@ buildvariants:
       - ubuntu1604-test
       - ubuntu1604-build
     expansions:
-      build_env: "GOROOT=/opt/golang/go1.10/ PATH=/opt/golang/go1.10/bin:$PATH"
+      GO_BIN_PATH: /opt/golang/go1.10/bin/go
+      GOROOT: /opt/golang/go1.10
       goarch: amd64
       goos: linux
     tasks:
@@ -271,7 +263,9 @@ buildvariants:
   - name: macos
     display_name: macOS 10.14
     expansions:
-      build_env: "GOROOT=/opt/golang/go1.10/ PATH=/opt/golang/go1.10/bin:$PATH DISABLE_COVERAGE=true"
+      DISABLE_COVERAGE: true
+      GOROOT: /opt/golang/go1.10
+      GO_BIN_PATH: /opt/golang/go1.10/bin/go
       goarch: amd64
       goos: darwin
     run_on:
@@ -285,8 +279,8 @@ buildvariants:
   - name: s390x
     display_name: "zLinux (cross-compile)"
     expansions:
-      build_env: "GOROOT=/opt/golang/go1.10/ PATH=/opt/golang/go1.10/bin:$PATH"
-      xc_env: "GOARCH=s390x GOOS=linux"
+      GO_BIN_PATH: /opt/golang/go1.10/bin/go
+      GOROOT: /opt/golang/go1.10
       goarch: s390x
       goos: linux
     run_on:
@@ -302,8 +296,8 @@ buildvariants:
   - name: power
     display_name: "Linux POWER (cross-compile)"
     expansions:
-      build_env: "GOROOT=/opt/golang/go1.10/ PATH=/opt/golang/go1.10/bin:$PATH"
-      xc_env: "GOARCH=ppc64le GOOS=linux"
+      GO_BIN_PATH: /opt/golang/go1.10/bin/go
+      GOROOT: /opt/golang/go1.10
       goarch: ppc64le
       goos: linux
     run_on:
@@ -319,8 +313,8 @@ buildvariants:
   - name: arm
     display_name: "Linux ARM64 (cross-compile)"
     expansions:
-      build_env: "GOROOT=/opt/golang/go1.10/ PATH=/opt/golang/go1.10/bin:$PATH"
-      xc_env: "GOARCH=arm64 GOOS=linux"
+      GO_BIN_PATH: /opt/golang/go1.10/bin/go
+      GOROOT: /opt/golang/go1.10
       goarch: arm64
       goos: linux
     run_on:
@@ -336,8 +330,8 @@ buildvariants:
   - name: linux-32
     display_name: "Linux 32-bit (cross-compile)"
     expansions:
-      build_env: "GOROOT=/opt/golang/go1.10/ PATH=/opt/golang/go1.10/bin:$PATH"
-      xc_env: "GOARCH=386 GOOS=linux"
+      GO_BIN_PATH: /opt/golang/go1.10/bin/go
+      GOROOT: /opt/golang/go1.10
       goarch: 386
       goos: linux
     run_on:
@@ -353,8 +347,8 @@ buildvariants:
   - name: windows-64
     display_name: "Windows 64-bit (cross-compile)"
     expansions:
-      build_env: "GOROOT=/opt/golang/go1.10/ PATH=/opt/golang/go1.10/bin:$PATH"
-      xc_env: "GOARCH=amd64 GOOS=windows"
+      GO_BIN_PATH: /opt/golang/go1.10/bin/go
+      GOROOT: /opt/golang/go1.10
       goarch: amd64
       goos: windows
     run_on:
@@ -370,8 +364,8 @@ buildvariants:
   - name: windows-32
     display_name: "Windows 32-bit (cross-compile)"
     expansions:
-      build_env: "GOROOT=/opt/golang/go1.10/ PATH=/opt/golang/go1.10/bin:$PATH"
-      xc_env: "GOARCH=386 GOOS=windows"
+      GO_BIN_PATH: /opt/golang/go1.10/bin/go
+      GOROOT: /opt/golang/go1.10
       goarch: 386
       goos: windows
     run_on:

@@ -23,12 +23,33 @@ ldFlags += -X=github.com/mongodb/curator.CedarMetricsChecksum=$(shell shasum ven
 # end build configuration
 
 
+# start environment setup
+gobin := $(GO_BIN_PATH)
+ifeq (,$(gobin))
+	gobin := go
+endif
+gocache := $(abspath $(buildDir)/.cache)
+gopath := $(GOPATH)
+goroot := $(GOROOT)
+ifeq ($(OS),Windows_NT)
+	gocache := $(shell cygpath -m $(gocache))
+	gopath := $(shell cygpath -m $(gopath))
+	goroot := $(shell cygpath -m $(goroot))
+endif
+export GOCACHE := $(gocache)
+export GOPATH := $(gopath)
+export GOROOT := $(goroot)
+# end environment setup
+
+# Ensure the build directory exists, since most targets require it.
+$(shell mkdir -p $(buildDir))
+
 # lint setup targets
 lintDeps := $(buildDir)/golangci-lint $(buildDir)/run-linter
-$(buildDir)/golangci-lint:$(buildDir)
-	@curl --retry 10 --retry-max-time 60 -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/76a82c6ed19784036bbf2d4c84d0228ca12381a4/install.sh | sh -s -- -b $(buildDir) v1.23.8 >/dev/null 2>&1
+$(buildDir)/golangci-lint:
+	@curl --retry 10 --retry-max-time 60 -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/76a82c6ed19784036bbf2d4c84d0228ca12381a4/install.sh | sh -s -- -b $(buildDir) v1.30.0 >/dev/null 2>&1
 $(buildDir)/run-linter:cmd/run-linter/run-linter.go $(buildDir)/golangci-lint
-	go build -o $@ $<
+	$(gobin) build -o $@ $<
 # end lint setup targets
 
 
@@ -45,9 +66,8 @@ coverageHtmlOutput := $(foreach target,$(packages),$(buildDir)/output.$(target).
 
 
 # userfacing targets for basic build and development operations
-lint:$(buildDir)/output.lint
+lint:$(foreach target,$(packages),lint-$(target))
 build:$(buildDir)/$(binary)
-build-race:$(buildDir)/$(name).race
 test:$(foreach target,$(packages),test-$(target))
 race:$(foreach target,$(packages),race-$(target))
 coverage:$(coverageOutput)
@@ -56,10 +76,9 @@ revendor:$(buildDir)/$(binary)
 	$(buildDir)/$(binary) revendor $(if $(VENDOR_REVISION),--revision $(VENDOR_REVISION),) $(if $(VENDOR_PKG),--package $(VENDOR_PKG) ,) $(if $(VENDOR_CLEAN),--clean "$(MAKE) vendor-clean",)
 phony := lint build build-race race test coverage coverage-html
 .PRECIOUS:$(testOutput) $(raceOutput) $(coverageOutput) $(coverageHtmlOutput)
-.PRECIOUS:$(foreach target,$(packages),$(buildDir)/test.$(target))
-.PRECIOUS:$(foreach target,$(packages),$(buildDir)/race.$(target))
+.PRECIOUS:$(foreach target,$(packages),$(buildDir)/output.$(target).test)
+.PRECIOUS:$(foreach target,$(packages),$(buildDir)/output.$(target).race)
 .PRECIOUS:$(foreach target,$(packages),$(buildDir)/output.$(target).lint)
-.PRECIOUS:$(buildDir)/output.lint
 # end front-ends
 
 
@@ -68,9 +87,9 @@ phony := lint build build-race race test coverage coverage-html
 $(binary):$(buildDir)/$(binary)
 	@[ -e $@ ] || ln -s $<
 $(buildDir)/$(binary):$(srcFiles)
-	go build -ldflags="$(ldFlags)" -o $@ cmd/$(name)/$(name).go
+	$(gobin) build -ldflags="$(ldFlags)" -o $@ cmd/$(name)/$(name).go
 $(buildDir)/$(name).race:$(srcFiles)
-	go build -ldflags="$(ldFlags)" -race -o $@ cmd/$(name)/$(name).go
+	$(gobin) build -ldflags="$(ldFlags)" -race -o $@ cmd/$(name)/$(name).go
 phony += $(buildDir)/$(binary)
 # end main build
 
@@ -240,48 +259,38 @@ phony += vendor-clean
 #    tests have compile and runtime deps. This varable has everything
 #    that the tests actually need to run. (The "build" target is
 #    intentional and makes these targets rerun as expected.)
-testArgs := -test.v --test.timeout=15m
+testArgs := -v -timeout=15m
 ifneq (,$(RUN_TEST))
-testArgs += -test.run='$(RUN_TEST)'
+testArgs += -run='$(RUN_TEST)'
 endif
 ifneq (,$(RUN_CASE))
 testArgs += -testify.m='$(RUN_CASE)'
 endif
 #    implementation for package coverage and test running,mongodb to produce
 #    and save test output.
-$(buildDir)/test.operations:$(name)
-$(buildDir)/test.%:$(testSrcFiles) $(coverDeps)
-	go test -ldflags="-w" $(if $(DISABLE_COVERAGE),,-covermode=count) -c -o $@ ./$(subst -,/,$*)
-$(buildDir)/race.operations:$(name)
-$(buildDir)/race.%:$(testSrcFiles)
-	go test -ldflags="-w" -race -c -o $@ ./$(subst -,/,$*)
-#  targets to run any tests in the top-level package
-$(buildDir)/test.$(name):$(testSrcFiles) $(coverDeps)
-	go test -ldflags="-w"  $(if $(DISABLE_COVERAGE),,-covermode=count) -c -o $@ ./
-$(buildDir)/race.$(name):$(testSrcFiles)
-	go test -ldflags="-w" -race -c -o $@ ./
 #  targets to run the tests and report the output
-$(buildDir)/output.%.test:$(buildDir)/test.% .FORCE
-	$(testRunEnv) ./$< $(testArgs) 2>&1 | tee $@
-$(buildDir)/output.%.race:$(buildDir)/race.% .FORCE
-	$(testRunEnv) ./$< $(testArgs) 2>&1 | tee $@
+$(buildDir)/output.%.test: .FORCE
+	$(testRunEnv) $(gobin) test $(testArgs) ./$(if $(subst $(name),,$*),$(subst -,/,$*),) 2>&1 | tee $@
+$(buildDir)/output.%.race: .FORCE
+	$(testRunEnv) $(gobin) test $(testArgs) ./$(if $(subst $(name),,$*),$(subst -,/,$*),) 2>&1 | tee $@
 #  targets to generate gotest output from the linter.
 $(buildDir)/output.%.lint:$(buildDir)/run-linter $(testSrcFiles) .FORCE
-	@./$< --output=$@ --lintBin="$(buildDir)/golangci-lint" --packages='$*'
-$(buildDir)/output.lint:$(buildDir)/run-linter .FORCE
-	@./$< --output=$@ --lintBin="$(buildDir)/golangci-lint" --packages='$(packages)'
+	@# We have to handle the PATH specially for CI, because if the PATH has a different version of Go in it, it'll break.
+	@$(if $(GO_BIN_PATH),PATH="$(shell dirname $(GO_BIN_PATH)):$(PATH)") ./$< --output=$@ --lintBin="$(buildDir)/golangci-lint" --packages='$*'
 #  targets to process and generate coverage reports
-$(buildDir)/output.%.coverage:$(buildDir)/test.% .FORCE $(coverDeps)
-	$(testRunEnv) ./$< $(testArgs) -test.coverprofile=$@ | tee $(subst coverage,test,$@)
-	@-[ -f $@ ] && go tool cover -func=$@ | sed 's%$(projectPath)/%%' | column -t
+$(buildDir)/output.%.coverage: .FORCE $(coverDeps)
+	$(testRunEnv) $(gobin) test $(testArgs) -test.coverprofile=$@ ./$(if $(subst $(name),,$*),$(subst -,/,$*),) | tee $(subst coverage,test,$@)
+	@-[ -f $@ ] && $(gobin) tool cover -func=$@ | sed 's%$(projectPath)/%%' | column -t
 $(buildDir)/output.%.coverage.html:$(buildDir)/output.%.coverage $(coverDeps)
-	go tool cover -html=$< -o $@
+	$(gobin) tool cover -html=$< -o $@
 # end test and coverage artifacts
 
 
 # clean and other utility targets
 clean:
-	rm -rf $(lintDeps) $(buildDir)/test.* $(buildDir)/coverage.* $(buildDir)/race.* $(binary) $(buildDir)/$(binary)
+	rm -rf $(lintDeps) $(binary) $(buildDir)/$(binary) $(buildDir)/run-linter
+clean-results:
+	rm -rf $(buildDir)/output.*
 phony += clean
 # end dependency targets
 
