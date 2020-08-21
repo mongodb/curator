@@ -288,7 +288,7 @@ $(buildDir)/output.%.coverage.html: $(binary) $(buildDir)/output.%.coverage
 
 # clean and other utility targets
 clean:
-	rm -rf $(lintDeps) $(binary) $(buildDir)/$(binary) $(buildDir)/run-linter
+	rm -rf $(lintDeps) $(binary) $(buildDir)/$(binary)
 clean-results:
 	rm -rf $(buildDir)/output.*
 phony += clean
