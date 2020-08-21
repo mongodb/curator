@@ -74,7 +74,7 @@ coverage:$(coverageOutput)
 coverage-html:$(coverageHtmlOutput)
 revendor:$(buildDir)/$(binary)
 	$(buildDir)/$(binary) revendor $(if $(VENDOR_REVISION),--revision $(VENDOR_REVISION),) $(if $(VENDOR_PKG),--package $(VENDOR_PKG) ,) $(if $(VENDOR_CLEAN),--clean "$(MAKE) vendor-clean",)
-phony := lint build build-race race test coverage coverage-html
+phony := lint build race test coverage coverage-html
 .PRECIOUS:$(testOutput) $(raceOutput) $(coverageOutput) $(coverageHtmlOutput)
 .PRECIOUS:$(foreach target,$(packages),$(buildDir)/output.$(target).test)
 .PRECIOUS:$(foreach target,$(packages),$(buildDir)/output.$(target).race)
@@ -269,19 +269,19 @@ endif
 #    implementation for package coverage and test running,mongodb to produce
 #    and save test output.
 #  targets to run the tests and report the output
-$(buildDir)/output.%.test: .FORCE
+$(buildDir)/output.%.test: $(binary) .FORCE
 	$(testRunEnv) $(gobin) test $(testArgs) ./$(if $(subst $(name),,$*),$(subst -,/,$*),) 2>&1 | tee $@
-$(buildDir)/output.%.race: .FORCE
+$(buildDir)/output.%.race: $(binary) .FORCE
 	$(testRunEnv) $(gobin) test $(testArgs) ./$(if $(subst $(name),,$*),$(subst -,/,$*),) 2>&1 | tee $@
 #  targets to generate gotest output from the linter.
 $(buildDir)/output.%.lint:$(buildDir)/run-linter $(testSrcFiles) .FORCE
 	@# We have to handle the PATH specially for CI, because if the PATH has a different version of Go in it, it'll break.
 	@$(if $(GO_BIN_PATH),PATH="$(shell dirname $(GO_BIN_PATH)):$(PATH)") ./$< --output=$@ --lintBin="$(buildDir)/golangci-lint" --packages='$*'
 #  targets to process and generate coverage reports
-$(buildDir)/output.%.coverage: .FORCE $(coverDeps)
+$(buildDir)/output.%.coverage: $(binary) .FORCE
 	$(testRunEnv) $(gobin) test $(testArgs) -test.coverprofile=$@ ./$(if $(subst $(name),,$*),$(subst -,/,$*),) | tee $(subst coverage,test,$@)
 	@-[ -f $@ ] && $(gobin) tool cover -func=$@ | sed 's%$(projectPath)/%%' | column -t
-$(buildDir)/output.%.coverage.html:$(buildDir)/output.%.coverage $(coverDeps)
+$(buildDir)/output.%.coverage.html: $(binary) $(buildDir)/output.%.coverage
 	$(gobin) tool cover -html=$< -o $@
 # end test and coverage artifacts
 
