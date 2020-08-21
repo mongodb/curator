@@ -23,8 +23,6 @@ variables:
     # evergreen. The test name should correspond to a make target for
     # that suite
     name: test
-    depends_on:
-      - name: build
     commands:
       - command: git.get_project
         type: system
