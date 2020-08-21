@@ -81,7 +81,7 @@ tasks:
         params:
           directory: gopath/src/github.com/mongodb/curator
       - func: run-make
-        vars: { target: "build dist" }
+        vars: { target: "dist" }
       - command: s3.put
         type: setup
         params:
