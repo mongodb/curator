@@ -24,7 +24,7 @@ func TestRepoConfigSuite(t *testing.T) {
 func (s *RepoConfigSuite) SetupSuite() {
 	s.require = s.Require()
 
-	fn, err := filepath.Abs("./repobuilder/config_test.yaml")
+	fn, err := filepath.Abs("config_test.yaml")
 	s.require.NoError(err)
 	s.file = fn
 
@@ -32,7 +32,7 @@ func (s *RepoConfigSuite) SetupSuite() {
 	s.require.NoError(err)
 	s.invalidFile = invalidFn
 
-	incorrectFn, err := filepath.Abs("./repobuilder/config_incorrect_test.yaml")
+	incorrectFn, err := filepath.Abs("config_incorrect_test.yaml")
 	s.require.NoError(err)
 	s.incorrectFile = incorrectFn
 }
@@ -61,7 +61,7 @@ func (s *RepoConfigSuite) TestExampleConfigHasNoInternalErrors() {
 
 func (s *RepoConfigSuite) TestConfigLoadFunctionReturnsObjectWithNoError() {
 	conf, err := GetConfig(s.file)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.IsType(s.conf, conf)
 }
 
@@ -73,8 +73,8 @@ func (s *RepoConfigSuite) TestConfigLoadFunctionReturnsErrorIfFileDoesNotExist()
 
 func (s *RepoConfigSuite) TestInvalidConfigProcessReturnsError() {
 	conf, err := GetConfig(s.invalidFile)
-	s.Nil(conf)
 	s.Error(err)
+	s.Nil(conf)
 }
 
 func (s *RepoConfigSuite) TestInvalidConfigErrorsAtReadStage() {
@@ -84,14 +84,14 @@ func (s *RepoConfigSuite) TestInvalidConfigErrorsAtReadStage() {
 
 func (s *RepoConfigSuite) TestIncorrectConfigProcessReturnsError() {
 	conf, err := GetConfig(s.incorrectFile)
-	s.Nil(conf)
 	s.Error(err)
+	s.Nil(conf)
 }
 
 func (s *RepoConfigSuite) TestGetRepoMethodReturnsNilObjectsForInvalidDefinitions() {
 	var err error
 	s.conf, err = GetConfig(s.file)
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	repo, ok := s.conf.GetRepositoryDefinition("rhel5", "subscription")
 	s.False(ok)
@@ -102,7 +102,7 @@ func (s *RepoConfigSuite) TestGetRepoMethodReturnsNilObjectsForInvalidName() {
 	var err error
 
 	s.conf, err = GetConfig(s.file)
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	repo, ok := s.conf.GetRepositoryDefinition("rhel55", "org")
 	s.False(ok)
@@ -113,7 +113,7 @@ func (s *RepoConfigSuite) TestGetRepoMethodReturnsExpectedRepoObject() {
 	var err error
 
 	s.conf, err = GetConfig(s.file)
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	rhelCommunity, ok := s.conf.GetRepositoryDefinition("rhel7", "org")
 	s.require.True(ok)

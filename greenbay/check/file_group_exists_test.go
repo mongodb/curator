@@ -2,6 +2,8 @@ package check
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/mongodb/amboy/registry"
@@ -45,7 +47,10 @@ func (s *FileGroupSuite) TestWithInvalidRequirements() {
 }
 
 func (s *FileGroupSuite) TestOneExtantFileWithAllRequirement() {
-	s.group.FileNames = []string{"makefile"}
+	wd, err := os.Getwd()
+	s.Require().NoError(err)
+	wd = filepath.Dir(filepath.Dir(wd))
+	s.group.FileNames = []string{filepath.Join(wd, "makefile")}
 	s.True(s.group.Requirements.All)
 	s.NoError(s.group.Requirements.Validate())
 
@@ -57,7 +62,10 @@ func (s *FileGroupSuite) TestOneExtantFileWithAllRequirement() {
 }
 
 func (s *FileGroupSuite) TestWithFilesThatExistAndDoNotExistWIthAllRequirement() {
-	s.group.FileNames = []string{"makefile", "makefile.DOES-NOT-EXIST"}
+	wd, err := os.Getwd()
+	s.Require().NoError(err)
+	wd = filepath.Dir(filepath.Dir(wd))
+	s.group.FileNames = []string{filepath.Join(wd, "makefile"), "makefile.DOES-NOT-EXIST"}
 	s.True(s.group.Requirements.All)
 	s.NoError(s.group.Requirements.Validate())
 
