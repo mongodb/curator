@@ -58,6 +58,7 @@ $(buildDir)/run-linter:cmd/run-linter/run-linter.go $(buildDir)/golangci-lint
 .DEFAULT_GOAL := $(binary)
 srcFiles := makefile $(shell find . -name "*.go" -not -path "./$(buildDir)/*" -not -name "*_test.go" )
 testSrcFiles := makefile $(shell find . -name "*.go" -not -path "./$(buildDir)/*")
+lintOutput := $(foreach target,$(packages),$(buildDir)/output.$(target).lint)
 testOutput := $(foreach target,$(packages),$(buildDir)/output.$(target).test)
 raceOutput := $(foreach target,$(packages),$(buildDir)/output.$(target).race)
 coverageOutput := $(foreach target,$(packages),$(buildDir)/output.$(target).coverage)
@@ -66,19 +67,16 @@ coverageHtmlOutput := $(foreach target,$(packages),$(buildDir)/output.$(target).
 
 
 # userfacing targets for basic build and development operations
-lint:$(foreach target,$(packages),lint-$(target))
+lint:$(lintOutput)
 build:$(buildDir)/$(binary)
-test:$(foreach target,$(packages),test-$(target))
-race:$(foreach target,$(packages),race-$(target))
+test:$(testOutput)
+race:$(raceOutput)
 coverage:$(coverageOutput)
 coverage-html:$(coverageHtmlOutput)
 revendor:$(buildDir)/$(binary)
 	$(buildDir)/$(binary) revendor $(if $(VENDOR_REVISION),--revision $(VENDOR_REVISION),) $(if $(VENDOR_PKG),--package $(VENDOR_PKG) ,) $(if $(VENDOR_CLEAN),--clean "$(MAKE) vendor-clean",)
 phony := lint build race test coverage coverage-html
-.PRECIOUS:$(testOutput) $(raceOutput) $(coverageOutput) $(coverageHtmlOutput)
-.PRECIOUS:$(foreach target,$(packages),$(buildDir)/output.$(target).test)
-.PRECIOUS:$(foreach target,$(packages),$(buildDir)/output.$(target).race)
-.PRECIOUS:$(foreach target,$(packages),$(buildDir)/output.$(target).lint)
+.PRECIOUS:$(testOutput) $(lintOutput) $(raceOutput) $(coverageOutput) $(coverageHtmlOutput)
 # end front-ends
 
 
@@ -263,23 +261,20 @@ testArgs := -v -timeout=15m
 ifneq (,$(RUN_TEST))
 testArgs += -run='$(RUN_TEST)'
 endif
-ifneq (,$(RUN_CASE))
-testArgs += -testify.m='$(RUN_CASE)'
-endif
 #    implementation for package coverage and test running,mongodb to produce
 #    and save test output.
 #  targets to run the tests and report the output
 $(buildDir)/output.%.test: $(binary) .FORCE
-	$(testRunEnv) $(gobin) test $(testArgs) ./$(if $(subst $(name),,$*),$(subst -,/,$*),) 2>&1 | tee $@
+	$(gobin) test $(testArgs) ./$(if $(subst $(name),,$*),$(subst -,/,$*),) 2>&1 | tee $@
 $(buildDir)/output.%.race: $(binary) .FORCE
-	$(testRunEnv) $(gobin) test $(testArgs) ./$(if $(subst $(name),,$*),$(subst -,/,$*),) 2>&1 | tee $@
+	$(gobin) test $(testArgs) ./$(if $(subst $(name),,$*),$(subst -,/,$*),) 2>&1 | tee $@
 #  targets to generate gotest output from the linter.
 $(buildDir)/output.%.lint:$(buildDir)/run-linter $(testSrcFiles) .FORCE
 	@# We have to handle the PATH specially for CI, because if the PATH has a different version of Go in it, it'll break.
 	@$(if $(GO_BIN_PATH),PATH="$(shell dirname $(GO_BIN_PATH)):$(PATH)") ./$< --output=$@ --lintBin="$(buildDir)/golangci-lint" --packages='$*'
 #  targets to process and generate coverage reports
 $(buildDir)/output.%.coverage: $(binary) .FORCE
-	$(testRunEnv) $(gobin) test $(testArgs) -test.coverprofile=$@ ./$(if $(subst $(name),,$*),$(subst -,/,$*),) | tee $(subst coverage,test,$@)
+	$(gobin) test $(testArgs) -covermode=count -coverprofile ./$(if $(subst $(name),,$*),$(subst -,/,$*),) | tee $(subst coverage,test,$@)
 	@-[ -f $@ ] && $(gobin) tool cover -func=$@ | sed 's%$(projectPath)/%%' | column -t
 $(buildDir)/output.%.coverage.html: $(binary) $(buildDir)/output.%.coverage
 	$(gobin) tool cover -html=$< -o $@
