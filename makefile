@@ -274,7 +274,7 @@ $(buildDir)/output.%.lint:$(buildDir)/run-linter $(testSrcFiles) .FORCE
 	@$(if $(GO_BIN_PATH),PATH="$(shell dirname $(GO_BIN_PATH)):$(PATH)") ./$< --output=$@ --lintBin="$(buildDir)/golangci-lint" --packages='$*'
 #  targets to process and generate coverage reports
 $(buildDir)/output.%.coverage: $(binary) .FORCE
-	$(gobin) test $(testArgs) -covermode=count -coverprofile ./$(if $(subst $(name),,$*),$(subst -,/,$*),) | tee $(subst coverage,test,$@)
+	$(gobin) test $(testArgs) ./$(if $(subst $(name),,$*),$(subst -,/,$*),)  -covermode=count -coverprofile $@ | tee $(subst coverage,test,$@)
 	@-[ -f $@ ] && $(gobin) tool cover -func=$@ | sed 's%$(projectPath)/%%' | column -t
 $(buildDir)/output.%.coverage.html: $(binary) $(buildDir)/output.%.coverage
 	$(gobin) tool cover -html=$< -o $@
