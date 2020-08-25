@@ -1,86 +1,100 @@
 buildDir := build
+name := poplar
+packages := poplar rpc rpc-internal
 
-packages := ./ ./rpc ./rpc/internal
-lintPackages := poplar rpc rpc-internal
-# override the go binary path if set
-ifneq (,$(GO_BIN_PATH))
+# start environment setup
 gobin := $(GO_BIN_PATH)
-else
+ifeq ($(gobin),)
 gobin := go
 endif
 gopath := $(GOPATH)
+gocache := $(abspath $(buildDir)/.cache)
+goroot := $(GOROOT)
 ifeq ($(OS),Windows_NT)
-ifneq ($(gopath),)
+gocache := $(shell cygpath -m $(gocache))
 gopath := $(shell cygpath -m $(gopath))
+goroot := $(shell cygpath -m $(goroot))
 endif
-endif
-goEnv := GOPATH=$(gopath) $(if $(GO_BIN_PATH),PATH="$(shell dirname $(GO_BIN_PATH)):$(PATH)")
+
+export GOPATH := $(gopath)
+export GOCACHE := $(gocache)
+export GOROOT := $(goroot)
+# end environment setup
+
+
+# Ensure the build directory exists, since most targets require it.
+$(shell mkdir -p $(buildDir))
 
 
 # start lint setup targets
-lintDeps := $(buildDir)/.lintSetup $(buildDir)/run-linter $(buildDir)/golangci-lint
-$(buildDir)/.lintSetup:$(buildDir)/golangci-lint
-	@touch $@
-$(buildDir)/golangci-lint:$(buildDir)
-	@curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/76a82c6ed19784036bbf2d4c84d0228ca12381a4/install.sh | sh -s -- -b $(buildDir) v1.23.8 >/dev/null 2>&1
-$(buildDir)/run-linter:cmd/run-linter/run-linter.go $(buildDir)/.lintSetup $(buildDir)
-	@$(goEnv) $(gobin) build -o $@ $<
+lintDeps := $(buildDir)/run-linter $(buildDir)/golangci-lint
+$(buildDir)/golangci-lint:
+	@curl --retry 10 --retry-max-time 60 -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/76a82c6ed19784036bbf2d4c84d0228ca12381a4/install.sh | sh -s -- -b $(buildDir) v1.30.0 >/dev/null 2>&1
+$(buildDir)/run-linter:cmd/run-linter/run-linter.go $(buildDir)/golangci-lint
+	@$(gobin) build -o $@ $<
 # end lint setup targets
 
+coverageOutput := $(foreach target,$(packages),$(buildDir)/output.$(target).coverage)
+coverageHtmlOutput := $(foreach target,$(packages),$(buildDir)/output.$(target).coverage.html)
+lintOutput := $(foreach target,$(packages),$(buildDir)/output.$(target).lint)
+testOutput := $(foreach target,$(packages),$(buildDir)/output.$(target).test)
 
 testArgs := -v
-ifneq (,$(RUN_TEST))
-testArgs += -run='$(RUN_TEST)'
+ifeq (,$(DISABLE_COVERAGE))
+	testArgs += -cover
+endif
+ifneq (,$(RACE_DETECTOR))
+	testArgs += -race
 endif
 ifneq (,$(RUN_COUNT))
-testArgs += -count='$(RUN_COUNT)'
+	testArgs += -count=$(RUN_COUNT)
+endif
+ifneq (,$(RUN_TEST))
+	testArgs += -run='$(RUN_TEST)'
 endif
 ifneq (,$(SKIP_LONG))
-testArgs += -short
+	testArgs += -short
 endif
 
 benchPattern := ./
 
-compile:
-	$(goEnv) $(gobin) build $(packages)
-race:
-	@mkdir -p $(buildDir)
-	$(goEnv) $(gobin) test $(testArgs) -race $(packages) | tee $(buildDir)/race.out
-	@grep -s -q -e "^PASS" $(buildDir)/race.out && ! grep -s -q "^WARNING: DATA RACE" $(buildDir)/race.out
-test:
-	@mkdir -p $(buildDir)
-	$(goEnv) $(gobin) test $(testArgs) $(if $(DISABLE_COVERAGE),, -cover) $(packages) | tee $(buildDir)/test.out
-	@grep -s -q -e "^PASS" $(buildDir)/test.out
+test:$(testOutput)
+	
 .PHONY: benchmark
 benchmark:
-	@mkdir -p $(buildDir)/
-	$(goEnv) $(gobin) test $(testArgs) -bench=$(benchPattern) $(if $(RUN_TEST),, -run=^^$$) | tee $(buildDir)/bench.out
-coverage:$(buildDir)/output.coverage
-	@$(goEnv) $(gobin) tool cover -func=$< | sed -E 's%github.com/.*/poplar/%%' | column -t
-coverage-html:$(buildDir)/output.coverage.html
-lint:$(foreach target,$(lintPackages),$(buildDir)/output.$(target).lint)
+	$(gobin) test $(testArgs) -bench=$(benchPattern) $(if $(RUN_TEST),, -run=^^$$) | tee $(buildDir)/bench.out
+coverage:$(coverageOutput)
+	
+coverage-html:$(coverageHtmlOutput)
+	
+lint:$(lintOutput)
+	
 
-phony += lint lint-deps build build-race race test coverage coverage-html
-.PRECIOUS:$(foreach target,$(lintPackages),$(buildDir)/output.$(target).lint)
-.PRECIOUS:$(buildDir)/output.lint
+phony += lint $(buildDir) test coverage coverage-html
+.PRECIOUS:$(coverageOutput) $(coverageHtmlOutput) $(lintOutput) $(testOutput)
 
 
-$(buildDir):$(srcFiles) compile
-	@mkdir -p $@
-$(buildDir)/output.coverage:$(buildDir) $(testFiles) .FORCE
-	$(goEnv) $(gobin) test $(testArgs) -coverprofile $@ -cover $(packages)
-$(buildDir)/output.coverage.html:$(buildDir)/output.coverage
-	$(goEnv) $(gobin) tool cover -html=$< -o $@
-#  targets to generate gotest output from the linter.
-$(buildDir)/output.%.lint:$(buildDir)/run-linter $(buildDir)/ .FORCE
-	@$(goEnv) ./$< --output=$@ --lintBin=$(buildDir)/golangci-lint --packages='$*'
-$(buildDir)/output.lint:$(buildDir)/run-linter $(buildDir)/ .FORCE
-	@$(goEnv) ./$< --output=$@ --lintBin=$(buildDir)/golangci-lint --packages='$(lintPackages)'
+compile $(buildDir):
+	$(gobin) build $(subst $(name),,$(subst -,/,$(foreach target,$(packages),./$(target))))
+$(buildDir)/output.%.test: .FORCE
+	$(gobin) test $(testArgs) ./$(if $(subst $(name),,$*),$(subst -,/,$*),) | tee $@
+	@!( grep -s -q "^FAIL" $@ && grep -s -q "^WARNING: DATA RACE" $@)
+	@(grep -s -q "^PASS" $@ || grep -s -q "no test files" $@)
 #  targets to process and generate coverage reports
+$(buildDir)/output.%.coverage: .FORCE
+	$(gobin) test $(testArgs) ./$(if $(subst $(name),,$*),$(subst -,/,$*),) -covermode=count -coverprofile $@ | tee $(buildDir)/output.$*.test
+	@-[ -f $@ ] && $(gobin) tool cover -func=$@ | sed 's%$(projectPath)/%%' | column -t
+$(buildDir)/output.%.coverage.html: $(buildDir)/output.%.coverage .FORCE
+	$(gobin) tool cover -html=$< -o $@
+#  targets to generate gotest output from the linter.
+# We have to handle the PATH specially for CI, because if the PATH has a different version of Go in it, it'll break.
+$(buildDir)/output.%.lint: $(buildDir)/run-linter .FORCE
+	@$(if $(GO_BIN_PATH), PATH="$(shell dirname $(GO_BIN_PATH)):$(PATH)") ./$< --output=$@ --lintBin=$(buildDir)/golangci-lint --packages='$*'
 # end test and coverage artifacts
 
 .FORCE:
 
+.PHONY: $(phony) .FORCE
 
 proto:vendor/cedar.proto
 	@mkdir -p rpc/internal
@@ -90,6 +104,8 @@ proto:vendor/cedar.proto
 	mv rpc/internal/vendor/cedar.pb.go rpc/internal/cedar.pb.go
 clean:
 	rm -rf $(lintDeps) rpc/internal/*.pb.go
+clean-results:
+	rm -rf $(buildDir)/output.*
 
 vendor/cedar.proto:
 	curl -L https://raw.githubusercontent.com/evergreen-ci/cedar/master/perf.proto -o $@
