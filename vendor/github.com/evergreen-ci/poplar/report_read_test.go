@@ -3,6 +3,7 @@ package poplar
 import (
 	"encoding/json"
 	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -14,6 +15,16 @@ func TestLoadReport(t *testing.T) {
 	require.NoError(t, err)
 	expectedReport := &Report{}
 	require.NoError(t, json.Unmarshal(data, expectedReport))
+
+	require.NoError(t, os.Setenv(APIKeyEnv, "key"))
+	require.NoError(t, os.Setenv(APISecretEnv, "secret"))
+	require.NoError(t, os.Setenv(APITokenEnv, "token"))
+	require.Empty(t, expectedReport.BucketConf.APIKey)
+	require.Empty(t, expectedReport.BucketConf.APISecret)
+	require.Empty(t, expectedReport.BucketConf.APIToken)
+	expectedReport.BucketConf.APIKey = "key"
+	expectedReport.BucketConf.APISecret = "secret"
+	expectedReport.BucketConf.APIToken = "token"
 
 	for _, test := range []struct {
 		name   string

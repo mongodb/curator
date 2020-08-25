@@ -9,8 +9,8 @@ import (
 	"strconv"
 
 	"github.com/evergreen-ci/aviation/services"
-	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/pkg/errors"
+	"go.mongodb.org/mongo-driver/bson"
 	"google.golang.org/grpc"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -23,9 +23,9 @@ const (
 	TaskNameEnv     = "task_name"
 	ExecutionEnv    = "execution"
 	MainlineEnv     = "is_patch"
-	APIKeyEnv       = "API_KEY"
-	APISecretEnv    = "API_SECRET"
-	APITokenEnv     = "API_TOKEN"
+	APIKeyEnv       = "POPLAR_BUCKET_API_KEY"
+	APISecretEnv    = "POPLAR_BUCKET_API_SECRET"
+	APITokenEnv     = "POPLAR_BUCKET_API_TOKEN"
 	BucketNameEnv   = "BUCKET_NAME"
 	BucketPrefixEnv = "BUCKET_PREFIX"
 	BucketRegionEnv = "BUCKET_REGION"

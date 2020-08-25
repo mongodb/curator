@@ -28,15 +28,10 @@ functions:
     params:
       working_dir: gopath/src/github.com/evergreen-ci/poplar
       binary: make
-      args: ["${make_args|}", "${target}"]
+      args: ["${target}"]
+      add_expansions_to_env: true
       env:
-        GO_BIN_PATH: ${gobin}
-        DISABLE_COVERAGE: ${disable_coverage}
-        GOROOT: ${goroot}
         GOPATH: ${workdir}/gopath
-        USERPROFILE: C:\\Users\\Administrator
-        LDAP_USER: ${ldap_user}
-        LDAP_PASSWORD: ${ldap_password}
         AWS_ACCESS_KEY_ID: ${aws_key}
         AWS_SECRET_ACCESS_KEY: ${aws_secret}
 
@@ -49,9 +44,6 @@ post:
     params:
       files:
         - "gopath/src/github.com/evergreen-ci/poplar/build/output.*"
-        - "gopath/src/github.com/evergreen-ci/poplar/build/test.out"
-        - "gopath/src/github.com/evergreen-ci/poplar/build/race.out"
-        - "gopath/src/github.com/evergreen-ci/poplar/build/cover*"
   - command: subprocess.exec
     type: setup
     params:
@@ -107,10 +99,6 @@ tasks:
     tags: ["test"]
     name: test
 
-  - <<: *run-build
-    tags: ["race"]
-    name: race
-
 #######################################
 #           Buildvariants             #
 #######################################
@@ -119,23 +107,37 @@ buildvariants:
   - name: race-detector
     display_name: Race Detector (Arch Linux)
     expansions:
+      DISABLE_COVERAGE: true
+      GO_BIN_PATH: /opt/golang/go1.13/bin/go
+      GOROOT: /opt/golang/go1.13
+      RACE_DETECTOR: true
       mongodb_url: http://fastdl.mongodb.org/linux/mongodb-linux-x86_64-4.0.1.tgz
-      goroot: /opt/golang/go1.12
-      gobin: /opt/golang/go1.12/bin/go
     run_on:
       - archlinux-test
       - archlinux-build
     tasks:
-      - name: ".race"
+      - name: ".test"
+
+  - name: lint
+    display_name: Lint (Arch Linux)
+    expansions:
+      DISABLE_COVERAGE: true
+      GO_BIN_PATH: /opt/golang/go1.13/bin/go
+      GOROOT: /opt/golang/go1.13
+      mongodb_url: http://fastdl.mongodb.org/linux/mongodb-linux-x86_64-4.0.1.tgz
+    run_on:
+      - archlinux-test
+      - archlinux-build
+    tasks:
       - name: ".report"
 
   - name: ubuntu1604
     display_name: Ubuntu 16.04
     expansions:
+      DISABLE_COVERAGE: true
+      GO_BIN_PATH: /opt/golang/go1.9/bin/go
+      GOROOT: /opt/golang/go1.9
       mongodb_url: http://fastdl.mongodb.org/linux/mongodb-linux-x86_64-4.0.1.tgz
-      goroot: /opt/golang/go1.9
-      gobin: /opt/golang/go1.9/bin/go
-      disable_coverage: true
     run_on:
       - ubuntu1604-test
       - ubuntu1604-build
@@ -145,13 +147,12 @@ buildvariants:
   - name: macos
     display_name: macOS 10.14
     expansions:
+      DISABLE_COVERAGE: true
+      GO_BIN_PATH: /opt/golang/go1.13/bin/go
+      GOROOT: /opt/golang/go1.13
       mongodb_url: https://fastdl.mongodb.org/osx/mongodb-osx-ssl-x86_64-4.0.1.tgz
-      goroot: /opt/golang/go1.9
-      gobin: /opt/golang/go1.9/bin/go
-      disable_coverage: true
     run_on:
       - macos-1014
-      - macos-1014-i7
     tasks:
       - name: ".test"
 
@@ -165,10 +166,10 @@ buildvariants:
       - windows-64-vs2015-small
       - windows-64-vs2015-large
     expansions:
+      GO_BIN_PATH: /cygdrive/c/golang/go1.13/bin/go
+      GOROOT: c:/golang/go1.13
+      DISABLE_COVERAGE: true
       mongodb_url: https://fastdl.mongodb.org/win32/mongodb-win32-x86_64-2008plus-ssl-4.0.1.zip
-      goroot: c:/golang/go1.9
-      gobin: /cygdrive/c/golang/go1.9/bin/go
-      disable_coverage: true
       extension: ".exe"
       archiveExt: ".zip"
     tasks:
