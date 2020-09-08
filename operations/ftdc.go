@@ -35,7 +35,7 @@ func FTDC() cli.Command {
 		Name:  "ftdc",
 		Usage: "tools for manipulating FTDC data",
 		Subcommands: []cli.Command{
-			cli.Command{
+			{
 				Name:  "export",
 				Usage: "write FTDC data to other encoding formats",
 				Subcommands: []cli.Command{
@@ -45,7 +45,7 @@ func FTDC() cli.Command {
 					toMDB(),
 				},
 			},
-			cli.Command{
+			{
 				Name:  "import",
 				Usage: "compress data in FTDC format",
 				Subcommands: []cli.Command{
@@ -103,7 +103,7 @@ func toJSON() cli.Command {
 				if err != nil {
 					return errors.Wrapf(err, "problem opening flie '%s'", jsonPath)
 				}
-				defer func() { grip.Warning(ftdcFile.Close()) }()
+				defer func() { grip.Warning(jsonFile.Close()) }()
 			}
 
 			var iter ftdc.Iterator
