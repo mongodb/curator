@@ -12,26 +12,16 @@ import (
 
 // Constants representing logging cache commands.
 const (
-	LoggingCacheSizeCommand    = "logging_cache_size"
-	LoggingCacheCreateCommand  = "create_logging_cache"
-	LoggingCacheDeleteCommand  = "delete_logging_cache"
-	LoggingCacheGetCommand     = "get_logging_cache"
-	LoggingCachePruneCommand   = "logging_cache_prune"
-	LoggingSendMessagesCommand = "send_messages"
+	LoggingCacheSizeCommand   = "logging_cache_size"
+	LoggingCacheCreateCommand = "logging_cache_create"
+	LoggingCacheRemoveCommand = "logging_cache_remove"
+	LoggingCacheGetCommand    = "logging_cache_get"
+	LoggingCachePruneCommand  = "logging_cache_prune"
 )
-
-func (s *mdbService) loggingSize(ctx context.Context, w io.Writer, msg mongowire.Message) {
-	lc := s.serviceLoggingCacheRequest(ctx, w, msg, nil, LoggingCacheSizeCommand)
-	if lc == nil {
-		return
-	}
-
-	s.serviceLoggingCacheResponse(ctx, w, &loggingCacheSizeResponse{Size: lc.Len()}, LoggingCacheSizeCommand)
-}
 
 func (s *mdbService) loggingCreate(ctx context.Context, w io.Writer, msg mongowire.Message) {
 	req := &loggingCacheCreateRequest{}
-	lc := s.serviceLoggingCacheRequest(ctx, w, msg, req, LoggingCacheCreateCommand)
+	lc := s.loggingCacheRequest(ctx, w, msg, req, LoggingCacheCreateCommand)
 	if lc == nil {
 		return
 	}
@@ -41,13 +31,14 @@ func (s *mdbService) loggingCreate(ctx context.Context, w io.Writer, msg mongowi
 		shell.WriteErrorResponse(ctx, w, mongowire.OP_REPLY, errors.Wrap(err, "could not create logger"), LoggingCacheCreateCommand)
 		return
 	}
+	cachedLogger.ManagerID = s.manager.ID()
 
-	s.serviceLoggingCacheResponse(ctx, w, makeLoggingCacheCreateAndGetResponse(cachedLogger), LoggingCacheCreateCommand)
+	s.loggingCacheResponse(ctx, w, makeLoggingCacheCreateAndGetResponse(cachedLogger), LoggingCacheCreateCommand)
 }
 
 func (s *mdbService) loggingGet(ctx context.Context, w io.Writer, msg mongowire.Message) {
 	req := &loggingCacheGetRequest{}
-	lc := s.serviceLoggingCacheRequest(ctx, w, msg, req, LoggingCacheGetCommand)
+	lc := s.loggingCacheRequest(ctx, w, msg, req, LoggingCacheGetCommand)
 	if lc == nil {
 		return
 	}
@@ -58,59 +49,43 @@ func (s *mdbService) loggingGet(ctx context.Context, w io.Writer, msg mongowire.
 		return
 	}
 
-	s.serviceLoggingCacheResponse(ctx, w, makeLoggingCacheCreateAndGetResponse(cachedLogger), LoggingCacheGetCommand)
+	s.loggingCacheResponse(ctx, w, makeLoggingCacheCreateAndGetResponse(cachedLogger), LoggingCacheGetCommand)
 }
 
-func (s *mdbService) loggingDelete(ctx context.Context, w io.Writer, msg mongowire.Message) {
-	req := &loggingCacheDeleteRequest{}
-	lc := s.serviceLoggingCacheRequest(ctx, w, msg, req, LoggingCacheDeleteCommand)
+func (s *mdbService) loggingRemove(ctx context.Context, w io.Writer, msg mongowire.Message) {
+	req := &loggingCacheRemoveRequest{}
+	lc := s.loggingCacheRequest(ctx, w, msg, req, LoggingCacheRemoveCommand)
 	if lc == nil {
 		return
 	}
 
 	lc.Remove(req.ID)
 
-	s.serviceLoggingCacheResponse(ctx, w, nil, LoggingCacheDeleteCommand)
+	s.loggingCacheResponse(ctx, w, nil, LoggingCacheRemoveCommand)
 }
 
 func (s *mdbService) loggingPrune(ctx context.Context, w io.Writer, msg mongowire.Message) {
 	req := &loggingCachePruneRequest{}
-	lc := s.serviceLoggingCacheRequest(ctx, w, msg, req, LoggingCachePruneCommand)
+	lc := s.loggingCacheRequest(ctx, w, msg, req, LoggingCachePruneCommand)
 	if lc == nil {
 		return
 	}
 
 	lc.Prune(req.LastAccessed)
 
-	s.serviceLoggingCacheResponse(ctx, w, nil, LoggingCachePruneCommand)
+	s.loggingCacheResponse(ctx, w, nil, LoggingCachePruneCommand)
 }
 
-func (s *mdbService) loggingSendMessages(ctx context.Context, w io.Writer, msg mongowire.Message) {
-	req := &loggingSendMessagesRequest{}
-	lc := s.serviceLoggingCacheRequest(ctx, w, msg, req, LoggingSendMessagesCommand)
+func (s *mdbService) loggingSize(ctx context.Context, w io.Writer, msg mongowire.Message) {
+	lc := s.loggingCacheRequest(ctx, w, msg, nil, LoggingCacheSizeCommand)
 	if lc == nil {
 		return
 	}
 
-	if err := req.Payload.Validate(); err != nil {
-		shell.WriteErrorResponse(ctx, w, mongowire.OP_REPLY, errors.Wrap(err, "invalid logging payload"), LoggingSendMessagesCommand)
-		return
-	}
-
-	cachedLogger := lc.Get(req.Payload.LoggerID)
-	if cachedLogger == nil {
-		shell.WriteErrorResponse(ctx, w, mongowire.OP_REPLY, errors.New("named logger does not exist"), LoggingSendMessagesCommand)
-		return
-	}
-	if err := cachedLogger.Send(&req.Payload); err != nil {
-		shell.WriteErrorResponse(ctx, w, mongowire.OP_REPLY, errors.Wrap(err, "problem sending message"), LoggingSendMessagesCommand)
-		return
-	}
-
-	s.serviceLoggingCacheResponse(ctx, w, nil, LoggingSendMessagesCommand)
+	s.loggingCacheResponse(ctx, w, &loggingCacheSizeResponse{Size: lc.Len()}, LoggingCacheSizeCommand)
 }
 
-func (s *mdbService) serviceLoggingCacheRequest(ctx context.Context, w io.Writer, msg mongowire.Message, req interface{}, command string) jasper.LoggingCache {
+func (s *mdbService) loggingCacheRequest(ctx context.Context, w io.Writer, msg mongowire.Message, req interface{}, command string) jasper.LoggingCache {
 	lc := s.manager.LoggingCache(ctx)
 	if lc == nil {
 		shell.WriteErrorResponse(ctx, w, mongowire.OP_REPLY, errors.New("logging cache not supported"), command)
@@ -127,7 +102,7 @@ func (s *mdbService) serviceLoggingCacheRequest(ctx context.Context, w io.Writer
 	return lc
 }
 
-func (s *mdbService) serviceLoggingCacheResponse(ctx context.Context, w io.Writer, resp interface{}, command string) {
+func (s *mdbService) loggingCacheResponse(ctx context.Context, w io.Writer, resp interface{}, command string) {
 	if resp != nil {
 		shellResp, err := shell.ResponseToMessage(mongowire.OP_REPLY, resp)
 		if err != nil {
