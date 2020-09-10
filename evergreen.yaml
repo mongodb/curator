@@ -64,6 +64,7 @@ functions:
       add_expansions_to_env: true
       env:
         GOPATH: ${workdir}/gopath
+        GOOS: ${goos}
 
 #######################################
 #                Tasks                #
