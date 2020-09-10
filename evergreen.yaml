@@ -65,6 +65,7 @@ functions:
       env:
         GOPATH: ${workdir}/gopath
         GOOS: ${goos}
+        GOARCH: ${goarch}
 
 #######################################
 #                Tasks                #
