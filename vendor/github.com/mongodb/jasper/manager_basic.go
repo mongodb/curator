@@ -60,10 +60,10 @@ func (m *basicProcessManager) CreateProcess(ctx context.Context, opts *options.C
 	}
 
 	grip.Warning(message.WrapError(m.loggers.Put(proc.ID(), &options.CachedLogger{
-		ID:      proc.ID(),
-		Manager: m.id,
-		Error:   util.ConvertWriter(opts.Output.GetError()),
-		Output:  util.ConvertWriter(opts.Output.GetOutput()),
+		ID:        proc.ID(),
+		ManagerID: m.id,
+		Error:     util.ConvertWriter(opts.Output.GetError()),
+		Output:    util.ConvertWriter(opts.Output.GetOutput()),
 	}), message.Fields{
 		"message": "problem caching logger for process",
 		"process": proc.ID(),

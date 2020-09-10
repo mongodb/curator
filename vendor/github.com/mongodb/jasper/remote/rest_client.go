@@ -10,13 +10,10 @@ import (
 	"net"
 	"net/http"
 	"strings"
-	"syscall"
-	"time"
 
 	"github.com/evergreen-ci/bond"
 	"github.com/evergreen-ci/gimlet"
 	"github.com/mongodb/grip"
-	"github.com/mongodb/grip/message"
 	"github.com/mongodb/jasper"
 	"github.com/mongodb/jasper/options"
 	"github.com/mongodb/jasper/scripting"
@@ -174,10 +171,7 @@ func (c *restClient) CreateScripting(ctx context.Context, opts options.Scripting
 		return nil, errors.Wrap(err, "problem reading response")
 	}
 
-	return &restScripting{
-		id:     out.ID,
-		client: c,
-	}, nil
+	return newRESTScriptingHarness(c, out.ID), nil
 }
 
 func (c *restClient) GetScripting(ctx context.Context, id string) (scripting.Harness, error) {
@@ -191,10 +185,7 @@ func (c *restClient) GetScripting(ctx context.Context, id string) (scripting.Har
 		return nil, errors.WithStack(err)
 	}
 
-	return &restScripting{
-		id:     id,
-		client: c,
-	}, nil
+	return newRESTScriptingHarness(c, id), nil
 }
 
 func (c *restClient) Register(ctx context.Context, proc jasper.Process) error {
@@ -422,7 +413,7 @@ func (c *restClient) SendMessages(ctx context.Context, lp options.LoggingPayload
 		return errors.Wrap(err, "building request")
 	}
 
-	resp, err := c.doRequest(ctx, http.MethodPost, c.getURL("/logging/%s/send", lp.LoggerID), body)
+	resp, err := c.doRequest(ctx, http.MethodPost, c.getURL("/logging/id/%s/send", lp.LoggerID), body)
 	if err != nil {
 		return errors.Wrap(err, "request returned error")
 	}
@@ -440,349 +431,4 @@ func (c *restClient) LoggingCache(ctx context.Context) jasper.LoggingCache {
 		client: c,
 		ctx:    ctx,
 	}
-}
-
-type restLoggingCache struct {
-	client *restClient
-	ctx    context.Context
-}
-
-func (lc *restLoggingCache) Create(id string, opts *options.Output) (*options.CachedLogger, error) {
-	body, err := makeBody(opts)
-	if err != nil {
-		return nil, errors.Wrap(err, "building request")
-	}
-
-	resp, err := lc.client.doRequest(lc.ctx, http.MethodPost, lc.client.getURL("/logging/%s", id), body)
-	if err != nil {
-		return nil, errors.Wrap(err, "request returned error")
-	}
-	defer resp.Body.Close()
-
-	if err = handleError(resp); err != nil {
-		return nil, errors.WithStack(err)
-	}
-
-	out := &options.CachedLogger{}
-	if err = gimlet.GetJSON(resp.Body, out); err != nil {
-		return nil, errors.Wrap(err, "getting cached logger info from response")
-	}
-
-	return out, nil
-}
-
-func (lc *restLoggingCache) Put(id string, cl *options.CachedLogger) error {
-	return errors.New("operation not supported for remote managers")
-}
-
-func (lc *restLoggingCache) Get(id string) *options.CachedLogger {
-	resp, err := lc.client.doRequest(lc.ctx, http.MethodGet, lc.client.getURL("/logging/%s", id), nil)
-	if err != nil {
-		grip.Debug(errors.Wrap(err, "request returned error"))
-		return nil
-	}
-	defer resp.Body.Close()
-
-	if err = handleError(resp); err != nil {
-		grip.Debug(errors.WithStack(err))
-		return nil
-	}
-
-	out := &options.CachedLogger{}
-	if err = gimlet.GetJSON(resp.Body, out); err != nil {
-		return nil
-	}
-	return out
-}
-
-func (lc *restLoggingCache) Remove(id string) {
-	resp, err := lc.client.doRequest(lc.ctx, http.MethodDelete, lc.client.getURL("/logging/%s", id), nil)
-	if err != nil {
-		grip.Debug(errors.Wrap(err, "request returned error"))
-		return
-	}
-	defer resp.Body.Close()
-
-	grip.Debug(errors.WithStack(handleError(resp)))
-}
-
-func (lc *restLoggingCache) Prune(ts time.Time) {
-	resp, err := lc.client.doRequest(lc.ctx, http.MethodDelete, lc.client.getURL("/logging/prune/%s", ts.Format(time.RFC3339)), nil)
-	if err != nil {
-		grip.Debug(errors.Wrap(err, "request returned error"))
-		return
-	}
-	defer resp.Body.Close()
-
-	grip.Debug(errors.WithStack(handleError(resp)))
-}
-
-func (lc *restLoggingCache) Len() int {
-	resp, err := lc.client.doRequest(lc.ctx, http.MethodGet, lc.client.getURL("/logging/len"), nil)
-	if err != nil {
-		grip.Debug(errors.Wrap(err, "request returned error"))
-		return 0
-	}
-	defer resp.Body.Close()
-
-	if err := handleError(resp); err != nil {
-		grip.Debug(errors.WithStack(err))
-		return 0
-	}
-
-	out := restLoggingCacheLen{}
-	if err = gimlet.GetJSON(resp.Body, &out); err != nil {
-		grip.Debug(errors.Wrap(err, "getting logging cache length from response"))
-		return 0
-	}
-
-	return out.Len
-}
-
-type restProcess struct {
-	id     string
-	client *restClient
-}
-
-func (p *restProcess) ID() string { return p.id }
-
-func (p *restProcess) Info(ctx context.Context) jasper.ProcessInfo {
-	info, err := p.client.getProcessInfo(ctx, p.id)
-	grip.Debug(message.WrapError(err, message.Fields{"process": p.id}))
-	return info
-}
-
-func (p *restProcess) Running(ctx context.Context) bool {
-	info, err := p.client.getProcessInfo(ctx, p.id)
-	grip.Debug(message.WrapError(err, message.Fields{"process": p.id}))
-	return info.IsRunning
-}
-
-func (p *restProcess) Complete(ctx context.Context) bool {
-	info, err := p.client.getProcessInfo(ctx, p.id)
-	grip.Debug(message.WrapError(err, message.Fields{"process": p.id}))
-	return info.Complete
-}
-
-func (p *restProcess) Signal(ctx context.Context, sig syscall.Signal) error {
-	resp, err := p.client.doRequest(ctx, http.MethodPatch, p.client.getURL("/process/%s/signal/%d", p.id, sig), nil)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	return nil
-}
-
-func (p *restProcess) Wait(ctx context.Context) (int, error) {
-	resp, err := p.client.doRequest(ctx, http.MethodGet, p.client.getURL("/process/%s/wait", p.id), nil)
-	if err != nil {
-		return -1, err
-	}
-	defer resp.Body.Close()
-
-	var exitCode int
-	if err = gimlet.GetJSON(resp.Body, &exitCode); err != nil {
-		return -1, errors.Wrap(err, "request returned error")
-	}
-	if exitCode != 0 {
-		return exitCode, errors.New("operation failed")
-	}
-	return exitCode, nil
-}
-
-func (p *restProcess) Respawn(ctx context.Context) (jasper.Process, error) {
-	resp, err := p.client.doRequest(ctx, http.MethodGet, p.client.getURL("/process/%s/respawn", p.id), nil)
-	if err != nil {
-		return nil, errors.Wrap(err, "request returned error")
-	}
-	defer resp.Body.Close()
-
-	info := jasper.ProcessInfo{}
-	if err = gimlet.GetJSON(resp.Body, &info); err != nil {
-		return nil, errors.WithStack(err)
-	}
-
-	return &restProcess{
-		id:     info.ID,
-		client: p.client,
-	}, nil
-}
-
-func (p *restProcess) RegisterTrigger(_ context.Context, _ jasper.ProcessTrigger) error {
-	return errors.New("cannot register triggers on remote processes")
-}
-
-func (p *restProcess) RegisterSignalTrigger(_ context.Context, _ jasper.SignalTrigger) error {
-	return errors.New("cannot register signal trigger on remote processes")
-}
-
-func (p *restProcess) RegisterSignalTriggerID(ctx context.Context, triggerID jasper.SignalTriggerID) error {
-	resp, err := p.client.doRequest(ctx, http.MethodPatch, p.client.getURL("/process/%s/trigger/signal/%s", p.id, triggerID), nil)
-	if err != nil {
-		return errors.Wrap(err, "request returned error")
-	}
-	defer resp.Body.Close()
-
-	return nil
-}
-
-func (p *restProcess) Tag(t string) {
-	resp, err := p.client.doRequest(context.Background(), http.MethodPost, p.client.getURL("/process/%s/tags?add=%s", p.id, t), nil)
-	if err != nil {
-		grip.Debug(message.WrapError(err, message.Fields{
-			"message": "request returned error",
-			"process": p.id,
-		}))
-		return
-	}
-	defer resp.Body.Close()
-}
-
-func (p *restProcess) GetTags() []string {
-	resp, err := p.client.doRequest(context.Background(), http.MethodGet, p.client.getURL("/process/%s/tags", p.id), nil)
-	if err != nil {
-		grip.Debug(message.WrapError(err, message.Fields{
-			"message": "request returned error",
-			"process": p.id,
-		}))
-		return nil
-	}
-	defer resp.Body.Close()
-
-	out := []string{}
-	if err = gimlet.GetJSON(resp.Body, &out); err != nil {
-		grip.Debug(message.WrapError(err, message.Fields{
-			"message": "problem reading tags from response",
-			"process": p.id,
-		}))
-
-		return nil
-	}
-	return out
-}
-
-func (p *restProcess) ResetTags() {
-	resp, err := p.client.doRequest(context.Background(), http.MethodDelete, p.client.getURL("/process/%s/tags", p.id), nil)
-	if err != nil {
-		grip.Debug(message.WrapError(err, message.Fields{
-			"message": "request returned error",
-			"process": p.id,
-		}))
-		return
-	}
-	defer resp.Body.Close()
-}
-
-type restScripting struct {
-	id     string
-	client *restClient
-}
-
-func (s *restScripting) ID() string { return s.id }
-func (s *restScripting) Setup(ctx context.Context) error {
-	resp, err := s.client.doRequest(ctx, http.MethodPost, s.client.getURL("/scripting/%s/setup", s.id), nil)
-	if err != nil {
-		return errors.Wrap(err, "request returned error")
-	}
-	defer resp.Body.Close()
-	return nil
-}
-
-func (s *restScripting) Run(ctx context.Context, args []string) error {
-	body, err := makeBody(struct {
-		Args []string `json:"args"`
-	}{Args: args})
-	if err != nil {
-		return errors.Wrap(err, "problem building request")
-	}
-
-	resp, err := s.client.doRequest(ctx, http.MethodPost, s.client.getURL("/scripting/%s/run", s.id), body)
-	if err != nil {
-		return errors.Wrap(err, "request returned error")
-	}
-	defer resp.Body.Close()
-
-	return nil
-}
-
-func (s *restScripting) RunScript(ctx context.Context, script string) error {
-	resp, err := s.client.doRequest(ctx, http.MethodPost, s.client.getURL("/scripting/%s/script", s.id), bytes.NewBuffer([]byte(script)))
-	if err != nil {
-		return errors.Wrap(err, "request returned error")
-	}
-	defer resp.Body.Close()
-
-	return nil
-}
-
-func (s *restScripting) Build(ctx context.Context, dir string, args []string) (string, error) {
-	body, err := makeBody(struct {
-		Directory string   `json:"directory"`
-		Args      []string `json:"args"`
-	}{Args: args})
-	if err != nil {
-		return "", errors.Wrap(err, "problem building request")
-	}
-
-	resp, err := s.client.doRequest(ctx, http.MethodPost, s.client.getURL("/scripting/%s/build", s.id), body)
-	if err != nil {
-		return "", errors.Wrap(err, "request returned error")
-	}
-	defer resp.Body.Close()
-
-	out := struct {
-		Path string `json:"path"`
-	}{}
-
-	if err = gimlet.GetJSON(resp.Body, &out); err != nil {
-		return "", errors.Wrap(err, "problem reading response")
-	}
-
-	return out.Path, nil
-}
-
-func (s *restScripting) Test(ctx context.Context, dir string, args ...scripting.TestOptions) ([]scripting.TestResult, error) {
-	body, err := makeBody(struct {
-		Directory string                  `json:"directory"`
-		Options   []scripting.TestOptions `json:"options"`
-	}{
-		Directory: dir,
-		Options:   args,
-	})
-
-	if err != nil {
-		return nil, errors.Wrap(err, "problem building request")
-	}
-
-	resp, err := s.client.doRequest(ctx, http.MethodPost, s.client.getURL("/scripting/%s/test", s.id), body)
-	if err != nil {
-		return nil, errors.Wrap(err, "request returned error")
-	}
-	defer resp.Body.Close()
-
-	out := struct {
-		Results []scripting.TestResult `json:"results"`
-		Error   string                 `json:"error"`
-	}{}
-
-	if err = gimlet.GetJSON(resp.Body, &out); err != nil {
-		return nil, errors.Wrap(err, "problem reading response")
-	}
-
-	if out.Error != "" {
-		err = errors.New(out.Error)
-	}
-
-	return out.Results, err
-}
-
-func (s *restScripting) Cleanup(ctx context.Context) error {
-	resp, err := s.client.doRequest(ctx, http.MethodDelete, s.client.getURL("/scripting/%s", s.id), nil)
-	if err != nil {
-		return errors.Wrap(err, "request returned error")
-	}
-	defer resp.Body.Close()
-
-	return nil
 }
