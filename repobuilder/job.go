@@ -223,7 +223,11 @@ func (j *repoBuilderJob) setup() {
 				j.NotaryKey = "richard"
 				j.NotaryToken = os.Getenv("NOTARY_TOKEN_DEB_LEGACY")
 			} else if j.release.IsLTS() || j.release.IsContinuous() {
-				j.NotaryKey = "server-" + j.release.Series()
+				series := j.release.LTS()
+				if series == "" {
+					series = j.release.Series()
+				}
+				j.NotaryKey = "server-" + series
 			} else {
 				j.NotaryKey = "server-" + j.release.StableReleaseSeries()
 			}
