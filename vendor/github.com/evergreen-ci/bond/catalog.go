@@ -151,7 +151,7 @@ func (c *BuildCatalog) String() string {
 // parameters specified does not exist in the cache.
 func (c *BuildCatalog) Get(version, edition, target, arch string, debug bool) (string, error) {
 	if strings.Contains(version, "current") {
-		v, err := c.feed.GetStableRelease(version)
+		v, err := c.feed.GetLatestRelease(version)
 		if err != nil {
 			return "", errors.Wrapf(err,
 				"could not determine current stable release for %s series", version)

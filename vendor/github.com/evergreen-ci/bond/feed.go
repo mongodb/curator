@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -152,21 +151,16 @@ func (feed *ArtifactsFeed) GetLatestArchive(series string, options BuildOptions)
 		return "", errors.Wrapf(err, "problem fetching download information for series '%s'", series)
 	}
 
-	// if it's a dev version: then the branch name is in the file
-	// name, and we just take the latest from master
-	seriesNum, err := strconv.Atoi(string(series[2]))
+	isDev, err := version.isDevelopmentSeries()
 	if err != nil {
-		// this should be unreachable, because invalid
-		// versions won't have yielded results from the feed
-		// op
-		return "", errors.Wrapf(err, "version specification is invalid")
+		return "", errors.Wrap(err, "problem determining version type")
 	}
 
-	if seriesNum%2 == 1 {
+	// If it's a development series, we just replace the version with the word latest.
+	// Otherwise the branch name is in the file name, and we take the latest from the series release.
+	if isDev {
 		return strings.Replace(dl.Archive.URL, version.Version, "latest", -1), nil
 	}
-
-	// if it's a stable version we just replace the version with the word latest.
 	return strings.Replace(dl.Archive.URL, version.Version, "v"+series+"-latest", -1), nil
 }
 
@@ -175,7 +169,7 @@ func (feed *ArtifactsFeed) GetCurrentArchive(series string, options BuildOptions
 	feed.mutex.RLock()
 	defer feed.mutex.RUnlock()
 
-	version, err := feed.GetStableRelease(series)
+	version, err := feed.GetLatestRelease(series)
 	if err != nil {
 		return "", errors.Wrap(err, "could not find version for: "+series)
 	}
@@ -189,8 +183,8 @@ func (feed *ArtifactsFeed) GetCurrentArchive(series string, options BuildOptions
 
 }
 
-// GetStableRelease returns the latest official release for a specific series.
-func (feed *ArtifactsFeed) GetStableRelease(series string) (*ArtifactVersion, error) {
+// GetLatestRelease returns the latest official release for a specific series.
+func (feed *ArtifactsFeed) GetLatestRelease(series string) (*ArtifactVersion, error) {
 	series = coerceSeries(series)
 
 	if series == "2.4" {
