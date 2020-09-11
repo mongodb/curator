@@ -18,7 +18,9 @@ type ArtifactVersion struct {
 
 	ProductionRelease  bool `json:"production_release"`
 	DevelopmentRelease bool `json:"development_release"`
-	Current            bool
+	LTSRelease         bool `json:"lts_release"`
+	ContinuousRelease  bool `json:"continuous_release"`
+	Current            bool `json:"current"`
 
 	table map[BuildOptions]ArtifactDownload
 	mutex sync.RWMutex
@@ -33,6 +35,14 @@ func (version *ArtifactVersion) refresh() {
 	for _, dl := range version.Downloads {
 		version.table[dl.GetBuildOptions()] = dl
 	}
+}
+
+func (version *ArtifactVersion) isDevelopmentSeries() (bool, error) {
+	parsedVersion, err := CreateMongoDBVersion(version.Version)
+	if err != nil {
+		return false, errors.Wrap(err, "could not parse version")
+	}
+	return parsedVersion.IsDevelopmentSeries(), nil
 }
 
 // GetDownload returns a matching ArtifactDownload object

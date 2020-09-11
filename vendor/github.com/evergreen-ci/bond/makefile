@@ -7,27 +7,37 @@ projectPath := $(orgPath)/$(name)
 # end project configuration
 
 
+# start environment setup
+gobin := $(GO_BIN_PATH)
+ifeq ($(gobin),)
+gobin := go
+endif
+gopath := $(GOPATH)
+gocache := $(abspath $(buildDir)/.cache)
+goroot := $(GOROOT)
+ifeq ($(OS),Windows_NT)
+gocache := $(shell cygpath -m $(gocache))
+gopath := $(shell cygpath -m $(gopath))
+goroot := $(shell cygpath -m $(goroot))
+endif
+
+export GOPATH := $(gopath)
+export GOCACHE := $(gocache)
+export GOROOT := $(goroot)
+# end environment setup
+
+
+# Ensure the build directory exists, since most targets require it.
+$(shell mkdir -p $(buildDir))
+
+
 # start linting configuration
-#   package, testing, and linter dependencies specified
-#   separately. This is a temporary solution: eventually we should
-#   vendorize all of these dependencies.
-lintDeps := github.com/alecthomas/gometalinter
-#   include test files and give linters 40s to run to avoid timeouts
-lintArgs := --tests --deadline=1m --vendor
-#   gotype produces false positives because it reads .a files which
-#   are rarely up to date.
-lintArgs += --disable="gotype" --disable="gas" --enable="goimports"
-lintArgs += --skip="$(buildDir)" --skip="buildscripts"
-#  add and configure additional linters
-lintArgs += --line-length=100 --dupl-threshold=175 --cyclo-over=17
-#  two similar functions triggered the duplicate warning, but they're not.
-lintArgs += --exclude="duplicate of registry.go"
-lintArgs += --exclude="don.t use underscores.*_DependencyState.*"
-lintArgs += --exclude="file is not goimported" # test files aren't imported
-#  golint doesn't handle splitting package comments between multiple files.
-lintArgs += --exclude="package comment should be of the form \"Package .* \(golint\)"
-lintArgs += --exclude "error return value not checked \(defer.*"
-# end lint suppressions
+lintDeps := $(buildDir)/golangci-lint $(buildDir)/run-linter
+$(buildDir)/golangci-lint:
+	@curl --retry 10 --retry-max-time 60 -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/76a82c6ed19784036bbf2d4c84d0228ca12381a4/install.sh | sh -s -- -b $(buildDir) v1.30.0 >/dev/null 2>&1
+$(buildDir)/run-linter:cmd/run-linter/run-linter.go $(buildDir)/golangci-lint
+	$(gobin) build -o $@ $<
+# end linting configuration
 
 
 ######################################################################
@@ -41,59 +51,28 @@ lintArgs += --exclude "error return value not checked \(defer.*"
 
 # start dependency installation tools
 #   implementation details for being able to lazily install dependencies
-gopath := $(shell go env GOPATH)
-lintDeps := $(addprefix $(gopath)/src/,$(lintDeps))
 srcFiles := makefile $(shell find . -name "*.go" -not -path "./$(buildDir)/*" -not -name "*_test.go")
-testSrcFiles := makefile $(shell find . -name "*.go" -not -path "./$(buildDir)/*")
 testOutput := $(foreach target,$(packages),$(buildDir)/output.$(target).test)
-raceOutput := $(foreach target,$(packages),$(buildDir)/output.$(target).race)
+lintOutput := $(foreach target,$(packages),$(buildDir)/output.$(target).lint)
 coverageOutput := $(foreach target,$(packages),$(buildDir)/output.$(target).coverage)
 coverageHtmlOutput := $(foreach target,$(packages),$(buildDir)/output.$(target).coverage.html)
-$(gopath)/src/%:
-	@-[ ! -d $(gopath) ] && mkdir -p $(gopath) || true
-	go get $(subst $(gopath)/src/,,$@)
-$(buildDir)/run-linter:buildscripts/run-linter.go $(buildDir)/.lintSetup
-	go build -o $@ $<
-$(buildDir)/.lintSetup:$(lintDeps)
-	@-$(gopath)/bin/gometalinter --install >/dev/null && touch $@
 # end dependency installation tools
 
 
 # userfacing targets for basic build and development operations
-lint:$(buildDir)/output.lint
-build:$(deps) $(srcFiles) $(gopath)/src/$(projectPath)
-	go build $(subst $(name),,$(subst -,/,$(foreach pkg,$(packages),./$(pkg))))
-build-race:$(deps) $(srcFiles) $(gopath)/src/$(projectPath)
-	go build -race $(subst -,/,$(foreach pkg,$(packages),./$(pkg)))
+lint:$(lintOutput)
+build:$(srcFiles)
+	$(gobin) build $(subst $(name),,$(subst -,/,$(foreach pkg,$(packages),./$(pkg))))
 test:$(testOutput)
-race:$(raceOutput)
 coverage:$(coverageOutput)
 coverage-html:$(coverageHtmlOutput)
-phony := lint build build-race race test coverage coverage-html
-phony += deps test-deps lint-deps
-.PRECIOUS: $(testOutput) $(raceOutput) $(coverageOutput) $(coverageHtmlOutput)
+phony := lint build test coverage coverage-html
+.PRECIOUS: $(testOutput) $(coverageOutput) $(lintOutput) $(coverageHtmlOutput)
 # end front-ends
-
-
-# implementation details for building the binary and creating a
-# convienent link in the working directory
-$(gopath)/src/$(orgPath):
-	@mkdir -p $@
-$(gopath)/src/$(projectPath):$(gopath)/src/$(orgPath)
-	@[ -L $@ ] || ln -s $(shell pwd) $@
-$(name):$(buildDir)/$(name)
-	@[ -L $@ ] || ln -s $< $@
-$(buildDir)/$(name):$(gopath)/src/$(projectPath) $(srcFiles) $(deps)
-	go build -o $@ main/$(name).go
-$(buildDir)/$(name).race:$(gopath)/src/$(projectPath) $(srcFiles) $(deps)
-	go build -race -o $@ main/$(name).go
-# end main build
 
 
 # convenience targets for runing tests and coverage tasks on a
 # specific package.
-race-%:$(buildDir)/output.%.race
-	@grep -s -q -e "^PASS" $< && ! grep -s -q "^WARNING: DATA RACE" $<
 test-%:$(buildDir)/output.%.test
 	@grep -s -q -e "^PASS" $<
 coverage-%:$(buildDir)/output.%.coverage
@@ -109,40 +88,32 @@ lint-%:$(buildDir)/output.%.lint
 #    tests have compile and runtime deps. This varable has everything
 #    that the tests actually need to run. (The "build" target is
 #    intentional and makes these targets rerun as expected.)
-testArgs := -test.v --test.timeout=15m
-ifneq (,$(RUN_TEST))
-testArgs += -test.run='$(RUN_TEST)'
+testArgs := -v -timeout=15m
+ifneq (,$(DISABLE_COVERAGE))
+	testArgs += -cover
 endif
-#    to avoid vendoring the coverage tool, install it as needed
-coverDeps := golang.org/x/tools/cmd/cover
-coverDeps := $(addprefix $(gopath)/src/,$(coverDeps))
-#    implementation for package coverage and test running,mongodb to produce
-#    and save test output.
-$(buildDir)/test.%:$(testSrcFiles) $(coverDeps)
-	go test $(if $(DISABLE_COVERAGE),,-covermode=count) -c -o $@ ./$(subst -,/,$*)
-$(buildDir)/race.%:$(testSrcFiles)
-	go test -race -c -o $@ ./$(subst -,/,$*)
-#  targets to run any tests in the top-level package
-$(buildDir)/test.$(name):$(testSrcFiles) $(coverDeps)
-	go test $(if $(DISABLE_COVERAGE),,-covermode=count) -c -o $@ ./
-$(buildDir)/race.$(name):$(testSrcFiles)
-	go test -race -c -o $@ ./
+ifneq (,$(RACE_DETECTOR))
+	testArgs += -race
+endif
+ifneq (,$(RUN_COUNT))
+	testArgs += -run=$(RUN_COUNT)
+endif
+ifneq (,$(RUN_TEST))
+	testArgs += -run='$(RUN_TEST)'
+endif
 #  targets to run the tests and report the output
-$(buildDir)/output.%.test:$(buildDir)/test.% .FORCE
-	$(testRunEnv) ./$< $(testArgs) 2>&1 | tee $@
-$(buildDir)/output.%.race:$(buildDir)/race.% .FORCE
-	$(testRunEnv) ./$< $(testArgs) 2>&1 | tee $@
+$(buildDir)/output.%.test: .FORCE
+	$(gobin) test $(testArgs) ./$(if $(subst $(name),,$*),$(subst -,/,$*),) | tee $@
 #  targets to generate gotest output from the linter.
-$(buildDir)/output.%.lint:$(buildDir)/run-linter $(testSrcFiles) .FORCE
-	@./$< --output=$@ --lintArgs='$(lintArgs)' --packages='$*'
-$(buildDir)/output.lint:$(buildDir)/run-linter .FORCE
-	@./$< --output="$@" --lintArgs='$(lintArgs)' --packages="$(packages)"
+$(buildDir)/output.%.lint:$(buildDir)/run-linter .FORCE
+	@# We have to handle the PATH specially for CI, because if the PATH has a different version of Go in it, it'll break.
+	@$(if $(GO_BIN_PATH), PATH="$(shell dirname $(GO_BIN_PATH)):$(PATH)") ./$< --output=$@ --lintBin=$(buildDir)/golangci-lint --packages='$*'
 #  targets to process and generate coverage reports
-$(buildDir)/output.%.coverage:$(buildDir)/test.% .FORCE $(coverDeps)
-	$(testRunEnv) ./$< $(testArgs) -test.coverprofile=$@ | tee $(subst coverage,test,$@)
-	@-[ -f $@ ] && go tool cover -func=$@ | sed 's%$(projectPath)/%%' | column -t
-$(buildDir)/output.%.coverage.html:$(buildDir)/output.%.coverage $(coverDeps)
-	go tool cover -html=$< -o $@
+$(buildDir)/output.%.coverage:$(buildDir)/output.%.test .FORCE
+	$(gobin) test -covermode=count -coverprofile $@ | tee $(subst coverage,test,$@)
+	@-[ -f $@ ] && $(gobin) tool cover -func=$@ | sed 's%$(projectPath)/%%' | column -t
+$(buildDir)/output.%.coverage.html:$(buildDir)/output.%.coverage
+	$(gobin) tool cover -html=$< -o $@
 # end test and coverage artifacts
 
 
@@ -162,7 +133,9 @@ phony += vendor-clean
 
 # clean and other utility targets
 clean:
-	rm -rf $(name) $(lintDeps) $(buildDir)/test.* $(buildDir)/coverage.* $(buildDir)/race.*
+	rm -rf $(lintDeps)
+clean-results:
+	rm -rf $(buildDir)/output.*
 phony += clean
 # end dependency targets
 
