@@ -3,17 +3,22 @@
 package rekognition
 
 import (
+	"fmt"
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/private/protocol"
+	"github.com/aws/aws-sdk-go/private/protocol/jsonrpc"
 )
 
 const opCompareFaces = "CompareFaces"
 
 // CompareFacesRequest generates a "aws/request.Request" representing the
 // client's request for the CompareFaces operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -50,11 +55,16 @@ func (c *Rekognition) CompareFacesRequest(input *CompareFacesInput) (req *reques
 
 // CompareFaces API operation for Amazon Rekognition.
 //
-// Compares a face in the source input image with each face detected in the
-// target input image.
+// Compares a face in the source input image with each of the 100 largest faces
+// detected in the target input image.
 //
 // If the source image contains multiple faces, the service detects the largest
 // face and compares it with each face detected in the target image.
+//
+// You pass the input and target images either as base64-encoded image bytes
+// or as references to images in an Amazon S3 bucket. If you use the AWS CLI
+// to call Amazon Rekognition operations, passing image bytes isn't supported.
+// The image must be formatted as a PNG or JPEG file.
 //
 // In response, the operation returns an array of face matches ordered by similarity
 // score in descending order. For each face match, the response provides a bounding
@@ -73,14 +83,28 @@ func (c *Rekognition) CompareFacesRequest(input *CompareFacesInput) (req *reques
 // in the source image, including the bounding box of the face and confidence
 // value.
 //
+// The QualityFilter input parameter allows you to filter out detected faces
+// that don’t meet a required quality bar. The quality bar is based on a variety
+// of common use cases. Use QualityFilter to set the quality bar by specifying
+// LOW, MEDIUM, or HIGH. If you do not want to filter detected faces, specify
+// NONE. The default value is NONE.
+//
+// To use quality filtering, you need a collection associated with version 3
+// of the face model or higher. To get the version of the face model associated
+// with a collection, call DescribeCollection.
+//
 // If the image doesn't contain Exif metadata, CompareFaces returns orientation
 // information for the source and target images. Use these values to display
 // the images with the correct image orientation.
 //
+// If no faces are detected in the source or target images, CompareFaces returns
+// an InvalidParameterException error.
+//
 // This is a stateless API operation. That is, data returned by this operation
 // doesn't persist.
 //
-// For an example, see get-started-exercise-compare-faces.
+// For an example, see Comparing Faces in Images in the Amazon Rekognition Developer
+// Guide.
 //
 // This operation requires permissions to perform the rekognition:CompareFaces
 // action.
@@ -92,33 +116,33 @@ func (c *Rekognition) CompareFacesRequest(input *CompareFacesInput) (req *reques
 // See the AWS API reference guide for Amazon Rekognition's
 // API operation CompareFaces for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+// Returned Error Types:
+//   * InvalidParameterException
 //   Input parameter violated a constraint. Validate your parameter before calling
 //   the API operation again.
 //
-//   * ErrCodeInvalidS3ObjectException "InvalidS3ObjectException"
+//   * InvalidS3ObjectException
 //   Amazon Rekognition is unable to access the S3 object specified in the request.
 //
-//   * ErrCodeImageTooLargeException "ImageTooLargeException"
+//   * ImageTooLargeException
 //   The input image size exceeds the allowed limit. For more information, see
-//   limits.
+//   Limits in Amazon Rekognition in the Amazon Rekognition Developer Guide.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   You are not authorized to perform the action.
 //
-//   * ErrCodeInternalServerError "InternalServerError"
+//   * InternalServerError
 //   Amazon Rekognition experienced a service issue. Try your call again.
 //
-//   * ErrCodeThrottlingException "ThrottlingException"
+//   * ThrottlingException
 //   Amazon Rekognition is temporarily unable to process the request. Try your
 //   call again.
 //
-//   * ErrCodeProvisionedThroughputExceededException "ProvisionedThroughputExceededException"
+//   * ProvisionedThroughputExceededException
 //   The number of requests exceeded your throughput limit. If you want to increase
 //   this limit, contact Amazon Rekognition.
 //
-//   * ErrCodeInvalidImageFormatException "InvalidImageFormatException"
+//   * InvalidImageFormatException
 //   The provided image format is not supported.
 //
 func (c *Rekognition) CompareFaces(input *CompareFacesInput) (*CompareFacesOutput, error) {
@@ -146,8 +170,8 @@ const opCreateCollection = "CreateCollection"
 
 // CreateCollectionRequest generates a "aws/request.Request" representing the
 // client's request for the CreateCollection operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -185,16 +209,17 @@ func (c *Rekognition) CreateCollectionRequest(input *CreateCollectionInput) (req
 // CreateCollection API operation for Amazon Rekognition.
 //
 // Creates a collection in an AWS Region. You can add faces to the collection
-// using the operation.
+// using the IndexFaces operation.
 //
 // For example, you might create collections, one for each of your application
 // users. A user can then index faces using the IndexFaces operation and persist
 // results in a specific collection. Then, a user can search the collection
 // for faces in the user-specific container.
 //
-// Collection names are case-sensitive.
+// When you create a collection, it is associated with the latest version of
+// the face model version.
 //
-// For an example, see example1.
+// Collection names are case-sensitive.
 //
 // This operation requires permissions to perform the rekognition:CreateCollection
 // action.
@@ -206,26 +231,26 @@ func (c *Rekognition) CreateCollectionRequest(input *CreateCollectionInput) (req
 // See the AWS API reference guide for Amazon Rekognition's
 // API operation CreateCollection for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+// Returned Error Types:
+//   * InvalidParameterException
 //   Input parameter violated a constraint. Validate your parameter before calling
 //   the API operation again.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   You are not authorized to perform the action.
 //
-//   * ErrCodeInternalServerError "InternalServerError"
+//   * InternalServerError
 //   Amazon Rekognition experienced a service issue. Try your call again.
 //
-//   * ErrCodeThrottlingException "ThrottlingException"
+//   * ThrottlingException
 //   Amazon Rekognition is temporarily unable to process the request. Try your
 //   call again.
 //
-//   * ErrCodeProvisionedThroughputExceededException "ProvisionedThroughputExceededException"
+//   * ProvisionedThroughputExceededException
 //   The number of requests exceeded your throughput limit. If you want to increase
 //   this limit, contact Amazon Rekognition.
 //
-//   * ErrCodeResourceAlreadyExistsException "ResourceAlreadyExistsException"
+//   * ResourceAlreadyExistsException
 //   A collection with the specified ID already exists.
 //
 func (c *Rekognition) CreateCollection(input *CreateCollectionInput) (*CreateCollectionOutput, error) {
@@ -249,12 +274,352 @@ func (c *Rekognition) CreateCollectionWithContext(ctx aws.Context, input *Create
 	return out, req.Send()
 }
 
+const opCreateProject = "CreateProject"
+
+// CreateProjectRequest generates a "aws/request.Request" representing the
+// client's request for the CreateProject operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See CreateProject for more information on using the CreateProject
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the CreateProjectRequest method.
+//    req, resp := client.CreateProjectRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+func (c *Rekognition) CreateProjectRequest(input *CreateProjectInput) (req *request.Request, output *CreateProjectOutput) {
+	op := &request.Operation{
+		Name:       opCreateProject,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &CreateProjectInput{}
+	}
+
+	output = &CreateProjectOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// CreateProject API operation for Amazon Rekognition.
+//
+// Creates a new Amazon Rekognition Custom Labels project. A project is a logical
+// grouping of resources (images, Labels, models) and operations (training,
+// evaluation and detection).
+//
+// This operation requires permissions to perform the rekognition:CreateProject
+// action.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Rekognition's
+// API operation CreateProject for usage and error information.
+//
+// Returned Error Types:
+//   * ResourceInUseException
+//   The specified resource is already being used.
+//
+//   * LimitExceededException
+//   An Amazon Rekognition service limit was exceeded. For example, if you start
+//   too many Amazon Rekognition Video jobs concurrently, calls to start operations
+//   (StartLabelDetection, for example) will raise a LimitExceededException exception
+//   (HTTP status code: 400) until the number of concurrently running jobs is
+//   below the Amazon Rekognition service limit.
+//
+//   * InvalidParameterException
+//   Input parameter violated a constraint. Validate your parameter before calling
+//   the API operation again.
+//
+//   * AccessDeniedException
+//   You are not authorized to perform the action.
+//
+//   * InternalServerError
+//   Amazon Rekognition experienced a service issue. Try your call again.
+//
+//   * ThrottlingException
+//   Amazon Rekognition is temporarily unable to process the request. Try your
+//   call again.
+//
+//   * ProvisionedThroughputExceededException
+//   The number of requests exceeded your throughput limit. If you want to increase
+//   this limit, contact Amazon Rekognition.
+//
+func (c *Rekognition) CreateProject(input *CreateProjectInput) (*CreateProjectOutput, error) {
+	req, out := c.CreateProjectRequest(input)
+	return out, req.Send()
+}
+
+// CreateProjectWithContext is the same as CreateProject with the addition of
+// the ability to pass a context and additional request options.
+//
+// See CreateProject for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Rekognition) CreateProjectWithContext(ctx aws.Context, input *CreateProjectInput, opts ...request.Option) (*CreateProjectOutput, error) {
+	req, out := c.CreateProjectRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opCreateProjectVersion = "CreateProjectVersion"
+
+// CreateProjectVersionRequest generates a "aws/request.Request" representing the
+// client's request for the CreateProjectVersion operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See CreateProjectVersion for more information on using the CreateProjectVersion
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the CreateProjectVersionRequest method.
+//    req, resp := client.CreateProjectVersionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+func (c *Rekognition) CreateProjectVersionRequest(input *CreateProjectVersionInput) (req *request.Request, output *CreateProjectVersionOutput) {
+	op := &request.Operation{
+		Name:       opCreateProjectVersion,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &CreateProjectVersionInput{}
+	}
+
+	output = &CreateProjectVersionOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// CreateProjectVersion API operation for Amazon Rekognition.
+//
+// Creates a new version of a model and begins training. Models are managed
+// as part of an Amazon Rekognition Custom Labels project. You can specify one
+// training dataset and one testing dataset. The response from CreateProjectVersion
+// is an Amazon Resource Name (ARN) for the version of the model.
+//
+// Training takes a while to complete. You can get the current status by calling
+// DescribeProjectVersions.
+//
+// Once training has successfully completed, call DescribeProjectVersions to
+// get the training results and evaluate the model.
+//
+// After evaluating the model, you start the model by calling StartProjectVersion.
+//
+// This operation requires permissions to perform the rekognition:CreateProjectVersion
+// action.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Rekognition's
+// API operation CreateProjectVersion for usage and error information.
+//
+// Returned Error Types:
+//   * ResourceInUseException
+//   The specified resource is already being used.
+//
+//   * ResourceNotFoundException
+//   The collection specified in the request cannot be found.
+//
+//   * LimitExceededException
+//   An Amazon Rekognition service limit was exceeded. For example, if you start
+//   too many Amazon Rekognition Video jobs concurrently, calls to start operations
+//   (StartLabelDetection, for example) will raise a LimitExceededException exception
+//   (HTTP status code: 400) until the number of concurrently running jobs is
+//   below the Amazon Rekognition service limit.
+//
+//   * InvalidParameterException
+//   Input parameter violated a constraint. Validate your parameter before calling
+//   the API operation again.
+//
+//   * AccessDeniedException
+//   You are not authorized to perform the action.
+//
+//   * InternalServerError
+//   Amazon Rekognition experienced a service issue. Try your call again.
+//
+//   * ThrottlingException
+//   Amazon Rekognition is temporarily unable to process the request. Try your
+//   call again.
+//
+//   * ProvisionedThroughputExceededException
+//   The number of requests exceeded your throughput limit. If you want to increase
+//   this limit, contact Amazon Rekognition.
+//
+func (c *Rekognition) CreateProjectVersion(input *CreateProjectVersionInput) (*CreateProjectVersionOutput, error) {
+	req, out := c.CreateProjectVersionRequest(input)
+	return out, req.Send()
+}
+
+// CreateProjectVersionWithContext is the same as CreateProjectVersion with the addition of
+// the ability to pass a context and additional request options.
+//
+// See CreateProjectVersion for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Rekognition) CreateProjectVersionWithContext(ctx aws.Context, input *CreateProjectVersionInput, opts ...request.Option) (*CreateProjectVersionOutput, error) {
+	req, out := c.CreateProjectVersionRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opCreateStreamProcessor = "CreateStreamProcessor"
+
+// CreateStreamProcessorRequest generates a "aws/request.Request" representing the
+// client's request for the CreateStreamProcessor operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See CreateStreamProcessor for more information on using the CreateStreamProcessor
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the CreateStreamProcessorRequest method.
+//    req, resp := client.CreateStreamProcessorRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+func (c *Rekognition) CreateStreamProcessorRequest(input *CreateStreamProcessorInput) (req *request.Request, output *CreateStreamProcessorOutput) {
+	op := &request.Operation{
+		Name:       opCreateStreamProcessor,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &CreateStreamProcessorInput{}
+	}
+
+	output = &CreateStreamProcessorOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// CreateStreamProcessor API operation for Amazon Rekognition.
+//
+// Creates an Amazon Rekognition stream processor that you can use to detect
+// and recognize faces in a streaming video.
+//
+// Amazon Rekognition Video is a consumer of live video from Amazon Kinesis
+// Video Streams. Amazon Rekognition Video sends analysis results to Amazon
+// Kinesis Data Streams.
+//
+// You provide as input a Kinesis video stream (Input) and a Kinesis data stream
+// (Output) stream. You also specify the face recognition criteria in Settings.
+// For example, the collection containing faces that you want to recognize.
+// Use Name to assign an identifier for the stream processor. You use Name to
+// manage the stream processor. For example, you can start processing the source
+// video by calling StartStreamProcessor with the Name field.
+//
+// After you have finished analyzing a streaming video, use StopStreamProcessor
+// to stop processing. You can delete the stream processor by calling DeleteStreamProcessor.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Rekognition's
+// API operation CreateStreamProcessor for usage and error information.
+//
+// Returned Error Types:
+//   * AccessDeniedException
+//   You are not authorized to perform the action.
+//
+//   * InternalServerError
+//   Amazon Rekognition experienced a service issue. Try your call again.
+//
+//   * ThrottlingException
+//   Amazon Rekognition is temporarily unable to process the request. Try your
+//   call again.
+//
+//   * InvalidParameterException
+//   Input parameter violated a constraint. Validate your parameter before calling
+//   the API operation again.
+//
+//   * LimitExceededException
+//   An Amazon Rekognition service limit was exceeded. For example, if you start
+//   too many Amazon Rekognition Video jobs concurrently, calls to start operations
+//   (StartLabelDetection, for example) will raise a LimitExceededException exception
+//   (HTTP status code: 400) until the number of concurrently running jobs is
+//   below the Amazon Rekognition service limit.
+//
+//   * ResourceInUseException
+//   The specified resource is already being used.
+//
+//   * ProvisionedThroughputExceededException
+//   The number of requests exceeded your throughput limit. If you want to increase
+//   this limit, contact Amazon Rekognition.
+//
+func (c *Rekognition) CreateStreamProcessor(input *CreateStreamProcessorInput) (*CreateStreamProcessorOutput, error) {
+	req, out := c.CreateStreamProcessorRequest(input)
+	return out, req.Send()
+}
+
+// CreateStreamProcessorWithContext is the same as CreateStreamProcessor with the addition of
+// the ability to pass a context and additional request options.
+//
+// See CreateStreamProcessor for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Rekognition) CreateStreamProcessorWithContext(ctx aws.Context, input *CreateStreamProcessorInput, opts ...request.Option) (*CreateStreamProcessorOutput, error) {
+	req, out := c.CreateStreamProcessorRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opDeleteCollection = "DeleteCollection"
 
 // DeleteCollectionRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteCollection operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -292,7 +657,7 @@ func (c *Rekognition) DeleteCollectionRequest(input *DeleteCollectionInput) (req
 // DeleteCollection API operation for Amazon Rekognition.
 //
 // Deletes the specified collection. Note that this operation removes all faces
-// in the collection. For an example, see example1.
+// in the collection. For an example, see delete-collection-procedure.
 //
 // This operation requires permissions to perform the rekognition:DeleteCollection
 // action.
@@ -304,27 +669,27 @@ func (c *Rekognition) DeleteCollectionRequest(input *DeleteCollectionInput) (req
 // See the AWS API reference guide for Amazon Rekognition's
 // API operation DeleteCollection for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+// Returned Error Types:
+//   * InvalidParameterException
 //   Input parameter violated a constraint. Validate your parameter before calling
 //   the API operation again.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   You are not authorized to perform the action.
 //
-//   * ErrCodeInternalServerError "InternalServerError"
+//   * InternalServerError
 //   Amazon Rekognition experienced a service issue. Try your call again.
 //
-//   * ErrCodeThrottlingException "ThrottlingException"
+//   * ThrottlingException
 //   Amazon Rekognition is temporarily unable to process the request. Try your
 //   call again.
 //
-//   * ErrCodeProvisionedThroughputExceededException "ProvisionedThroughputExceededException"
+//   * ProvisionedThroughputExceededException
 //   The number of requests exceeded your throughput limit. If you want to increase
 //   this limit, contact Amazon Rekognition.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   Collection specified in the request is not found.
+//   * ResourceNotFoundException
+//   The collection specified in the request cannot be found.
 //
 func (c *Rekognition) DeleteCollection(input *DeleteCollectionInput) (*DeleteCollectionOutput, error) {
 	req, out := c.DeleteCollectionRequest(input)
@@ -351,8 +716,8 @@ const opDeleteFaces = "DeleteFaces"
 
 // DeleteFacesRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteFaces operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -402,27 +767,27 @@ func (c *Rekognition) DeleteFacesRequest(input *DeleteFacesInput) (req *request.
 // See the AWS API reference guide for Amazon Rekognition's
 // API operation DeleteFaces for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+// Returned Error Types:
+//   * InvalidParameterException
 //   Input parameter violated a constraint. Validate your parameter before calling
 //   the API operation again.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   You are not authorized to perform the action.
 //
-//   * ErrCodeInternalServerError "InternalServerError"
+//   * InternalServerError
 //   Amazon Rekognition experienced a service issue. Try your call again.
 //
-//   * ErrCodeThrottlingException "ThrottlingException"
+//   * ThrottlingException
 //   Amazon Rekognition is temporarily unable to process the request. Try your
 //   call again.
 //
-//   * ErrCodeProvisionedThroughputExceededException "ProvisionedThroughputExceededException"
+//   * ProvisionedThroughputExceededException
 //   The number of requests exceeded your throughput limit. If you want to increase
 //   this limit, contact Amazon Rekognition.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   Collection specified in the request is not found.
+//   * ResourceNotFoundException
+//   The collection specified in the request cannot be found.
 //
 func (c *Rekognition) DeleteFaces(input *DeleteFacesInput) (*DeleteFacesOutput, error) {
 	req, out := c.DeleteFacesRequest(input)
@@ -445,12 +810,978 @@ func (c *Rekognition) DeleteFacesWithContext(ctx aws.Context, input *DeleteFaces
 	return out, req.Send()
 }
 
+const opDeleteProject = "DeleteProject"
+
+// DeleteProjectRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteProject operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteProject for more information on using the DeleteProject
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DeleteProjectRequest method.
+//    req, resp := client.DeleteProjectRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+func (c *Rekognition) DeleteProjectRequest(input *DeleteProjectInput) (req *request.Request, output *DeleteProjectOutput) {
+	op := &request.Operation{
+		Name:       opDeleteProject,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeleteProjectInput{}
+	}
+
+	output = &DeleteProjectOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DeleteProject API operation for Amazon Rekognition.
+//
+// Deletes an Amazon Rekognition Custom Labels project. To delete a project
+// you must first delete all models associated with the project. To delete a
+// model, see DeleteProjectVersion.
+//
+// This operation requires permissions to perform the rekognition:DeleteProject
+// action.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Rekognition's
+// API operation DeleteProject for usage and error information.
+//
+// Returned Error Types:
+//   * ResourceInUseException
+//   The specified resource is already being used.
+//
+//   * ResourceNotFoundException
+//   The collection specified in the request cannot be found.
+//
+//   * InvalidParameterException
+//   Input parameter violated a constraint. Validate your parameter before calling
+//   the API operation again.
+//
+//   * AccessDeniedException
+//   You are not authorized to perform the action.
+//
+//   * InternalServerError
+//   Amazon Rekognition experienced a service issue. Try your call again.
+//
+//   * ThrottlingException
+//   Amazon Rekognition is temporarily unable to process the request. Try your
+//   call again.
+//
+//   * ProvisionedThroughputExceededException
+//   The number of requests exceeded your throughput limit. If you want to increase
+//   this limit, contact Amazon Rekognition.
+//
+func (c *Rekognition) DeleteProject(input *DeleteProjectInput) (*DeleteProjectOutput, error) {
+	req, out := c.DeleteProjectRequest(input)
+	return out, req.Send()
+}
+
+// DeleteProjectWithContext is the same as DeleteProject with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteProject for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Rekognition) DeleteProjectWithContext(ctx aws.Context, input *DeleteProjectInput, opts ...request.Option) (*DeleteProjectOutput, error) {
+	req, out := c.DeleteProjectRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDeleteProjectVersion = "DeleteProjectVersion"
+
+// DeleteProjectVersionRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteProjectVersion operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteProjectVersion for more information on using the DeleteProjectVersion
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DeleteProjectVersionRequest method.
+//    req, resp := client.DeleteProjectVersionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+func (c *Rekognition) DeleteProjectVersionRequest(input *DeleteProjectVersionInput) (req *request.Request, output *DeleteProjectVersionOutput) {
+	op := &request.Operation{
+		Name:       opDeleteProjectVersion,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeleteProjectVersionInput{}
+	}
+
+	output = &DeleteProjectVersionOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DeleteProjectVersion API operation for Amazon Rekognition.
+//
+// Deletes an Amazon Rekognition Custom Labels model.
+//
+// You can't delete a model if it is running or if it is training. To check
+// the status of a model, use the Status field returned from DescribeProjectVersions.
+// To stop a running model call StopProjectVersion. If the model is training,
+// wait until it finishes.
+//
+// This operation requires permissions to perform the rekognition:DeleteProjectVersion
+// action.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Rekognition's
+// API operation DeleteProjectVersion for usage and error information.
+//
+// Returned Error Types:
+//   * ResourceNotFoundException
+//   The collection specified in the request cannot be found.
+//
+//   * ResourceInUseException
+//   The specified resource is already being used.
+//
+//   * InvalidParameterException
+//   Input parameter violated a constraint. Validate your parameter before calling
+//   the API operation again.
+//
+//   * AccessDeniedException
+//   You are not authorized to perform the action.
+//
+//   * InternalServerError
+//   Amazon Rekognition experienced a service issue. Try your call again.
+//
+//   * ThrottlingException
+//   Amazon Rekognition is temporarily unable to process the request. Try your
+//   call again.
+//
+//   * ProvisionedThroughputExceededException
+//   The number of requests exceeded your throughput limit. If you want to increase
+//   this limit, contact Amazon Rekognition.
+//
+func (c *Rekognition) DeleteProjectVersion(input *DeleteProjectVersionInput) (*DeleteProjectVersionOutput, error) {
+	req, out := c.DeleteProjectVersionRequest(input)
+	return out, req.Send()
+}
+
+// DeleteProjectVersionWithContext is the same as DeleteProjectVersion with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteProjectVersion for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Rekognition) DeleteProjectVersionWithContext(ctx aws.Context, input *DeleteProjectVersionInput, opts ...request.Option) (*DeleteProjectVersionOutput, error) {
+	req, out := c.DeleteProjectVersionRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDeleteStreamProcessor = "DeleteStreamProcessor"
+
+// DeleteStreamProcessorRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteStreamProcessor operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteStreamProcessor for more information on using the DeleteStreamProcessor
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DeleteStreamProcessorRequest method.
+//    req, resp := client.DeleteStreamProcessorRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+func (c *Rekognition) DeleteStreamProcessorRequest(input *DeleteStreamProcessorInput) (req *request.Request, output *DeleteStreamProcessorOutput) {
+	op := &request.Operation{
+		Name:       opDeleteStreamProcessor,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeleteStreamProcessorInput{}
+	}
+
+	output = &DeleteStreamProcessorOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// DeleteStreamProcessor API operation for Amazon Rekognition.
+//
+// Deletes the stream processor identified by Name. You assign the value for
+// Name when you create the stream processor with CreateStreamProcessor. You
+// might not be able to use the same name for a stream processor for a few seconds
+// after calling DeleteStreamProcessor.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Rekognition's
+// API operation DeleteStreamProcessor for usage and error information.
+//
+// Returned Error Types:
+//   * AccessDeniedException
+//   You are not authorized to perform the action.
+//
+//   * InternalServerError
+//   Amazon Rekognition experienced a service issue. Try your call again.
+//
+//   * ThrottlingException
+//   Amazon Rekognition is temporarily unable to process the request. Try your
+//   call again.
+//
+//   * InvalidParameterException
+//   Input parameter violated a constraint. Validate your parameter before calling
+//   the API operation again.
+//
+//   * ResourceNotFoundException
+//   The collection specified in the request cannot be found.
+//
+//   * ResourceInUseException
+//   The specified resource is already being used.
+//
+//   * ProvisionedThroughputExceededException
+//   The number of requests exceeded your throughput limit. If you want to increase
+//   this limit, contact Amazon Rekognition.
+//
+func (c *Rekognition) DeleteStreamProcessor(input *DeleteStreamProcessorInput) (*DeleteStreamProcessorOutput, error) {
+	req, out := c.DeleteStreamProcessorRequest(input)
+	return out, req.Send()
+}
+
+// DeleteStreamProcessorWithContext is the same as DeleteStreamProcessor with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteStreamProcessor for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Rekognition) DeleteStreamProcessorWithContext(ctx aws.Context, input *DeleteStreamProcessorInput, opts ...request.Option) (*DeleteStreamProcessorOutput, error) {
+	req, out := c.DeleteStreamProcessorRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDescribeCollection = "DescribeCollection"
+
+// DescribeCollectionRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeCollection operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeCollection for more information on using the DescribeCollection
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DescribeCollectionRequest method.
+//    req, resp := client.DescribeCollectionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+func (c *Rekognition) DescribeCollectionRequest(input *DescribeCollectionInput) (req *request.Request, output *DescribeCollectionOutput) {
+	op := &request.Operation{
+		Name:       opDescribeCollection,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeCollectionInput{}
+	}
+
+	output = &DescribeCollectionOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeCollection API operation for Amazon Rekognition.
+//
+// Describes the specified collection. You can use DescribeCollection to get
+// information, such as the number of faces indexed into a collection and the
+// version of the model used by the collection for face detection.
+//
+// For more information, see Describing a Collection in the Amazon Rekognition
+// Developer Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Rekognition's
+// API operation DescribeCollection for usage and error information.
+//
+// Returned Error Types:
+//   * InvalidParameterException
+//   Input parameter violated a constraint. Validate your parameter before calling
+//   the API operation again.
+//
+//   * AccessDeniedException
+//   You are not authorized to perform the action.
+//
+//   * InternalServerError
+//   Amazon Rekognition experienced a service issue. Try your call again.
+//
+//   * ThrottlingException
+//   Amazon Rekognition is temporarily unable to process the request. Try your
+//   call again.
+//
+//   * ProvisionedThroughputExceededException
+//   The number of requests exceeded your throughput limit. If you want to increase
+//   this limit, contact Amazon Rekognition.
+//
+//   * ResourceNotFoundException
+//   The collection specified in the request cannot be found.
+//
+func (c *Rekognition) DescribeCollection(input *DescribeCollectionInput) (*DescribeCollectionOutput, error) {
+	req, out := c.DescribeCollectionRequest(input)
+	return out, req.Send()
+}
+
+// DescribeCollectionWithContext is the same as DescribeCollection with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeCollection for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Rekognition) DescribeCollectionWithContext(ctx aws.Context, input *DescribeCollectionInput, opts ...request.Option) (*DescribeCollectionOutput, error) {
+	req, out := c.DescribeCollectionRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDescribeProjectVersions = "DescribeProjectVersions"
+
+// DescribeProjectVersionsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeProjectVersions operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeProjectVersions for more information on using the DescribeProjectVersions
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DescribeProjectVersionsRequest method.
+//    req, resp := client.DescribeProjectVersionsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+func (c *Rekognition) DescribeProjectVersionsRequest(input *DescribeProjectVersionsInput) (req *request.Request, output *DescribeProjectVersionsOutput) {
+	op := &request.Operation{
+		Name:       opDescribeProjectVersions,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"NextToken"},
+			OutputTokens:    []string{"NextToken"},
+			LimitToken:      "MaxResults",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &DescribeProjectVersionsInput{}
+	}
+
+	output = &DescribeProjectVersionsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeProjectVersions API operation for Amazon Rekognition.
+//
+// Lists and describes the models in an Amazon Rekognition Custom Labels project.
+// You can specify up to 10 model versions in ProjectVersionArns. If you don't
+// specify a value, descriptions for all models are returned.
+//
+// This operation requires permissions to perform the rekognition:DescribeProjectVersions
+// action.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Rekognition's
+// API operation DescribeProjectVersions for usage and error information.
+//
+// Returned Error Types:
+//   * ResourceNotFoundException
+//   The collection specified in the request cannot be found.
+//
+//   * InvalidPaginationTokenException
+//   Pagination token in the request is not valid.
+//
+//   * InvalidParameterException
+//   Input parameter violated a constraint. Validate your parameter before calling
+//   the API operation again.
+//
+//   * AccessDeniedException
+//   You are not authorized to perform the action.
+//
+//   * InternalServerError
+//   Amazon Rekognition experienced a service issue. Try your call again.
+//
+//   * ThrottlingException
+//   Amazon Rekognition is temporarily unable to process the request. Try your
+//   call again.
+//
+//   * ProvisionedThroughputExceededException
+//   The number of requests exceeded your throughput limit. If you want to increase
+//   this limit, contact Amazon Rekognition.
+//
+func (c *Rekognition) DescribeProjectVersions(input *DescribeProjectVersionsInput) (*DescribeProjectVersionsOutput, error) {
+	req, out := c.DescribeProjectVersionsRequest(input)
+	return out, req.Send()
+}
+
+// DescribeProjectVersionsWithContext is the same as DescribeProjectVersions with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeProjectVersions for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Rekognition) DescribeProjectVersionsWithContext(ctx aws.Context, input *DescribeProjectVersionsInput, opts ...request.Option) (*DescribeProjectVersionsOutput, error) {
+	req, out := c.DescribeProjectVersionsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+// DescribeProjectVersionsPages iterates over the pages of a DescribeProjectVersions operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeProjectVersions method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeProjectVersions operation.
+//    pageNum := 0
+//    err := client.DescribeProjectVersionsPages(params,
+//        func(page *rekognition.DescribeProjectVersionsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *Rekognition) DescribeProjectVersionsPages(input *DescribeProjectVersionsInput, fn func(*DescribeProjectVersionsOutput, bool) bool) error {
+	return c.DescribeProjectVersionsPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// DescribeProjectVersionsPagesWithContext same as DescribeProjectVersionsPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Rekognition) DescribeProjectVersionsPagesWithContext(ctx aws.Context, input *DescribeProjectVersionsInput, fn func(*DescribeProjectVersionsOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *DescribeProjectVersionsInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.DescribeProjectVersionsRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	for p.Next() {
+		if !fn(p.Page().(*DescribeProjectVersionsOutput), !p.HasNextPage()) {
+			break
+		}
+	}
+
+	return p.Err()
+}
+
+const opDescribeProjects = "DescribeProjects"
+
+// DescribeProjectsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeProjects operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeProjects for more information on using the DescribeProjects
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DescribeProjectsRequest method.
+//    req, resp := client.DescribeProjectsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+func (c *Rekognition) DescribeProjectsRequest(input *DescribeProjectsInput) (req *request.Request, output *DescribeProjectsOutput) {
+	op := &request.Operation{
+		Name:       opDescribeProjects,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"NextToken"},
+			OutputTokens:    []string{"NextToken"},
+			LimitToken:      "MaxResults",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &DescribeProjectsInput{}
+	}
+
+	output = &DescribeProjectsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeProjects API operation for Amazon Rekognition.
+//
+// Lists and gets information about your Amazon Rekognition Custom Labels projects.
+//
+// This operation requires permissions to perform the rekognition:DescribeProjects
+// action.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Rekognition's
+// API operation DescribeProjects for usage and error information.
+//
+// Returned Error Types:
+//   * InvalidPaginationTokenException
+//   Pagination token in the request is not valid.
+//
+//   * InvalidParameterException
+//   Input parameter violated a constraint. Validate your parameter before calling
+//   the API operation again.
+//
+//   * AccessDeniedException
+//   You are not authorized to perform the action.
+//
+//   * InternalServerError
+//   Amazon Rekognition experienced a service issue. Try your call again.
+//
+//   * ThrottlingException
+//   Amazon Rekognition is temporarily unable to process the request. Try your
+//   call again.
+//
+//   * ProvisionedThroughputExceededException
+//   The number of requests exceeded your throughput limit. If you want to increase
+//   this limit, contact Amazon Rekognition.
+//
+func (c *Rekognition) DescribeProjects(input *DescribeProjectsInput) (*DescribeProjectsOutput, error) {
+	req, out := c.DescribeProjectsRequest(input)
+	return out, req.Send()
+}
+
+// DescribeProjectsWithContext is the same as DescribeProjects with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeProjects for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Rekognition) DescribeProjectsWithContext(ctx aws.Context, input *DescribeProjectsInput, opts ...request.Option) (*DescribeProjectsOutput, error) {
+	req, out := c.DescribeProjectsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+// DescribeProjectsPages iterates over the pages of a DescribeProjects operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeProjects method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeProjects operation.
+//    pageNum := 0
+//    err := client.DescribeProjectsPages(params,
+//        func(page *rekognition.DescribeProjectsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *Rekognition) DescribeProjectsPages(input *DescribeProjectsInput, fn func(*DescribeProjectsOutput, bool) bool) error {
+	return c.DescribeProjectsPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// DescribeProjectsPagesWithContext same as DescribeProjectsPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Rekognition) DescribeProjectsPagesWithContext(ctx aws.Context, input *DescribeProjectsInput, fn func(*DescribeProjectsOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *DescribeProjectsInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.DescribeProjectsRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	for p.Next() {
+		if !fn(p.Page().(*DescribeProjectsOutput), !p.HasNextPage()) {
+			break
+		}
+	}
+
+	return p.Err()
+}
+
+const opDescribeStreamProcessor = "DescribeStreamProcessor"
+
+// DescribeStreamProcessorRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeStreamProcessor operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeStreamProcessor for more information on using the DescribeStreamProcessor
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DescribeStreamProcessorRequest method.
+//    req, resp := client.DescribeStreamProcessorRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+func (c *Rekognition) DescribeStreamProcessorRequest(input *DescribeStreamProcessorInput) (req *request.Request, output *DescribeStreamProcessorOutput) {
+	op := &request.Operation{
+		Name:       opDescribeStreamProcessor,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeStreamProcessorInput{}
+	}
+
+	output = &DescribeStreamProcessorOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeStreamProcessor API operation for Amazon Rekognition.
+//
+// Provides information about a stream processor created by CreateStreamProcessor.
+// You can get information about the input and output streams, the input parameters
+// for the face recognition being performed, and the current status of the stream
+// processor.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Rekognition's
+// API operation DescribeStreamProcessor for usage and error information.
+//
+// Returned Error Types:
+//   * AccessDeniedException
+//   You are not authorized to perform the action.
+//
+//   * InternalServerError
+//   Amazon Rekognition experienced a service issue. Try your call again.
+//
+//   * ThrottlingException
+//   Amazon Rekognition is temporarily unable to process the request. Try your
+//   call again.
+//
+//   * InvalidParameterException
+//   Input parameter violated a constraint. Validate your parameter before calling
+//   the API operation again.
+//
+//   * ResourceNotFoundException
+//   The collection specified in the request cannot be found.
+//
+//   * ProvisionedThroughputExceededException
+//   The number of requests exceeded your throughput limit. If you want to increase
+//   this limit, contact Amazon Rekognition.
+//
+func (c *Rekognition) DescribeStreamProcessor(input *DescribeStreamProcessorInput) (*DescribeStreamProcessorOutput, error) {
+	req, out := c.DescribeStreamProcessorRequest(input)
+	return out, req.Send()
+}
+
+// DescribeStreamProcessorWithContext is the same as DescribeStreamProcessor with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeStreamProcessor for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Rekognition) DescribeStreamProcessorWithContext(ctx aws.Context, input *DescribeStreamProcessorInput, opts ...request.Option) (*DescribeStreamProcessorOutput, error) {
+	req, out := c.DescribeStreamProcessorRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDetectCustomLabels = "DetectCustomLabels"
+
+// DetectCustomLabelsRequest generates a "aws/request.Request" representing the
+// client's request for the DetectCustomLabels operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DetectCustomLabels for more information on using the DetectCustomLabels
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DetectCustomLabelsRequest method.
+//    req, resp := client.DetectCustomLabelsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+func (c *Rekognition) DetectCustomLabelsRequest(input *DetectCustomLabelsInput) (req *request.Request, output *DetectCustomLabelsOutput) {
+	op := &request.Operation{
+		Name:       opDetectCustomLabels,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DetectCustomLabelsInput{}
+	}
+
+	output = &DetectCustomLabelsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DetectCustomLabels API operation for Amazon Rekognition.
+//
+// Detects custom labels in a supplied image by using an Amazon Rekognition
+// Custom Labels model.
+//
+// You specify which version of a model version to use by using the ProjectVersionArn
+// input parameter.
+//
+// You pass the input image as base64-encoded image bytes or as a reference
+// to an image in an Amazon S3 bucket. If you use the AWS CLI to call Amazon
+// Rekognition operations, passing image bytes is not supported. The image must
+// be either a PNG or JPEG formatted file.
+//
+// For each object that the model version detects on an image, the API returns
+// a (CustomLabel) object in an array (CustomLabels). Each CustomLabel object
+// provides the label name (Name), the level of confidence that the image contains
+// the object (Confidence), and object location information, if it exists, for
+// the label on the image (Geometry).
+//
+// During training model calculates a threshold value that determines if a prediction
+// for a label is true. By default, DetectCustomLabels doesn't return labels
+// whose confidence value is below the model's calculated threshold value. To
+// filter labels that are returned, specify a value for MinConfidence that is
+// higher than the model's calculated threshold. You can get the model's calculated
+// threshold from the model's training results shown in the Amazon Rekognition
+// Custom Labels console. To get all labels, regardless of confidence, specify
+// a MinConfidence value of 0.
+//
+// You can also add the MaxResults parameter to limit the number of labels returned.
+//
+// This is a stateless API operation. That is, the operation does not persist
+// any data.
+//
+// This operation requires permissions to perform the rekognition:DetectCustomLabels
+// action.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Rekognition's
+// API operation DetectCustomLabels for usage and error information.
+//
+// Returned Error Types:
+//   * ResourceNotFoundException
+//   The collection specified in the request cannot be found.
+//
+//   * ResourceNotReadyException
+//   The requested resource isn't ready. For example, this exception occurs when
+//   you call DetectCustomLabels with a model version that isn't deployed.
+//
+//   * InvalidS3ObjectException
+//   Amazon Rekognition is unable to access the S3 object specified in the request.
+//
+//   * InvalidParameterException
+//   Input parameter violated a constraint. Validate your parameter before calling
+//   the API operation again.
+//
+//   * ImageTooLargeException
+//   The input image size exceeds the allowed limit. For more information, see
+//   Limits in Amazon Rekognition in the Amazon Rekognition Developer Guide.
+//
+//   * LimitExceededException
+//   An Amazon Rekognition service limit was exceeded. For example, if you start
+//   too many Amazon Rekognition Video jobs concurrently, calls to start operations
+//   (StartLabelDetection, for example) will raise a LimitExceededException exception
+//   (HTTP status code: 400) until the number of concurrently running jobs is
+//   below the Amazon Rekognition service limit.
+//
+//   * AccessDeniedException
+//   You are not authorized to perform the action.
+//
+//   * InternalServerError
+//   Amazon Rekognition experienced a service issue. Try your call again.
+//
+//   * ThrottlingException
+//   Amazon Rekognition is temporarily unable to process the request. Try your
+//   call again.
+//
+//   * ProvisionedThroughputExceededException
+//   The number of requests exceeded your throughput limit. If you want to increase
+//   this limit, contact Amazon Rekognition.
+//
+//   * InvalidImageFormatException
+//   The provided image format is not supported.
+//
+func (c *Rekognition) DetectCustomLabels(input *DetectCustomLabelsInput) (*DetectCustomLabelsOutput, error) {
+	req, out := c.DetectCustomLabelsRequest(input)
+	return out, req.Send()
+}
+
+// DetectCustomLabelsWithContext is the same as DetectCustomLabels with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DetectCustomLabels for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Rekognition) DetectCustomLabelsWithContext(ctx aws.Context, input *DetectCustomLabelsInput, opts ...request.Option) (*DetectCustomLabelsOutput, error) {
+	req, out := c.DetectCustomLabelsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opDetectFaces = "DetectFaces"
 
 // DetectFacesRequest generates a "aws/request.Request" representing the
 // client's request for the DetectFaces operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -487,21 +1818,25 @@ func (c *Rekognition) DetectFacesRequest(input *DetectFacesInput) (req *request.
 
 // DetectFaces API operation for Amazon Rekognition.
 //
-// Detects faces within an image (JPEG or PNG) that is provided as input.
+// Detects faces within an image that is provided as input.
 //
-// For each face detected, the operation returns face details including a bounding
-// box of the face, a confidence value (that the bounding box contains a face),
+// DetectFaces detects the 100 largest faces in the image. For each face detected,
+// the operation returns face details. These details include a bounding box
+// of the face, a confidence value (that the bounding box contains a face),
 // and a fixed set of attributes such as facial landmarks (for example, coordinates
-// of eye and mouth), gender, presence of beard, sunglasses, etc.
+// of eye and mouth), presence of beard, sunglasses, and so on.
 //
 // The face-detection algorithm is most effective on frontal faces. For non-frontal
-// or obscured faces, the algorithm may not detect the faces or might detect
+// or obscured faces, the algorithm might not detect the faces or might detect
 // faces with lower confidence.
+//
+// You pass the input image either as base64-encoded image bytes or as a reference
+// to an image in an Amazon S3 bucket. If you use the AWS CLI to call Amazon
+// Rekognition operations, passing image bytes is not supported. The image must
+// be either a PNG or JPEG formatted file.
 //
 // This is a stateless API operation. That is, the operation does not persist
 // any data.
-//
-// For an example, see get-started-exercise-detect-faces.
 //
 // This operation requires permissions to perform the rekognition:DetectFaces
 // action.
@@ -513,33 +1848,33 @@ func (c *Rekognition) DetectFacesRequest(input *DetectFacesInput) (req *request.
 // See the AWS API reference guide for Amazon Rekognition's
 // API operation DetectFaces for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidS3ObjectException "InvalidS3ObjectException"
+// Returned Error Types:
+//   * InvalidS3ObjectException
 //   Amazon Rekognition is unable to access the S3 object specified in the request.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   Input parameter violated a constraint. Validate your parameter before calling
 //   the API operation again.
 //
-//   * ErrCodeImageTooLargeException "ImageTooLargeException"
+//   * ImageTooLargeException
 //   The input image size exceeds the allowed limit. For more information, see
-//   limits.
+//   Limits in Amazon Rekognition in the Amazon Rekognition Developer Guide.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   You are not authorized to perform the action.
 //
-//   * ErrCodeInternalServerError "InternalServerError"
+//   * InternalServerError
 //   Amazon Rekognition experienced a service issue. Try your call again.
 //
-//   * ErrCodeThrottlingException "ThrottlingException"
+//   * ThrottlingException
 //   Amazon Rekognition is temporarily unable to process the request. Try your
 //   call again.
 //
-//   * ErrCodeProvisionedThroughputExceededException "ProvisionedThroughputExceededException"
+//   * ProvisionedThroughputExceededException
 //   The number of requests exceeded your throughput limit. If you want to increase
 //   this limit, contact Amazon Rekognition.
 //
-//   * ErrCodeInvalidImageFormatException "InvalidImageFormatException"
+//   * InvalidImageFormatException
 //   The provided image format is not supported.
 //
 func (c *Rekognition) DetectFaces(input *DetectFacesInput) (*DetectFacesOutput, error) {
@@ -567,8 +1902,8 @@ const opDetectLabels = "DetectLabels"
 
 // DetectLabelsRequest generates a "aws/request.Request" representing the
 // client's request for the DetectLabels operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -605,16 +1940,28 @@ func (c *Rekognition) DetectLabelsRequest(input *DetectLabelsInput) (req *reques
 
 // DetectLabels API operation for Amazon Rekognition.
 //
-// Detects instances of real-world labels within an image (JPEG or PNG) provided
+// Detects instances of real-world entities within an image (JPEG or PNG) provided
 // as input. This includes objects like flower, tree, and table; events like
 // wedding, graduation, and birthday party; and concepts like landscape, evening,
-// and nature. For an example, see get-started-exercise-detect-labels.
+// and nature.
+//
+// For an example, see Analyzing Images Stored in an Amazon S3 Bucket in the
+// Amazon Rekognition Developer Guide.
+//
+// DetectLabels does not support the detection of activities. However, activity
+// detection is supported for label detection in videos. For more information,
+// see StartLabelDetection in the Amazon Rekognition Developer Guide.
+//
+// You pass the input image as base64-encoded image bytes or as a reference
+// to an image in an Amazon S3 bucket. If you use the AWS CLI to call Amazon
+// Rekognition operations, passing image bytes is not supported. The image must
+// be either a PNG or JPEG formatted file.
 //
 // For each object, scene, and concept the API returns one or more labels. Each
 // label provides the object name, and the level of confidence that the image
 // contains the object. For example, suppose the input image has a lighthouse,
-// the sea, and a rock. The response will include all three labels, one for
-// each object.
+// the sea, and a rock. The response includes all three labels, one for each
+// object.
 //
 // {Name: lighthouse, Confidence: 98.4629}
 //
@@ -636,15 +1983,26 @@ func (c *Rekognition) DetectLabelsRequest(input *DetectLabelsInput) (req *reques
 // In this example, the detection algorithm more precisely identifies the flower
 // as a tulip.
 //
-// You can provide the input image as an S3 object or as base64-encoded bytes.
 // In response, the API returns an array of labels. In addition, the response
 // also includes the orientation correction. Optionally, you can specify MinConfidence
 // to control the confidence threshold for the labels returned. The default
-// is 50%. You can also add the MaxLabels parameter to limit the number of labels
+// is 55%. You can also add the MaxLabels parameter to limit the number of labels
 // returned.
 //
 // If the object detected is a person, the operation doesn't provide the same
 // facial details that the DetectFaces operation provides.
+//
+// DetectLabels returns bounding boxes for instances of common object labels
+// in an array of Instance objects. An Instance object contains a BoundingBox
+// object, for the location of the label on the image. It also includes the
+// confidence by which the bounding box was detected.
+//
+// DetectLabels also returns a hierarchical taxonomy of detected labels. For
+// example, a detected car might be assigned the label car. The label car has
+// two parent labels: Vehicle (its parent) and Transportation (its grandparent).
+// The response returns the entire list of ancestors for a label. Each ancestor
+// is a unique label in the response. In the previous example, Car, Vehicle,
+// and Transportation are returned as unique labels in the response.
 //
 // This is a stateless API operation. That is, the operation does not persist
 // any data.
@@ -659,33 +2017,33 @@ func (c *Rekognition) DetectLabelsRequest(input *DetectLabelsInput) (req *reques
 // See the AWS API reference guide for Amazon Rekognition's
 // API operation DetectLabels for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidS3ObjectException "InvalidS3ObjectException"
+// Returned Error Types:
+//   * InvalidS3ObjectException
 //   Amazon Rekognition is unable to access the S3 object specified in the request.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   Input parameter violated a constraint. Validate your parameter before calling
 //   the API operation again.
 //
-//   * ErrCodeImageTooLargeException "ImageTooLargeException"
+//   * ImageTooLargeException
 //   The input image size exceeds the allowed limit. For more information, see
-//   limits.
+//   Limits in Amazon Rekognition in the Amazon Rekognition Developer Guide.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   You are not authorized to perform the action.
 //
-//   * ErrCodeInternalServerError "InternalServerError"
+//   * InternalServerError
 //   Amazon Rekognition experienced a service issue. Try your call again.
 //
-//   * ErrCodeThrottlingException "ThrottlingException"
+//   * ThrottlingException
 //   Amazon Rekognition is temporarily unable to process the request. Try your
 //   call again.
 //
-//   * ErrCodeProvisionedThroughputExceededException "ProvisionedThroughputExceededException"
+//   * ProvisionedThroughputExceededException
 //   The number of requests exceeded your throughput limit. If you want to increase
 //   this limit, contact Amazon Rekognition.
 //
-//   * ErrCodeInvalidImageFormatException "InvalidImageFormatException"
+//   * InvalidImageFormatException
 //   The provided image format is not supported.
 //
 func (c *Rekognition) DetectLabels(input *DetectLabelsInput) (*DetectLabelsOutput, error) {
@@ -713,8 +2071,8 @@ const opDetectModerationLabels = "DetectModerationLabels"
 
 // DetectModerationLabelsRequest generates a "aws/request.Request" representing the
 // client's request for the DetectModerationLabels operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -751,14 +2109,21 @@ func (c *Rekognition) DetectModerationLabelsRequest(input *DetectModerationLabel
 
 // DetectModerationLabels API operation for Amazon Rekognition.
 //
-// Detects explicit or suggestive adult content in a specified JPEG or PNG format
-// image. Use DetectModerationLabels to moderate images depending on your requirements.
-// For example, you might want to filter images that contain nudity, but not
-// images containing suggestive content.
+// Detects unsafe content in a specified JPEG or PNG format image. Use DetectModerationLabels
+// to moderate images depending on your requirements. For example, you might
+// want to filter images that contain nudity, but not images containing suggestive
+// content.
 //
 // To filter images, use the labels returned by DetectModerationLabels to determine
-// which types of content are appropriate. For information about moderation
-// labels, see image-moderation.
+// which types of content are appropriate.
+//
+// For information about moderation labels, see Detecting Unsafe Content in
+// the Amazon Rekognition Developer Guide.
+//
+// You pass the input image either as base64-encoded image bytes or as a reference
+// to an image in an Amazon S3 bucket. If you use the AWS CLI to call Amazon
+// Rekognition operations, passing image bytes is not supported. The image must
+// be either a PNG or JPEG formatted file.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -767,34 +2132,38 @@ func (c *Rekognition) DetectModerationLabelsRequest(input *DetectModerationLabel
 // See the AWS API reference guide for Amazon Rekognition's
 // API operation DetectModerationLabels for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidS3ObjectException "InvalidS3ObjectException"
+// Returned Error Types:
+//   * InvalidS3ObjectException
 //   Amazon Rekognition is unable to access the S3 object specified in the request.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   Input parameter violated a constraint. Validate your parameter before calling
 //   the API operation again.
 //
-//   * ErrCodeImageTooLargeException "ImageTooLargeException"
+//   * ImageTooLargeException
 //   The input image size exceeds the allowed limit. For more information, see
-//   limits.
+//   Limits in Amazon Rekognition in the Amazon Rekognition Developer Guide.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   You are not authorized to perform the action.
 //
-//   * ErrCodeInternalServerError "InternalServerError"
+//   * InternalServerError
 //   Amazon Rekognition experienced a service issue. Try your call again.
 //
-//   * ErrCodeThrottlingException "ThrottlingException"
+//   * ThrottlingException
 //   Amazon Rekognition is temporarily unable to process the request. Try your
 //   call again.
 //
-//   * ErrCodeProvisionedThroughputExceededException "ProvisionedThroughputExceededException"
+//   * ProvisionedThroughputExceededException
 //   The number of requests exceeded your throughput limit. If you want to increase
 //   this limit, contact Amazon Rekognition.
 //
-//   * ErrCodeInvalidImageFormatException "InvalidImageFormatException"
+//   * InvalidImageFormatException
 //   The provided image format is not supported.
+//
+//   * HumanLoopQuotaExceededException
+//   The number of in-progress human reviews you have has exceeded the number
+//   allowed.
 //
 func (c *Rekognition) DetectModerationLabels(input *DetectModerationLabelsInput) (*DetectModerationLabelsOutput, error) {
 	req, out := c.DetectModerationLabelsRequest(input)
@@ -817,12 +2186,144 @@ func (c *Rekognition) DetectModerationLabelsWithContext(ctx aws.Context, input *
 	return out, req.Send()
 }
 
+const opDetectText = "DetectText"
+
+// DetectTextRequest generates a "aws/request.Request" representing the
+// client's request for the DetectText operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DetectText for more information on using the DetectText
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DetectTextRequest method.
+//    req, resp := client.DetectTextRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+func (c *Rekognition) DetectTextRequest(input *DetectTextInput) (req *request.Request, output *DetectTextOutput) {
+	op := &request.Operation{
+		Name:       opDetectText,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DetectTextInput{}
+	}
+
+	output = &DetectTextOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DetectText API operation for Amazon Rekognition.
+//
+// Detects text in the input image and converts it into machine-readable text.
+//
+// Pass the input image as base64-encoded image bytes or as a reference to an
+// image in an Amazon S3 bucket. If you use the AWS CLI to call Amazon Rekognition
+// operations, you must pass it as a reference to an image in an Amazon S3 bucket.
+// For the AWS CLI, passing image bytes is not supported. The image must be
+// either a .png or .jpeg formatted file.
+//
+// The DetectText operation returns text in an array of TextDetection elements,
+// TextDetections. Each TextDetection element provides information about a single
+// word or line of text that was detected in the image.
+//
+// A word is one or more ISO basic latin script characters that are not separated
+// by spaces. DetectText can detect up to 50 words in an image.
+//
+// A line is a string of equally spaced words. A line isn't necessarily a complete
+// sentence. For example, a driver's license number is detected as a line. A
+// line ends when there is no aligned text after it. Also, a line ends when
+// there is a large gap between words, relative to the length of the words.
+// This means, depending on the gap between words, Amazon Rekognition may detect
+// multiple lines in text aligned in the same direction. Periods don't represent
+// the end of a line. If a sentence spans multiple lines, the DetectText operation
+// returns multiple lines.
+//
+// To determine whether a TextDetection element is a line of text or a word,
+// use the TextDetection object Type field.
+//
+// To be detected, text must be within +/- 90 degrees orientation of the horizontal
+// axis.
+//
+// For more information, see DetectText in the Amazon Rekognition Developer
+// Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Rekognition's
+// API operation DetectText for usage and error information.
+//
+// Returned Error Types:
+//   * InvalidS3ObjectException
+//   Amazon Rekognition is unable to access the S3 object specified in the request.
+//
+//   * InvalidParameterException
+//   Input parameter violated a constraint. Validate your parameter before calling
+//   the API operation again.
+//
+//   * ImageTooLargeException
+//   The input image size exceeds the allowed limit. For more information, see
+//   Limits in Amazon Rekognition in the Amazon Rekognition Developer Guide.
+//
+//   * AccessDeniedException
+//   You are not authorized to perform the action.
+//
+//   * InternalServerError
+//   Amazon Rekognition experienced a service issue. Try your call again.
+//
+//   * ThrottlingException
+//   Amazon Rekognition is temporarily unable to process the request. Try your
+//   call again.
+//
+//   * ProvisionedThroughputExceededException
+//   The number of requests exceeded your throughput limit. If you want to increase
+//   this limit, contact Amazon Rekognition.
+//
+//   * InvalidImageFormatException
+//   The provided image format is not supported.
+//
+func (c *Rekognition) DetectText(input *DetectTextInput) (*DetectTextOutput, error) {
+	req, out := c.DetectTextRequest(input)
+	return out, req.Send()
+}
+
+// DetectTextWithContext is the same as DetectText with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DetectText for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Rekognition) DetectTextWithContext(ctx aws.Context, input *DetectTextInput, opts ...request.Option) (*DetectTextOutput, error) {
+	req, out := c.DetectTextRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opGetCelebrityInfo = "GetCelebrityInfo"
 
 // GetCelebrityInfoRequest generates a "aws/request.Request" representing the
 // client's request for the GetCelebrityInfo operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -860,9 +2361,12 @@ func (c *Rekognition) GetCelebrityInfoRequest(input *GetCelebrityInfoInput) (req
 // GetCelebrityInfo API operation for Amazon Rekognition.
 //
 // Gets the name and additional information about a celebrity based on his or
-// her Rekognition ID. The additional information is returned as an array of
-// URLs. If there is no additional information about the celebrity, this list
-// is empty. For more information, see celebrity-recognition.
+// her Amazon Rekognition ID. The additional information is returned as an array
+// of URLs. If there is no additional information about the celebrity, this
+// list is empty.
+//
+// For more information, see Recognizing Celebrities in an Image in the Amazon
+// Rekognition Developer Guide.
 //
 // This operation requires permissions to perform the rekognition:GetCelebrityInfo
 // action.
@@ -874,27 +2378,27 @@ func (c *Rekognition) GetCelebrityInfoRequest(input *GetCelebrityInfoInput) (req
 // See the AWS API reference guide for Amazon Rekognition's
 // API operation GetCelebrityInfo for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+// Returned Error Types:
+//   * InvalidParameterException
 //   Input parameter violated a constraint. Validate your parameter before calling
 //   the API operation again.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   You are not authorized to perform the action.
 //
-//   * ErrCodeInternalServerError "InternalServerError"
+//   * InternalServerError
 //   Amazon Rekognition experienced a service issue. Try your call again.
 //
-//   * ErrCodeThrottlingException "ThrottlingException"
+//   * ThrottlingException
 //   Amazon Rekognition is temporarily unable to process the request. Try your
 //   call again.
 //
-//   * ErrCodeProvisionedThroughputExceededException "ProvisionedThroughputExceededException"
+//   * ProvisionedThroughputExceededException
 //   The number of requests exceeded your throughput limit. If you want to increase
 //   this limit, contact Amazon Rekognition.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   Collection specified in the request is not found.
+//   * ResourceNotFoundException
+//   The collection specified in the request cannot be found.
 //
 func (c *Rekognition) GetCelebrityInfo(input *GetCelebrityInfoInput) (*GetCelebrityInfoOutput, error) {
 	req, out := c.GetCelebrityInfoRequest(input)
@@ -917,12 +2421,1491 @@ func (c *Rekognition) GetCelebrityInfoWithContext(ctx aws.Context, input *GetCel
 	return out, req.Send()
 }
 
+const opGetCelebrityRecognition = "GetCelebrityRecognition"
+
+// GetCelebrityRecognitionRequest generates a "aws/request.Request" representing the
+// client's request for the GetCelebrityRecognition operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetCelebrityRecognition for more information on using the GetCelebrityRecognition
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the GetCelebrityRecognitionRequest method.
+//    req, resp := client.GetCelebrityRecognitionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+func (c *Rekognition) GetCelebrityRecognitionRequest(input *GetCelebrityRecognitionInput) (req *request.Request, output *GetCelebrityRecognitionOutput) {
+	op := &request.Operation{
+		Name:       opGetCelebrityRecognition,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"NextToken"},
+			OutputTokens:    []string{"NextToken"},
+			LimitToken:      "MaxResults",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &GetCelebrityRecognitionInput{}
+	}
+
+	output = &GetCelebrityRecognitionOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetCelebrityRecognition API operation for Amazon Rekognition.
+//
+// Gets the celebrity recognition results for a Amazon Rekognition Video analysis
+// started by StartCelebrityRecognition.
+//
+// Celebrity recognition in a video is an asynchronous operation. Analysis is
+// started by a call to StartCelebrityRecognition which returns a job identifier
+// (JobId). When the celebrity recognition operation finishes, Amazon Rekognition
+// Video publishes a completion status to the Amazon Simple Notification Service
+// topic registered in the initial call to StartCelebrityRecognition. To get
+// the results of the celebrity recognition analysis, first check that the status
+// value published to the Amazon SNS topic is SUCCEEDED. If so, call GetCelebrityDetection
+// and pass the job identifier (JobId) from the initial call to StartCelebrityDetection.
+//
+// For more information, see Working With Stored Videos in the Amazon Rekognition
+// Developer Guide.
+//
+// GetCelebrityRecognition returns detected celebrities and the time(s) they
+// are detected in an array (Celebrities) of CelebrityRecognition objects. Each
+// CelebrityRecognition contains information about the celebrity in a CelebrityDetail
+// object and the time, Timestamp, the celebrity was detected.
+//
+// GetCelebrityRecognition only returns the default facial attributes (BoundingBox,
+// Confidence, Landmarks, Pose, and Quality). The other facial attributes listed
+// in the Face object of the following response syntax are not returned. For
+// more information, see FaceDetail in the Amazon Rekognition Developer Guide.
+//
+// By default, the Celebrities array is sorted by time (milliseconds from the
+// start of the video). You can also sort the array by celebrity by specifying
+// the value ID in the SortBy input parameter.
+//
+// The CelebrityDetail object includes the celebrity identifer and additional
+// information urls. If you don't store the additional information urls, you
+// can get them later by calling GetCelebrityInfo with the celebrity identifer.
+//
+// No information is returned for faces not recognized as celebrities.
+//
+// Use MaxResults parameter to limit the number of labels returned. If there
+// are more results than specified in MaxResults, the value of NextToken in
+// the operation response contains a pagination token for getting the next set
+// of results. To get the next page of results, call GetCelebrityDetection and
+// populate the NextToken request parameter with the token value returned from
+// the previous call to GetCelebrityRecognition.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Rekognition's
+// API operation GetCelebrityRecognition for usage and error information.
+//
+// Returned Error Types:
+//   * AccessDeniedException
+//   You are not authorized to perform the action.
+//
+//   * InternalServerError
+//   Amazon Rekognition experienced a service issue. Try your call again.
+//
+//   * InvalidParameterException
+//   Input parameter violated a constraint. Validate your parameter before calling
+//   the API operation again.
+//
+//   * InvalidPaginationTokenException
+//   Pagination token in the request is not valid.
+//
+//   * ProvisionedThroughputExceededException
+//   The number of requests exceeded your throughput limit. If you want to increase
+//   this limit, contact Amazon Rekognition.
+//
+//   * ResourceNotFoundException
+//   The collection specified in the request cannot be found.
+//
+//   * ThrottlingException
+//   Amazon Rekognition is temporarily unable to process the request. Try your
+//   call again.
+//
+func (c *Rekognition) GetCelebrityRecognition(input *GetCelebrityRecognitionInput) (*GetCelebrityRecognitionOutput, error) {
+	req, out := c.GetCelebrityRecognitionRequest(input)
+	return out, req.Send()
+}
+
+// GetCelebrityRecognitionWithContext is the same as GetCelebrityRecognition with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetCelebrityRecognition for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Rekognition) GetCelebrityRecognitionWithContext(ctx aws.Context, input *GetCelebrityRecognitionInput, opts ...request.Option) (*GetCelebrityRecognitionOutput, error) {
+	req, out := c.GetCelebrityRecognitionRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+// GetCelebrityRecognitionPages iterates over the pages of a GetCelebrityRecognition operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See GetCelebrityRecognition method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a GetCelebrityRecognition operation.
+//    pageNum := 0
+//    err := client.GetCelebrityRecognitionPages(params,
+//        func(page *rekognition.GetCelebrityRecognitionOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *Rekognition) GetCelebrityRecognitionPages(input *GetCelebrityRecognitionInput, fn func(*GetCelebrityRecognitionOutput, bool) bool) error {
+	return c.GetCelebrityRecognitionPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// GetCelebrityRecognitionPagesWithContext same as GetCelebrityRecognitionPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Rekognition) GetCelebrityRecognitionPagesWithContext(ctx aws.Context, input *GetCelebrityRecognitionInput, fn func(*GetCelebrityRecognitionOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *GetCelebrityRecognitionInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.GetCelebrityRecognitionRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	for p.Next() {
+		if !fn(p.Page().(*GetCelebrityRecognitionOutput), !p.HasNextPage()) {
+			break
+		}
+	}
+
+	return p.Err()
+}
+
+const opGetContentModeration = "GetContentModeration"
+
+// GetContentModerationRequest generates a "aws/request.Request" representing the
+// client's request for the GetContentModeration operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetContentModeration for more information on using the GetContentModeration
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the GetContentModerationRequest method.
+//    req, resp := client.GetContentModerationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+func (c *Rekognition) GetContentModerationRequest(input *GetContentModerationInput) (req *request.Request, output *GetContentModerationOutput) {
+	op := &request.Operation{
+		Name:       opGetContentModeration,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"NextToken"},
+			OutputTokens:    []string{"NextToken"},
+			LimitToken:      "MaxResults",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &GetContentModerationInput{}
+	}
+
+	output = &GetContentModerationOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetContentModeration API operation for Amazon Rekognition.
+//
+// Gets the unsafe content analysis results for a Amazon Rekognition Video analysis
+// started by StartContentModeration.
+//
+// Unsafe content analysis of a video is an asynchronous operation. You start
+// analysis by calling StartContentModeration which returns a job identifier
+// (JobId). When analysis finishes, Amazon Rekognition Video publishes a completion
+// status to the Amazon Simple Notification Service topic registered in the
+// initial call to StartContentModeration. To get the results of the unsafe
+// content analysis, first check that the status value published to the Amazon
+// SNS topic is SUCCEEDED. If so, call GetContentModeration and pass the job
+// identifier (JobId) from the initial call to StartContentModeration.
+//
+// For more information, see Working with Stored Videos in the Amazon Rekognition
+// Devlopers Guide.
+//
+// GetContentModeration returns detected unsafe content labels, and the time
+// they are detected, in an array, ModerationLabels, of ContentModerationDetection
+// objects.
+//
+// By default, the moderated labels are returned sorted by time, in milliseconds
+// from the start of the video. You can also sort them by moderated label by
+// specifying NAME for the SortBy input parameter.
+//
+// Since video analysis can return a large number of results, use the MaxResults
+// parameter to limit the number of labels returned in a single call to GetContentModeration.
+// If there are more results than specified in MaxResults, the value of NextToken
+// in the operation response contains a pagination token for getting the next
+// set of results. To get the next page of results, call GetContentModeration
+// and populate the NextToken request parameter with the value of NextToken
+// returned from the previous call to GetContentModeration.
+//
+// For more information, see Detecting Unsafe Content in the Amazon Rekognition
+// Developer Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Rekognition's
+// API operation GetContentModeration for usage and error information.
+//
+// Returned Error Types:
+//   * AccessDeniedException
+//   You are not authorized to perform the action.
+//
+//   * InternalServerError
+//   Amazon Rekognition experienced a service issue. Try your call again.
+//
+//   * InvalidParameterException
+//   Input parameter violated a constraint. Validate your parameter before calling
+//   the API operation again.
+//
+//   * InvalidPaginationTokenException
+//   Pagination token in the request is not valid.
+//
+//   * ProvisionedThroughputExceededException
+//   The number of requests exceeded your throughput limit. If you want to increase
+//   this limit, contact Amazon Rekognition.
+//
+//   * ResourceNotFoundException
+//   The collection specified in the request cannot be found.
+//
+//   * ThrottlingException
+//   Amazon Rekognition is temporarily unable to process the request. Try your
+//   call again.
+//
+func (c *Rekognition) GetContentModeration(input *GetContentModerationInput) (*GetContentModerationOutput, error) {
+	req, out := c.GetContentModerationRequest(input)
+	return out, req.Send()
+}
+
+// GetContentModerationWithContext is the same as GetContentModeration with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetContentModeration for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Rekognition) GetContentModerationWithContext(ctx aws.Context, input *GetContentModerationInput, opts ...request.Option) (*GetContentModerationOutput, error) {
+	req, out := c.GetContentModerationRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+// GetContentModerationPages iterates over the pages of a GetContentModeration operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See GetContentModeration method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a GetContentModeration operation.
+//    pageNum := 0
+//    err := client.GetContentModerationPages(params,
+//        func(page *rekognition.GetContentModerationOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *Rekognition) GetContentModerationPages(input *GetContentModerationInput, fn func(*GetContentModerationOutput, bool) bool) error {
+	return c.GetContentModerationPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// GetContentModerationPagesWithContext same as GetContentModerationPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Rekognition) GetContentModerationPagesWithContext(ctx aws.Context, input *GetContentModerationInput, fn func(*GetContentModerationOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *GetContentModerationInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.GetContentModerationRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	for p.Next() {
+		if !fn(p.Page().(*GetContentModerationOutput), !p.HasNextPage()) {
+			break
+		}
+	}
+
+	return p.Err()
+}
+
+const opGetFaceDetection = "GetFaceDetection"
+
+// GetFaceDetectionRequest generates a "aws/request.Request" representing the
+// client's request for the GetFaceDetection operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetFaceDetection for more information on using the GetFaceDetection
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the GetFaceDetectionRequest method.
+//    req, resp := client.GetFaceDetectionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+func (c *Rekognition) GetFaceDetectionRequest(input *GetFaceDetectionInput) (req *request.Request, output *GetFaceDetectionOutput) {
+	op := &request.Operation{
+		Name:       opGetFaceDetection,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"NextToken"},
+			OutputTokens:    []string{"NextToken"},
+			LimitToken:      "MaxResults",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &GetFaceDetectionInput{}
+	}
+
+	output = &GetFaceDetectionOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetFaceDetection API operation for Amazon Rekognition.
+//
+// Gets face detection results for a Amazon Rekognition Video analysis started
+// by StartFaceDetection.
+//
+// Face detection with Amazon Rekognition Video is an asynchronous operation.
+// You start face detection by calling StartFaceDetection which returns a job
+// identifier (JobId). When the face detection operation finishes, Amazon Rekognition
+// Video publishes a completion status to the Amazon Simple Notification Service
+// topic registered in the initial call to StartFaceDetection. To get the results
+// of the face detection operation, first check that the status value published
+// to the Amazon SNS topic is SUCCEEDED. If so, call GetFaceDetection and pass
+// the job identifier (JobId) from the initial call to StartFaceDetection.
+//
+// GetFaceDetection returns an array of detected faces (Faces) sorted by the
+// time the faces were detected.
+//
+// Use MaxResults parameter to limit the number of labels returned. If there
+// are more results than specified in MaxResults, the value of NextToken in
+// the operation response contains a pagination token for getting the next set
+// of results. To get the next page of results, call GetFaceDetection and populate
+// the NextToken request parameter with the token value returned from the previous
+// call to GetFaceDetection.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Rekognition's
+// API operation GetFaceDetection for usage and error information.
+//
+// Returned Error Types:
+//   * AccessDeniedException
+//   You are not authorized to perform the action.
+//
+//   * InternalServerError
+//   Amazon Rekognition experienced a service issue. Try your call again.
+//
+//   * InvalidParameterException
+//   Input parameter violated a constraint. Validate your parameter before calling
+//   the API operation again.
+//
+//   * InvalidPaginationTokenException
+//   Pagination token in the request is not valid.
+//
+//   * ProvisionedThroughputExceededException
+//   The number of requests exceeded your throughput limit. If you want to increase
+//   this limit, contact Amazon Rekognition.
+//
+//   * ResourceNotFoundException
+//   The collection specified in the request cannot be found.
+//
+//   * ThrottlingException
+//   Amazon Rekognition is temporarily unable to process the request. Try your
+//   call again.
+//
+func (c *Rekognition) GetFaceDetection(input *GetFaceDetectionInput) (*GetFaceDetectionOutput, error) {
+	req, out := c.GetFaceDetectionRequest(input)
+	return out, req.Send()
+}
+
+// GetFaceDetectionWithContext is the same as GetFaceDetection with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetFaceDetection for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Rekognition) GetFaceDetectionWithContext(ctx aws.Context, input *GetFaceDetectionInput, opts ...request.Option) (*GetFaceDetectionOutput, error) {
+	req, out := c.GetFaceDetectionRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+// GetFaceDetectionPages iterates over the pages of a GetFaceDetection operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See GetFaceDetection method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a GetFaceDetection operation.
+//    pageNum := 0
+//    err := client.GetFaceDetectionPages(params,
+//        func(page *rekognition.GetFaceDetectionOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *Rekognition) GetFaceDetectionPages(input *GetFaceDetectionInput, fn func(*GetFaceDetectionOutput, bool) bool) error {
+	return c.GetFaceDetectionPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// GetFaceDetectionPagesWithContext same as GetFaceDetectionPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Rekognition) GetFaceDetectionPagesWithContext(ctx aws.Context, input *GetFaceDetectionInput, fn func(*GetFaceDetectionOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *GetFaceDetectionInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.GetFaceDetectionRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	for p.Next() {
+		if !fn(p.Page().(*GetFaceDetectionOutput), !p.HasNextPage()) {
+			break
+		}
+	}
+
+	return p.Err()
+}
+
+const opGetFaceSearch = "GetFaceSearch"
+
+// GetFaceSearchRequest generates a "aws/request.Request" representing the
+// client's request for the GetFaceSearch operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetFaceSearch for more information on using the GetFaceSearch
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the GetFaceSearchRequest method.
+//    req, resp := client.GetFaceSearchRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+func (c *Rekognition) GetFaceSearchRequest(input *GetFaceSearchInput) (req *request.Request, output *GetFaceSearchOutput) {
+	op := &request.Operation{
+		Name:       opGetFaceSearch,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"NextToken"},
+			OutputTokens:    []string{"NextToken"},
+			LimitToken:      "MaxResults",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &GetFaceSearchInput{}
+	}
+
+	output = &GetFaceSearchOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetFaceSearch API operation for Amazon Rekognition.
+//
+// Gets the face search results for Amazon Rekognition Video face search started
+// by StartFaceSearch. The search returns faces in a collection that match the
+// faces of persons detected in a video. It also includes the time(s) that faces
+// are matched in the video.
+//
+// Face search in a video is an asynchronous operation. You start face search
+// by calling to StartFaceSearch which returns a job identifier (JobId). When
+// the search operation finishes, Amazon Rekognition Video publishes a completion
+// status to the Amazon Simple Notification Service topic registered in the
+// initial call to StartFaceSearch. To get the search results, first check that
+// the status value published to the Amazon SNS topic is SUCCEEDED. If so, call
+// GetFaceSearch and pass the job identifier (JobId) from the initial call to
+// StartFaceSearch.
+//
+// For more information, see Searching Faces in a Collection in the Amazon Rekognition
+// Developer Guide.
+//
+// The search results are retured in an array, Persons, of PersonMatch objects.
+// EachPersonMatch element contains details about the matching faces in the
+// input collection, person information (facial attributes, bounding boxes,
+// and person identifer) for the matched person, and the time the person was
+// matched in the video.
+//
+// GetFaceSearch only returns the default facial attributes (BoundingBox, Confidence,
+// Landmarks, Pose, and Quality). The other facial attributes listed in the
+// Face object of the following response syntax are not returned. For more information,
+// see FaceDetail in the Amazon Rekognition Developer Guide.
+//
+// By default, the Persons array is sorted by the time, in milliseconds from
+// the start of the video, persons are matched. You can also sort by persons
+// by specifying INDEX for the SORTBY input parameter.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Rekognition's
+// API operation GetFaceSearch for usage and error information.
+//
+// Returned Error Types:
+//   * AccessDeniedException
+//   You are not authorized to perform the action.
+//
+//   * InternalServerError
+//   Amazon Rekognition experienced a service issue. Try your call again.
+//
+//   * InvalidParameterException
+//   Input parameter violated a constraint. Validate your parameter before calling
+//   the API operation again.
+//
+//   * InvalidPaginationTokenException
+//   Pagination token in the request is not valid.
+//
+//   * ProvisionedThroughputExceededException
+//   The number of requests exceeded your throughput limit. If you want to increase
+//   this limit, contact Amazon Rekognition.
+//
+//   * ResourceNotFoundException
+//   The collection specified in the request cannot be found.
+//
+//   * ThrottlingException
+//   Amazon Rekognition is temporarily unable to process the request. Try your
+//   call again.
+//
+func (c *Rekognition) GetFaceSearch(input *GetFaceSearchInput) (*GetFaceSearchOutput, error) {
+	req, out := c.GetFaceSearchRequest(input)
+	return out, req.Send()
+}
+
+// GetFaceSearchWithContext is the same as GetFaceSearch with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetFaceSearch for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Rekognition) GetFaceSearchWithContext(ctx aws.Context, input *GetFaceSearchInput, opts ...request.Option) (*GetFaceSearchOutput, error) {
+	req, out := c.GetFaceSearchRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+// GetFaceSearchPages iterates over the pages of a GetFaceSearch operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See GetFaceSearch method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a GetFaceSearch operation.
+//    pageNum := 0
+//    err := client.GetFaceSearchPages(params,
+//        func(page *rekognition.GetFaceSearchOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *Rekognition) GetFaceSearchPages(input *GetFaceSearchInput, fn func(*GetFaceSearchOutput, bool) bool) error {
+	return c.GetFaceSearchPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// GetFaceSearchPagesWithContext same as GetFaceSearchPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Rekognition) GetFaceSearchPagesWithContext(ctx aws.Context, input *GetFaceSearchInput, fn func(*GetFaceSearchOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *GetFaceSearchInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.GetFaceSearchRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	for p.Next() {
+		if !fn(p.Page().(*GetFaceSearchOutput), !p.HasNextPage()) {
+			break
+		}
+	}
+
+	return p.Err()
+}
+
+const opGetLabelDetection = "GetLabelDetection"
+
+// GetLabelDetectionRequest generates a "aws/request.Request" representing the
+// client's request for the GetLabelDetection operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetLabelDetection for more information on using the GetLabelDetection
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the GetLabelDetectionRequest method.
+//    req, resp := client.GetLabelDetectionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+func (c *Rekognition) GetLabelDetectionRequest(input *GetLabelDetectionInput) (req *request.Request, output *GetLabelDetectionOutput) {
+	op := &request.Operation{
+		Name:       opGetLabelDetection,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"NextToken"},
+			OutputTokens:    []string{"NextToken"},
+			LimitToken:      "MaxResults",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &GetLabelDetectionInput{}
+	}
+
+	output = &GetLabelDetectionOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetLabelDetection API operation for Amazon Rekognition.
+//
+// Gets the label detection results of a Amazon Rekognition Video analysis started
+// by StartLabelDetection.
+//
+// The label detection operation is started by a call to StartLabelDetection
+// which returns a job identifier (JobId). When the label detection operation
+// finishes, Amazon Rekognition publishes a completion status to the Amazon
+// Simple Notification Service topic registered in the initial call to StartlabelDetection.
+// To get the results of the label detection operation, first check that the
+// status value published to the Amazon SNS topic is SUCCEEDED. If so, call
+// GetLabelDetection and pass the job identifier (JobId) from the initial call
+// to StartLabelDetection.
+//
+// GetLabelDetection returns an array of detected labels (Labels) sorted by
+// the time the labels were detected. You can also sort by the label name by
+// specifying NAME for the SortBy input parameter.
+//
+// The labels returned include the label name, the percentage confidence in
+// the accuracy of the detected label, and the time the label was detected in
+// the video.
+//
+// The returned labels also include bounding box information for common objects,
+// a hierarchical taxonomy of detected labels, and the version of the label
+// model used for detection.
+//
+// Use MaxResults parameter to limit the number of labels returned. If there
+// are more results than specified in MaxResults, the value of NextToken in
+// the operation response contains a pagination token for getting the next set
+// of results. To get the next page of results, call GetlabelDetection and populate
+// the NextToken request parameter with the token value returned from the previous
+// call to GetLabelDetection.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Rekognition's
+// API operation GetLabelDetection for usage and error information.
+//
+// Returned Error Types:
+//   * AccessDeniedException
+//   You are not authorized to perform the action.
+//
+//   * InternalServerError
+//   Amazon Rekognition experienced a service issue. Try your call again.
+//
+//   * InvalidParameterException
+//   Input parameter violated a constraint. Validate your parameter before calling
+//   the API operation again.
+//
+//   * InvalidPaginationTokenException
+//   Pagination token in the request is not valid.
+//
+//   * ProvisionedThroughputExceededException
+//   The number of requests exceeded your throughput limit. If you want to increase
+//   this limit, contact Amazon Rekognition.
+//
+//   * ResourceNotFoundException
+//   The collection specified in the request cannot be found.
+//
+//   * ThrottlingException
+//   Amazon Rekognition is temporarily unable to process the request. Try your
+//   call again.
+//
+func (c *Rekognition) GetLabelDetection(input *GetLabelDetectionInput) (*GetLabelDetectionOutput, error) {
+	req, out := c.GetLabelDetectionRequest(input)
+	return out, req.Send()
+}
+
+// GetLabelDetectionWithContext is the same as GetLabelDetection with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetLabelDetection for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Rekognition) GetLabelDetectionWithContext(ctx aws.Context, input *GetLabelDetectionInput, opts ...request.Option) (*GetLabelDetectionOutput, error) {
+	req, out := c.GetLabelDetectionRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+// GetLabelDetectionPages iterates over the pages of a GetLabelDetection operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See GetLabelDetection method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a GetLabelDetection operation.
+//    pageNum := 0
+//    err := client.GetLabelDetectionPages(params,
+//        func(page *rekognition.GetLabelDetectionOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *Rekognition) GetLabelDetectionPages(input *GetLabelDetectionInput, fn func(*GetLabelDetectionOutput, bool) bool) error {
+	return c.GetLabelDetectionPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// GetLabelDetectionPagesWithContext same as GetLabelDetectionPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Rekognition) GetLabelDetectionPagesWithContext(ctx aws.Context, input *GetLabelDetectionInput, fn func(*GetLabelDetectionOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *GetLabelDetectionInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.GetLabelDetectionRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	for p.Next() {
+		if !fn(p.Page().(*GetLabelDetectionOutput), !p.HasNextPage()) {
+			break
+		}
+	}
+
+	return p.Err()
+}
+
+const opGetPersonTracking = "GetPersonTracking"
+
+// GetPersonTrackingRequest generates a "aws/request.Request" representing the
+// client's request for the GetPersonTracking operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetPersonTracking for more information on using the GetPersonTracking
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the GetPersonTrackingRequest method.
+//    req, resp := client.GetPersonTrackingRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+func (c *Rekognition) GetPersonTrackingRequest(input *GetPersonTrackingInput) (req *request.Request, output *GetPersonTrackingOutput) {
+	op := &request.Operation{
+		Name:       opGetPersonTracking,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"NextToken"},
+			OutputTokens:    []string{"NextToken"},
+			LimitToken:      "MaxResults",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &GetPersonTrackingInput{}
+	}
+
+	output = &GetPersonTrackingOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetPersonTracking API operation for Amazon Rekognition.
+//
+// Gets the path tracking results of a Amazon Rekognition Video analysis started
+// by StartPersonTracking.
+//
+// The person path tracking operation is started by a call to StartPersonTracking
+// which returns a job identifier (JobId). When the operation finishes, Amazon
+// Rekognition Video publishes a completion status to the Amazon Simple Notification
+// Service topic registered in the initial call to StartPersonTracking.
+//
+// To get the results of the person path tracking operation, first check that
+// the status value published to the Amazon SNS topic is SUCCEEDED. If so, call
+// GetPersonTracking and pass the job identifier (JobId) from the initial call
+// to StartPersonTracking.
+//
+// GetPersonTracking returns an array, Persons, of tracked persons and the time(s)
+// their paths were tracked in the video.
+//
+// GetPersonTracking only returns the default facial attributes (BoundingBox,
+// Confidence, Landmarks, Pose, and Quality). The other facial attributes listed
+// in the Face object of the following response syntax are not returned.
+//
+// For more information, see FaceDetail in the Amazon Rekognition Developer
+// Guide.
+//
+// By default, the array is sorted by the time(s) a person's path is tracked
+// in the video. You can sort by tracked persons by specifying INDEX for the
+// SortBy input parameter.
+//
+// Use the MaxResults parameter to limit the number of items returned. If there
+// are more results than specified in MaxResults, the value of NextToken in
+// the operation response contains a pagination token for getting the next set
+// of results. To get the next page of results, call GetPersonTracking and populate
+// the NextToken request parameter with the token value returned from the previous
+// call to GetPersonTracking.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Rekognition's
+// API operation GetPersonTracking for usage and error information.
+//
+// Returned Error Types:
+//   * AccessDeniedException
+//   You are not authorized to perform the action.
+//
+//   * InternalServerError
+//   Amazon Rekognition experienced a service issue. Try your call again.
+//
+//   * InvalidParameterException
+//   Input parameter violated a constraint. Validate your parameter before calling
+//   the API operation again.
+//
+//   * InvalidPaginationTokenException
+//   Pagination token in the request is not valid.
+//
+//   * ProvisionedThroughputExceededException
+//   The number of requests exceeded your throughput limit. If you want to increase
+//   this limit, contact Amazon Rekognition.
+//
+//   * ResourceNotFoundException
+//   The collection specified in the request cannot be found.
+//
+//   * ThrottlingException
+//   Amazon Rekognition is temporarily unable to process the request. Try your
+//   call again.
+//
+func (c *Rekognition) GetPersonTracking(input *GetPersonTrackingInput) (*GetPersonTrackingOutput, error) {
+	req, out := c.GetPersonTrackingRequest(input)
+	return out, req.Send()
+}
+
+// GetPersonTrackingWithContext is the same as GetPersonTracking with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetPersonTracking for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Rekognition) GetPersonTrackingWithContext(ctx aws.Context, input *GetPersonTrackingInput, opts ...request.Option) (*GetPersonTrackingOutput, error) {
+	req, out := c.GetPersonTrackingRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+// GetPersonTrackingPages iterates over the pages of a GetPersonTracking operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See GetPersonTracking method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a GetPersonTracking operation.
+//    pageNum := 0
+//    err := client.GetPersonTrackingPages(params,
+//        func(page *rekognition.GetPersonTrackingOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *Rekognition) GetPersonTrackingPages(input *GetPersonTrackingInput, fn func(*GetPersonTrackingOutput, bool) bool) error {
+	return c.GetPersonTrackingPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// GetPersonTrackingPagesWithContext same as GetPersonTrackingPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Rekognition) GetPersonTrackingPagesWithContext(ctx aws.Context, input *GetPersonTrackingInput, fn func(*GetPersonTrackingOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *GetPersonTrackingInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.GetPersonTrackingRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	for p.Next() {
+		if !fn(p.Page().(*GetPersonTrackingOutput), !p.HasNextPage()) {
+			break
+		}
+	}
+
+	return p.Err()
+}
+
+const opGetSegmentDetection = "GetSegmentDetection"
+
+// GetSegmentDetectionRequest generates a "aws/request.Request" representing the
+// client's request for the GetSegmentDetection operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetSegmentDetection for more information on using the GetSegmentDetection
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the GetSegmentDetectionRequest method.
+//    req, resp := client.GetSegmentDetectionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+func (c *Rekognition) GetSegmentDetectionRequest(input *GetSegmentDetectionInput) (req *request.Request, output *GetSegmentDetectionOutput) {
+	op := &request.Operation{
+		Name:       opGetSegmentDetection,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"NextToken"},
+			OutputTokens:    []string{"NextToken"},
+			LimitToken:      "MaxResults",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &GetSegmentDetectionInput{}
+	}
+
+	output = &GetSegmentDetectionOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetSegmentDetection API operation for Amazon Rekognition.
+//
+// Gets the segment detection results of a Amazon Rekognition Video analysis
+// started by StartSegmentDetection.
+//
+// Segment detection with Amazon Rekognition Video is an asynchronous operation.
+// You start segment detection by calling StartSegmentDetection which returns
+// a job identifier (JobId). When the segment detection operation finishes,
+// Amazon Rekognition publishes a completion status to the Amazon Simple Notification
+// Service topic registered in the initial call to StartSegmentDetection. To
+// get the results of the segment detection operation, first check that the
+// status value published to the Amazon SNS topic is SUCCEEDED. if so, call
+// GetSegmentDetection and pass the job identifier (JobId) from the initial
+// call of StartSegmentDetection.
+//
+// GetSegmentDetection returns detected segments in an array (Segments) of SegmentDetection
+// objects. Segments is sorted by the segment types specified in the SegmentTypes
+// input parameter of StartSegmentDetection. Each element of the array includes
+// the detected segment, the precentage confidence in the acuracy of the detected
+// segment, the type of the segment, and the frame in which the segment was
+// detected.
+//
+// Use SelectedSegmentTypes to find out the type of segment detection requested
+// in the call to StartSegmentDetection.
+//
+// Use the MaxResults parameter to limit the number of segment detections returned.
+// If there are more results than specified in MaxResults, the value of NextToken
+// in the operation response contains a pagination token for getting the next
+// set of results. To get the next page of results, call GetSegmentDetection
+// and populate the NextToken request parameter with the token value returned
+// from the previous call to GetSegmentDetection.
+//
+// For more information, see Detecting Video Segments in Stored Video in the
+// Amazon Rekognition Developer Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Rekognition's
+// API operation GetSegmentDetection for usage and error information.
+//
+// Returned Error Types:
+//   * AccessDeniedException
+//   You are not authorized to perform the action.
+//
+//   * InternalServerError
+//   Amazon Rekognition experienced a service issue. Try your call again.
+//
+//   * InvalidParameterException
+//   Input parameter violated a constraint. Validate your parameter before calling
+//   the API operation again.
+//
+//   * InvalidPaginationTokenException
+//   Pagination token in the request is not valid.
+//
+//   * ProvisionedThroughputExceededException
+//   The number of requests exceeded your throughput limit. If you want to increase
+//   this limit, contact Amazon Rekognition.
+//
+//   * ResourceNotFoundException
+//   The collection specified in the request cannot be found.
+//
+//   * ThrottlingException
+//   Amazon Rekognition is temporarily unable to process the request. Try your
+//   call again.
+//
+func (c *Rekognition) GetSegmentDetection(input *GetSegmentDetectionInput) (*GetSegmentDetectionOutput, error) {
+	req, out := c.GetSegmentDetectionRequest(input)
+	return out, req.Send()
+}
+
+// GetSegmentDetectionWithContext is the same as GetSegmentDetection with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetSegmentDetection for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Rekognition) GetSegmentDetectionWithContext(ctx aws.Context, input *GetSegmentDetectionInput, opts ...request.Option) (*GetSegmentDetectionOutput, error) {
+	req, out := c.GetSegmentDetectionRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+// GetSegmentDetectionPages iterates over the pages of a GetSegmentDetection operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See GetSegmentDetection method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a GetSegmentDetection operation.
+//    pageNum := 0
+//    err := client.GetSegmentDetectionPages(params,
+//        func(page *rekognition.GetSegmentDetectionOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *Rekognition) GetSegmentDetectionPages(input *GetSegmentDetectionInput, fn func(*GetSegmentDetectionOutput, bool) bool) error {
+	return c.GetSegmentDetectionPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// GetSegmentDetectionPagesWithContext same as GetSegmentDetectionPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Rekognition) GetSegmentDetectionPagesWithContext(ctx aws.Context, input *GetSegmentDetectionInput, fn func(*GetSegmentDetectionOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *GetSegmentDetectionInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.GetSegmentDetectionRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	for p.Next() {
+		if !fn(p.Page().(*GetSegmentDetectionOutput), !p.HasNextPage()) {
+			break
+		}
+	}
+
+	return p.Err()
+}
+
+const opGetTextDetection = "GetTextDetection"
+
+// GetTextDetectionRequest generates a "aws/request.Request" representing the
+// client's request for the GetTextDetection operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetTextDetection for more information on using the GetTextDetection
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the GetTextDetectionRequest method.
+//    req, resp := client.GetTextDetectionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+func (c *Rekognition) GetTextDetectionRequest(input *GetTextDetectionInput) (req *request.Request, output *GetTextDetectionOutput) {
+	op := &request.Operation{
+		Name:       opGetTextDetection,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"NextToken"},
+			OutputTokens:    []string{"NextToken"},
+			LimitToken:      "MaxResults",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &GetTextDetectionInput{}
+	}
+
+	output = &GetTextDetectionOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetTextDetection API operation for Amazon Rekognition.
+//
+// Gets the text detection results of a Amazon Rekognition Video analysis started
+// by StartTextDetection.
+//
+// Text detection with Amazon Rekognition Video is an asynchronous operation.
+// You start text detection by calling StartTextDetection which returns a job
+// identifier (JobId) When the text detection operation finishes, Amazon Rekognition
+// publishes a completion status to the Amazon Simple Notification Service topic
+// registered in the initial call to StartTextDetection. To get the results
+// of the text detection operation, first check that the status value published
+// to the Amazon SNS topic is SUCCEEDED. if so, call GetTextDetection and pass
+// the job identifier (JobId) from the initial call of StartLabelDetection.
+//
+// GetTextDetection returns an array of detected text (TextDetections) sorted
+// by the time the text was detected, up to 50 words per frame of video.
+//
+// Each element of the array includes the detected text, the precentage confidence
+// in the acuracy of the detected text, the time the text was detected, bounding
+// box information for where the text was located, and unique identifiers for
+// words and their lines.
+//
+// Use MaxResults parameter to limit the number of text detections returned.
+// If there are more results than specified in MaxResults, the value of NextToken
+// in the operation response contains a pagination token for getting the next
+// set of results. To get the next page of results, call GetTextDetection and
+// populate the NextToken request parameter with the token value returned from
+// the previous call to GetTextDetection.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Rekognition's
+// API operation GetTextDetection for usage and error information.
+//
+// Returned Error Types:
+//   * AccessDeniedException
+//   You are not authorized to perform the action.
+//
+//   * InternalServerError
+//   Amazon Rekognition experienced a service issue. Try your call again.
+//
+//   * InvalidParameterException
+//   Input parameter violated a constraint. Validate your parameter before calling
+//   the API operation again.
+//
+//   * InvalidPaginationTokenException
+//   Pagination token in the request is not valid.
+//
+//   * ProvisionedThroughputExceededException
+//   The number of requests exceeded your throughput limit. If you want to increase
+//   this limit, contact Amazon Rekognition.
+//
+//   * ResourceNotFoundException
+//   The collection specified in the request cannot be found.
+//
+//   * ThrottlingException
+//   Amazon Rekognition is temporarily unable to process the request. Try your
+//   call again.
+//
+func (c *Rekognition) GetTextDetection(input *GetTextDetectionInput) (*GetTextDetectionOutput, error) {
+	req, out := c.GetTextDetectionRequest(input)
+	return out, req.Send()
+}
+
+// GetTextDetectionWithContext is the same as GetTextDetection with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetTextDetection for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Rekognition) GetTextDetectionWithContext(ctx aws.Context, input *GetTextDetectionInput, opts ...request.Option) (*GetTextDetectionOutput, error) {
+	req, out := c.GetTextDetectionRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+// GetTextDetectionPages iterates over the pages of a GetTextDetection operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See GetTextDetection method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a GetTextDetection operation.
+//    pageNum := 0
+//    err := client.GetTextDetectionPages(params,
+//        func(page *rekognition.GetTextDetectionOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *Rekognition) GetTextDetectionPages(input *GetTextDetectionInput, fn func(*GetTextDetectionOutput, bool) bool) error {
+	return c.GetTextDetectionPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// GetTextDetectionPagesWithContext same as GetTextDetectionPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Rekognition) GetTextDetectionPagesWithContext(ctx aws.Context, input *GetTextDetectionInput, fn func(*GetTextDetectionOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *GetTextDetectionInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.GetTextDetectionRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	for p.Next() {
+		if !fn(p.Page().(*GetTextDetectionOutput), !p.HasNextPage()) {
+			break
+		}
+	}
+
+	return p.Err()
+}
+
 const opIndexFaces = "IndexFaces"
 
 // IndexFacesRequest generates a "aws/request.Request" representing the
 // client's request for the IndexFaces operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -961,30 +3944,96 @@ func (c *Rekognition) IndexFacesRequest(input *IndexFacesInput) (req *request.Re
 //
 // Detects faces in the input image and adds them to the specified collection.
 //
-// Amazon Rekognition does not save the actual faces detected. Instead, the
-// underlying detection algorithm first detects the faces in the input image,
-// and for each face extracts facial features into a feature vector, and stores
-// it in the back-end database. Amazon Rekognition uses feature vectors when
-// performing face match and search operations using the and operations.
+// Amazon Rekognition doesn't save the actual faces that are detected. Instead,
+// the underlying detection algorithm first detects the faces in the input image.
+// For each face, the algorithm extracts facial features into a feature vector,
+// and stores it in the backend database. Amazon Rekognition uses feature vectors
+// when it performs face match and search operations using the SearchFaces and
+// SearchFacesByImage operations.
 //
-// If you provide the optional externalImageID for the input image you provided,
+// For more information, see Adding Faces to a Collection in the Amazon Rekognition
+// Developer Guide.
+//
+// To get the number of faces in a collection, call DescribeCollection.
+//
+// If you're using version 1.0 of the face detection model, IndexFaces indexes
+// the 15 largest faces in the input image. Later versions of the face detection
+// model index the 100 largest faces in the input image.
+//
+// If you're using version 4 or later of the face model, image orientation information
+// is not returned in the OrientationCorrection field.
+//
+// To determine which version of the model you're using, call DescribeCollection
+// and supply the collection ID. You can also get the model version from the
+// value of FaceModelVersion in the response from IndexFaces
+//
+// For more information, see Model Versioning in the Amazon Rekognition Developer
+// Guide.
+//
+// If you provide the optional ExternalImageId for the input image you provided,
 // Amazon Rekognition associates this ID with all faces that it detects. When
-// you call the operation, the response returns the external ID. You can use
-// this external image ID to create a client-side index to associate the faces
-// with each image. You can then use the index to find all faces in an image.
+// you call the ListFaces operation, the response returns the external ID. You
+// can use this external image ID to create a client-side index to associate
+// the faces with each image. You can then use the index to find all faces in
+// an image.
 //
-// In response, the operation returns an array of metadata for all detected
-// faces. This includes, the bounding box of the detected face, confidence value
-// (indicating the bounding box contains a face), a face ID assigned by the
-// service for each face that is detected and stored, and an image ID assigned
-// by the service for the input image. If you request all facial attributes
-// (using the detectionAttributes parameter, Amazon Rekognition returns detailed
-// facial attributes such as facial landmarks (for example, location of eye
-// and mount) and other facial attributes such gender. If you provide the same
-// image, specify the same collection, and use the same external ID in the IndexFaces
-// operation, Amazon Rekognition doesn't save duplicate face metadata.
+// You can specify the maximum number of faces to index with the MaxFaces input
+// parameter. This is useful when you want to index the largest faces in an
+// image and don't want to index smaller faces, such as those belonging to people
+// standing in the background.
 //
-// For an example, see example2.
+// The QualityFilter input parameter allows you to filter out detected faces
+// that don’t meet a required quality bar. The quality bar is based on a variety
+// of common use cases. By default, IndexFaces chooses the quality bar that's
+// used to filter faces. You can also explicitly choose the quality bar. Use
+// QualityFilter, to set the quality bar by specifying LOW, MEDIUM, or HIGH.
+// If you do not want to filter detected faces, specify NONE.
+//
+// To use quality filtering, you need a collection associated with version 3
+// of the face model or higher. To get the version of the face model associated
+// with a collection, call DescribeCollection.
+//
+// Information about faces detected in an image, but not indexed, is returned
+// in an array of UnindexedFace objects, UnindexedFaces. Faces aren't indexed
+// for reasons such as:
+//
+//    * The number of faces detected exceeds the value of the MaxFaces request
+//    parameter.
+//
+//    * The face is too small compared to the image dimensions.
+//
+//    * The face is too blurry.
+//
+//    * The image is too dark.
+//
+//    * The face has an extreme pose.
+//
+//    * The face doesn’t have enough detail to be suitable for face search.
+//
+// In response, the IndexFaces operation returns an array of metadata for all
+// detected faces, FaceRecords. This includes:
+//
+//    * The bounding box, BoundingBox, of the detected face.
+//
+//    * A confidence value, Confidence, which indicates the confidence that
+//    the bounding box contains a face.
+//
+//    * A face ID, FaceId, assigned by the service for each face that's detected
+//    and stored.
+//
+//    * An image ID, ImageId, assigned by the service for the input image.
+//
+// If you request all facial attributes (by using the detectionAttributes parameter),
+// Amazon Rekognition returns detailed facial attributes, such as facial landmarks
+// (for example, location of eye and mouth) and other facial attributes. If
+// you provide the same image, specify the same collection, and use the same
+// external ID in the IndexFaces operation, Amazon Rekognition doesn't save
+// duplicate face metadata.
+//
+// The input image is passed either as base64-encoded image bytes, or as a reference
+// to an image in an Amazon S3 bucket. If you use the AWS CLI to call Amazon
+// Rekognition operations, passing image bytes isn't supported. The image must
+// be formatted as a PNG or JPEG file.
 //
 // This operation requires permissions to perform the rekognition:IndexFaces
 // action.
@@ -996,36 +4045,36 @@ func (c *Rekognition) IndexFacesRequest(input *IndexFacesInput) (req *request.Re
 // See the AWS API reference guide for Amazon Rekognition's
 // API operation IndexFaces for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidS3ObjectException "InvalidS3ObjectException"
+// Returned Error Types:
+//   * InvalidS3ObjectException
 //   Amazon Rekognition is unable to access the S3 object specified in the request.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   Input parameter violated a constraint. Validate your parameter before calling
 //   the API operation again.
 //
-//   * ErrCodeImageTooLargeException "ImageTooLargeException"
+//   * ImageTooLargeException
 //   The input image size exceeds the allowed limit. For more information, see
-//   limits.
+//   Limits in Amazon Rekognition in the Amazon Rekognition Developer Guide.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   You are not authorized to perform the action.
 //
-//   * ErrCodeInternalServerError "InternalServerError"
+//   * InternalServerError
 //   Amazon Rekognition experienced a service issue. Try your call again.
 //
-//   * ErrCodeThrottlingException "ThrottlingException"
+//   * ThrottlingException
 //   Amazon Rekognition is temporarily unable to process the request. Try your
 //   call again.
 //
-//   * ErrCodeProvisionedThroughputExceededException "ProvisionedThroughputExceededException"
+//   * ProvisionedThroughputExceededException
 //   The number of requests exceeded your throughput limit. If you want to increase
 //   this limit, contact Amazon Rekognition.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   Collection specified in the request is not found.
+//   * ResourceNotFoundException
+//   The collection specified in the request cannot be found.
 //
-//   * ErrCodeInvalidImageFormatException "InvalidImageFormatException"
+//   * InvalidImageFormatException
 //   The provided image format is not supported.
 //
 func (c *Rekognition) IndexFaces(input *IndexFacesInput) (*IndexFacesOutput, error) {
@@ -1053,8 +4102,8 @@ const opListCollections = "ListCollections"
 
 // ListCollectionsRequest generates a "aws/request.Request" representing the
 // client's request for the ListCollections operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1101,7 +4150,8 @@ func (c *Rekognition) ListCollectionsRequest(input *ListCollectionsInput) (req *
 // the response also provides a NextToken that you can use in the subsequent
 // request to fetch the next set of collection IDs.
 //
-// For an example, see example1.
+// For an example, see Listing Collections in the Amazon Rekognition Developer
+// Guide.
 //
 // This operation requires permissions to perform the rekognition:ListCollections
 // action.
@@ -1113,30 +4163,30 @@ func (c *Rekognition) ListCollectionsRequest(input *ListCollectionsInput) (req *
 // See the AWS API reference guide for Amazon Rekognition's
 // API operation ListCollections for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+// Returned Error Types:
+//   * InvalidParameterException
 //   Input parameter violated a constraint. Validate your parameter before calling
 //   the API operation again.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   You are not authorized to perform the action.
 //
-//   * ErrCodeInternalServerError "InternalServerError"
+//   * InternalServerError
 //   Amazon Rekognition experienced a service issue. Try your call again.
 //
-//   * ErrCodeThrottlingException "ThrottlingException"
+//   * ThrottlingException
 //   Amazon Rekognition is temporarily unable to process the request. Try your
 //   call again.
 //
-//   * ErrCodeProvisionedThroughputExceededException "ProvisionedThroughputExceededException"
+//   * ProvisionedThroughputExceededException
 //   The number of requests exceeded your throughput limit. If you want to increase
 //   this limit, contact Amazon Rekognition.
 //
-//   * ErrCodeInvalidPaginationTokenException "InvalidPaginationTokenException"
+//   * InvalidPaginationTokenException
 //   Pagination token in the request is not valid.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   Collection specified in the request is not found.
+//   * ResourceNotFoundException
+//   The collection specified in the request cannot be found.
 //
 func (c *Rekognition) ListCollections(input *ListCollectionsInput) (*ListCollectionsOutput, error) {
 	req, out := c.ListCollectionsRequest(input)
@@ -1170,7 +4220,7 @@ func (c *Rekognition) ListCollectionsWithContext(ctx aws.Context, input *ListCol
 //    // Example iterating over at most 3 pages of a ListCollections operation.
 //    pageNum := 0
 //    err := client.ListCollectionsPages(params,
-//        func(page *ListCollectionsOutput, lastPage bool) bool {
+//        func(page *rekognition.ListCollectionsOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -1202,10 +4252,12 @@ func (c *Rekognition) ListCollectionsPagesWithContext(ctx aws.Context, input *Li
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*ListCollectionsOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*ListCollectionsOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -1213,8 +4265,8 @@ const opListFaces = "ListFaces"
 
 // ListFacesRequest generates a "aws/request.Request" representing the
 // client's request for the ListFaces operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1259,7 +4311,8 @@ func (c *Rekognition) ListFacesRequest(input *ListFacesInput) (req *request.Requ
 //
 // Returns metadata for faces in the specified collection. This metadata includes
 // information such as the bounding box coordinates, the confidence (that the
-// bounding box contains a face), and face ID. For an example, see example3.
+// bounding box contains a face), and face ID. For an example, see Listing Faces
+// in a Collection in the Amazon Rekognition Developer Guide.
 //
 // This operation requires permissions to perform the rekognition:ListFaces
 // action.
@@ -1271,30 +4324,30 @@ func (c *Rekognition) ListFacesRequest(input *ListFacesInput) (req *request.Requ
 // See the AWS API reference guide for Amazon Rekognition's
 // API operation ListFaces for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+// Returned Error Types:
+//   * InvalidParameterException
 //   Input parameter violated a constraint. Validate your parameter before calling
 //   the API operation again.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   You are not authorized to perform the action.
 //
-//   * ErrCodeInternalServerError "InternalServerError"
+//   * InternalServerError
 //   Amazon Rekognition experienced a service issue. Try your call again.
 //
-//   * ErrCodeThrottlingException "ThrottlingException"
+//   * ThrottlingException
 //   Amazon Rekognition is temporarily unable to process the request. Try your
 //   call again.
 //
-//   * ErrCodeProvisionedThroughputExceededException "ProvisionedThroughputExceededException"
+//   * ProvisionedThroughputExceededException
 //   The number of requests exceeded your throughput limit. If you want to increase
 //   this limit, contact Amazon Rekognition.
 //
-//   * ErrCodeInvalidPaginationTokenException "InvalidPaginationTokenException"
+//   * InvalidPaginationTokenException
 //   Pagination token in the request is not valid.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   Collection specified in the request is not found.
+//   * ResourceNotFoundException
+//   The collection specified in the request cannot be found.
 //
 func (c *Rekognition) ListFaces(input *ListFacesInput) (*ListFacesOutput, error) {
 	req, out := c.ListFacesRequest(input)
@@ -1328,7 +4381,7 @@ func (c *Rekognition) ListFacesWithContext(ctx aws.Context, input *ListFacesInpu
 //    // Example iterating over at most 3 pages of a ListFaces operation.
 //    pageNum := 0
 //    err := client.ListFacesPages(params,
-//        func(page *ListFacesOutput, lastPage bool) bool {
+//        func(page *rekognition.ListFacesOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -1360,10 +4413,164 @@ func (c *Rekognition) ListFacesPagesWithContext(ctx aws.Context, input *ListFace
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*ListFacesOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*ListFacesOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
+	return p.Err()
+}
+
+const opListStreamProcessors = "ListStreamProcessors"
+
+// ListStreamProcessorsRequest generates a "aws/request.Request" representing the
+// client's request for the ListStreamProcessors operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListStreamProcessors for more information on using the ListStreamProcessors
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ListStreamProcessorsRequest method.
+//    req, resp := client.ListStreamProcessorsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+func (c *Rekognition) ListStreamProcessorsRequest(input *ListStreamProcessorsInput) (req *request.Request, output *ListStreamProcessorsOutput) {
+	op := &request.Operation{
+		Name:       opListStreamProcessors,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"NextToken"},
+			OutputTokens:    []string{"NextToken"},
+			LimitToken:      "MaxResults",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &ListStreamProcessorsInput{}
+	}
+
+	output = &ListStreamProcessorsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListStreamProcessors API operation for Amazon Rekognition.
+//
+// Gets a list of stream processors that you have created with CreateStreamProcessor.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Rekognition's
+// API operation ListStreamProcessors for usage and error information.
+//
+// Returned Error Types:
+//   * AccessDeniedException
+//   You are not authorized to perform the action.
+//
+//   * InternalServerError
+//   Amazon Rekognition experienced a service issue. Try your call again.
+//
+//   * ThrottlingException
+//   Amazon Rekognition is temporarily unable to process the request. Try your
+//   call again.
+//
+//   * InvalidParameterException
+//   Input parameter violated a constraint. Validate your parameter before calling
+//   the API operation again.
+//
+//   * InvalidPaginationTokenException
+//   Pagination token in the request is not valid.
+//
+//   * ProvisionedThroughputExceededException
+//   The number of requests exceeded your throughput limit. If you want to increase
+//   this limit, contact Amazon Rekognition.
+//
+func (c *Rekognition) ListStreamProcessors(input *ListStreamProcessorsInput) (*ListStreamProcessorsOutput, error) {
+	req, out := c.ListStreamProcessorsRequest(input)
+	return out, req.Send()
+}
+
+// ListStreamProcessorsWithContext is the same as ListStreamProcessors with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListStreamProcessors for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Rekognition) ListStreamProcessorsWithContext(ctx aws.Context, input *ListStreamProcessorsInput, opts ...request.Option) (*ListStreamProcessorsOutput, error) {
+	req, out := c.ListStreamProcessorsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+// ListStreamProcessorsPages iterates over the pages of a ListStreamProcessors operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See ListStreamProcessors method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a ListStreamProcessors operation.
+//    pageNum := 0
+//    err := client.ListStreamProcessorsPages(params,
+//        func(page *rekognition.ListStreamProcessorsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *Rekognition) ListStreamProcessorsPages(input *ListStreamProcessorsInput, fn func(*ListStreamProcessorsOutput, bool) bool) error {
+	return c.ListStreamProcessorsPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// ListStreamProcessorsPagesWithContext same as ListStreamProcessorsPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Rekognition) ListStreamProcessorsPagesWithContext(ctx aws.Context, input *ListStreamProcessorsInput, fn func(*ListStreamProcessorsOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *ListStreamProcessorsInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.ListStreamProcessorsRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	for p.Next() {
+		if !fn(p.Page().(*ListStreamProcessorsOutput), !p.HasNextPage()) {
+			break
+		}
+	}
+
 	return p.Err()
 }
 
@@ -1371,8 +4578,8 @@ const opRecognizeCelebrities = "RecognizeCelebrities"
 
 // RecognizeCelebritiesRequest generates a "aws/request.Request" representing the
 // client's request for the RecognizeCelebrities operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1409,29 +4616,33 @@ func (c *Rekognition) RecognizeCelebritiesRequest(input *RecognizeCelebritiesInp
 
 // RecognizeCelebrities API operation for Amazon Rekognition.
 //
-// Returns an array of celebrities recognized in the input image. The image
-// is passed either as base64-encoded image bytes or as a reference to an image
-// in an Amazon S3 bucket. The image must be either a PNG or JPEG formatted
-// file. For more information, see celebrity-recognition.
+// Returns an array of celebrities recognized in the input image. For more information,
+// see Recognizing Celebrities in the Amazon Rekognition Developer Guide.
 //
-// RecognizeCelebrities returns the 15 largest faces in the image. It lists
-// recognized celebrities in the CelebrityFaces list and unrecognized faces
-// in the UnrecognizedFaces list. The operation doesn't return celebrities whose
-// face sizes are smaller than the largest 15 faces in the image.
+// RecognizeCelebrities returns the 100 largest faces in the image. It lists
+// recognized celebrities in the CelebrityFaces array and unrecognized faces
+// in the UnrecognizedFaces array. RecognizeCelebrities doesn't return celebrities
+// whose faces aren't among the largest 100 faces in the image.
 //
-// For each celebrity recognized, the API returns a Celebrity object. The Celebrity
-// object contains the celebrity name, ID, URL links to additional information,
-// match confidence, and a ComparedFace object that you can use to locate the
-// celebrity's face on the image.
+// For each celebrity recognized, RecognizeCelebrities returns a Celebrity object.
+// The Celebrity object contains the celebrity name, ID, URL links to additional
+// information, match confidence, and a ComparedFace object that you can use
+// to locate the celebrity's face on the image.
 //
-// Rekognition does not retain information about which images a celebrity has
-// been recognized in. Your application must store this information and use
-// the Celebrity ID property as a unique identifier for the celebrity. If you
-// don't store the celebrity name or additional information URLs returned by
-// RecognizeCelebrities, you will need the ID to identify the celebrity in a
-// call to the operation.
+// Amazon Rekognition doesn't retain information about which images a celebrity
+// has been recognized in. Your application must store this information and
+// use the Celebrity ID property as a unique identifier for the celebrity. If
+// you don't store the celebrity name or additional information URLs returned
+// by RecognizeCelebrities, you will need the ID to identify the celebrity in
+// a call to the GetCelebrityInfo operation.
 //
-// For an example, see recognize-celebrities-tutorial.
+// You pass the input image either as base64-encoded image bytes or as a reference
+// to an image in an Amazon S3 bucket. If you use the AWS CLI to call Amazon
+// Rekognition operations, passing image bytes is not supported. The image must
+// be either a PNG or JPEG formatted file.
+//
+// For an example, see Recognizing Celebrities in an Image in the Amazon Rekognition
+// Developer Guide.
 //
 // This operation requires permissions to perform the rekognition:RecognizeCelebrities
 // operation.
@@ -1443,36 +4654,36 @@ func (c *Rekognition) RecognizeCelebritiesRequest(input *RecognizeCelebritiesInp
 // See the AWS API reference guide for Amazon Rekognition's
 // API operation RecognizeCelebrities for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidS3ObjectException "InvalidS3ObjectException"
+// Returned Error Types:
+//   * InvalidS3ObjectException
 //   Amazon Rekognition is unable to access the S3 object specified in the request.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   Input parameter violated a constraint. Validate your parameter before calling
 //   the API operation again.
 //
-//   * ErrCodeInvalidImageFormatException "InvalidImageFormatException"
+//   * InvalidImageFormatException
 //   The provided image format is not supported.
 //
-//   * ErrCodeImageTooLargeException "ImageTooLargeException"
+//   * ImageTooLargeException
 //   The input image size exceeds the allowed limit. For more information, see
-//   limits.
+//   Limits in Amazon Rekognition in the Amazon Rekognition Developer Guide.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   You are not authorized to perform the action.
 //
-//   * ErrCodeInternalServerError "InternalServerError"
+//   * InternalServerError
 //   Amazon Rekognition experienced a service issue. Try your call again.
 //
-//   * ErrCodeThrottlingException "ThrottlingException"
+//   * ThrottlingException
 //   Amazon Rekognition is temporarily unable to process the request. Try your
 //   call again.
 //
-//   * ErrCodeProvisionedThroughputExceededException "ProvisionedThroughputExceededException"
+//   * ProvisionedThroughputExceededException
 //   The number of requests exceeded your throughput limit. If you want to increase
 //   this limit, contact Amazon Rekognition.
 //
-//   * ErrCodeInvalidImageFormatException "InvalidImageFormatException"
+//   * InvalidImageFormatException
 //   The provided image format is not supported.
 //
 func (c *Rekognition) RecognizeCelebrities(input *RecognizeCelebritiesInput) (*RecognizeCelebritiesOutput, error) {
@@ -1500,8 +4711,8 @@ const opSearchFaces = "SearchFaces"
 
 // SearchFacesRequest generates a "aws/request.Request" representing the
 // client's request for the SearchFaces operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1552,7 +4763,8 @@ func (c *Rekognition) SearchFacesRequest(input *SearchFacesInput) (req *request.
 // response also includes a confidence value for each face match, indicating
 // the confidence that the specific face matches the input face.
 //
-// For an example, see example3.
+// For an example, see Searching for a Face Using Its Face ID in the Amazon
+// Rekognition Developer Guide.
 //
 // This operation requires permissions to perform the rekognition:SearchFaces
 // action.
@@ -1564,27 +4776,27 @@ func (c *Rekognition) SearchFacesRequest(input *SearchFacesInput) (req *request.
 // See the AWS API reference guide for Amazon Rekognition's
 // API operation SearchFaces for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+// Returned Error Types:
+//   * InvalidParameterException
 //   Input parameter violated a constraint. Validate your parameter before calling
 //   the API operation again.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   You are not authorized to perform the action.
 //
-//   * ErrCodeInternalServerError "InternalServerError"
+//   * InternalServerError
 //   Amazon Rekognition experienced a service issue. Try your call again.
 //
-//   * ErrCodeThrottlingException "ThrottlingException"
+//   * ThrottlingException
 //   Amazon Rekognition is temporarily unable to process the request. Try your
 //   call again.
 //
-//   * ErrCodeProvisionedThroughputExceededException "ProvisionedThroughputExceededException"
+//   * ProvisionedThroughputExceededException
 //   The number of requests exceeded your throughput limit. If you want to increase
 //   this limit, contact Amazon Rekognition.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   Collection specified in the request is not found.
+//   * ResourceNotFoundException
+//   The collection specified in the request cannot be found.
 //
 func (c *Rekognition) SearchFaces(input *SearchFacesInput) (*SearchFacesOutput, error) {
 	req, out := c.SearchFacesRequest(input)
@@ -1611,8 +4823,8 @@ const opSearchFacesByImage = "SearchFacesByImage"
 
 // SearchFacesByImageRequest generates a "aws/request.Request" representing the
 // client's request for the SearchFacesByImage operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1653,12 +4865,18 @@ func (c *Rekognition) SearchFacesByImageRequest(input *SearchFacesByImageInput) 
 // then searches the specified collection for matching faces. The operation
 // compares the features of the input face with faces in the specified collection.
 //
-// To search for all faces in an input image, you might first call the operation,
-// and then use the face IDs returned in subsequent calls to the operation.
+// To search for all faces in an input image, you might first call the IndexFaces
+// operation, and then use the face IDs returned in subsequent calls to the
+// SearchFaces operation.
 //
-//  You can also call the DetectFaces operation and use the bounding boxes in
+// You can also call the DetectFaces operation and use the bounding boxes in
 // the response to make face crops, which then you can pass in to the SearchFacesByImage
 // operation.
+//
+// You pass the input image either as base64-encoded image bytes or as a reference
+// to an image in an Amazon S3 bucket. If you use the AWS CLI to call Amazon
+// Rekognition operations, passing image bytes is not supported. The image must
+// be either a PNG or JPEG formatted file.
 //
 // The response returns an array of faces that match, ordered by similarity
 // score with the highest similarity first. More specifically, it is an array
@@ -1668,7 +4886,18 @@ func (c *Rekognition) SearchFacesByImageRequest(input *SearchFacesByImageInput) 
 // confidence level that the bounding box contains a face) of the face that
 // Amazon Rekognition used for the input image.
 //
-// For an example, see example3.
+// For an example, Searching for a Face Using an Image in the Amazon Rekognition
+// Developer Guide.
+//
+// The QualityFilter input parameter allows you to filter out detected faces
+// that don’t meet a required quality bar. The quality bar is based on a variety
+// of common use cases. Use QualityFilter to set the quality bar for filtering
+// by specifying LOW, MEDIUM, or HIGH. If you do not want to filter detected
+// faces, specify NONE. The default value is NONE.
+//
+// To use quality filtering, you need a collection associated with version 3
+// of the face model or higher. To get the version of the face model associated
+// with a collection, call DescribeCollection.
 //
 // This operation requires permissions to perform the rekognition:SearchFacesByImage
 // action.
@@ -1680,36 +4909,36 @@ func (c *Rekognition) SearchFacesByImageRequest(input *SearchFacesByImageInput) 
 // See the AWS API reference guide for Amazon Rekognition's
 // API operation SearchFacesByImage for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidS3ObjectException "InvalidS3ObjectException"
+// Returned Error Types:
+//   * InvalidS3ObjectException
 //   Amazon Rekognition is unable to access the S3 object specified in the request.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   Input parameter violated a constraint. Validate your parameter before calling
 //   the API operation again.
 //
-//   * ErrCodeImageTooLargeException "ImageTooLargeException"
+//   * ImageTooLargeException
 //   The input image size exceeds the allowed limit. For more information, see
-//   limits.
+//   Limits in Amazon Rekognition in the Amazon Rekognition Developer Guide.
 //
-//   * ErrCodeAccessDeniedException "AccessDeniedException"
+//   * AccessDeniedException
 //   You are not authorized to perform the action.
 //
-//   * ErrCodeInternalServerError "InternalServerError"
+//   * InternalServerError
 //   Amazon Rekognition experienced a service issue. Try your call again.
 //
-//   * ErrCodeThrottlingException "ThrottlingException"
+//   * ThrottlingException
 //   Amazon Rekognition is temporarily unable to process the request. Try your
 //   call again.
 //
-//   * ErrCodeProvisionedThroughputExceededException "ProvisionedThroughputExceededException"
+//   * ProvisionedThroughputExceededException
 //   The number of requests exceeded your throughput limit. If you want to increase
 //   this limit, contact Amazon Rekognition.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
-//   Collection specified in the request is not found.
+//   * ResourceNotFoundException
+//   The collection specified in the request cannot be found.
 //
-//   * ErrCodeInvalidImageFormatException "InvalidImageFormatException"
+//   * InvalidImageFormatException
 //   The provided image format is not supported.
 //
 func (c *Rekognition) SearchFacesByImage(input *SearchFacesByImageInput) (*SearchFacesByImageOutput, error) {
@@ -1733,12 +4962,1476 @@ func (c *Rekognition) SearchFacesByImageWithContext(ctx aws.Context, input *Sear
 	return out, req.Send()
 }
 
+const opStartCelebrityRecognition = "StartCelebrityRecognition"
+
+// StartCelebrityRecognitionRequest generates a "aws/request.Request" representing the
+// client's request for the StartCelebrityRecognition operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See StartCelebrityRecognition for more information on using the StartCelebrityRecognition
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the StartCelebrityRecognitionRequest method.
+//    req, resp := client.StartCelebrityRecognitionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+func (c *Rekognition) StartCelebrityRecognitionRequest(input *StartCelebrityRecognitionInput) (req *request.Request, output *StartCelebrityRecognitionOutput) {
+	op := &request.Operation{
+		Name:       opStartCelebrityRecognition,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &StartCelebrityRecognitionInput{}
+	}
+
+	output = &StartCelebrityRecognitionOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// StartCelebrityRecognition API operation for Amazon Rekognition.
+//
+// Starts asynchronous recognition of celebrities in a stored video.
+//
+// Amazon Rekognition Video can detect celebrities in a video must be stored
+// in an Amazon S3 bucket. Use Video to specify the bucket name and the filename
+// of the video. StartCelebrityRecognition returns a job identifier (JobId)
+// which you use to get the results of the analysis. When celebrity recognition
+// analysis is finished, Amazon Rekognition Video publishes a completion status
+// to the Amazon Simple Notification Service topic that you specify in NotificationChannel.
+// To get the results of the celebrity recognition analysis, first check that
+// the status value published to the Amazon SNS topic is SUCCEEDED. If so, call
+// GetCelebrityRecognition and pass the job identifier (JobId) from the initial
+// call to StartCelebrityRecognition.
+//
+// For more information, see Recognizing Celebrities in the Amazon Rekognition
+// Developer Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Rekognition's
+// API operation StartCelebrityRecognition for usage and error information.
+//
+// Returned Error Types:
+//   * AccessDeniedException
+//   You are not authorized to perform the action.
+//
+//   * IdempotentParameterMismatchException
+//   A ClientRequestToken input parameter was reused with an operation, but at
+//   least one of the other input parameters is different from the previous call
+//   to the operation.
+//
+//   * InvalidParameterException
+//   Input parameter violated a constraint. Validate your parameter before calling
+//   the API operation again.
+//
+//   * InvalidS3ObjectException
+//   Amazon Rekognition is unable to access the S3 object specified in the request.
+//
+//   * InternalServerError
+//   Amazon Rekognition experienced a service issue. Try your call again.
+//
+//   * VideoTooLargeException
+//   The file size or duration of the supplied media is too large. The maximum
+//   file size is 10GB. The maximum duration is 6 hours.
+//
+//   * ProvisionedThroughputExceededException
+//   The number of requests exceeded your throughput limit. If you want to increase
+//   this limit, contact Amazon Rekognition.
+//
+//   * LimitExceededException
+//   An Amazon Rekognition service limit was exceeded. For example, if you start
+//   too many Amazon Rekognition Video jobs concurrently, calls to start operations
+//   (StartLabelDetection, for example) will raise a LimitExceededException exception
+//   (HTTP status code: 400) until the number of concurrently running jobs is
+//   below the Amazon Rekognition service limit.
+//
+//   * ThrottlingException
+//   Amazon Rekognition is temporarily unable to process the request. Try your
+//   call again.
+//
+func (c *Rekognition) StartCelebrityRecognition(input *StartCelebrityRecognitionInput) (*StartCelebrityRecognitionOutput, error) {
+	req, out := c.StartCelebrityRecognitionRequest(input)
+	return out, req.Send()
+}
+
+// StartCelebrityRecognitionWithContext is the same as StartCelebrityRecognition with the addition of
+// the ability to pass a context and additional request options.
+//
+// See StartCelebrityRecognition for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Rekognition) StartCelebrityRecognitionWithContext(ctx aws.Context, input *StartCelebrityRecognitionInput, opts ...request.Option) (*StartCelebrityRecognitionOutput, error) {
+	req, out := c.StartCelebrityRecognitionRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opStartContentModeration = "StartContentModeration"
+
+// StartContentModerationRequest generates a "aws/request.Request" representing the
+// client's request for the StartContentModeration operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See StartContentModeration for more information on using the StartContentModeration
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the StartContentModerationRequest method.
+//    req, resp := client.StartContentModerationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+func (c *Rekognition) StartContentModerationRequest(input *StartContentModerationInput) (req *request.Request, output *StartContentModerationOutput) {
+	op := &request.Operation{
+		Name:       opStartContentModeration,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &StartContentModerationInput{}
+	}
+
+	output = &StartContentModerationOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// StartContentModeration API operation for Amazon Rekognition.
+//
+// Starts asynchronous detection of unsafe content in a stored video.
+//
+// Amazon Rekognition Video can moderate content in a video stored in an Amazon
+// S3 bucket. Use Video to specify the bucket name and the filename of the video.
+// StartContentModeration returns a job identifier (JobId) which you use to
+// get the results of the analysis. When unsafe content analysis is finished,
+// Amazon Rekognition Video publishes a completion status to the Amazon Simple
+// Notification Service topic that you specify in NotificationChannel.
+//
+// To get the results of the unsafe content analysis, first check that the status
+// value published to the Amazon SNS topic is SUCCEEDED. If so, call GetContentModeration
+// and pass the job identifier (JobId) from the initial call to StartContentModeration.
+//
+// For more information, see Detecting Unsafe Content in the Amazon Rekognition
+// Developer Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Rekognition's
+// API operation StartContentModeration for usage and error information.
+//
+// Returned Error Types:
+//   * AccessDeniedException
+//   You are not authorized to perform the action.
+//
+//   * IdempotentParameterMismatchException
+//   A ClientRequestToken input parameter was reused with an operation, but at
+//   least one of the other input parameters is different from the previous call
+//   to the operation.
+//
+//   * InvalidParameterException
+//   Input parameter violated a constraint. Validate your parameter before calling
+//   the API operation again.
+//
+//   * InvalidS3ObjectException
+//   Amazon Rekognition is unable to access the S3 object specified in the request.
+//
+//   * InternalServerError
+//   Amazon Rekognition experienced a service issue. Try your call again.
+//
+//   * VideoTooLargeException
+//   The file size or duration of the supplied media is too large. The maximum
+//   file size is 10GB. The maximum duration is 6 hours.
+//
+//   * ProvisionedThroughputExceededException
+//   The number of requests exceeded your throughput limit. If you want to increase
+//   this limit, contact Amazon Rekognition.
+//
+//   * LimitExceededException
+//   An Amazon Rekognition service limit was exceeded. For example, if you start
+//   too many Amazon Rekognition Video jobs concurrently, calls to start operations
+//   (StartLabelDetection, for example) will raise a LimitExceededException exception
+//   (HTTP status code: 400) until the number of concurrently running jobs is
+//   below the Amazon Rekognition service limit.
+//
+//   * ThrottlingException
+//   Amazon Rekognition is temporarily unable to process the request. Try your
+//   call again.
+//
+func (c *Rekognition) StartContentModeration(input *StartContentModerationInput) (*StartContentModerationOutput, error) {
+	req, out := c.StartContentModerationRequest(input)
+	return out, req.Send()
+}
+
+// StartContentModerationWithContext is the same as StartContentModeration with the addition of
+// the ability to pass a context and additional request options.
+//
+// See StartContentModeration for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Rekognition) StartContentModerationWithContext(ctx aws.Context, input *StartContentModerationInput, opts ...request.Option) (*StartContentModerationOutput, error) {
+	req, out := c.StartContentModerationRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opStartFaceDetection = "StartFaceDetection"
+
+// StartFaceDetectionRequest generates a "aws/request.Request" representing the
+// client's request for the StartFaceDetection operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See StartFaceDetection for more information on using the StartFaceDetection
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the StartFaceDetectionRequest method.
+//    req, resp := client.StartFaceDetectionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+func (c *Rekognition) StartFaceDetectionRequest(input *StartFaceDetectionInput) (req *request.Request, output *StartFaceDetectionOutput) {
+	op := &request.Operation{
+		Name:       opStartFaceDetection,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &StartFaceDetectionInput{}
+	}
+
+	output = &StartFaceDetectionOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// StartFaceDetection API operation for Amazon Rekognition.
+//
+// Starts asynchronous detection of faces in a stored video.
+//
+// Amazon Rekognition Video can detect faces in a video stored in an Amazon
+// S3 bucket. Use Video to specify the bucket name and the filename of the video.
+// StartFaceDetection returns a job identifier (JobId) that you use to get the
+// results of the operation. When face detection is finished, Amazon Rekognition
+// Video publishes a completion status to the Amazon Simple Notification Service
+// topic that you specify in NotificationChannel. To get the results of the
+// face detection operation, first check that the status value published to
+// the Amazon SNS topic is SUCCEEDED. If so, call GetFaceDetection and pass
+// the job identifier (JobId) from the initial call to StartFaceDetection.
+//
+// For more information, see Detecting Faces in a Stored Video in the Amazon
+// Rekognition Developer Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Rekognition's
+// API operation StartFaceDetection for usage and error information.
+//
+// Returned Error Types:
+//   * AccessDeniedException
+//   You are not authorized to perform the action.
+//
+//   * IdempotentParameterMismatchException
+//   A ClientRequestToken input parameter was reused with an operation, but at
+//   least one of the other input parameters is different from the previous call
+//   to the operation.
+//
+//   * InvalidParameterException
+//   Input parameter violated a constraint. Validate your parameter before calling
+//   the API operation again.
+//
+//   * InvalidS3ObjectException
+//   Amazon Rekognition is unable to access the S3 object specified in the request.
+//
+//   * InternalServerError
+//   Amazon Rekognition experienced a service issue. Try your call again.
+//
+//   * VideoTooLargeException
+//   The file size or duration of the supplied media is too large. The maximum
+//   file size is 10GB. The maximum duration is 6 hours.
+//
+//   * ProvisionedThroughputExceededException
+//   The number of requests exceeded your throughput limit. If you want to increase
+//   this limit, contact Amazon Rekognition.
+//
+//   * LimitExceededException
+//   An Amazon Rekognition service limit was exceeded. For example, if you start
+//   too many Amazon Rekognition Video jobs concurrently, calls to start operations
+//   (StartLabelDetection, for example) will raise a LimitExceededException exception
+//   (HTTP status code: 400) until the number of concurrently running jobs is
+//   below the Amazon Rekognition service limit.
+//
+//   * ThrottlingException
+//   Amazon Rekognition is temporarily unable to process the request. Try your
+//   call again.
+//
+func (c *Rekognition) StartFaceDetection(input *StartFaceDetectionInput) (*StartFaceDetectionOutput, error) {
+	req, out := c.StartFaceDetectionRequest(input)
+	return out, req.Send()
+}
+
+// StartFaceDetectionWithContext is the same as StartFaceDetection with the addition of
+// the ability to pass a context and additional request options.
+//
+// See StartFaceDetection for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Rekognition) StartFaceDetectionWithContext(ctx aws.Context, input *StartFaceDetectionInput, opts ...request.Option) (*StartFaceDetectionOutput, error) {
+	req, out := c.StartFaceDetectionRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opStartFaceSearch = "StartFaceSearch"
+
+// StartFaceSearchRequest generates a "aws/request.Request" representing the
+// client's request for the StartFaceSearch operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See StartFaceSearch for more information on using the StartFaceSearch
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the StartFaceSearchRequest method.
+//    req, resp := client.StartFaceSearchRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+func (c *Rekognition) StartFaceSearchRequest(input *StartFaceSearchInput) (req *request.Request, output *StartFaceSearchOutput) {
+	op := &request.Operation{
+		Name:       opStartFaceSearch,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &StartFaceSearchInput{}
+	}
+
+	output = &StartFaceSearchOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// StartFaceSearch API operation for Amazon Rekognition.
+//
+// Starts the asynchronous search for faces in a collection that match the faces
+// of persons detected in a stored video.
+//
+// The video must be stored in an Amazon S3 bucket. Use Video to specify the
+// bucket name and the filename of the video. StartFaceSearch returns a job
+// identifier (JobId) which you use to get the search results once the search
+// has completed. When searching is finished, Amazon Rekognition Video publishes
+// a completion status to the Amazon Simple Notification Service topic that
+// you specify in NotificationChannel. To get the search results, first check
+// that the status value published to the Amazon SNS topic is SUCCEEDED. If
+// so, call GetFaceSearch and pass the job identifier (JobId) from the initial
+// call to StartFaceSearch. For more information, see procedure-person-search-videos.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Rekognition's
+// API operation StartFaceSearch for usage and error information.
+//
+// Returned Error Types:
+//   * AccessDeniedException
+//   You are not authorized to perform the action.
+//
+//   * IdempotentParameterMismatchException
+//   A ClientRequestToken input parameter was reused with an operation, but at
+//   least one of the other input parameters is different from the previous call
+//   to the operation.
+//
+//   * InvalidParameterException
+//   Input parameter violated a constraint. Validate your parameter before calling
+//   the API operation again.
+//
+//   * InvalidS3ObjectException
+//   Amazon Rekognition is unable to access the S3 object specified in the request.
+//
+//   * InternalServerError
+//   Amazon Rekognition experienced a service issue. Try your call again.
+//
+//   * VideoTooLargeException
+//   The file size or duration of the supplied media is too large. The maximum
+//   file size is 10GB. The maximum duration is 6 hours.
+//
+//   * ProvisionedThroughputExceededException
+//   The number of requests exceeded your throughput limit. If you want to increase
+//   this limit, contact Amazon Rekognition.
+//
+//   * LimitExceededException
+//   An Amazon Rekognition service limit was exceeded. For example, if you start
+//   too many Amazon Rekognition Video jobs concurrently, calls to start operations
+//   (StartLabelDetection, for example) will raise a LimitExceededException exception
+//   (HTTP status code: 400) until the number of concurrently running jobs is
+//   below the Amazon Rekognition service limit.
+//
+//   * ResourceNotFoundException
+//   The collection specified in the request cannot be found.
+//
+//   * ThrottlingException
+//   Amazon Rekognition is temporarily unable to process the request. Try your
+//   call again.
+//
+func (c *Rekognition) StartFaceSearch(input *StartFaceSearchInput) (*StartFaceSearchOutput, error) {
+	req, out := c.StartFaceSearchRequest(input)
+	return out, req.Send()
+}
+
+// StartFaceSearchWithContext is the same as StartFaceSearch with the addition of
+// the ability to pass a context and additional request options.
+//
+// See StartFaceSearch for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Rekognition) StartFaceSearchWithContext(ctx aws.Context, input *StartFaceSearchInput, opts ...request.Option) (*StartFaceSearchOutput, error) {
+	req, out := c.StartFaceSearchRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opStartLabelDetection = "StartLabelDetection"
+
+// StartLabelDetectionRequest generates a "aws/request.Request" representing the
+// client's request for the StartLabelDetection operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See StartLabelDetection for more information on using the StartLabelDetection
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the StartLabelDetectionRequest method.
+//    req, resp := client.StartLabelDetectionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+func (c *Rekognition) StartLabelDetectionRequest(input *StartLabelDetectionInput) (req *request.Request, output *StartLabelDetectionOutput) {
+	op := &request.Operation{
+		Name:       opStartLabelDetection,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &StartLabelDetectionInput{}
+	}
+
+	output = &StartLabelDetectionOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// StartLabelDetection API operation for Amazon Rekognition.
+//
+// Starts asynchronous detection of labels in a stored video.
+//
+// Amazon Rekognition Video can detect labels in a video. Labels are instances
+// of real-world entities. This includes objects like flower, tree, and table;
+// events like wedding, graduation, and birthday party; concepts like landscape,
+// evening, and nature; and activities like a person getting out of a car or
+// a person skiing.
+//
+// The video must be stored in an Amazon S3 bucket. Use Video to specify the
+// bucket name and the filename of the video. StartLabelDetection returns a
+// job identifier (JobId) which you use to get the results of the operation.
+// When label detection is finished, Amazon Rekognition Video publishes a completion
+// status to the Amazon Simple Notification Service topic that you specify in
+// NotificationChannel.
+//
+// To get the results of the label detection operation, first check that the
+// status value published to the Amazon SNS topic is SUCCEEDED. If so, call
+// GetLabelDetection and pass the job identifier (JobId) from the initial call
+// to StartLabelDetection.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Rekognition's
+// API operation StartLabelDetection for usage and error information.
+//
+// Returned Error Types:
+//   * AccessDeniedException
+//   You are not authorized to perform the action.
+//
+//   * IdempotentParameterMismatchException
+//   A ClientRequestToken input parameter was reused with an operation, but at
+//   least one of the other input parameters is different from the previous call
+//   to the operation.
+//
+//   * InvalidParameterException
+//   Input parameter violated a constraint. Validate your parameter before calling
+//   the API operation again.
+//
+//   * InvalidS3ObjectException
+//   Amazon Rekognition is unable to access the S3 object specified in the request.
+//
+//   * InternalServerError
+//   Amazon Rekognition experienced a service issue. Try your call again.
+//
+//   * VideoTooLargeException
+//   The file size or duration of the supplied media is too large. The maximum
+//   file size is 10GB. The maximum duration is 6 hours.
+//
+//   * ProvisionedThroughputExceededException
+//   The number of requests exceeded your throughput limit. If you want to increase
+//   this limit, contact Amazon Rekognition.
+//
+//   * LimitExceededException
+//   An Amazon Rekognition service limit was exceeded. For example, if you start
+//   too many Amazon Rekognition Video jobs concurrently, calls to start operations
+//   (StartLabelDetection, for example) will raise a LimitExceededException exception
+//   (HTTP status code: 400) until the number of concurrently running jobs is
+//   below the Amazon Rekognition service limit.
+//
+//   * ThrottlingException
+//   Amazon Rekognition is temporarily unable to process the request. Try your
+//   call again.
+//
+func (c *Rekognition) StartLabelDetection(input *StartLabelDetectionInput) (*StartLabelDetectionOutput, error) {
+	req, out := c.StartLabelDetectionRequest(input)
+	return out, req.Send()
+}
+
+// StartLabelDetectionWithContext is the same as StartLabelDetection with the addition of
+// the ability to pass a context and additional request options.
+//
+// See StartLabelDetection for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Rekognition) StartLabelDetectionWithContext(ctx aws.Context, input *StartLabelDetectionInput, opts ...request.Option) (*StartLabelDetectionOutput, error) {
+	req, out := c.StartLabelDetectionRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opStartPersonTracking = "StartPersonTracking"
+
+// StartPersonTrackingRequest generates a "aws/request.Request" representing the
+// client's request for the StartPersonTracking operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See StartPersonTracking for more information on using the StartPersonTracking
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the StartPersonTrackingRequest method.
+//    req, resp := client.StartPersonTrackingRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+func (c *Rekognition) StartPersonTrackingRequest(input *StartPersonTrackingInput) (req *request.Request, output *StartPersonTrackingOutput) {
+	op := &request.Operation{
+		Name:       opStartPersonTracking,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &StartPersonTrackingInput{}
+	}
+
+	output = &StartPersonTrackingOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// StartPersonTracking API operation for Amazon Rekognition.
+//
+// Starts the asynchronous tracking of a person's path in a stored video.
+//
+// Amazon Rekognition Video can track the path of people in a video stored in
+// an Amazon S3 bucket. Use Video to specify the bucket name and the filename
+// of the video. StartPersonTracking returns a job identifier (JobId) which
+// you use to get the results of the operation. When label detection is finished,
+// Amazon Rekognition publishes a completion status to the Amazon Simple Notification
+// Service topic that you specify in NotificationChannel.
+//
+// To get the results of the person detection operation, first check that the
+// status value published to the Amazon SNS topic is SUCCEEDED. If so, call
+// GetPersonTracking and pass the job identifier (JobId) from the initial call
+// to StartPersonTracking.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Rekognition's
+// API operation StartPersonTracking for usage and error information.
+//
+// Returned Error Types:
+//   * AccessDeniedException
+//   You are not authorized to perform the action.
+//
+//   * IdempotentParameterMismatchException
+//   A ClientRequestToken input parameter was reused with an operation, but at
+//   least one of the other input parameters is different from the previous call
+//   to the operation.
+//
+//   * InvalidParameterException
+//   Input parameter violated a constraint. Validate your parameter before calling
+//   the API operation again.
+//
+//   * InvalidS3ObjectException
+//   Amazon Rekognition is unable to access the S3 object specified in the request.
+//
+//   * InternalServerError
+//   Amazon Rekognition experienced a service issue. Try your call again.
+//
+//   * VideoTooLargeException
+//   The file size or duration of the supplied media is too large. The maximum
+//   file size is 10GB. The maximum duration is 6 hours.
+//
+//   * ProvisionedThroughputExceededException
+//   The number of requests exceeded your throughput limit. If you want to increase
+//   this limit, contact Amazon Rekognition.
+//
+//   * LimitExceededException
+//   An Amazon Rekognition service limit was exceeded. For example, if you start
+//   too many Amazon Rekognition Video jobs concurrently, calls to start operations
+//   (StartLabelDetection, for example) will raise a LimitExceededException exception
+//   (HTTP status code: 400) until the number of concurrently running jobs is
+//   below the Amazon Rekognition service limit.
+//
+//   * ThrottlingException
+//   Amazon Rekognition is temporarily unable to process the request. Try your
+//   call again.
+//
+func (c *Rekognition) StartPersonTracking(input *StartPersonTrackingInput) (*StartPersonTrackingOutput, error) {
+	req, out := c.StartPersonTrackingRequest(input)
+	return out, req.Send()
+}
+
+// StartPersonTrackingWithContext is the same as StartPersonTracking with the addition of
+// the ability to pass a context and additional request options.
+//
+// See StartPersonTracking for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Rekognition) StartPersonTrackingWithContext(ctx aws.Context, input *StartPersonTrackingInput, opts ...request.Option) (*StartPersonTrackingOutput, error) {
+	req, out := c.StartPersonTrackingRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opStartProjectVersion = "StartProjectVersion"
+
+// StartProjectVersionRequest generates a "aws/request.Request" representing the
+// client's request for the StartProjectVersion operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See StartProjectVersion for more information on using the StartProjectVersion
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the StartProjectVersionRequest method.
+//    req, resp := client.StartProjectVersionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+func (c *Rekognition) StartProjectVersionRequest(input *StartProjectVersionInput) (req *request.Request, output *StartProjectVersionOutput) {
+	op := &request.Operation{
+		Name:       opStartProjectVersion,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &StartProjectVersionInput{}
+	}
+
+	output = &StartProjectVersionOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// StartProjectVersion API operation for Amazon Rekognition.
+//
+// Starts the running of the version of a model. Starting a model takes a while
+// to complete. To check the current state of the model, use DescribeProjectVersions.
+//
+// Once the model is running, you can detect custom labels in new images by
+// calling DetectCustomLabels.
+//
+// You are charged for the amount of time that the model is running. To stop
+// a running model, call StopProjectVersion.
+//
+// This operation requires permissions to perform the rekognition:StartProjectVersion
+// action.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Rekognition's
+// API operation StartProjectVersion for usage and error information.
+//
+// Returned Error Types:
+//   * ResourceNotFoundException
+//   The collection specified in the request cannot be found.
+//
+//   * ResourceInUseException
+//   The specified resource is already being used.
+//
+//   * LimitExceededException
+//   An Amazon Rekognition service limit was exceeded. For example, if you start
+//   too many Amazon Rekognition Video jobs concurrently, calls to start operations
+//   (StartLabelDetection, for example) will raise a LimitExceededException exception
+//   (HTTP status code: 400) until the number of concurrently running jobs is
+//   below the Amazon Rekognition service limit.
+//
+//   * InvalidParameterException
+//   Input parameter violated a constraint. Validate your parameter before calling
+//   the API operation again.
+//
+//   * AccessDeniedException
+//   You are not authorized to perform the action.
+//
+//   * InternalServerError
+//   Amazon Rekognition experienced a service issue. Try your call again.
+//
+//   * ThrottlingException
+//   Amazon Rekognition is temporarily unable to process the request. Try your
+//   call again.
+//
+//   * ProvisionedThroughputExceededException
+//   The number of requests exceeded your throughput limit. If you want to increase
+//   this limit, contact Amazon Rekognition.
+//
+func (c *Rekognition) StartProjectVersion(input *StartProjectVersionInput) (*StartProjectVersionOutput, error) {
+	req, out := c.StartProjectVersionRequest(input)
+	return out, req.Send()
+}
+
+// StartProjectVersionWithContext is the same as StartProjectVersion with the addition of
+// the ability to pass a context and additional request options.
+//
+// See StartProjectVersion for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Rekognition) StartProjectVersionWithContext(ctx aws.Context, input *StartProjectVersionInput, opts ...request.Option) (*StartProjectVersionOutput, error) {
+	req, out := c.StartProjectVersionRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opStartSegmentDetection = "StartSegmentDetection"
+
+// StartSegmentDetectionRequest generates a "aws/request.Request" representing the
+// client's request for the StartSegmentDetection operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See StartSegmentDetection for more information on using the StartSegmentDetection
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the StartSegmentDetectionRequest method.
+//    req, resp := client.StartSegmentDetectionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+func (c *Rekognition) StartSegmentDetectionRequest(input *StartSegmentDetectionInput) (req *request.Request, output *StartSegmentDetectionOutput) {
+	op := &request.Operation{
+		Name:       opStartSegmentDetection,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &StartSegmentDetectionInput{}
+	}
+
+	output = &StartSegmentDetectionOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// StartSegmentDetection API operation for Amazon Rekognition.
+//
+// Starts asynchronous detection of segment detection in a stored video.
+//
+// Amazon Rekognition Video can detect segments in a video stored in an Amazon
+// S3 bucket. Use Video to specify the bucket name and the filename of the video.
+// StartSegmentDetection returns a job identifier (JobId) which you use to get
+// the results of the operation. When segment detection is finished, Amazon
+// Rekognition Video publishes a completion status to the Amazon Simple Notification
+// Service topic that you specify in NotificationChannel.
+//
+// You can use the Filters (StartSegmentDetectionFilters) input parameter to
+// specify the minimum detection confidence returned in the response. Within
+// Filters, use ShotFilter (StartShotDetectionFilter) to filter detected shots.
+// Use TechnicalCueFilter (StartTechnicalCueDetectionFilter) to filter technical
+// cues.
+//
+// To get the results of the segment detection operation, first check that the
+// status value published to the Amazon SNS topic is SUCCEEDED. if so, call
+// GetSegmentDetection and pass the job identifier (JobId) from the initial
+// call to StartSegmentDetection.
+//
+// For more information, see Detecting Video Segments in Stored Video in the
+// Amazon Rekognition Developer Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Rekognition's
+// API operation StartSegmentDetection for usage and error information.
+//
+// Returned Error Types:
+//   * AccessDeniedException
+//   You are not authorized to perform the action.
+//
+//   * IdempotentParameterMismatchException
+//   A ClientRequestToken input parameter was reused with an operation, but at
+//   least one of the other input parameters is different from the previous call
+//   to the operation.
+//
+//   * InvalidParameterException
+//   Input parameter violated a constraint. Validate your parameter before calling
+//   the API operation again.
+//
+//   * InvalidS3ObjectException
+//   Amazon Rekognition is unable to access the S3 object specified in the request.
+//
+//   * InternalServerError
+//   Amazon Rekognition experienced a service issue. Try your call again.
+//
+//   * VideoTooLargeException
+//   The file size or duration of the supplied media is too large. The maximum
+//   file size is 10GB. The maximum duration is 6 hours.
+//
+//   * ProvisionedThroughputExceededException
+//   The number of requests exceeded your throughput limit. If you want to increase
+//   this limit, contact Amazon Rekognition.
+//
+//   * LimitExceededException
+//   An Amazon Rekognition service limit was exceeded. For example, if you start
+//   too many Amazon Rekognition Video jobs concurrently, calls to start operations
+//   (StartLabelDetection, for example) will raise a LimitExceededException exception
+//   (HTTP status code: 400) until the number of concurrently running jobs is
+//   below the Amazon Rekognition service limit.
+//
+//   * ThrottlingException
+//   Amazon Rekognition is temporarily unable to process the request. Try your
+//   call again.
+//
+func (c *Rekognition) StartSegmentDetection(input *StartSegmentDetectionInput) (*StartSegmentDetectionOutput, error) {
+	req, out := c.StartSegmentDetectionRequest(input)
+	return out, req.Send()
+}
+
+// StartSegmentDetectionWithContext is the same as StartSegmentDetection with the addition of
+// the ability to pass a context and additional request options.
+//
+// See StartSegmentDetection for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Rekognition) StartSegmentDetectionWithContext(ctx aws.Context, input *StartSegmentDetectionInput, opts ...request.Option) (*StartSegmentDetectionOutput, error) {
+	req, out := c.StartSegmentDetectionRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opStartStreamProcessor = "StartStreamProcessor"
+
+// StartStreamProcessorRequest generates a "aws/request.Request" representing the
+// client's request for the StartStreamProcessor operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See StartStreamProcessor for more information on using the StartStreamProcessor
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the StartStreamProcessorRequest method.
+//    req, resp := client.StartStreamProcessorRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+func (c *Rekognition) StartStreamProcessorRequest(input *StartStreamProcessorInput) (req *request.Request, output *StartStreamProcessorOutput) {
+	op := &request.Operation{
+		Name:       opStartStreamProcessor,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &StartStreamProcessorInput{}
+	}
+
+	output = &StartStreamProcessorOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// StartStreamProcessor API operation for Amazon Rekognition.
+//
+// Starts processing a stream processor. You create a stream processor by calling
+// CreateStreamProcessor. To tell StartStreamProcessor which stream processor
+// to start, use the value of the Name field specified in the call to CreateStreamProcessor.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Rekognition's
+// API operation StartStreamProcessor for usage and error information.
+//
+// Returned Error Types:
+//   * AccessDeniedException
+//   You are not authorized to perform the action.
+//
+//   * InternalServerError
+//   Amazon Rekognition experienced a service issue. Try your call again.
+//
+//   * ThrottlingException
+//   Amazon Rekognition is temporarily unable to process the request. Try your
+//   call again.
+//
+//   * InvalidParameterException
+//   Input parameter violated a constraint. Validate your parameter before calling
+//   the API operation again.
+//
+//   * ResourceNotFoundException
+//   The collection specified in the request cannot be found.
+//
+//   * ResourceInUseException
+//   The specified resource is already being used.
+//
+//   * ProvisionedThroughputExceededException
+//   The number of requests exceeded your throughput limit. If you want to increase
+//   this limit, contact Amazon Rekognition.
+//
+func (c *Rekognition) StartStreamProcessor(input *StartStreamProcessorInput) (*StartStreamProcessorOutput, error) {
+	req, out := c.StartStreamProcessorRequest(input)
+	return out, req.Send()
+}
+
+// StartStreamProcessorWithContext is the same as StartStreamProcessor with the addition of
+// the ability to pass a context and additional request options.
+//
+// See StartStreamProcessor for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Rekognition) StartStreamProcessorWithContext(ctx aws.Context, input *StartStreamProcessorInput, opts ...request.Option) (*StartStreamProcessorOutput, error) {
+	req, out := c.StartStreamProcessorRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opStartTextDetection = "StartTextDetection"
+
+// StartTextDetectionRequest generates a "aws/request.Request" representing the
+// client's request for the StartTextDetection operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See StartTextDetection for more information on using the StartTextDetection
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the StartTextDetectionRequest method.
+//    req, resp := client.StartTextDetectionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+func (c *Rekognition) StartTextDetectionRequest(input *StartTextDetectionInput) (req *request.Request, output *StartTextDetectionOutput) {
+	op := &request.Operation{
+		Name:       opStartTextDetection,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &StartTextDetectionInput{}
+	}
+
+	output = &StartTextDetectionOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// StartTextDetection API operation for Amazon Rekognition.
+//
+// Starts asynchronous detection of text in a stored video.
+//
+// Amazon Rekognition Video can detect text in a video stored in an Amazon S3
+// bucket. Use Video to specify the bucket name and the filename of the video.
+// StartTextDetection returns a job identifier (JobId) which you use to get
+// the results of the operation. When text detection is finished, Amazon Rekognition
+// Video publishes a completion status to the Amazon Simple Notification Service
+// topic that you specify in NotificationChannel.
+//
+// To get the results of the text detection operation, first check that the
+// status value published to the Amazon SNS topic is SUCCEEDED. if so, call
+// GetTextDetection and pass the job identifier (JobId) from the initial call
+// to StartTextDetection.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Rekognition's
+// API operation StartTextDetection for usage and error information.
+//
+// Returned Error Types:
+//   * AccessDeniedException
+//   You are not authorized to perform the action.
+//
+//   * IdempotentParameterMismatchException
+//   A ClientRequestToken input parameter was reused with an operation, but at
+//   least one of the other input parameters is different from the previous call
+//   to the operation.
+//
+//   * InvalidParameterException
+//   Input parameter violated a constraint. Validate your parameter before calling
+//   the API operation again.
+//
+//   * InvalidS3ObjectException
+//   Amazon Rekognition is unable to access the S3 object specified in the request.
+//
+//   * InternalServerError
+//   Amazon Rekognition experienced a service issue. Try your call again.
+//
+//   * VideoTooLargeException
+//   The file size or duration of the supplied media is too large. The maximum
+//   file size is 10GB. The maximum duration is 6 hours.
+//
+//   * ProvisionedThroughputExceededException
+//   The number of requests exceeded your throughput limit. If you want to increase
+//   this limit, contact Amazon Rekognition.
+//
+//   * LimitExceededException
+//   An Amazon Rekognition service limit was exceeded. For example, if you start
+//   too many Amazon Rekognition Video jobs concurrently, calls to start operations
+//   (StartLabelDetection, for example) will raise a LimitExceededException exception
+//   (HTTP status code: 400) until the number of concurrently running jobs is
+//   below the Amazon Rekognition service limit.
+//
+//   * ThrottlingException
+//   Amazon Rekognition is temporarily unable to process the request. Try your
+//   call again.
+//
+func (c *Rekognition) StartTextDetection(input *StartTextDetectionInput) (*StartTextDetectionOutput, error) {
+	req, out := c.StartTextDetectionRequest(input)
+	return out, req.Send()
+}
+
+// StartTextDetectionWithContext is the same as StartTextDetection with the addition of
+// the ability to pass a context and additional request options.
+//
+// See StartTextDetection for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Rekognition) StartTextDetectionWithContext(ctx aws.Context, input *StartTextDetectionInput, opts ...request.Option) (*StartTextDetectionOutput, error) {
+	req, out := c.StartTextDetectionRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opStopProjectVersion = "StopProjectVersion"
+
+// StopProjectVersionRequest generates a "aws/request.Request" representing the
+// client's request for the StopProjectVersion operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See StopProjectVersion for more information on using the StopProjectVersion
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the StopProjectVersionRequest method.
+//    req, resp := client.StopProjectVersionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+func (c *Rekognition) StopProjectVersionRequest(input *StopProjectVersionInput) (req *request.Request, output *StopProjectVersionOutput) {
+	op := &request.Operation{
+		Name:       opStopProjectVersion,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &StopProjectVersionInput{}
+	}
+
+	output = &StopProjectVersionOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// StopProjectVersion API operation for Amazon Rekognition.
+//
+// Stops a running model. The operation might take a while to complete. To check
+// the current status, call DescribeProjectVersions.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Rekognition's
+// API operation StopProjectVersion for usage and error information.
+//
+// Returned Error Types:
+//   * ResourceNotFoundException
+//   The collection specified in the request cannot be found.
+//
+//   * ResourceInUseException
+//   The specified resource is already being used.
+//
+//   * InvalidParameterException
+//   Input parameter violated a constraint. Validate your parameter before calling
+//   the API operation again.
+//
+//   * AccessDeniedException
+//   You are not authorized to perform the action.
+//
+//   * InternalServerError
+//   Amazon Rekognition experienced a service issue. Try your call again.
+//
+//   * ThrottlingException
+//   Amazon Rekognition is temporarily unable to process the request. Try your
+//   call again.
+//
+//   * ProvisionedThroughputExceededException
+//   The number of requests exceeded your throughput limit. If you want to increase
+//   this limit, contact Amazon Rekognition.
+//
+func (c *Rekognition) StopProjectVersion(input *StopProjectVersionInput) (*StopProjectVersionOutput, error) {
+	req, out := c.StopProjectVersionRequest(input)
+	return out, req.Send()
+}
+
+// StopProjectVersionWithContext is the same as StopProjectVersion with the addition of
+// the ability to pass a context and additional request options.
+//
+// See StopProjectVersion for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Rekognition) StopProjectVersionWithContext(ctx aws.Context, input *StopProjectVersionInput, opts ...request.Option) (*StopProjectVersionOutput, error) {
+	req, out := c.StopProjectVersionRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opStopStreamProcessor = "StopStreamProcessor"
+
+// StopStreamProcessorRequest generates a "aws/request.Request" representing the
+// client's request for the StopStreamProcessor operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See StopStreamProcessor for more information on using the StopStreamProcessor
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the StopStreamProcessorRequest method.
+//    req, resp := client.StopStreamProcessorRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+func (c *Rekognition) StopStreamProcessorRequest(input *StopStreamProcessorInput) (req *request.Request, output *StopStreamProcessorOutput) {
+	op := &request.Operation{
+		Name:       opStopStreamProcessor,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &StopStreamProcessorInput{}
+	}
+
+	output = &StopStreamProcessorOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// StopStreamProcessor API operation for Amazon Rekognition.
+//
+// Stops a running stream processor that was created by CreateStreamProcessor.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Rekognition's
+// API operation StopStreamProcessor for usage and error information.
+//
+// Returned Error Types:
+//   * AccessDeniedException
+//   You are not authorized to perform the action.
+//
+//   * InternalServerError
+//   Amazon Rekognition experienced a service issue. Try your call again.
+//
+//   * ThrottlingException
+//   Amazon Rekognition is temporarily unable to process the request. Try your
+//   call again.
+//
+//   * InvalidParameterException
+//   Input parameter violated a constraint. Validate your parameter before calling
+//   the API operation again.
+//
+//   * ResourceNotFoundException
+//   The collection specified in the request cannot be found.
+//
+//   * ResourceInUseException
+//   The specified resource is already being used.
+//
+//   * ProvisionedThroughputExceededException
+//   The number of requests exceeded your throughput limit. If you want to increase
+//   this limit, contact Amazon Rekognition.
+//
+func (c *Rekognition) StopStreamProcessor(input *StopStreamProcessorInput) (*StopStreamProcessorOutput, error) {
+	req, out := c.StopStreamProcessorRequest(input)
+	return out, req.Send()
+}
+
+// StopStreamProcessorWithContext is the same as StopStreamProcessor with the addition of
+// the ability to pass a context and additional request options.
+//
+// See StopStreamProcessor for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Rekognition) StopStreamProcessorWithContext(ctx aws.Context, input *StopStreamProcessorInput, opts ...request.Option) (*StopStreamProcessorOutput, error) {
+	req, out := c.StopStreamProcessorRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+// You are not authorized to perform the action.
+type AccessDeniedException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s AccessDeniedException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AccessDeniedException) GoString() string {
+	return s.String()
+}
+
+func newErrorAccessDeniedException(v protocol.ResponseMetadata) error {
+	return &AccessDeniedException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *AccessDeniedException) Code() string {
+	return "AccessDeniedException"
+}
+
+// Message returns the exception's message.
+func (s *AccessDeniedException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *AccessDeniedException) OrigErr() error {
+	return nil
+}
+
+func (s *AccessDeniedException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *AccessDeniedException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *AccessDeniedException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 // Structure containing the estimated age range, in years, for a face.
 //
-// Rekognition estimates an age-range for faces detected in the input image.
-// Estimated age ranges can overlap; a face of a 5 year old may have an estimated
-// range of 4-6 whilst the face of a 6 year old may have an estimated range
-// of 4-8.
+// Amazon Rekognition estimates an age range for faces detected in the input
+// image. Estimated age ranges can overlap. A face of a 5-year-old might have
+// an estimated range of 4-6, while the face of a 6-year-old might have an estimated
+// range of 4-8.
 type AgeRange struct {
 	_ struct{} `type:"structure"`
 
@@ -1768,6 +6461,98 @@ func (s *AgeRange) SetHigh(v int64) *AgeRange {
 // SetLow sets the Low field's value.
 func (s *AgeRange) SetLow(v int64) *AgeRange {
 	s.Low = &v
+	return s
+}
+
+// Assets are the images that you use to train and evaluate a model version.
+// Assets are referenced by Sagemaker GroundTruth manifest files.
+type Asset struct {
+	_ struct{} `type:"structure"`
+
+	// The S3 bucket that contains the Ground Truth manifest file.
+	GroundTruthManifest *GroundTruthManifest `type:"structure"`
+}
+
+// String returns the string representation
+func (s Asset) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Asset) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *Asset) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "Asset"}
+	if s.GroundTruthManifest != nil {
+		if err := s.GroundTruthManifest.Validate(); err != nil {
+			invalidParams.AddNested("GroundTruthManifest", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetGroundTruthManifest sets the GroundTruthManifest field's value.
+func (s *Asset) SetGroundTruthManifest(v *GroundTruthManifest) *Asset {
+	s.GroundTruthManifest = v
+	return s
+}
+
+// Metadata information about an audio stream. An array of AudioMetadata objects
+// for the audio streams found in a stored video is returned by GetSegmentDetection.
+type AudioMetadata struct {
+	_ struct{} `type:"structure"`
+
+	// The audio codec used to encode or decode the audio stream.
+	Codec *string `type:"string"`
+
+	// The duration of the audio stream in milliseconds.
+	DurationMillis *int64 `type:"long"`
+
+	// The number of audio channels in the segement.
+	NumberOfChannels *int64 `type:"long"`
+
+	// The sample rate for the audio stream.
+	SampleRate *int64 `type:"long"`
+}
+
+// String returns the string representation
+func (s AudioMetadata) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AudioMetadata) GoString() string {
+	return s.String()
+}
+
+// SetCodec sets the Codec field's value.
+func (s *AudioMetadata) SetCodec(v string) *AudioMetadata {
+	s.Codec = &v
+	return s
+}
+
+// SetDurationMillis sets the DurationMillis field's value.
+func (s *AudioMetadata) SetDurationMillis(v int64) *AudioMetadata {
+	s.DurationMillis = &v
+	return s
+}
+
+// SetNumberOfChannels sets the NumberOfChannels field's value.
+func (s *AudioMetadata) SetNumberOfChannels(v int64) *AudioMetadata {
+	s.NumberOfChannels = &v
+	return s
+}
+
+// SetSampleRate sets the SampleRate field's value.
+func (s *AudioMetadata) SetSampleRate(v int64) *AudioMetadata {
+	s.SampleRate = &v
 	return s
 }
 
@@ -1805,7 +6590,7 @@ func (s *Beard) SetValue(v bool) *Beard {
 	return s
 }
 
-// Identifies the bounding box around the object or face. The left (x-coordinate)
+// Identifies the bounding box around the label, face, or text. The left (x-coordinate)
 // and top (y-coordinate) are coordinates representing the top and left sides
 // of the bounding box. Note that the upper-left corner of the image is the
 // origin (0,0).
@@ -1875,7 +6660,8 @@ func (s *BoundingBox) SetWidth(v float64) *BoundingBox {
 	return s
 }
 
-// Provides information about a celebrity recognized by the operation.
+// Provides information about a celebrity recognized by the RecognizeCelebrities
+// operation.
 type Celebrity struct {
 	_ struct{} `type:"structure"`
 
@@ -1886,8 +6672,8 @@ type Celebrity struct {
 	// A unique identifier for the celebrity.
 	Id *string `type:"string"`
 
-	// The confidence, in percentage, that Rekognition has that the recognized face
-	// is the celebrity.
+	// The confidence, in percentage, that Amazon Rekognition has that the recognized
+	// face is the celebrity.
 	MatchConfidence *float64 `type:"float"`
 
 	// The name of the celebrity.
@@ -1938,19 +6724,151 @@ func (s *Celebrity) SetUrls(v []*string) *Celebrity {
 	return s
 }
 
+// Information about a recognized celebrity.
+type CelebrityDetail struct {
+	_ struct{} `type:"structure"`
+
+	// Bounding box around the body of a celebrity.
+	BoundingBox *BoundingBox `type:"structure"`
+
+	// The confidence, in percentage, that Amazon Rekognition has that the recognized
+	// face is the celebrity.
+	Confidence *float64 `type:"float"`
+
+	// Face details for the recognized celebrity.
+	Face *FaceDetail `type:"structure"`
+
+	// The unique identifier for the celebrity.
+	Id *string `type:"string"`
+
+	// The name of the celebrity.
+	Name *string `type:"string"`
+
+	// An array of URLs pointing to additional celebrity information.
+	Urls []*string `type:"list"`
+}
+
+// String returns the string representation
+func (s CelebrityDetail) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CelebrityDetail) GoString() string {
+	return s.String()
+}
+
+// SetBoundingBox sets the BoundingBox field's value.
+func (s *CelebrityDetail) SetBoundingBox(v *BoundingBox) *CelebrityDetail {
+	s.BoundingBox = v
+	return s
+}
+
+// SetConfidence sets the Confidence field's value.
+func (s *CelebrityDetail) SetConfidence(v float64) *CelebrityDetail {
+	s.Confidence = &v
+	return s
+}
+
+// SetFace sets the Face field's value.
+func (s *CelebrityDetail) SetFace(v *FaceDetail) *CelebrityDetail {
+	s.Face = v
+	return s
+}
+
+// SetId sets the Id field's value.
+func (s *CelebrityDetail) SetId(v string) *CelebrityDetail {
+	s.Id = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *CelebrityDetail) SetName(v string) *CelebrityDetail {
+	s.Name = &v
+	return s
+}
+
+// SetUrls sets the Urls field's value.
+func (s *CelebrityDetail) SetUrls(v []*string) *CelebrityDetail {
+	s.Urls = v
+	return s
+}
+
+// Information about a detected celebrity and the time the celebrity was detected
+// in a stored video. For more information, see GetCelebrityRecognition in the
+// Amazon Rekognition Developer Guide.
+type CelebrityRecognition struct {
+	_ struct{} `type:"structure"`
+
+	// Information about a recognized celebrity.
+	Celebrity *CelebrityDetail `type:"structure"`
+
+	// The time, in milliseconds from the start of the video, that the celebrity
+	// was recognized.
+	Timestamp *int64 `type:"long"`
+}
+
+// String returns the string representation
+func (s CelebrityRecognition) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CelebrityRecognition) GoString() string {
+	return s.String()
+}
+
+// SetCelebrity sets the Celebrity field's value.
+func (s *CelebrityRecognition) SetCelebrity(v *CelebrityDetail) *CelebrityRecognition {
+	s.Celebrity = v
+	return s
+}
+
+// SetTimestamp sets the Timestamp field's value.
+func (s *CelebrityRecognition) SetTimestamp(v int64) *CelebrityRecognition {
+	s.Timestamp = &v
+	return s
+}
+
 type CompareFacesInput struct {
 	_ struct{} `type:"structure"`
+
+	// A filter that specifies a quality bar for how much filtering is done to identify
+	// faces. Filtered faces aren't compared. If you specify AUTO, Amazon Rekognition
+	// chooses the quality bar. If you specify LOW, MEDIUM, or HIGH, filtering removes
+	// all faces that don’t meet the chosen quality bar. The quality bar is based
+	// on a variety of common use cases. Low-quality detections can occur for a
+	// number of reasons. Some examples are an object that's misidentified as a
+	// face, a face that's too blurry, or a face with a pose that's too extreme
+	// to use. If you specify NONE, no filtering is performed. The default value
+	// is NONE.
+	//
+	// To use quality filtering, the collection you are using must be associated
+	// with version 3 of the face model or higher.
+	QualityFilter *string `type:"string" enum:"QualityFilter"`
 
 	// The minimum level of confidence in the face matches that a match must meet
 	// to be included in the FaceMatches array.
 	SimilarityThreshold *float64 `type:"float"`
 
-	// The source image, either as bytes or as an S3 object.
+	// The input image as base64-encoded bytes or an S3 object. If you use the AWS
+	// CLI to call Amazon Rekognition operations, passing base64-encoded image bytes
+	// is not supported.
+	//
+	// If you are using an AWS SDK to call Amazon Rekognition, you might not need
+	// to base64-encode image bytes passed using the Bytes field. For more information,
+	// see Images in the Amazon Rekognition developer guide.
 	//
 	// SourceImage is a required field
 	SourceImage *Image `type:"structure" required:"true"`
 
-	// The target image, either as bytes or as an S3 object.
+	// The target image as base64-encoded bytes or an S3 object. If you use the
+	// AWS CLI to call Amazon Rekognition operations, passing base64-encoded image
+	// bytes is not supported.
+	//
+	// If you are using an AWS SDK to call Amazon Rekognition, you might not need
+	// to base64-encode image bytes passed using the Bytes field. For more information,
+	// see Images in the Amazon Rekognition developer guide.
 	//
 	// TargetImage is a required field
 	TargetImage *Image `type:"structure" required:"true"`
@@ -1992,6 +6910,12 @@ func (s *CompareFacesInput) Validate() error {
 	return nil
 }
 
+// SetQualityFilter sets the QualityFilter field's value.
+func (s *CompareFacesInput) SetQualityFilter(v string) *CompareFacesInput {
+	s.QualityFilter = &v
+	return s
+}
+
 // SetSimilarityThreshold sets the SimilarityThreshold field's value.
 func (s *CompareFacesInput) SetSimilarityThreshold(v float64) *CompareFacesInput {
 	s.SimilarityThreshold = &v
@@ -2011,7 +6935,7 @@ func (s *CompareFacesInput) SetTargetImage(v *Image) *CompareFacesInput {
 }
 
 // Provides information about a face in a target image that matches the source
-// image face analysed by CompareFaces. The Face property contains the bounding
+// image face analyzed by CompareFaces. The Face property contains the bounding
 // box of the face in the target image. The Similarity property is the confidence
 // that the source image face matches the face in the bounding box.
 type CompareFacesMatch struct {
@@ -2059,31 +6983,34 @@ type CompareFacesOutput struct {
 	// The face in the source image that was used for comparison.
 	SourceImageFace *ComparedSourceImageFace `type:"structure"`
 
-	// The orientation of the source image (counterclockwise direction). If your
-	// application displays the source image, you can use this value to correct
-	// image orientation. The bounding box coordinates returned in SourceImageFace
-	// represent the location of the face before the image orientation is corrected.
+	// The value of SourceImageOrientationCorrection is always null.
 	//
-	// If the source image is in .jpeg format, it might contain exchangeable image
-	// (Exif) metadata that includes the image's orientation. If the Exif metadata
-	// for the source image populates the orientation field, the value of OrientationCorrection
-	// is null and the SourceImageFace bounding box coordinates represent the location
-	// of the face after Exif metadata is used to correct the orientation. Images
-	// in .png format don't contain Exif metadata.
+	// If the input image is in .jpeg format, it might contain exchangeable image
+	// file format (Exif) metadata that includes the image's orientation. Amazon
+	// Rekognition uses this orientation information to perform image correction.
+	// The bounding box coordinates are translated to represent object locations
+	// after the orientation information in the Exif metadata is used to correct
+	// the image orientation. Images in .png format don't contain Exif metadata.
+	//
+	// Amazon Rekognition doesn’t perform image correction for images in .png
+	// format and .jpeg images without orientation information in the image Exif
+	// metadata. The bounding box coordinates aren't translated and represent the
+	// object locations before the image is rotated.
 	SourceImageOrientationCorrection *string `type:"string" enum:"OrientationCorrection"`
 
-	// The orientation of the target image (in counterclockwise direction). If your
-	// application displays the target image, you can use this value to correct
-	// the orientation of the image. The bounding box coordinates returned in FaceMatches
-	// and UnmatchedFaces represent face locations before the image orientation
-	// is corrected.
+	// The value of TargetImageOrientationCorrection is always null.
 	//
-	// If the target image is in .jpg format, it might contain Exif metadata that
-	// includes the orientation of the image. If the Exif metadata for the target
-	// image populates the orientation field, the value of OrientationCorrection
-	// is null and the bounding box coordinates in FaceMatches and UnmatchedFaces
-	// represent the location of the face after Exif metadata is used to correct
-	// the orientation. Images in .png format don't contain Exif metadata.
+	// If the input image is in .jpeg format, it might contain exchangeable image
+	// file format (Exif) metadata that includes the image's orientation. Amazon
+	// Rekognition uses this orientation information to perform image correction.
+	// The bounding box coordinates are translated to represent object locations
+	// after the orientation information in the Exif metadata is used to correct
+	// the image orientation. Images in .png format don't contain Exif metadata.
+	//
+	// Amazon Rekognition doesn’t perform image correction for images in .png
+	// format and .jpeg images without orientation information in the image Exif
+	// metadata. The bounding box coordinates aren't translated and represent the
+	// object locations before the image is rotated.
 	TargetImageOrientationCorrection *string `type:"string" enum:"OrientationCorrection"`
 
 	// An array of faces in the target image that did not match the source image
@@ -2131,7 +7058,7 @@ func (s *CompareFacesOutput) SetUnmatchedFaces(v []*ComparedFace) *CompareFacesO
 	return s
 }
 
-// Provides face metadata for target image faces that are analysed by CompareFaces
+// Provides face metadata for target image faces that are analyzed by CompareFaces
 // and RecognizeCelebrities.
 type ComparedFace struct {
 	_ struct{} `type:"structure"`
@@ -2228,6 +7155,40 @@ func (s *ComparedSourceImageFace) SetConfidence(v float64) *ComparedSourceImageF
 	return s
 }
 
+// Information about an unsafe content label detection in a stored video.
+type ContentModerationDetection struct {
+	_ struct{} `type:"structure"`
+
+	// The unsafe content label detected by in the stored video.
+	ModerationLabel *ModerationLabel `type:"structure"`
+
+	// Time, in milliseconds from the beginning of the video, that the unsafe content
+	// label was detected.
+	Timestamp *int64 `type:"long"`
+}
+
+// String returns the string representation
+func (s ContentModerationDetection) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ContentModerationDetection) GoString() string {
+	return s.String()
+}
+
+// SetModerationLabel sets the ModerationLabel field's value.
+func (s *ContentModerationDetection) SetModerationLabel(v *ModerationLabel) *ContentModerationDetection {
+	s.ModerationLabel = v
+	return s
+}
+
+// SetTimestamp sets the Timestamp field's value.
+func (s *ContentModerationDetection) SetTimestamp(v int64) *ContentModerationDetection {
+	s.Timestamp = &v
+	return s
+}
+
 type CreateCollectionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2276,6 +7237,10 @@ type CreateCollectionOutput struct {
 	// permissions on your resources.
 	CollectionArn *string `type:"string"`
 
+	// Version number of the face detection model associated with the collection
+	// you are creating.
+	FaceModelVersion *string `type:"string"`
+
 	// HTTP status code indicating the result of the operation.
 	StatusCode *int64 `type:"integer"`
 }
@@ -2296,9 +7261,395 @@ func (s *CreateCollectionOutput) SetCollectionArn(v string) *CreateCollectionOut
 	return s
 }
 
+// SetFaceModelVersion sets the FaceModelVersion field's value.
+func (s *CreateCollectionOutput) SetFaceModelVersion(v string) *CreateCollectionOutput {
+	s.FaceModelVersion = &v
+	return s
+}
+
 // SetStatusCode sets the StatusCode field's value.
 func (s *CreateCollectionOutput) SetStatusCode(v int64) *CreateCollectionOutput {
 	s.StatusCode = &v
+	return s
+}
+
+type CreateProjectInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the project to create.
+	//
+	// ProjectName is a required field
+	ProjectName *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s CreateProjectInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateProjectInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateProjectInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateProjectInput"}
+	if s.ProjectName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ProjectName"))
+	}
+	if s.ProjectName != nil && len(*s.ProjectName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ProjectName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetProjectName sets the ProjectName field's value.
+func (s *CreateProjectInput) SetProjectName(v string) *CreateProjectInput {
+	s.ProjectName = &v
+	return s
+}
+
+type CreateProjectOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) of the new project. You can use the ARN to
+	// configure IAM access to the project.
+	ProjectArn *string `min:"20" type:"string"`
+}
+
+// String returns the string representation
+func (s CreateProjectOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateProjectOutput) GoString() string {
+	return s.String()
+}
+
+// SetProjectArn sets the ProjectArn field's value.
+func (s *CreateProjectOutput) SetProjectArn(v string) *CreateProjectOutput {
+	s.ProjectArn = &v
+	return s
+}
+
+type CreateProjectVersionInput struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon S3 location to store the results of training.
+	//
+	// OutputConfig is a required field
+	OutputConfig *OutputConfig `type:"structure" required:"true"`
+
+	// The ARN of the Amazon Rekognition Custom Labels project that manages the
+	// model that you want to train.
+	//
+	// ProjectArn is a required field
+	ProjectArn *string `min:"20" type:"string" required:"true"`
+
+	// The dataset to use for testing.
+	//
+	// TestingData is a required field
+	TestingData *TestingData `type:"structure" required:"true"`
+
+	// The dataset to use for training.
+	//
+	// TrainingData is a required field
+	TrainingData *TrainingData `type:"structure" required:"true"`
+
+	// A name for the version of the model. This value must be unique.
+	//
+	// VersionName is a required field
+	VersionName *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s CreateProjectVersionInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateProjectVersionInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateProjectVersionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateProjectVersionInput"}
+	if s.OutputConfig == nil {
+		invalidParams.Add(request.NewErrParamRequired("OutputConfig"))
+	}
+	if s.ProjectArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("ProjectArn"))
+	}
+	if s.ProjectArn != nil && len(*s.ProjectArn) < 20 {
+		invalidParams.Add(request.NewErrParamMinLen("ProjectArn", 20))
+	}
+	if s.TestingData == nil {
+		invalidParams.Add(request.NewErrParamRequired("TestingData"))
+	}
+	if s.TrainingData == nil {
+		invalidParams.Add(request.NewErrParamRequired("TrainingData"))
+	}
+	if s.VersionName == nil {
+		invalidParams.Add(request.NewErrParamRequired("VersionName"))
+	}
+	if s.VersionName != nil && len(*s.VersionName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VersionName", 1))
+	}
+	if s.OutputConfig != nil {
+		if err := s.OutputConfig.Validate(); err != nil {
+			invalidParams.AddNested("OutputConfig", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.TestingData != nil {
+		if err := s.TestingData.Validate(); err != nil {
+			invalidParams.AddNested("TestingData", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.TrainingData != nil {
+		if err := s.TrainingData.Validate(); err != nil {
+			invalidParams.AddNested("TrainingData", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetOutputConfig sets the OutputConfig field's value.
+func (s *CreateProjectVersionInput) SetOutputConfig(v *OutputConfig) *CreateProjectVersionInput {
+	s.OutputConfig = v
+	return s
+}
+
+// SetProjectArn sets the ProjectArn field's value.
+func (s *CreateProjectVersionInput) SetProjectArn(v string) *CreateProjectVersionInput {
+	s.ProjectArn = &v
+	return s
+}
+
+// SetTestingData sets the TestingData field's value.
+func (s *CreateProjectVersionInput) SetTestingData(v *TestingData) *CreateProjectVersionInput {
+	s.TestingData = v
+	return s
+}
+
+// SetTrainingData sets the TrainingData field's value.
+func (s *CreateProjectVersionInput) SetTrainingData(v *TrainingData) *CreateProjectVersionInput {
+	s.TrainingData = v
+	return s
+}
+
+// SetVersionName sets the VersionName field's value.
+func (s *CreateProjectVersionInput) SetVersionName(v string) *CreateProjectVersionInput {
+	s.VersionName = &v
+	return s
+}
+
+type CreateProjectVersionOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the model version that was created. Use DescribeProjectVersion
+	// to get the current status of the training operation.
+	ProjectVersionArn *string `min:"20" type:"string"`
+}
+
+// String returns the string representation
+func (s CreateProjectVersionOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateProjectVersionOutput) GoString() string {
+	return s.String()
+}
+
+// SetProjectVersionArn sets the ProjectVersionArn field's value.
+func (s *CreateProjectVersionOutput) SetProjectVersionArn(v string) *CreateProjectVersionOutput {
+	s.ProjectVersionArn = &v
+	return s
+}
+
+type CreateStreamProcessorInput struct {
+	_ struct{} `type:"structure"`
+
+	// Kinesis video stream stream that provides the source streaming video. If
+	// you are using the AWS CLI, the parameter name is StreamProcessorInput.
+	//
+	// Input is a required field
+	Input *StreamProcessorInput `type:"structure" required:"true"`
+
+	// An identifier you assign to the stream processor. You can use Name to manage
+	// the stream processor. For example, you can get the current status of the
+	// stream processor by calling DescribeStreamProcessor. Name is idempotent.
+	//
+	// Name is a required field
+	Name *string `min:"1" type:"string" required:"true"`
+
+	// Kinesis data stream stream to which Amazon Rekognition Video puts the analysis
+	// results. If you are using the AWS CLI, the parameter name is StreamProcessorOutput.
+	//
+	// Output is a required field
+	Output *StreamProcessorOutput `type:"structure" required:"true"`
+
+	// ARN of the IAM role that allows access to the stream processor.
+	//
+	// RoleArn is a required field
+	RoleArn *string `type:"string" required:"true"`
+
+	// Face recognition input parameters to be used by the stream processor. Includes
+	// the collection to use for face recognition and the face attributes to detect.
+	//
+	// Settings is a required field
+	Settings *StreamProcessorSettings `type:"structure" required:"true"`
+}
+
+// String returns the string representation
+func (s CreateStreamProcessorInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateStreamProcessorInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateStreamProcessorInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateStreamProcessorInput"}
+	if s.Input == nil {
+		invalidParams.Add(request.NewErrParamRequired("Input"))
+	}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+	if s.Output == nil {
+		invalidParams.Add(request.NewErrParamRequired("Output"))
+	}
+	if s.RoleArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("RoleArn"))
+	}
+	if s.Settings == nil {
+		invalidParams.Add(request.NewErrParamRequired("Settings"))
+	}
+	if s.Settings != nil {
+		if err := s.Settings.Validate(); err != nil {
+			invalidParams.AddNested("Settings", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetInput sets the Input field's value.
+func (s *CreateStreamProcessorInput) SetInput(v *StreamProcessorInput) *CreateStreamProcessorInput {
+	s.Input = v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *CreateStreamProcessorInput) SetName(v string) *CreateStreamProcessorInput {
+	s.Name = &v
+	return s
+}
+
+// SetOutput sets the Output field's value.
+func (s *CreateStreamProcessorInput) SetOutput(v *StreamProcessorOutput) *CreateStreamProcessorInput {
+	s.Output = v
+	return s
+}
+
+// SetRoleArn sets the RoleArn field's value.
+func (s *CreateStreamProcessorInput) SetRoleArn(v string) *CreateStreamProcessorInput {
+	s.RoleArn = &v
+	return s
+}
+
+// SetSettings sets the Settings field's value.
+func (s *CreateStreamProcessorInput) SetSettings(v *StreamProcessorSettings) *CreateStreamProcessorInput {
+	s.Settings = v
+	return s
+}
+
+type CreateStreamProcessorOutput struct {
+	_ struct{} `type:"structure"`
+
+	// ARN for the newly create stream processor.
+	StreamProcessorArn *string `type:"string"`
+}
+
+// String returns the string representation
+func (s CreateStreamProcessorOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateStreamProcessorOutput) GoString() string {
+	return s.String()
+}
+
+// SetStreamProcessorArn sets the StreamProcessorArn field's value.
+func (s *CreateStreamProcessorOutput) SetStreamProcessorArn(v string) *CreateStreamProcessorOutput {
+	s.StreamProcessorArn = &v
+	return s
+}
+
+// A custom label detected in an image by a call to DetectCustomLabels.
+type CustomLabel struct {
+	_ struct{} `type:"structure"`
+
+	// The confidence that the model has in the detection of the custom label. The
+	// range is 0-100. A higher value indicates a higher confidence.
+	Confidence *float64 `type:"float"`
+
+	// The location of the detected object on the image that corresponds to the
+	// custom label. Includes an axis aligned coarse bounding box surrounding the
+	// object and a finer grain polygon for more accurate spatial information.
+	Geometry *Geometry `type:"structure"`
+
+	// The name of the custom label.
+	Name *string `type:"string"`
+}
+
+// String returns the string representation
+func (s CustomLabel) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CustomLabel) GoString() string {
+	return s.String()
+}
+
+// SetConfidence sets the Confidence field's value.
+func (s *CustomLabel) SetConfidence(v float64) *CustomLabel {
+	s.Confidence = &v
+	return s
+}
+
+// SetGeometry sets the Geometry field's value.
+func (s *CustomLabel) SetGeometry(v *Geometry) *CustomLabel {
+	s.Geometry = v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *CustomLabel) SetName(v string) *CustomLabel {
+	s.Name = &v
 	return s
 }
 
@@ -2447,22 +7798,793 @@ func (s *DeleteFacesOutput) SetDeletedFaces(v []*string) *DeleteFacesOutput {
 	return s
 }
 
+type DeleteProjectInput struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) of the project that you want to delete.
+	//
+	// ProjectArn is a required field
+	ProjectArn *string `min:"20" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DeleteProjectInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteProjectInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteProjectInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteProjectInput"}
+	if s.ProjectArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("ProjectArn"))
+	}
+	if s.ProjectArn != nil && len(*s.ProjectArn) < 20 {
+		invalidParams.Add(request.NewErrParamMinLen("ProjectArn", 20))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetProjectArn sets the ProjectArn field's value.
+func (s *DeleteProjectInput) SetProjectArn(v string) *DeleteProjectInput {
+	s.ProjectArn = &v
+	return s
+}
+
+type DeleteProjectOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The current status of the delete project operation.
+	Status *string `type:"string" enum:"ProjectStatus"`
+}
+
+// String returns the string representation
+func (s DeleteProjectOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteProjectOutput) GoString() string {
+	return s.String()
+}
+
+// SetStatus sets the Status field's value.
+func (s *DeleteProjectOutput) SetStatus(v string) *DeleteProjectOutput {
+	s.Status = &v
+	return s
+}
+
+type DeleteProjectVersionInput struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) of the model version that you want to delete.
+	//
+	// ProjectVersionArn is a required field
+	ProjectVersionArn *string `min:"20" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DeleteProjectVersionInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteProjectVersionInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteProjectVersionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteProjectVersionInput"}
+	if s.ProjectVersionArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("ProjectVersionArn"))
+	}
+	if s.ProjectVersionArn != nil && len(*s.ProjectVersionArn) < 20 {
+		invalidParams.Add(request.NewErrParamMinLen("ProjectVersionArn", 20))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetProjectVersionArn sets the ProjectVersionArn field's value.
+func (s *DeleteProjectVersionInput) SetProjectVersionArn(v string) *DeleteProjectVersionInput {
+	s.ProjectVersionArn = &v
+	return s
+}
+
+type DeleteProjectVersionOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The status of the deletion operation.
+	Status *string `type:"string" enum:"ProjectVersionStatus"`
+}
+
+// String returns the string representation
+func (s DeleteProjectVersionOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteProjectVersionOutput) GoString() string {
+	return s.String()
+}
+
+// SetStatus sets the Status field's value.
+func (s *DeleteProjectVersionOutput) SetStatus(v string) *DeleteProjectVersionOutput {
+	s.Status = &v
+	return s
+}
+
+type DeleteStreamProcessorInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the stream processor you want to delete.
+	//
+	// Name is a required field
+	Name *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DeleteStreamProcessorInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteStreamProcessorInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteStreamProcessorInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteStreamProcessorInput"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetName sets the Name field's value.
+func (s *DeleteStreamProcessorInput) SetName(v string) *DeleteStreamProcessorInput {
+	s.Name = &v
+	return s
+}
+
+type DeleteStreamProcessorOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s DeleteStreamProcessorOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteStreamProcessorOutput) GoString() string {
+	return s.String()
+}
+
+type DescribeCollectionInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the collection to describe.
+	//
+	// CollectionId is a required field
+	CollectionId *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DescribeCollectionInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeCollectionInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeCollectionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeCollectionInput"}
+	if s.CollectionId == nil {
+		invalidParams.Add(request.NewErrParamRequired("CollectionId"))
+	}
+	if s.CollectionId != nil && len(*s.CollectionId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("CollectionId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetCollectionId sets the CollectionId field's value.
+func (s *DescribeCollectionInput) SetCollectionId(v string) *DescribeCollectionInput {
+	s.CollectionId = &v
+	return s
+}
+
+type DescribeCollectionOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) of the collection.
+	CollectionARN *string `type:"string"`
+
+	// The number of milliseconds since the Unix epoch time until the creation of
+	// the collection. The Unix epoch time is 00:00:00 Coordinated Universal Time
+	// (UTC), Thursday, 1 January 1970.
+	CreationTimestamp *time.Time `type:"timestamp"`
+
+	// The number of faces that are indexed into the collection. To index faces
+	// into a collection, use IndexFaces.
+	FaceCount *int64 `type:"long"`
+
+	// The version of the face model that's used by the collection for face detection.
+	//
+	// For more information, see Model Versioning in the Amazon Rekognition Developer
+	// Guide.
+	FaceModelVersion *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeCollectionOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeCollectionOutput) GoString() string {
+	return s.String()
+}
+
+// SetCollectionARN sets the CollectionARN field's value.
+func (s *DescribeCollectionOutput) SetCollectionARN(v string) *DescribeCollectionOutput {
+	s.CollectionARN = &v
+	return s
+}
+
+// SetCreationTimestamp sets the CreationTimestamp field's value.
+func (s *DescribeCollectionOutput) SetCreationTimestamp(v time.Time) *DescribeCollectionOutput {
+	s.CreationTimestamp = &v
+	return s
+}
+
+// SetFaceCount sets the FaceCount field's value.
+func (s *DescribeCollectionOutput) SetFaceCount(v int64) *DescribeCollectionOutput {
+	s.FaceCount = &v
+	return s
+}
+
+// SetFaceModelVersion sets the FaceModelVersion field's value.
+func (s *DescribeCollectionOutput) SetFaceModelVersion(v string) *DescribeCollectionOutput {
+	s.FaceModelVersion = &v
+	return s
+}
+
+type DescribeProjectVersionsInput struct {
+	_ struct{} `type:"structure"`
+
+	// The maximum number of results to return per paginated call. The largest value
+	// you can specify is 100. If you specify a value greater than 100, a ValidationException
+	// error occurs. The default value is 100.
+	MaxResults *int64 `min:"1" type:"integer"`
+
+	// If the previous response was incomplete (because there is more results to
+	// retrieve), Amazon Rekognition Custom Labels returns a pagination token in
+	// the response. You can use this pagination token to retrieve the next set
+	// of results.
+	NextToken *string `type:"string"`
+
+	// The Amazon Resource Name (ARN) of the project that contains the models you
+	// want to describe.
+	//
+	// ProjectArn is a required field
+	ProjectArn *string `min:"20" type:"string" required:"true"`
+
+	// A list of model version names that you want to describe. You can add up to
+	// 10 model version names to the list. If you don't specify a value, all model
+	// descriptions are returned. A version name is part of a model (ProjectVersion)
+	// ARN. For example, my-model.2020-01-21T09.10.15 is the version name in the
+	// following ARN. arn:aws:rekognition:us-east-1:123456789012:project/getting-started/version/my-model.2020-01-21T09.10.15/1234567890123.
+	VersionNames []*string `min:"1" type:"list"`
+}
+
+// String returns the string representation
+func (s DescribeProjectVersionsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeProjectVersionsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeProjectVersionsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeProjectVersionsInput"}
+	if s.MaxResults != nil && *s.MaxResults < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
+	}
+	if s.ProjectArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("ProjectArn"))
+	}
+	if s.ProjectArn != nil && len(*s.ProjectArn) < 20 {
+		invalidParams.Add(request.NewErrParamMinLen("ProjectArn", 20))
+	}
+	if s.VersionNames != nil && len(s.VersionNames) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("VersionNames", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *DescribeProjectVersionsInput) SetMaxResults(v int64) *DescribeProjectVersionsInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeProjectVersionsInput) SetNextToken(v string) *DescribeProjectVersionsInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetProjectArn sets the ProjectArn field's value.
+func (s *DescribeProjectVersionsInput) SetProjectArn(v string) *DescribeProjectVersionsInput {
+	s.ProjectArn = &v
+	return s
+}
+
+// SetVersionNames sets the VersionNames field's value.
+func (s *DescribeProjectVersionsInput) SetVersionNames(v []*string) *DescribeProjectVersionsInput {
+	s.VersionNames = v
+	return s
+}
+
+type DescribeProjectVersionsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// If the previous response was incomplete (because there is more results to
+	// retrieve), Amazon Rekognition Custom Labels returns a pagination token in
+	// the response. You can use this pagination token to retrieve the next set
+	// of results.
+	NextToken *string `type:"string"`
+
+	// A list of model descriptions. The list is sorted by the creation date and
+	// time of the model versions, latest to earliest.
+	ProjectVersionDescriptions []*ProjectVersionDescription `type:"list"`
+}
+
+// String returns the string representation
+func (s DescribeProjectVersionsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeProjectVersionsOutput) GoString() string {
+	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeProjectVersionsOutput) SetNextToken(v string) *DescribeProjectVersionsOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetProjectVersionDescriptions sets the ProjectVersionDescriptions field's value.
+func (s *DescribeProjectVersionsOutput) SetProjectVersionDescriptions(v []*ProjectVersionDescription) *DescribeProjectVersionsOutput {
+	s.ProjectVersionDescriptions = v
+	return s
+}
+
+type DescribeProjectsInput struct {
+	_ struct{} `type:"structure"`
+
+	// The maximum number of results to return per paginated call. The largest value
+	// you can specify is 100. If you specify a value greater than 100, a ValidationException
+	// error occurs. The default value is 100.
+	MaxResults *int64 `min:"1" type:"integer"`
+
+	// If the previous response was incomplete (because there is more results to
+	// retrieve), Amazon Rekognition Custom Labels returns a pagination token in
+	// the response. You can use this pagination token to retrieve the next set
+	// of results.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeProjectsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeProjectsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeProjectsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeProjectsInput"}
+	if s.MaxResults != nil && *s.MaxResults < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *DescribeProjectsInput) SetMaxResults(v int64) *DescribeProjectsInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeProjectsInput) SetNextToken(v string) *DescribeProjectsInput {
+	s.NextToken = &v
+	return s
+}
+
+type DescribeProjectsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// If the previous response was incomplete (because there is more results to
+	// retrieve), Amazon Rekognition Custom Labels returns a pagination token in
+	// the response. You can use this pagination token to retrieve the next set
+	// of results.
+	NextToken *string `type:"string"`
+
+	// A list of project descriptions. The list is sorted by the date and time the
+	// projects are created.
+	ProjectDescriptions []*ProjectDescription `type:"list"`
+}
+
+// String returns the string representation
+func (s DescribeProjectsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeProjectsOutput) GoString() string {
+	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeProjectsOutput) SetNextToken(v string) *DescribeProjectsOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetProjectDescriptions sets the ProjectDescriptions field's value.
+func (s *DescribeProjectsOutput) SetProjectDescriptions(v []*ProjectDescription) *DescribeProjectsOutput {
+	s.ProjectDescriptions = v
+	return s
+}
+
+type DescribeStreamProcessorInput struct {
+	_ struct{} `type:"structure"`
+
+	// Name of the stream processor for which you want information.
+	//
+	// Name is a required field
+	Name *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DescribeStreamProcessorInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeStreamProcessorInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeStreamProcessorInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeStreamProcessorInput"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetName sets the Name field's value.
+func (s *DescribeStreamProcessorInput) SetName(v string) *DescribeStreamProcessorInput {
+	s.Name = &v
+	return s
+}
+
+type DescribeStreamProcessorOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Date and time the stream processor was created
+	CreationTimestamp *time.Time `type:"timestamp"`
+
+	// Kinesis video stream that provides the source streaming video.
+	Input *StreamProcessorInput `type:"structure"`
+
+	// The time, in Unix format, the stream processor was last updated. For example,
+	// when the stream processor moves from a running state to a failed state, or
+	// when the user starts or stops the stream processor.
+	LastUpdateTimestamp *time.Time `type:"timestamp"`
+
+	// Name of the stream processor.
+	Name *string `min:"1" type:"string"`
+
+	// Kinesis data stream to which Amazon Rekognition Video puts the analysis results.
+	Output *StreamProcessorOutput `type:"structure"`
+
+	// ARN of the IAM role that allows access to the stream processor.
+	RoleArn *string `type:"string"`
+
+	// Face recognition input parameters that are being used by the stream processor.
+	// Includes the collection to use for face recognition and the face attributes
+	// to detect.
+	Settings *StreamProcessorSettings `type:"structure"`
+
+	// Current status of the stream processor.
+	Status *string `type:"string" enum:"StreamProcessorStatus"`
+
+	// Detailed status message about the stream processor.
+	StatusMessage *string `type:"string"`
+
+	// ARN of the stream processor.
+	StreamProcessorArn *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeStreamProcessorOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeStreamProcessorOutput) GoString() string {
+	return s.String()
+}
+
+// SetCreationTimestamp sets the CreationTimestamp field's value.
+func (s *DescribeStreamProcessorOutput) SetCreationTimestamp(v time.Time) *DescribeStreamProcessorOutput {
+	s.CreationTimestamp = &v
+	return s
+}
+
+// SetInput sets the Input field's value.
+func (s *DescribeStreamProcessorOutput) SetInput(v *StreamProcessorInput) *DescribeStreamProcessorOutput {
+	s.Input = v
+	return s
+}
+
+// SetLastUpdateTimestamp sets the LastUpdateTimestamp field's value.
+func (s *DescribeStreamProcessorOutput) SetLastUpdateTimestamp(v time.Time) *DescribeStreamProcessorOutput {
+	s.LastUpdateTimestamp = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *DescribeStreamProcessorOutput) SetName(v string) *DescribeStreamProcessorOutput {
+	s.Name = &v
+	return s
+}
+
+// SetOutput sets the Output field's value.
+func (s *DescribeStreamProcessorOutput) SetOutput(v *StreamProcessorOutput) *DescribeStreamProcessorOutput {
+	s.Output = v
+	return s
+}
+
+// SetRoleArn sets the RoleArn field's value.
+func (s *DescribeStreamProcessorOutput) SetRoleArn(v string) *DescribeStreamProcessorOutput {
+	s.RoleArn = &v
+	return s
+}
+
+// SetSettings sets the Settings field's value.
+func (s *DescribeStreamProcessorOutput) SetSettings(v *StreamProcessorSettings) *DescribeStreamProcessorOutput {
+	s.Settings = v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *DescribeStreamProcessorOutput) SetStatus(v string) *DescribeStreamProcessorOutput {
+	s.Status = &v
+	return s
+}
+
+// SetStatusMessage sets the StatusMessage field's value.
+func (s *DescribeStreamProcessorOutput) SetStatusMessage(v string) *DescribeStreamProcessorOutput {
+	s.StatusMessage = &v
+	return s
+}
+
+// SetStreamProcessorArn sets the StreamProcessorArn field's value.
+func (s *DescribeStreamProcessorOutput) SetStreamProcessorArn(v string) *DescribeStreamProcessorOutput {
+	s.StreamProcessorArn = &v
+	return s
+}
+
+type DetectCustomLabelsInput struct {
+	_ struct{} `type:"structure"`
+
+	// Provides the input image either as bytes or an S3 object.
+	//
+	// You pass image bytes to an Amazon Rekognition API operation by using the
+	// Bytes property. For example, you would use the Bytes property to pass an
+	// image loaded from a local file system. Image bytes passed by using the Bytes
+	// property must be base64-encoded. Your code may not need to encode image bytes
+	// if you are using an AWS SDK to call Amazon Rekognition API operations.
+	//
+	// For more information, see Analyzing an Image Loaded from a Local File System
+	// in the Amazon Rekognition Developer Guide.
+	//
+	// You pass images stored in an S3 bucket to an Amazon Rekognition API operation
+	// by using the S3Object property. Images stored in an S3 bucket do not need
+	// to be base64-encoded.
+	//
+	// The region for the S3 bucket containing the S3 object must match the region
+	// you use for Amazon Rekognition operations.
+	//
+	// If you use the AWS CLI to call Amazon Rekognition operations, passing image
+	// bytes using the Bytes property is not supported. You must first upload the
+	// image to an Amazon S3 bucket and then call the operation using the S3Object
+	// property.
+	//
+	// For Amazon Rekognition to process an S3 object, the user must have permission
+	// to access the S3 object. For more information, see Resource Based Policies
+	// in the Amazon Rekognition Developer Guide.
+	//
+	// Image is a required field
+	Image *Image `type:"structure" required:"true"`
+
+	// Maximum number of results you want the service to return in the response.
+	// The service returns the specified number of highest confidence labels ranked
+	// from highest confidence to lowest.
+	MaxResults *int64 `type:"integer"`
+
+	// Specifies the minimum confidence level for the labels to return. Amazon Rekognition
+	// doesn't return any labels with a confidence lower than this specified value.
+	// If you specify a value of 0, all labels are return, regardless of the default
+	// thresholds that the model version applies.
+	MinConfidence *float64 `type:"float"`
+
+	// The ARN of the model version that you want to use.
+	//
+	// ProjectVersionArn is a required field
+	ProjectVersionArn *string `min:"20" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DetectCustomLabelsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DetectCustomLabelsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DetectCustomLabelsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DetectCustomLabelsInput"}
+	if s.Image == nil {
+		invalidParams.Add(request.NewErrParamRequired("Image"))
+	}
+	if s.ProjectVersionArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("ProjectVersionArn"))
+	}
+	if s.ProjectVersionArn != nil && len(*s.ProjectVersionArn) < 20 {
+		invalidParams.Add(request.NewErrParamMinLen("ProjectVersionArn", 20))
+	}
+	if s.Image != nil {
+		if err := s.Image.Validate(); err != nil {
+			invalidParams.AddNested("Image", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetImage sets the Image field's value.
+func (s *DetectCustomLabelsInput) SetImage(v *Image) *DetectCustomLabelsInput {
+	s.Image = v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *DetectCustomLabelsInput) SetMaxResults(v int64) *DetectCustomLabelsInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetMinConfidence sets the MinConfidence field's value.
+func (s *DetectCustomLabelsInput) SetMinConfidence(v float64) *DetectCustomLabelsInput {
+	s.MinConfidence = &v
+	return s
+}
+
+// SetProjectVersionArn sets the ProjectVersionArn field's value.
+func (s *DetectCustomLabelsInput) SetProjectVersionArn(v string) *DetectCustomLabelsInput {
+	s.ProjectVersionArn = &v
+	return s
+}
+
+type DetectCustomLabelsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// An array of custom labels detected in the input image.
+	CustomLabels []*CustomLabel `type:"list"`
+}
+
+// String returns the string representation
+func (s DetectCustomLabelsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DetectCustomLabelsOutput) GoString() string {
+	return s.String()
+}
+
+// SetCustomLabels sets the CustomLabels field's value.
+func (s *DetectCustomLabelsOutput) SetCustomLabels(v []*CustomLabel) *DetectCustomLabelsOutput {
+	s.CustomLabels = v
+	return s
+}
+
 type DetectFacesInput struct {
 	_ struct{} `type:"structure"`
 
 	// An array of facial attributes you want to be returned. This can be the default
 	// list of attributes or all attributes. If you don't specify a value for Attributes
 	// or if you specify ["DEFAULT"], the API returns the following subset of facial
-	// attributes: BoundingBox, Confidence, Pose, Quality and Landmarks. If you
-	// provide ["ALL"], all facial attributes are returned but the operation will
-	// take longer to complete.
+	// attributes: BoundingBox, Confidence, Pose, Quality, and Landmarks. If you
+	// provide ["ALL"], all facial attributes are returned, but the operation takes
+	// longer to complete.
 	//
 	// If you provide both, ["ALL", "DEFAULT"], the service uses a logical AND operator
 	// to determine which attributes to return (in this case, all attributes).
 	Attributes []*string `type:"list"`
 
-	// The image in which you want to detect faces. You can specify a blob or an
-	// S3 object.
+	// The input image as base64-encoded bytes or an S3 object. If you use the AWS
+	// CLI to call Amazon Rekognition operations, passing base64-encoded image bytes
+	// is not supported.
+	//
+	// If you are using an AWS SDK to call Amazon Rekognition, you might not need
+	// to base64-encode image bytes passed using the Bytes field. For more information,
+	// see Images in the Amazon Rekognition developer guide.
 	//
 	// Image is a required field
 	Image *Image `type:"structure" required:"true"`
@@ -2514,17 +8636,19 @@ type DetectFacesOutput struct {
 	// Details of each face found in the image.
 	FaceDetails []*FaceDetail `type:"list"`
 
-	// The orientation of the input image (counter-clockwise direction). If your
-	// application displays the image, you can use this value to correct image orientation.
-	// The bounding box coordinates returned in FaceDetails represent face locations
-	// before the image orientation is corrected.
+	// The value of OrientationCorrection is always null.
 	//
 	// If the input image is in .jpeg format, it might contain exchangeable image
-	// (Exif) metadata that includes the image's orientation. If so, and the Exif
-	// metadata for the input image populates the orientation field, the value of
-	// OrientationCorrection is null and the FaceDetails bounding box coordinates
-	// represent face locations after Exif metadata is used to correct the image
-	// orientation. Images in .png format don't contain Exif metadata.
+	// file format (Exif) metadata that includes the image's orientation. Amazon
+	// Rekognition uses this orientation information to perform image correction.
+	// The bounding box coordinates are translated to represent object locations
+	// after the orientation information in the Exif metadata is used to correct
+	// the image orientation. Images in .png format don't contain Exif metadata.
+	//
+	// Amazon Rekognition doesn’t perform image correction for images in .png
+	// format and .jpeg images without orientation information in the image Exif
+	// metadata. The bounding box coordinates aren't translated and represent the
+	// object locations before the image is rotated.
 	OrientationCorrection *string `type:"string" enum:"OrientationCorrection"`
 }
 
@@ -2553,7 +8677,13 @@ func (s *DetectFacesOutput) SetOrientationCorrection(v string) *DetectFacesOutpu
 type DetectLabelsInput struct {
 	_ struct{} `type:"structure"`
 
-	// The input image. You can provide a blob of image bytes or an S3 object.
+	// The input image as base64-encoded bytes or an S3 object. If you use the AWS
+	// CLI to call Amazon Rekognition operations, passing image bytes is not supported.
+	// Images stored in an S3 Bucket do not need to be base64-encoded.
+	//
+	// If you are using an AWS SDK to call Amazon Rekognition, you might not need
+	// to base64-encode image bytes passed using the Bytes field. For more information,
+	// see Images in the Amazon Rekognition developer guide.
 	//
 	// Image is a required field
 	Image *Image `type:"structure" required:"true"`
@@ -2566,7 +8696,7 @@ type DetectLabelsInput struct {
 	// doesn't return any labels with confidence lower than this specified value.
 	//
 	// If MinConfidence is not specified, the operation returns labels with a confidence
-	// values greater than or equal to 50 percent.
+	// values greater than or equal to 55 percent.
 	MinConfidence *float64 `type:"float"`
 }
 
@@ -2619,17 +8749,25 @@ func (s *DetectLabelsInput) SetMinConfidence(v float64) *DetectLabelsInput {
 type DetectLabelsOutput struct {
 	_ struct{} `type:"structure"`
 
+	// Version number of the label detection model that was used to detect labels.
+	LabelModelVersion *string `type:"string"`
+
 	// An array of labels for the real-world objects detected.
 	Labels []*Label `type:"list"`
 
-	// The orientation of the input image (counter-clockwise direction). If your
-	// application displays the image, you can use this value to correct the orientation.
-	// If Amazon Rekognition detects that the input image was rotated (for example,
-	// by 90 degrees), it first corrects the orientation before detecting the labels.
+	// The value of OrientationCorrection is always null.
 	//
-	// If the input image Exif metadata populates the orientation field, Amazon
-	// Rekognition does not perform orientation correction and the value of OrientationCorrection
-	// will be null.
+	// If the input image is in .jpeg format, it might contain exchangeable image
+	// file format (Exif) metadata that includes the image's orientation. Amazon
+	// Rekognition uses this orientation information to perform image correction.
+	// The bounding box coordinates are translated to represent object locations
+	// after the orientation information in the Exif metadata is used to correct
+	// the image orientation. Images in .png format don't contain Exif metadata.
+	//
+	// Amazon Rekognition doesn’t perform image correction for images in .png
+	// format and .jpeg images without orientation information in the image Exif
+	// metadata. The bounding box coordinates aren't translated and represent the
+	// object locations before the image is rotated.
 	OrientationCorrection *string `type:"string" enum:"OrientationCorrection"`
 }
 
@@ -2641,6 +8779,12 @@ func (s DetectLabelsOutput) String() string {
 // GoString returns the string representation
 func (s DetectLabelsOutput) GoString() string {
 	return s.String()
+}
+
+// SetLabelModelVersion sets the LabelModelVersion field's value.
+func (s *DetectLabelsOutput) SetLabelModelVersion(v string) *DetectLabelsOutput {
+	s.LabelModelVersion = &v
+	return s
 }
 
 // SetLabels sets the Labels field's value.
@@ -2658,7 +8802,17 @@ func (s *DetectLabelsOutput) SetOrientationCorrection(v string) *DetectLabelsOut
 type DetectModerationLabelsInput struct {
 	_ struct{} `type:"structure"`
 
-	// The input image as bytes or an S3 object.
+	// Sets up the configuration for human evaluation, including the FlowDefinition
+	// the image will be sent to.
+	HumanLoopConfig *HumanLoopConfig `type:"structure"`
+
+	// The input image as base64-encoded bytes or an S3 object. If you use the AWS
+	// CLI to call Amazon Rekognition operations, passing base64-encoded image bytes
+	// is not supported.
+	//
+	// If you are using an AWS SDK to call Amazon Rekognition, you might not need
+	// to base64-encode image bytes passed using the Bytes field. For more information,
+	// see Images in the Amazon Rekognition developer guide.
 	//
 	// Image is a required field
 	Image *Image `type:"structure" required:"true"`
@@ -2688,6 +8842,11 @@ func (s *DetectModerationLabelsInput) Validate() error {
 	if s.Image == nil {
 		invalidParams.Add(request.NewErrParamRequired("Image"))
 	}
+	if s.HumanLoopConfig != nil {
+		if err := s.HumanLoopConfig.Validate(); err != nil {
+			invalidParams.AddNested("HumanLoopConfig", err.(request.ErrInvalidParams))
+		}
+	}
 	if s.Image != nil {
 		if err := s.Image.Validate(); err != nil {
 			invalidParams.AddNested("Image", err.(request.ErrInvalidParams))
@@ -2698,6 +8857,12 @@ func (s *DetectModerationLabelsInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetHumanLoopConfig sets the HumanLoopConfig field's value.
+func (s *DetectModerationLabelsInput) SetHumanLoopConfig(v *HumanLoopConfig) *DetectModerationLabelsInput {
+	s.HumanLoopConfig = v
+	return s
 }
 
 // SetImage sets the Image field's value.
@@ -2715,10 +8880,16 @@ func (s *DetectModerationLabelsInput) SetMinConfidence(v float64) *DetectModerat
 type DetectModerationLabelsOutput struct {
 	_ struct{} `type:"structure"`
 
-	// An array of labels for explicit or suggestive adult content found in the
-	// image. The list includes the top-level label and each child label detected
-	// in the image. This is useful for filtering specific categories of content.
+	// Shows the results of the human in the loop evaluation.
+	HumanLoopActivationOutput *HumanLoopActivationOutput `type:"structure"`
+
+	// Array of detected Moderation labels and the time, in milliseconds from the
+	// start of the video, they were detected.
 	ModerationLabels []*ModerationLabel `type:"list"`
+
+	// Version number of the moderation detection model that was used to detect
+	// unsafe content.
+	ModerationModelVersion *string `type:"string"`
 }
 
 // String returns the string representation
@@ -2731,14 +8902,206 @@ func (s DetectModerationLabelsOutput) GoString() string {
 	return s.String()
 }
 
+// SetHumanLoopActivationOutput sets the HumanLoopActivationOutput field's value.
+func (s *DetectModerationLabelsOutput) SetHumanLoopActivationOutput(v *HumanLoopActivationOutput) *DetectModerationLabelsOutput {
+	s.HumanLoopActivationOutput = v
+	return s
+}
+
 // SetModerationLabels sets the ModerationLabels field's value.
 func (s *DetectModerationLabelsOutput) SetModerationLabels(v []*ModerationLabel) *DetectModerationLabelsOutput {
 	s.ModerationLabels = v
 	return s
 }
 
-// The emotions detected on the face, and the confidence level in the determination.
-// For example, HAPPY, SAD, and ANGRY.
+// SetModerationModelVersion sets the ModerationModelVersion field's value.
+func (s *DetectModerationLabelsOutput) SetModerationModelVersion(v string) *DetectModerationLabelsOutput {
+	s.ModerationModelVersion = &v
+	return s
+}
+
+// A set of optional parameters that you can use to set the criteria that the
+// text must meet to be included in your response. WordFilter looks at a word’s
+// height, width, and minimum confidence. RegionOfInterest lets you set a specific
+// region of the image to look for text in.
+type DetectTextFilters struct {
+	_ struct{} `type:"structure"`
+
+	// A Filter focusing on a certain area of the image. Uses a BoundingBox object
+	// to set the region of the image.
+	RegionsOfInterest []*RegionOfInterest `type:"list"`
+
+	// A set of parameters that allow you to filter out certain results from your
+	// returned results.
+	WordFilter *DetectionFilter `type:"structure"`
+}
+
+// String returns the string representation
+func (s DetectTextFilters) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DetectTextFilters) GoString() string {
+	return s.String()
+}
+
+// SetRegionsOfInterest sets the RegionsOfInterest field's value.
+func (s *DetectTextFilters) SetRegionsOfInterest(v []*RegionOfInterest) *DetectTextFilters {
+	s.RegionsOfInterest = v
+	return s
+}
+
+// SetWordFilter sets the WordFilter field's value.
+func (s *DetectTextFilters) SetWordFilter(v *DetectionFilter) *DetectTextFilters {
+	s.WordFilter = v
+	return s
+}
+
+type DetectTextInput struct {
+	_ struct{} `type:"structure"`
+
+	// Optional parameters that let you set the criteria that the text must meet
+	// to be included in your response.
+	Filters *DetectTextFilters `type:"structure"`
+
+	// The input image as base64-encoded bytes or an Amazon S3 object. If you use
+	// the AWS CLI to call Amazon Rekognition operations, you can't pass image bytes.
+	//
+	// If you are using an AWS SDK to call Amazon Rekognition, you might not need
+	// to base64-encode image bytes passed using the Bytes field. For more information,
+	// see Images in the Amazon Rekognition developer guide.
+	//
+	// Image is a required field
+	Image *Image `type:"structure" required:"true"`
+}
+
+// String returns the string representation
+func (s DetectTextInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DetectTextInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DetectTextInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DetectTextInput"}
+	if s.Image == nil {
+		invalidParams.Add(request.NewErrParamRequired("Image"))
+	}
+	if s.Image != nil {
+		if err := s.Image.Validate(); err != nil {
+			invalidParams.AddNested("Image", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetFilters sets the Filters field's value.
+func (s *DetectTextInput) SetFilters(v *DetectTextFilters) *DetectTextInput {
+	s.Filters = v
+	return s
+}
+
+// SetImage sets the Image field's value.
+func (s *DetectTextInput) SetImage(v *Image) *DetectTextInput {
+	s.Image = v
+	return s
+}
+
+type DetectTextOutput struct {
+	_ struct{} `type:"structure"`
+
+	// An array of text that was detected in the input image.
+	TextDetections []*TextDetection `type:"list"`
+
+	// The model version used to detect text.
+	TextModelVersion *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DetectTextOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DetectTextOutput) GoString() string {
+	return s.String()
+}
+
+// SetTextDetections sets the TextDetections field's value.
+func (s *DetectTextOutput) SetTextDetections(v []*TextDetection) *DetectTextOutput {
+	s.TextDetections = v
+	return s
+}
+
+// SetTextModelVersion sets the TextModelVersion field's value.
+func (s *DetectTextOutput) SetTextModelVersion(v string) *DetectTextOutput {
+	s.TextModelVersion = &v
+	return s
+}
+
+// A set of parameters that allow you to filter out certain results from your
+// returned results.
+type DetectionFilter struct {
+	_ struct{} `type:"structure"`
+
+	// Sets the minimum height of the word bounding box. Words with bounding box
+	// heights lesser than this value will be excluded from the result. Value is
+	// relative to the video frame height.
+	MinBoundingBoxHeight *float64 `type:"float"`
+
+	// Sets the minimum width of the word bounding box. Words with bounding boxes
+	// widths lesser than this value will be excluded from the result. Value is
+	// relative to the video frame width.
+	MinBoundingBoxWidth *float64 `type:"float"`
+
+	// Sets confidence of word detection. Words with detection confidence below
+	// this will be excluded from the result. Values should be between 0.5 and 1
+	// as Text in Video will not return any result below 0.5.
+	MinConfidence *float64 `type:"float"`
+}
+
+// String returns the string representation
+func (s DetectionFilter) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DetectionFilter) GoString() string {
+	return s.String()
+}
+
+// SetMinBoundingBoxHeight sets the MinBoundingBoxHeight field's value.
+func (s *DetectionFilter) SetMinBoundingBoxHeight(v float64) *DetectionFilter {
+	s.MinBoundingBoxHeight = &v
+	return s
+}
+
+// SetMinBoundingBoxWidth sets the MinBoundingBoxWidth field's value.
+func (s *DetectionFilter) SetMinBoundingBoxWidth(v float64) *DetectionFilter {
+	s.MinBoundingBoxWidth = &v
+	return s
+}
+
+// SetMinConfidence sets the MinConfidence field's value.
+func (s *DetectionFilter) SetMinConfidence(v float64) *DetectionFilter {
+	s.MinConfidence = &v
+	return s
+}
+
+// The emotions that appear to be expressed on the face, and the confidence
+// level in the determination. The API is only making a determination of the
+// physical appearance of a person's face. It is not a determination of the
+// person’s internal emotional state and should not be used in such a way.
+// For example, a person pretending to have a sad face might not be sad emotionally.
 type Emotion struct {
 	_ struct{} `type:"structure"`
 
@@ -2768,6 +9131,42 @@ func (s *Emotion) SetConfidence(v float64) *Emotion {
 // SetType sets the Type field's value.
 func (s *Emotion) SetType(v string) *Emotion {
 	s.Type = &v
+	return s
+}
+
+// The evaluation results for the training of a model.
+type EvaluationResult struct {
+	_ struct{} `type:"structure"`
+
+	// The F1 score for the evaluation of all labels. The F1 score metric evaluates
+	// the overall precision and recall performance of the model as a single value.
+	// A higher value indicates better precision and recall performance. A lower
+	// score indicates that precision, recall, or both are performing poorly.
+	F1Score *float64 `type:"float"`
+
+	// The S3 bucket that contains the training summary.
+	Summary *Summary `type:"structure"`
+}
+
+// String returns the string representation
+func (s EvaluationResult) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s EvaluationResult) GoString() string {
+	return s.String()
+}
+
+// SetF1Score sets the F1Score field's value.
+func (s *EvaluationResult) SetF1Score(v float64) *EvaluationResult {
+	s.F1Score = &v
+	return s
+}
+
+// SetSummary sets the Summary field's value.
+func (s *EvaluationResult) SetSummary(v *Summary) *EvaluationResult {
+	s.Summary = v
 	return s
 }
 
@@ -2902,6 +9301,28 @@ func (s *Face) SetImageId(v string) *Face {
 }
 
 // Structure containing attributes of the face that the algorithm detected.
+//
+// A FaceDetail object contains either the default facial attributes or all
+// facial attributes. The default attributes are BoundingBox, Confidence, Landmarks,
+// Pose, and Quality.
+//
+// GetFaceDetection is the only Amazon Rekognition Video stored video operation
+// that can return a FaceDetail object with all attributes. To specify which
+// attributes to return, use the FaceAttributes input parameter for StartFaceDetection.
+// The following Amazon Rekognition Video operations return only the default
+// attributes. The corresponding Start operations don't have a FaceAttributes
+// input parameter.
+//
+//    * GetCelebrityRecognition
+//
+//    * GetPersonTracking
+//
+//    * GetFaceSearch
+//
+// The Amazon Rekognition Image DetectFaces and IndexFaces operations can return
+// all facial attributes. To specify which attributes to return, use the Attributes
+// input parameter for DetectFaces. For IndexFaces, use the DetectAttributes
+// input parameter.
 type FaceDetail struct {
 	_ struct{} `type:"structure"`
 
@@ -2913,15 +9334,18 @@ type FaceDetail struct {
 	// the determination.
 	Beard *Beard `type:"structure"`
 
-	// Bounding box of the face.
+	// Bounding box of the face. Default attribute.
 	BoundingBox *BoundingBox `type:"structure"`
 
 	// Confidence level that the bounding box contains a face (and not a different
-	// object such as a tree).
+	// object such as a tree). Default attribute.
 	Confidence *float64 `type:"float"`
 
-	// The emotions detected on the face, and the confidence level in the determination.
-	// For example, HAPPY, SAD, and ANGRY.
+	// The emotions that appear to be expressed on the face, and the confidence
+	// level in the determination. The API is only making a determination of the
+	// physical appearance of a person's face. It is not a determination of the
+	// person’s internal emotional state and should not be used in such a way.
+	// For example, a person pretending to have a sad face might not be sad emotionally.
 	Emotions []*Emotion `type:"list"`
 
 	// Indicates whether or not the face is wearing eye glasses, and the confidence
@@ -2932,10 +9356,10 @@ type FaceDetail struct {
 	// level in the determination.
 	EyesOpen *EyeOpen `type:"structure"`
 
-	// Gender of the face and the confidence level in the determination.
+	// The predicted gender of a detected face.
 	Gender *Gender `type:"structure"`
 
-	// Indicates the location of landmarks on the face.
+	// Indicates the location of landmarks on the face. Default attribute.
 	Landmarks []*Landmark `type:"list"`
 
 	// Indicates whether or not the mouth on the face is open, and the confidence
@@ -2947,9 +9371,10 @@ type FaceDetail struct {
 	Mustache *Mustache `type:"structure"`
 
 	// Indicates the pose of the face as determined by its pitch, roll, and yaw.
+	// Default attribute.
 	Pose *Pose `type:"structure"`
 
-	// Identifies image brightness and sharpness.
+	// Identifies image brightness and sharpness. Default attribute.
 	Quality *ImageQuality `type:"structure"`
 
 	// Indicates whether or not the face is smiling, and the confidence level in
@@ -3061,6 +9486,40 @@ func (s *FaceDetail) SetSunglasses(v *Sunglasses) *FaceDetail {
 	return s
 }
 
+// Information about a face detected in a video analysis request and the time
+// the face was detected in the video.
+type FaceDetection struct {
+	_ struct{} `type:"structure"`
+
+	// The face properties for the detected face.
+	Face *FaceDetail `type:"structure"`
+
+	// Time, in milliseconds from the start of the video, that the face was detected.
+	Timestamp *int64 `type:"long"`
+}
+
+// String returns the string representation
+func (s FaceDetection) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s FaceDetection) GoString() string {
+	return s.String()
+}
+
+// SetFace sets the Face field's value.
+func (s *FaceDetection) SetFace(v *FaceDetail) *FaceDetection {
+	s.Face = v
+	return s
+}
+
+// SetTimestamp sets the Timestamp field's value.
+func (s *FaceDetection) SetTimestamp(v int64) *FaceDetection {
+	s.Timestamp = &v
+	return s
+}
+
 // Provides face metadata. In addition, it also provides the confidence in the
 // match of this face with the input face.
 type FaceMatch struct {
@@ -3096,7 +9555,7 @@ func (s *FaceMatch) SetSimilarity(v float64) *FaceMatch {
 	return s
 }
 
-// Object containing both the face metadata (stored in the back-end database)
+// Object containing both the face metadata (stored in the backend database),
 // and facial attributes that are detected but aren't stored in the database.
 type FaceRecord struct {
 	_ struct{} `type:"structure"`
@@ -3131,14 +9590,78 @@ func (s *FaceRecord) SetFaceDetail(v *FaceDetail) *FaceRecord {
 	return s
 }
 
-// Gender of the face and the confidence level in the determination.
+// Input face recognition parameters for an Amazon Rekognition stream processor.
+// FaceRecognitionSettings is a request parameter for CreateStreamProcessor.
+type FaceSearchSettings struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of a collection that contains faces that you want to search for.
+	CollectionId *string `min:"1" type:"string"`
+
+	// Minimum face match confidence score that must be met to return a result for
+	// a recognized face. Default is 80. 0 is the lowest confidence. 100 is the
+	// highest confidence.
+	FaceMatchThreshold *float64 `type:"float"`
+}
+
+// String returns the string representation
+func (s FaceSearchSettings) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s FaceSearchSettings) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *FaceSearchSettings) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "FaceSearchSettings"}
+	if s.CollectionId != nil && len(*s.CollectionId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("CollectionId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetCollectionId sets the CollectionId field's value.
+func (s *FaceSearchSettings) SetCollectionId(v string) *FaceSearchSettings {
+	s.CollectionId = &v
+	return s
+}
+
+// SetFaceMatchThreshold sets the FaceMatchThreshold field's value.
+func (s *FaceSearchSettings) SetFaceMatchThreshold(v float64) *FaceSearchSettings {
+	s.FaceMatchThreshold = &v
+	return s
+}
+
+// The predicted gender of a detected face.
+//
+// Amazon Rekognition makes gender binary (male/female) predictions based on
+// the physical appearance of a face in a particular image. This kind of prediction
+// is not designed to categorize a person’s gender identity, and you shouldn't
+// use Amazon Rekognition to make such a determination. For example, a male
+// actor wearing a long-haired wig and earrings for a role might be predicted
+// as female.
+//
+// Using Amazon Rekognition to make gender binary predictions is best suited
+// for use cases where aggregate gender distribution statistics need to be analyzed
+// without identifying specific users. For example, the percentage of female
+// users compared to male users on a social media platform.
+//
+// We don't recommend using gender binary predictions to make decisions that
+// impact an individual's rights, privacy, or access to services.
 type Gender struct {
 	_ struct{} `type:"structure"`
 
-	// Level of confidence in the determination.
+	// Level of confidence in the prediction.
 	Confidence *float64 `type:"float"`
 
-	// Gender of the face.
+	// The predicted gender of the face.
 	Value *string `type:"string" enum:"GenderType"`
 }
 
@@ -3164,11 +9687,46 @@ func (s *Gender) SetValue(v string) *Gender {
 	return s
 }
 
+// Information about where an object (DetectCustomLabels) or text (DetectText)
+// is located on an image.
+type Geometry struct {
+	_ struct{} `type:"structure"`
+
+	// An axis-aligned coarse representation of the detected item's location on
+	// the image.
+	BoundingBox *BoundingBox `type:"structure"`
+
+	// Within the bounding box, a fine-grained polygon around the detected item.
+	Polygon []*Point `type:"list"`
+}
+
+// String returns the string representation
+func (s Geometry) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Geometry) GoString() string {
+	return s.String()
+}
+
+// SetBoundingBox sets the BoundingBox field's value.
+func (s *Geometry) SetBoundingBox(v *BoundingBox) *Geometry {
+	s.BoundingBox = v
+	return s
+}
+
+// SetPolygon sets the Polygon field's value.
+func (s *Geometry) SetPolygon(v []*Point) *Geometry {
+	s.Polygon = v
+	return s
+}
+
 type GetCelebrityInfoInput struct {
 	_ struct{} `type:"structure"`
 
-	// The ID for the celebrity. You get the celebrity ID from a call to the operation,
-	// which recognizes celebrities in an image.
+	// The ID for the celebrity. You get the celebrity ID from a call to the RecognizeCelebrities
+	// operation, which recognizes celebrities in an image.
 	//
 	// Id is a required field
 	Id *string `type:"string" required:"true"`
@@ -3235,29 +9793,1495 @@ func (s *GetCelebrityInfoOutput) SetUrls(v []*string) *GetCelebrityInfoOutput {
 	return s
 }
 
+type GetCelebrityRecognitionInput struct {
+	_ struct{} `type:"structure"`
+
+	// Job identifier for the required celebrity recognition analysis. You can get
+	// the job identifer from a call to StartCelebrityRecognition.
+	//
+	// JobId is a required field
+	JobId *string `min:"1" type:"string" required:"true"`
+
+	// Maximum number of results to return per paginated call. The largest value
+	// you can specify is 1000. If you specify a value greater than 1000, a maximum
+	// of 1000 results is returned. The default value is 1000.
+	MaxResults *int64 `min:"1" type:"integer"`
+
+	// If the previous response was incomplete (because there is more recognized
+	// celebrities to retrieve), Amazon Rekognition Video returns a pagination token
+	// in the response. You can use this pagination token to retrieve the next set
+	// of celebrities.
+	NextToken *string `type:"string"`
+
+	// Sort to use for celebrities returned in Celebrities field. Specify ID to
+	// sort by the celebrity identifier, specify TIMESTAMP to sort by the time the
+	// celebrity was recognized.
+	SortBy *string `type:"string" enum:"CelebrityRecognitionSortBy"`
+}
+
+// String returns the string representation
+func (s GetCelebrityRecognitionInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetCelebrityRecognitionInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetCelebrityRecognitionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetCelebrityRecognitionInput"}
+	if s.JobId == nil {
+		invalidParams.Add(request.NewErrParamRequired("JobId"))
+	}
+	if s.JobId != nil && len(*s.JobId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("JobId", 1))
+	}
+	if s.MaxResults != nil && *s.MaxResults < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetJobId sets the JobId field's value.
+func (s *GetCelebrityRecognitionInput) SetJobId(v string) *GetCelebrityRecognitionInput {
+	s.JobId = &v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *GetCelebrityRecognitionInput) SetMaxResults(v int64) *GetCelebrityRecognitionInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *GetCelebrityRecognitionInput) SetNextToken(v string) *GetCelebrityRecognitionInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetSortBy sets the SortBy field's value.
+func (s *GetCelebrityRecognitionInput) SetSortBy(v string) *GetCelebrityRecognitionInput {
+	s.SortBy = &v
+	return s
+}
+
+type GetCelebrityRecognitionOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Array of celebrities recognized in the video.
+	Celebrities []*CelebrityRecognition `type:"list"`
+
+	// The current status of the celebrity recognition job.
+	JobStatus *string `type:"string" enum:"VideoJobStatus"`
+
+	// If the response is truncated, Amazon Rekognition Video returns this token
+	// that you can use in the subsequent request to retrieve the next set of celebrities.
+	NextToken *string `type:"string"`
+
+	// If the job fails, StatusMessage provides a descriptive error message.
+	StatusMessage *string `type:"string"`
+
+	// Information about a video that Amazon Rekognition Video analyzed. Videometadata
+	// is returned in every page of paginated responses from a Amazon Rekognition
+	// Video operation.
+	VideoMetadata *VideoMetadata `type:"structure"`
+}
+
+// String returns the string representation
+func (s GetCelebrityRecognitionOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetCelebrityRecognitionOutput) GoString() string {
+	return s.String()
+}
+
+// SetCelebrities sets the Celebrities field's value.
+func (s *GetCelebrityRecognitionOutput) SetCelebrities(v []*CelebrityRecognition) *GetCelebrityRecognitionOutput {
+	s.Celebrities = v
+	return s
+}
+
+// SetJobStatus sets the JobStatus field's value.
+func (s *GetCelebrityRecognitionOutput) SetJobStatus(v string) *GetCelebrityRecognitionOutput {
+	s.JobStatus = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *GetCelebrityRecognitionOutput) SetNextToken(v string) *GetCelebrityRecognitionOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetStatusMessage sets the StatusMessage field's value.
+func (s *GetCelebrityRecognitionOutput) SetStatusMessage(v string) *GetCelebrityRecognitionOutput {
+	s.StatusMessage = &v
+	return s
+}
+
+// SetVideoMetadata sets the VideoMetadata field's value.
+func (s *GetCelebrityRecognitionOutput) SetVideoMetadata(v *VideoMetadata) *GetCelebrityRecognitionOutput {
+	s.VideoMetadata = v
+	return s
+}
+
+type GetContentModerationInput struct {
+	_ struct{} `type:"structure"`
+
+	// The identifier for the unsafe content job. Use JobId to identify the job
+	// in a subsequent call to GetContentModeration.
+	//
+	// JobId is a required field
+	JobId *string `min:"1" type:"string" required:"true"`
+
+	// Maximum number of results to return per paginated call. The largest value
+	// you can specify is 1000. If you specify a value greater than 1000, a maximum
+	// of 1000 results is returned. The default value is 1000.
+	MaxResults *int64 `min:"1" type:"integer"`
+
+	// If the previous response was incomplete (because there is more data to retrieve),
+	// Amazon Rekognition returns a pagination token in the response. You can use
+	// this pagination token to retrieve the next set of unsafe content labels.
+	NextToken *string `type:"string"`
+
+	// Sort to use for elements in the ModerationLabelDetections array. Use TIMESTAMP
+	// to sort array elements by the time labels are detected. Use NAME to alphabetically
+	// group elements for a label together. Within each label group, the array element
+	// are sorted by detection confidence. The default sort is by TIMESTAMP.
+	SortBy *string `type:"string" enum:"ContentModerationSortBy"`
+}
+
+// String returns the string representation
+func (s GetContentModerationInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetContentModerationInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetContentModerationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetContentModerationInput"}
+	if s.JobId == nil {
+		invalidParams.Add(request.NewErrParamRequired("JobId"))
+	}
+	if s.JobId != nil && len(*s.JobId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("JobId", 1))
+	}
+	if s.MaxResults != nil && *s.MaxResults < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetJobId sets the JobId field's value.
+func (s *GetContentModerationInput) SetJobId(v string) *GetContentModerationInput {
+	s.JobId = &v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *GetContentModerationInput) SetMaxResults(v int64) *GetContentModerationInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *GetContentModerationInput) SetNextToken(v string) *GetContentModerationInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetSortBy sets the SortBy field's value.
+func (s *GetContentModerationInput) SetSortBy(v string) *GetContentModerationInput {
+	s.SortBy = &v
+	return s
+}
+
+type GetContentModerationOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The current status of the unsafe content analysis job.
+	JobStatus *string `type:"string" enum:"VideoJobStatus"`
+
+	// The detected unsafe content labels and the time(s) they were detected.
+	ModerationLabels []*ContentModerationDetection `type:"list"`
+
+	// Version number of the moderation detection model that was used to detect
+	// unsafe content.
+	ModerationModelVersion *string `type:"string"`
+
+	// If the response is truncated, Amazon Rekognition Video returns this token
+	// that you can use in the subsequent request to retrieve the next set of unsafe
+	// content labels.
+	NextToken *string `type:"string"`
+
+	// If the job fails, StatusMessage provides a descriptive error message.
+	StatusMessage *string `type:"string"`
+
+	// Information about a video that Amazon Rekognition analyzed. Videometadata
+	// is returned in every page of paginated responses from GetContentModeration.
+	VideoMetadata *VideoMetadata `type:"structure"`
+}
+
+// String returns the string representation
+func (s GetContentModerationOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetContentModerationOutput) GoString() string {
+	return s.String()
+}
+
+// SetJobStatus sets the JobStatus field's value.
+func (s *GetContentModerationOutput) SetJobStatus(v string) *GetContentModerationOutput {
+	s.JobStatus = &v
+	return s
+}
+
+// SetModerationLabels sets the ModerationLabels field's value.
+func (s *GetContentModerationOutput) SetModerationLabels(v []*ContentModerationDetection) *GetContentModerationOutput {
+	s.ModerationLabels = v
+	return s
+}
+
+// SetModerationModelVersion sets the ModerationModelVersion field's value.
+func (s *GetContentModerationOutput) SetModerationModelVersion(v string) *GetContentModerationOutput {
+	s.ModerationModelVersion = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *GetContentModerationOutput) SetNextToken(v string) *GetContentModerationOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetStatusMessage sets the StatusMessage field's value.
+func (s *GetContentModerationOutput) SetStatusMessage(v string) *GetContentModerationOutput {
+	s.StatusMessage = &v
+	return s
+}
+
+// SetVideoMetadata sets the VideoMetadata field's value.
+func (s *GetContentModerationOutput) SetVideoMetadata(v *VideoMetadata) *GetContentModerationOutput {
+	s.VideoMetadata = v
+	return s
+}
+
+type GetFaceDetectionInput struct {
+	_ struct{} `type:"structure"`
+
+	// Unique identifier for the face detection job. The JobId is returned from
+	// StartFaceDetection.
+	//
+	// JobId is a required field
+	JobId *string `min:"1" type:"string" required:"true"`
+
+	// Maximum number of results to return per paginated call. The largest value
+	// you can specify is 1000. If you specify a value greater than 1000, a maximum
+	// of 1000 results is returned. The default value is 1000.
+	MaxResults *int64 `min:"1" type:"integer"`
+
+	// If the previous response was incomplete (because there are more faces to
+	// retrieve), Amazon Rekognition Video returns a pagination token in the response.
+	// You can use this pagination token to retrieve the next set of faces.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s GetFaceDetectionInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetFaceDetectionInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetFaceDetectionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetFaceDetectionInput"}
+	if s.JobId == nil {
+		invalidParams.Add(request.NewErrParamRequired("JobId"))
+	}
+	if s.JobId != nil && len(*s.JobId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("JobId", 1))
+	}
+	if s.MaxResults != nil && *s.MaxResults < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetJobId sets the JobId field's value.
+func (s *GetFaceDetectionInput) SetJobId(v string) *GetFaceDetectionInput {
+	s.JobId = &v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *GetFaceDetectionInput) SetMaxResults(v int64) *GetFaceDetectionInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *GetFaceDetectionInput) SetNextToken(v string) *GetFaceDetectionInput {
+	s.NextToken = &v
+	return s
+}
+
+type GetFaceDetectionOutput struct {
+	_ struct{} `type:"structure"`
+
+	// An array of faces detected in the video. Each element contains a detected
+	// face's details and the time, in milliseconds from the start of the video,
+	// the face was detected.
+	Faces []*FaceDetection `type:"list"`
+
+	// The current status of the face detection job.
+	JobStatus *string `type:"string" enum:"VideoJobStatus"`
+
+	// If the response is truncated, Amazon Rekognition returns this token that
+	// you can use in the subsequent request to retrieve the next set of faces.
+	NextToken *string `type:"string"`
+
+	// If the job fails, StatusMessage provides a descriptive error message.
+	StatusMessage *string `type:"string"`
+
+	// Information about a video that Amazon Rekognition Video analyzed. Videometadata
+	// is returned in every page of paginated responses from a Amazon Rekognition
+	// video operation.
+	VideoMetadata *VideoMetadata `type:"structure"`
+}
+
+// String returns the string representation
+func (s GetFaceDetectionOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetFaceDetectionOutput) GoString() string {
+	return s.String()
+}
+
+// SetFaces sets the Faces field's value.
+func (s *GetFaceDetectionOutput) SetFaces(v []*FaceDetection) *GetFaceDetectionOutput {
+	s.Faces = v
+	return s
+}
+
+// SetJobStatus sets the JobStatus field's value.
+func (s *GetFaceDetectionOutput) SetJobStatus(v string) *GetFaceDetectionOutput {
+	s.JobStatus = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *GetFaceDetectionOutput) SetNextToken(v string) *GetFaceDetectionOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetStatusMessage sets the StatusMessage field's value.
+func (s *GetFaceDetectionOutput) SetStatusMessage(v string) *GetFaceDetectionOutput {
+	s.StatusMessage = &v
+	return s
+}
+
+// SetVideoMetadata sets the VideoMetadata field's value.
+func (s *GetFaceDetectionOutput) SetVideoMetadata(v *VideoMetadata) *GetFaceDetectionOutput {
+	s.VideoMetadata = v
+	return s
+}
+
+type GetFaceSearchInput struct {
+	_ struct{} `type:"structure"`
+
+	// The job identifer for the search request. You get the job identifier from
+	// an initial call to StartFaceSearch.
+	//
+	// JobId is a required field
+	JobId *string `min:"1" type:"string" required:"true"`
+
+	// Maximum number of results to return per paginated call. The largest value
+	// you can specify is 1000. If you specify a value greater than 1000, a maximum
+	// of 1000 results is returned. The default value is 1000.
+	MaxResults *int64 `min:"1" type:"integer"`
+
+	// If the previous response was incomplete (because there is more search results
+	// to retrieve), Amazon Rekognition Video returns a pagination token in the
+	// response. You can use this pagination token to retrieve the next set of search
+	// results.
+	NextToken *string `type:"string"`
+
+	// Sort to use for grouping faces in the response. Use TIMESTAMP to group faces
+	// by the time that they are recognized. Use INDEX to sort by recognized faces.
+	SortBy *string `type:"string" enum:"FaceSearchSortBy"`
+}
+
+// String returns the string representation
+func (s GetFaceSearchInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetFaceSearchInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetFaceSearchInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetFaceSearchInput"}
+	if s.JobId == nil {
+		invalidParams.Add(request.NewErrParamRequired("JobId"))
+	}
+	if s.JobId != nil && len(*s.JobId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("JobId", 1))
+	}
+	if s.MaxResults != nil && *s.MaxResults < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetJobId sets the JobId field's value.
+func (s *GetFaceSearchInput) SetJobId(v string) *GetFaceSearchInput {
+	s.JobId = &v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *GetFaceSearchInput) SetMaxResults(v int64) *GetFaceSearchInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *GetFaceSearchInput) SetNextToken(v string) *GetFaceSearchInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetSortBy sets the SortBy field's value.
+func (s *GetFaceSearchInput) SetSortBy(v string) *GetFaceSearchInput {
+	s.SortBy = &v
+	return s
+}
+
+type GetFaceSearchOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The current status of the face search job.
+	JobStatus *string `type:"string" enum:"VideoJobStatus"`
+
+	// If the response is truncated, Amazon Rekognition Video returns this token
+	// that you can use in the subsequent request to retrieve the next set of search
+	// results.
+	NextToken *string `type:"string"`
+
+	// An array of persons, PersonMatch, in the video whose face(s) match the face(s)
+	// in an Amazon Rekognition collection. It also includes time information for
+	// when persons are matched in the video. You specify the input collection in
+	// an initial call to StartFaceSearch. Each Persons element includes a time
+	// the person was matched, face match details (FaceMatches) for matching faces
+	// in the collection, and person information (Person) for the matched person.
+	Persons []*PersonMatch `type:"list"`
+
+	// If the job fails, StatusMessage provides a descriptive error message.
+	StatusMessage *string `type:"string"`
+
+	// Information about a video that Amazon Rekognition analyzed. Videometadata
+	// is returned in every page of paginated responses from a Amazon Rekognition
+	// Video operation.
+	VideoMetadata *VideoMetadata `type:"structure"`
+}
+
+// String returns the string representation
+func (s GetFaceSearchOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetFaceSearchOutput) GoString() string {
+	return s.String()
+}
+
+// SetJobStatus sets the JobStatus field's value.
+func (s *GetFaceSearchOutput) SetJobStatus(v string) *GetFaceSearchOutput {
+	s.JobStatus = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *GetFaceSearchOutput) SetNextToken(v string) *GetFaceSearchOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetPersons sets the Persons field's value.
+func (s *GetFaceSearchOutput) SetPersons(v []*PersonMatch) *GetFaceSearchOutput {
+	s.Persons = v
+	return s
+}
+
+// SetStatusMessage sets the StatusMessage field's value.
+func (s *GetFaceSearchOutput) SetStatusMessage(v string) *GetFaceSearchOutput {
+	s.StatusMessage = &v
+	return s
+}
+
+// SetVideoMetadata sets the VideoMetadata field's value.
+func (s *GetFaceSearchOutput) SetVideoMetadata(v *VideoMetadata) *GetFaceSearchOutput {
+	s.VideoMetadata = v
+	return s
+}
+
+type GetLabelDetectionInput struct {
+	_ struct{} `type:"structure"`
+
+	// Job identifier for the label detection operation for which you want results
+	// returned. You get the job identifer from an initial call to StartlabelDetection.
+	//
+	// JobId is a required field
+	JobId *string `min:"1" type:"string" required:"true"`
+
+	// Maximum number of results to return per paginated call. The largest value
+	// you can specify is 1000. If you specify a value greater than 1000, a maximum
+	// of 1000 results is returned. The default value is 1000.
+	MaxResults *int64 `min:"1" type:"integer"`
+
+	// If the previous response was incomplete (because there are more labels to
+	// retrieve), Amazon Rekognition Video returns a pagination token in the response.
+	// You can use this pagination token to retrieve the next set of labels.
+	NextToken *string `type:"string"`
+
+	// Sort to use for elements in the Labels array. Use TIMESTAMP to sort array
+	// elements by the time labels are detected. Use NAME to alphabetically group
+	// elements for a label together. Within each label group, the array element
+	// are sorted by detection confidence. The default sort is by TIMESTAMP.
+	SortBy *string `type:"string" enum:"LabelDetectionSortBy"`
+}
+
+// String returns the string representation
+func (s GetLabelDetectionInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetLabelDetectionInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetLabelDetectionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetLabelDetectionInput"}
+	if s.JobId == nil {
+		invalidParams.Add(request.NewErrParamRequired("JobId"))
+	}
+	if s.JobId != nil && len(*s.JobId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("JobId", 1))
+	}
+	if s.MaxResults != nil && *s.MaxResults < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetJobId sets the JobId field's value.
+func (s *GetLabelDetectionInput) SetJobId(v string) *GetLabelDetectionInput {
+	s.JobId = &v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *GetLabelDetectionInput) SetMaxResults(v int64) *GetLabelDetectionInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *GetLabelDetectionInput) SetNextToken(v string) *GetLabelDetectionInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetSortBy sets the SortBy field's value.
+func (s *GetLabelDetectionInput) SetSortBy(v string) *GetLabelDetectionInput {
+	s.SortBy = &v
+	return s
+}
+
+type GetLabelDetectionOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The current status of the label detection job.
+	JobStatus *string `type:"string" enum:"VideoJobStatus"`
+
+	// Version number of the label detection model that was used to detect labels.
+	LabelModelVersion *string `type:"string"`
+
+	// An array of labels detected in the video. Each element contains the detected
+	// label and the time, in milliseconds from the start of the video, that the
+	// label was detected.
+	Labels []*LabelDetection `type:"list"`
+
+	// If the response is truncated, Amazon Rekognition Video returns this token
+	// that you can use in the subsequent request to retrieve the next set of labels.
+	NextToken *string `type:"string"`
+
+	// If the job fails, StatusMessage provides a descriptive error message.
+	StatusMessage *string `type:"string"`
+
+	// Information about a video that Amazon Rekognition Video analyzed. Videometadata
+	// is returned in every page of paginated responses from a Amazon Rekognition
+	// video operation.
+	VideoMetadata *VideoMetadata `type:"structure"`
+}
+
+// String returns the string representation
+func (s GetLabelDetectionOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetLabelDetectionOutput) GoString() string {
+	return s.String()
+}
+
+// SetJobStatus sets the JobStatus field's value.
+func (s *GetLabelDetectionOutput) SetJobStatus(v string) *GetLabelDetectionOutput {
+	s.JobStatus = &v
+	return s
+}
+
+// SetLabelModelVersion sets the LabelModelVersion field's value.
+func (s *GetLabelDetectionOutput) SetLabelModelVersion(v string) *GetLabelDetectionOutput {
+	s.LabelModelVersion = &v
+	return s
+}
+
+// SetLabels sets the Labels field's value.
+func (s *GetLabelDetectionOutput) SetLabels(v []*LabelDetection) *GetLabelDetectionOutput {
+	s.Labels = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *GetLabelDetectionOutput) SetNextToken(v string) *GetLabelDetectionOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetStatusMessage sets the StatusMessage field's value.
+func (s *GetLabelDetectionOutput) SetStatusMessage(v string) *GetLabelDetectionOutput {
+	s.StatusMessage = &v
+	return s
+}
+
+// SetVideoMetadata sets the VideoMetadata field's value.
+func (s *GetLabelDetectionOutput) SetVideoMetadata(v *VideoMetadata) *GetLabelDetectionOutput {
+	s.VideoMetadata = v
+	return s
+}
+
+type GetPersonTrackingInput struct {
+	_ struct{} `type:"structure"`
+
+	// The identifier for a job that tracks persons in a video. You get the JobId
+	// from a call to StartPersonTracking.
+	//
+	// JobId is a required field
+	JobId *string `min:"1" type:"string" required:"true"`
+
+	// Maximum number of results to return per paginated call. The largest value
+	// you can specify is 1000. If you specify a value greater than 1000, a maximum
+	// of 1000 results is returned. The default value is 1000.
+	MaxResults *int64 `min:"1" type:"integer"`
+
+	// If the previous response was incomplete (because there are more persons to
+	// retrieve), Amazon Rekognition Video returns a pagination token in the response.
+	// You can use this pagination token to retrieve the next set of persons.
+	NextToken *string `type:"string"`
+
+	// Sort to use for elements in the Persons array. Use TIMESTAMP to sort array
+	// elements by the time persons are detected. Use INDEX to sort by the tracked
+	// persons. If you sort by INDEX, the array elements for each person are sorted
+	// by detection confidence. The default sort is by TIMESTAMP.
+	SortBy *string `type:"string" enum:"PersonTrackingSortBy"`
+}
+
+// String returns the string representation
+func (s GetPersonTrackingInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetPersonTrackingInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetPersonTrackingInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetPersonTrackingInput"}
+	if s.JobId == nil {
+		invalidParams.Add(request.NewErrParamRequired("JobId"))
+	}
+	if s.JobId != nil && len(*s.JobId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("JobId", 1))
+	}
+	if s.MaxResults != nil && *s.MaxResults < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetJobId sets the JobId field's value.
+func (s *GetPersonTrackingInput) SetJobId(v string) *GetPersonTrackingInput {
+	s.JobId = &v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *GetPersonTrackingInput) SetMaxResults(v int64) *GetPersonTrackingInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *GetPersonTrackingInput) SetNextToken(v string) *GetPersonTrackingInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetSortBy sets the SortBy field's value.
+func (s *GetPersonTrackingInput) SetSortBy(v string) *GetPersonTrackingInput {
+	s.SortBy = &v
+	return s
+}
+
+type GetPersonTrackingOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The current status of the person tracking job.
+	JobStatus *string `type:"string" enum:"VideoJobStatus"`
+
+	// If the response is truncated, Amazon Rekognition Video returns this token
+	// that you can use in the subsequent request to retrieve the next set of persons.
+	NextToken *string `type:"string"`
+
+	// An array of the persons detected in the video and the time(s) their path
+	// was tracked throughout the video. An array element will exist for each time
+	// a person's path is tracked.
+	Persons []*PersonDetection `type:"list"`
+
+	// If the job fails, StatusMessage provides a descriptive error message.
+	StatusMessage *string `type:"string"`
+
+	// Information about a video that Amazon Rekognition Video analyzed. Videometadata
+	// is returned in every page of paginated responses from a Amazon Rekognition
+	// Video operation.
+	VideoMetadata *VideoMetadata `type:"structure"`
+}
+
+// String returns the string representation
+func (s GetPersonTrackingOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetPersonTrackingOutput) GoString() string {
+	return s.String()
+}
+
+// SetJobStatus sets the JobStatus field's value.
+func (s *GetPersonTrackingOutput) SetJobStatus(v string) *GetPersonTrackingOutput {
+	s.JobStatus = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *GetPersonTrackingOutput) SetNextToken(v string) *GetPersonTrackingOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetPersons sets the Persons field's value.
+func (s *GetPersonTrackingOutput) SetPersons(v []*PersonDetection) *GetPersonTrackingOutput {
+	s.Persons = v
+	return s
+}
+
+// SetStatusMessage sets the StatusMessage field's value.
+func (s *GetPersonTrackingOutput) SetStatusMessage(v string) *GetPersonTrackingOutput {
+	s.StatusMessage = &v
+	return s
+}
+
+// SetVideoMetadata sets the VideoMetadata field's value.
+func (s *GetPersonTrackingOutput) SetVideoMetadata(v *VideoMetadata) *GetPersonTrackingOutput {
+	s.VideoMetadata = v
+	return s
+}
+
+type GetSegmentDetectionInput struct {
+	_ struct{} `type:"structure"`
+
+	// Job identifier for the text detection operation for which you want results
+	// returned. You get the job identifer from an initial call to StartSegmentDetection.
+	//
+	// JobId is a required field
+	JobId *string `min:"1" type:"string" required:"true"`
+
+	// Maximum number of results to return per paginated call. The largest value
+	// you can specify is 1000.
+	MaxResults *int64 `min:"1" type:"integer"`
+
+	// If the response is truncated, Amazon Rekognition Video returns this token
+	// that you can use in the subsequent request to retrieve the next set of text.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s GetSegmentDetectionInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetSegmentDetectionInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetSegmentDetectionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetSegmentDetectionInput"}
+	if s.JobId == nil {
+		invalidParams.Add(request.NewErrParamRequired("JobId"))
+	}
+	if s.JobId != nil && len(*s.JobId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("JobId", 1))
+	}
+	if s.MaxResults != nil && *s.MaxResults < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetJobId sets the JobId field's value.
+func (s *GetSegmentDetectionInput) SetJobId(v string) *GetSegmentDetectionInput {
+	s.JobId = &v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *GetSegmentDetectionInput) SetMaxResults(v int64) *GetSegmentDetectionInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *GetSegmentDetectionInput) SetNextToken(v string) *GetSegmentDetectionInput {
+	s.NextToken = &v
+	return s
+}
+
+type GetSegmentDetectionOutput struct {
+	_ struct{} `type:"structure"`
+
+	// An array of objects. There can be multiple audio streams. Each AudioMetadata
+	// object contains metadata for a single audio stream. Audio information in
+	// an AudioMetadata objects includes the audio codec, the number of audio channels,
+	// the duration of the audio stream, and the sample rate. Audio metadata is
+	// returned in each page of information returned by GetSegmentDetection.
+	AudioMetadata []*AudioMetadata `type:"list"`
+
+	// Current status of the segment detection job.
+	JobStatus *string `type:"string" enum:"VideoJobStatus"`
+
+	// If the previous response was incomplete (because there are more labels to
+	// retrieve), Amazon Rekognition Video returns a pagination token in the response.
+	// You can use this pagination token to retrieve the next set of text.
+	NextToken *string `type:"string"`
+
+	// An array of segments detected in a video.
+	Segments []*SegmentDetection `type:"list"`
+
+	// An array containing the segment types requested in the call to StartSegmentDetection.
+	SelectedSegmentTypes []*SegmentTypeInfo `type:"list"`
+
+	// If the job fails, StatusMessage provides a descriptive error message.
+	StatusMessage *string `type:"string"`
+
+	// Currently, Amazon Rekognition Video returns a single object in the VideoMetadata
+	// array. The object contains information about the video stream in the input
+	// file that Amazon Rekognition Video chose to analyze. The VideoMetadata object
+	// includes the video codec, video format and other information. Video metadata
+	// is returned in each page of information returned by GetSegmentDetection.
+	VideoMetadata []*VideoMetadata `type:"list"`
+}
+
+// String returns the string representation
+func (s GetSegmentDetectionOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetSegmentDetectionOutput) GoString() string {
+	return s.String()
+}
+
+// SetAudioMetadata sets the AudioMetadata field's value.
+func (s *GetSegmentDetectionOutput) SetAudioMetadata(v []*AudioMetadata) *GetSegmentDetectionOutput {
+	s.AudioMetadata = v
+	return s
+}
+
+// SetJobStatus sets the JobStatus field's value.
+func (s *GetSegmentDetectionOutput) SetJobStatus(v string) *GetSegmentDetectionOutput {
+	s.JobStatus = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *GetSegmentDetectionOutput) SetNextToken(v string) *GetSegmentDetectionOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetSegments sets the Segments field's value.
+func (s *GetSegmentDetectionOutput) SetSegments(v []*SegmentDetection) *GetSegmentDetectionOutput {
+	s.Segments = v
+	return s
+}
+
+// SetSelectedSegmentTypes sets the SelectedSegmentTypes field's value.
+func (s *GetSegmentDetectionOutput) SetSelectedSegmentTypes(v []*SegmentTypeInfo) *GetSegmentDetectionOutput {
+	s.SelectedSegmentTypes = v
+	return s
+}
+
+// SetStatusMessage sets the StatusMessage field's value.
+func (s *GetSegmentDetectionOutput) SetStatusMessage(v string) *GetSegmentDetectionOutput {
+	s.StatusMessage = &v
+	return s
+}
+
+// SetVideoMetadata sets the VideoMetadata field's value.
+func (s *GetSegmentDetectionOutput) SetVideoMetadata(v []*VideoMetadata) *GetSegmentDetectionOutput {
+	s.VideoMetadata = v
+	return s
+}
+
+type GetTextDetectionInput struct {
+	_ struct{} `type:"structure"`
+
+	// Job identifier for the text detection operation for which you want results
+	// returned. You get the job identifer from an initial call to StartTextDetection.
+	//
+	// JobId is a required field
+	JobId *string `min:"1" type:"string" required:"true"`
+
+	// Maximum number of results to return per paginated call. The largest value
+	// you can specify is 1000.
+	MaxResults *int64 `min:"1" type:"integer"`
+
+	// If the previous response was incomplete (because there are more labels to
+	// retrieve), Amazon Rekognition Video returns a pagination token in the response.
+	// You can use this pagination token to retrieve the next set of text.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s GetTextDetectionInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetTextDetectionInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetTextDetectionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetTextDetectionInput"}
+	if s.JobId == nil {
+		invalidParams.Add(request.NewErrParamRequired("JobId"))
+	}
+	if s.JobId != nil && len(*s.JobId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("JobId", 1))
+	}
+	if s.MaxResults != nil && *s.MaxResults < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetJobId sets the JobId field's value.
+func (s *GetTextDetectionInput) SetJobId(v string) *GetTextDetectionInput {
+	s.JobId = &v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *GetTextDetectionInput) SetMaxResults(v int64) *GetTextDetectionInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *GetTextDetectionInput) SetNextToken(v string) *GetTextDetectionInput {
+	s.NextToken = &v
+	return s
+}
+
+type GetTextDetectionOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Current status of the text detection job.
+	JobStatus *string `type:"string" enum:"VideoJobStatus"`
+
+	// If the response is truncated, Amazon Rekognition Video returns this token
+	// that you can use in the subsequent request to retrieve the next set of text.
+	NextToken *string `type:"string"`
+
+	// If the job fails, StatusMessage provides a descriptive error message.
+	StatusMessage *string `type:"string"`
+
+	// An array of text detected in the video. Each element contains the detected
+	// text, the time in milliseconds from the start of the video that the text
+	// was detected, and where it was detected on the screen.
+	TextDetections []*TextDetectionResult `type:"list"`
+
+	// Version number of the text detection model that was used to detect text.
+	TextModelVersion *string `type:"string"`
+
+	// Information about a video that Amazon Rekognition analyzed. Videometadata
+	// is returned in every page of paginated responses from a Amazon Rekognition
+	// video operation.
+	VideoMetadata *VideoMetadata `type:"structure"`
+}
+
+// String returns the string representation
+func (s GetTextDetectionOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetTextDetectionOutput) GoString() string {
+	return s.String()
+}
+
+// SetJobStatus sets the JobStatus field's value.
+func (s *GetTextDetectionOutput) SetJobStatus(v string) *GetTextDetectionOutput {
+	s.JobStatus = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *GetTextDetectionOutput) SetNextToken(v string) *GetTextDetectionOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetStatusMessage sets the StatusMessage field's value.
+func (s *GetTextDetectionOutput) SetStatusMessage(v string) *GetTextDetectionOutput {
+	s.StatusMessage = &v
+	return s
+}
+
+// SetTextDetections sets the TextDetections field's value.
+func (s *GetTextDetectionOutput) SetTextDetections(v []*TextDetectionResult) *GetTextDetectionOutput {
+	s.TextDetections = v
+	return s
+}
+
+// SetTextModelVersion sets the TextModelVersion field's value.
+func (s *GetTextDetectionOutput) SetTextModelVersion(v string) *GetTextDetectionOutput {
+	s.TextModelVersion = &v
+	return s
+}
+
+// SetVideoMetadata sets the VideoMetadata field's value.
+func (s *GetTextDetectionOutput) SetVideoMetadata(v *VideoMetadata) *GetTextDetectionOutput {
+	s.VideoMetadata = v
+	return s
+}
+
+// The S3 bucket that contains the Ground Truth manifest file.
+type GroundTruthManifest struct {
+	_ struct{} `type:"structure"`
+
+	// Provides the S3 bucket name and object name.
+	//
+	// The region for the S3 bucket containing the S3 object must match the region
+	// you use for Amazon Rekognition operations.
+	//
+	// For Amazon Rekognition to process an S3 object, the user must have permission
+	// to access the S3 object. For more information, see Resource-Based Policies
+	// in the Amazon Rekognition Developer Guide.
+	S3Object *S3Object `type:"structure"`
+}
+
+// String returns the string representation
+func (s GroundTruthManifest) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GroundTruthManifest) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GroundTruthManifest) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GroundTruthManifest"}
+	if s.S3Object != nil {
+		if err := s.S3Object.Validate(); err != nil {
+			invalidParams.AddNested("S3Object", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetS3Object sets the S3Object field's value.
+func (s *GroundTruthManifest) SetS3Object(v *S3Object) *GroundTruthManifest {
+	s.S3Object = v
+	return s
+}
+
+// Shows the results of the human in the loop evaluation. If there is no HumanLoopArn,
+// the input did not trigger human review.
+type HumanLoopActivationOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Shows the result of condition evaluations, including those conditions which
+	// activated a human review.
+	HumanLoopActivationConditionsEvaluationResults aws.JSONValue `type:"jsonvalue"`
+
+	// Shows if and why human review was needed.
+	HumanLoopActivationReasons []*string `min:"1" type:"list"`
+
+	// The Amazon Resource Name (ARN) of the HumanLoop created.
+	HumanLoopArn *string `type:"string"`
+}
+
+// String returns the string representation
+func (s HumanLoopActivationOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s HumanLoopActivationOutput) GoString() string {
+	return s.String()
+}
+
+// SetHumanLoopActivationConditionsEvaluationResults sets the HumanLoopActivationConditionsEvaluationResults field's value.
+func (s *HumanLoopActivationOutput) SetHumanLoopActivationConditionsEvaluationResults(v aws.JSONValue) *HumanLoopActivationOutput {
+	s.HumanLoopActivationConditionsEvaluationResults = v
+	return s
+}
+
+// SetHumanLoopActivationReasons sets the HumanLoopActivationReasons field's value.
+func (s *HumanLoopActivationOutput) SetHumanLoopActivationReasons(v []*string) *HumanLoopActivationOutput {
+	s.HumanLoopActivationReasons = v
+	return s
+}
+
+// SetHumanLoopArn sets the HumanLoopArn field's value.
+func (s *HumanLoopActivationOutput) SetHumanLoopArn(v string) *HumanLoopActivationOutput {
+	s.HumanLoopArn = &v
+	return s
+}
+
+// Sets up the flow definition the image will be sent to if one of the conditions
+// is met. You can also set certain attributes of the image before review.
+type HumanLoopConfig struct {
+	_ struct{} `type:"structure"`
+
+	// Sets attributes of the input data.
+	DataAttributes *HumanLoopDataAttributes `type:"structure"`
+
+	// The Amazon Resource Name (ARN) of the flow definition. You can create a flow
+	// definition by using the Amazon Sagemaker CreateFlowDefinition (https://docs.aws.amazon.com/sagemaker/latest/dg/API_CreateFlowDefinition.html)
+	// Operation.
+	//
+	// FlowDefinitionArn is a required field
+	FlowDefinitionArn *string `type:"string" required:"true"`
+
+	// The name of the human review used for this image. This should be kept unique
+	// within a region.
+	//
+	// HumanLoopName is a required field
+	HumanLoopName *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s HumanLoopConfig) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s HumanLoopConfig) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *HumanLoopConfig) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "HumanLoopConfig"}
+	if s.FlowDefinitionArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("FlowDefinitionArn"))
+	}
+	if s.HumanLoopName == nil {
+		invalidParams.Add(request.NewErrParamRequired("HumanLoopName"))
+	}
+	if s.HumanLoopName != nil && len(*s.HumanLoopName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("HumanLoopName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDataAttributes sets the DataAttributes field's value.
+func (s *HumanLoopConfig) SetDataAttributes(v *HumanLoopDataAttributes) *HumanLoopConfig {
+	s.DataAttributes = v
+	return s
+}
+
+// SetFlowDefinitionArn sets the FlowDefinitionArn field's value.
+func (s *HumanLoopConfig) SetFlowDefinitionArn(v string) *HumanLoopConfig {
+	s.FlowDefinitionArn = &v
+	return s
+}
+
+// SetHumanLoopName sets the HumanLoopName field's value.
+func (s *HumanLoopConfig) SetHumanLoopName(v string) *HumanLoopConfig {
+	s.HumanLoopName = &v
+	return s
+}
+
+// Allows you to set attributes of the image. Currently, you can declare an
+// image as free of personally identifiable information.
+type HumanLoopDataAttributes struct {
+	_ struct{} `type:"structure"`
+
+	// Sets whether the input image is free of personally identifiable information.
+	ContentClassifiers []*string `type:"list"`
+}
+
+// String returns the string representation
+func (s HumanLoopDataAttributes) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s HumanLoopDataAttributes) GoString() string {
+	return s.String()
+}
+
+// SetContentClassifiers sets the ContentClassifiers field's value.
+func (s *HumanLoopDataAttributes) SetContentClassifiers(v []*string) *HumanLoopDataAttributes {
+	s.ContentClassifiers = v
+	return s
+}
+
+// The number of in-progress human reviews you have has exceeded the number
+// allowed.
+type HumanLoopQuotaExceededException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+
+	// The quota code.
+	QuotaCode *string `type:"string"`
+
+	// The resource type.
+	ResourceType *string `type:"string"`
+
+	// The service code.
+	ServiceCode *string `type:"string"`
+}
+
+// String returns the string representation
+func (s HumanLoopQuotaExceededException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s HumanLoopQuotaExceededException) GoString() string {
+	return s.String()
+}
+
+func newErrorHumanLoopQuotaExceededException(v protocol.ResponseMetadata) error {
+	return &HumanLoopQuotaExceededException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *HumanLoopQuotaExceededException) Code() string {
+	return "HumanLoopQuotaExceededException"
+}
+
+// Message returns the exception's message.
+func (s *HumanLoopQuotaExceededException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *HumanLoopQuotaExceededException) OrigErr() error {
+	return nil
+}
+
+func (s *HumanLoopQuotaExceededException) Error() string {
+	return fmt.Sprintf("%s: %s\n%s", s.Code(), s.Message(), s.String())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *HumanLoopQuotaExceededException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *HumanLoopQuotaExceededException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// A ClientRequestToken input parameter was reused with an operation, but at
+// least one of the other input parameters is different from the previous call
+// to the operation.
+type IdempotentParameterMismatchException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s IdempotentParameterMismatchException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s IdempotentParameterMismatchException) GoString() string {
+	return s.String()
+}
+
+func newErrorIdempotentParameterMismatchException(v protocol.ResponseMetadata) error {
+	return &IdempotentParameterMismatchException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *IdempotentParameterMismatchException) Code() string {
+	return "IdempotentParameterMismatchException"
+}
+
+// Message returns the exception's message.
+func (s *IdempotentParameterMismatchException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *IdempotentParameterMismatchException) OrigErr() error {
+	return nil
+}
+
+func (s *IdempotentParameterMismatchException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *IdempotentParameterMismatchException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *IdempotentParameterMismatchException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 // Provides the input image either as bytes or an S3 object.
 //
-// You pass image bytes to a Rekognition API operation by using the Bytes property.
-// For example, you would use the Bytes property to pass an image loaded from
-// a local file system. Image bytes passed by using the Bytes property must
-// be base64-encoded. Your code may not need to encode image bytes if you are
-// using an AWS SDK to call Rekognition API operations. For more information,
-// see example4.
+// You pass image bytes to an Amazon Rekognition API operation by using the
+// Bytes property. For example, you would use the Bytes property to pass an
+// image loaded from a local file system. Image bytes passed by using the Bytes
+// property must be base64-encoded. Your code may not need to encode image bytes
+// if you are using an AWS SDK to call Amazon Rekognition API operations.
 //
-// You pass images stored in an S3 bucket to a Rekognition API operation by
-// using the S3Object property. Images stored in an S3 bucket do not need to
-// be base64-encoded.
+// For more information, see Analyzing an Image Loaded from a Local File System
+// in the Amazon Rekognition Developer Guide.
+//
+// You pass images stored in an S3 bucket to an Amazon Rekognition API operation
+// by using the S3Object property. Images stored in an S3 bucket do not need
+// to be base64-encoded.
 //
 // The region for the S3 bucket containing the S3 object must match the region
 // you use for Amazon Rekognition operations.
 //
-// If you use the Amazon CLI to call Amazon Rekognition operations, passing
-// image bytes using the Bytes property is not supported. You must first upload
-// the image to an Amazon S3 bucket and then call the operation using the S3Object
+// If you use the AWS CLI to call Amazon Rekognition operations, passing image
+// bytes using the Bytes property is not supported. You must first upload the
+// image to an Amazon S3 bucket and then call the operation using the S3Object
 // property.
 //
 // For Amazon Rekognition to process an S3 object, the user must have permission
-// to access the S3 object. For more information, see manage-access-resource-policies.
+// to access the S3 object. For more information, see Resource Based Policies
+// in the Amazon Rekognition Developer Guide.
 type Image struct {
 	_ struct{} `type:"structure"`
 
@@ -3345,6 +11369,63 @@ func (s *ImageQuality) SetSharpness(v float64) *ImageQuality {
 	return s
 }
 
+// The input image size exceeds the allowed limit. For more information, see
+// Limits in Amazon Rekognition in the Amazon Rekognition Developer Guide.
+type ImageTooLargeException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s ImageTooLargeException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ImageTooLargeException) GoString() string {
+	return s.String()
+}
+
+func newErrorImageTooLargeException(v protocol.ResponseMetadata) error {
+	return &ImageTooLargeException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *ImageTooLargeException) Code() string {
+	return "ImageTooLargeException"
+}
+
+// Message returns the exception's message.
+func (s *ImageTooLargeException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *ImageTooLargeException) OrigErr() error {
+	return nil
+}
+
+func (s *ImageTooLargeException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *ImageTooLargeException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *ImageTooLargeException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 type IndexFacesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3357,21 +11438,58 @@ type IndexFacesInput struct {
 	// An array of facial attributes that you want to be returned. This can be the
 	// default list of attributes or all attributes. If you don't specify a value
 	// for Attributes or if you specify ["DEFAULT"], the API returns the following
-	// subset of facial attributes: BoundingBox, Confidence, Pose, Quality and Landmarks.
-	// If you provide ["ALL"], all facial attributes are returned but the operation
-	// will take longer to complete.
+	// subset of facial attributes: BoundingBox, Confidence, Pose, Quality, and
+	// Landmarks. If you provide ["ALL"], all facial attributes are returned, but
+	// the operation takes longer to complete.
 	//
 	// If you provide both, ["ALL", "DEFAULT"], the service uses a logical AND operator
 	// to determine which attributes to return (in this case, all attributes).
 	DetectionAttributes []*string `type:"list"`
 
-	// ID you want to assign to all the faces detected in the image.
+	// The ID you want to assign to all the faces detected in the image.
 	ExternalImageId *string `min:"1" type:"string"`
 
-	// The input image as bytes or an S3 object.
+	// The input image as base64-encoded bytes or an S3 object. If you use the AWS
+	// CLI to call Amazon Rekognition operations, passing base64-encoded image bytes
+	// isn't supported.
+	//
+	// If you are using an AWS SDK to call Amazon Rekognition, you might not need
+	// to base64-encode image bytes passed using the Bytes field. For more information,
+	// see Images in the Amazon Rekognition developer guide.
 	//
 	// Image is a required field
 	Image *Image `type:"structure" required:"true"`
+
+	// The maximum number of faces to index. The value of MaxFaces must be greater
+	// than or equal to 1. IndexFaces returns no more than 100 detected faces in
+	// an image, even if you specify a larger value for MaxFaces.
+	//
+	// If IndexFaces detects more faces than the value of MaxFaces, the faces with
+	// the lowest quality are filtered out first. If there are still more faces
+	// than the value of MaxFaces, the faces with the smallest bounding boxes are
+	// filtered out (up to the number that's needed to satisfy the value of MaxFaces).
+	// Information about the unindexed faces is available in the UnindexedFaces
+	// array.
+	//
+	// The faces that are returned by IndexFaces are sorted by the largest face
+	// bounding box size to the smallest size, in descending order.
+	//
+	// MaxFaces can be used with a collection associated with any version of the
+	// face model.
+	MaxFaces *int64 `min:"1" type:"integer"`
+
+	// A filter that specifies a quality bar for how much filtering is done to identify
+	// faces. Filtered faces aren't indexed. If you specify AUTO, Amazon Rekognition
+	// chooses the quality bar. If you specify LOW, MEDIUM, or HIGH, filtering removes
+	// all faces that don’t meet the chosen quality bar. The default value is
+	// AUTO. The quality bar is based on a variety of common use cases. Low-quality
+	// detections can occur for a number of reasons. Some examples are an object
+	// that's misidentified as a face, a face that's too blurry, or a face with
+	// a pose that's too extreme to use. If you specify NONE, no filtering is performed.
+	//
+	// To use quality filtering, the collection you are using must be associated
+	// with version 3 of the face model or higher.
+	QualityFilter *string `type:"string" enum:"QualityFilter"`
 }
 
 // String returns the string representation
@@ -3398,6 +11516,9 @@ func (s *IndexFacesInput) Validate() error {
 	}
 	if s.Image == nil {
 		invalidParams.Add(request.NewErrParamRequired("Image"))
+	}
+	if s.MaxFaces != nil && *s.MaxFaces < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxFaces", 1))
 	}
 	if s.Image != nil {
 		if err := s.Image.Validate(); err != nil {
@@ -3435,24 +11556,59 @@ func (s *IndexFacesInput) SetImage(v *Image) *IndexFacesInput {
 	return s
 }
 
+// SetMaxFaces sets the MaxFaces field's value.
+func (s *IndexFacesInput) SetMaxFaces(v int64) *IndexFacesInput {
+	s.MaxFaces = &v
+	return s
+}
+
+// SetQualityFilter sets the QualityFilter field's value.
+func (s *IndexFacesInput) SetQualityFilter(v string) *IndexFacesInput {
+	s.QualityFilter = &v
+	return s
+}
+
 type IndexFacesOutput struct {
 	_ struct{} `type:"structure"`
 
+	// The version number of the face detection model that's associated with the
+	// input collection (CollectionId).
+	FaceModelVersion *string `type:"string"`
+
 	// An array of faces detected and added to the collection. For more information,
-	// see howitworks-index-faces.
+	// see Searching Faces in a Collection in the Amazon Rekognition Developer Guide.
 	FaceRecords []*FaceRecord `type:"list"`
 
-	// The orientation of the input image (counterclockwise direction). If your
-	// application displays the image, you can use this value to correct image orientation.
-	// The bounding box coordinates returned in FaceRecords represent face locations
-	// before the image orientation is corrected.
+	// If your collection is associated with a face detection model that's later
+	// than version 3.0, the value of OrientationCorrection is always null and no
+	// orientation information is returned.
 	//
-	// If the input image is in jpeg format, it might contain exchangeable image
-	// (Exif) metadata. If so, and the Exif metadata populates the orientation field,
-	// the value of OrientationCorrection is null and the bounding box coordinates
-	// in FaceRecords represent face locations after Exif metadata is used to correct
-	// the image orientation. Images in .png format don't contain Exif metadata.
+	// If your collection is associated with a face detection model that's version
+	// 3.0 or earlier, the following applies:
+	//
+	//    * If the input image is in .jpeg format, it might contain exchangeable
+	//    image file format (Exif) metadata that includes the image's orientation.
+	//    Amazon Rekognition uses this orientation information to perform image
+	//    correction - the bounding box coordinates are translated to represent
+	//    object locations after the orientation information in the Exif metadata
+	//    is used to correct the image orientation. Images in .png format don't
+	//    contain Exif metadata. The value of OrientationCorrection is null.
+	//
+	//    * If the image doesn't contain orientation information in its Exif metadata,
+	//    Amazon Rekognition returns an estimated orientation (ROTATE_0, ROTATE_90,
+	//    ROTATE_180, ROTATE_270). Amazon Rekognition doesn’t perform image correction
+	//    for images. The bounding box coordinates aren't translated and represent
+	//    the object locations before the image is rotated.
+	//
+	// Bounding box information is returned in the FaceRecords array. You can get
+	// the version of the face detection model by calling DescribeCollection.
 	OrientationCorrection *string `type:"string" enum:"OrientationCorrection"`
+
+	// An array of faces that were detected in the image but weren't indexed. They
+	// weren't indexed because the quality filter identified them as low quality,
+	// or the MaxFaces request parameter filtered them out. To use the quality filter,
+	// you specify the QualityFilter request parameter.
+	UnindexedFaces []*UnindexedFace `type:"list"`
 }
 
 // String returns the string representation
@@ -3463,6 +11619,12 @@ func (s IndexFacesOutput) String() string {
 // GoString returns the string representation
 func (s IndexFacesOutput) GoString() string {
 	return s.String()
+}
+
+// SetFaceModelVersion sets the FaceModelVersion field's value.
+func (s *IndexFacesOutput) SetFaceModelVersion(v string) *IndexFacesOutput {
+	s.FaceModelVersion = &v
+	return s
 }
 
 // SetFaceRecords sets the FaceRecords field's value.
@@ -3477,16 +11639,398 @@ func (s *IndexFacesOutput) SetOrientationCorrection(v string) *IndexFacesOutput 
 	return s
 }
 
-// Structure containing details about the detected label, including name, and
-// level of confidence.
+// SetUnindexedFaces sets the UnindexedFaces field's value.
+func (s *IndexFacesOutput) SetUnindexedFaces(v []*UnindexedFace) *IndexFacesOutput {
+	s.UnindexedFaces = v
+	return s
+}
+
+// An instance of a label returned by Amazon Rekognition Image (DetectLabels)
+// or by Amazon Rekognition Video (GetLabelDetection).
+type Instance struct {
+	_ struct{} `type:"structure"`
+
+	// The position of the label instance on the image.
+	BoundingBox *BoundingBox `type:"structure"`
+
+	// The confidence that Amazon Rekognition has in the accuracy of the bounding
+	// box.
+	Confidence *float64 `type:"float"`
+}
+
+// String returns the string representation
+func (s Instance) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Instance) GoString() string {
+	return s.String()
+}
+
+// SetBoundingBox sets the BoundingBox field's value.
+func (s *Instance) SetBoundingBox(v *BoundingBox) *Instance {
+	s.BoundingBox = v
+	return s
+}
+
+// SetConfidence sets the Confidence field's value.
+func (s *Instance) SetConfidence(v float64) *Instance {
+	s.Confidence = &v
+	return s
+}
+
+// Amazon Rekognition experienced a service issue. Try your call again.
+type InternalServerError struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s InternalServerError) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InternalServerError) GoString() string {
+	return s.String()
+}
+
+func newErrorInternalServerError(v protocol.ResponseMetadata) error {
+	return &InternalServerError{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *InternalServerError) Code() string {
+	return "InternalServerError"
+}
+
+// Message returns the exception's message.
+func (s *InternalServerError) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *InternalServerError) OrigErr() error {
+	return nil
+}
+
+func (s *InternalServerError) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *InternalServerError) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *InternalServerError) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// The provided image format is not supported.
+type InvalidImageFormatException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidImageFormatException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidImageFormatException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidImageFormatException(v protocol.ResponseMetadata) error {
+	return &InvalidImageFormatException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *InvalidImageFormatException) Code() string {
+	return "InvalidImageFormatException"
+}
+
+// Message returns the exception's message.
+func (s *InvalidImageFormatException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *InvalidImageFormatException) OrigErr() error {
+	return nil
+}
+
+func (s *InvalidImageFormatException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *InvalidImageFormatException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *InvalidImageFormatException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// Pagination token in the request is not valid.
+type InvalidPaginationTokenException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidPaginationTokenException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidPaginationTokenException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidPaginationTokenException(v protocol.ResponseMetadata) error {
+	return &InvalidPaginationTokenException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *InvalidPaginationTokenException) Code() string {
+	return "InvalidPaginationTokenException"
+}
+
+// Message returns the exception's message.
+func (s *InvalidPaginationTokenException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *InvalidPaginationTokenException) OrigErr() error {
+	return nil
+}
+
+func (s *InvalidPaginationTokenException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *InvalidPaginationTokenException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *InvalidPaginationTokenException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// Input parameter violated a constraint. Validate your parameter before calling
+// the API operation again.
+type InvalidParameterException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidParameterException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidParameterException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidParameterException(v protocol.ResponseMetadata) error {
+	return &InvalidParameterException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *InvalidParameterException) Code() string {
+	return "InvalidParameterException"
+}
+
+// Message returns the exception's message.
+func (s *InvalidParameterException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *InvalidParameterException) OrigErr() error {
+	return nil
+}
+
+func (s *InvalidParameterException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *InvalidParameterException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *InvalidParameterException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// Amazon Rekognition is unable to access the S3 object specified in the request.
+type InvalidS3ObjectException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidS3ObjectException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidS3ObjectException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidS3ObjectException(v protocol.ResponseMetadata) error {
+	return &InvalidS3ObjectException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *InvalidS3ObjectException) Code() string {
+	return "InvalidS3ObjectException"
+}
+
+// Message returns the exception's message.
+func (s *InvalidS3ObjectException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *InvalidS3ObjectException) OrigErr() error {
+	return nil
+}
+
+func (s *InvalidS3ObjectException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *InvalidS3ObjectException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *InvalidS3ObjectException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// The Kinesis data stream Amazon Rekognition to which the analysis results
+// of a Amazon Rekognition stream processor are streamed. For more information,
+// see CreateStreamProcessor in the Amazon Rekognition Developer Guide.
+type KinesisDataStream struct {
+	_ struct{} `type:"structure"`
+
+	// ARN of the output Amazon Kinesis Data Streams stream.
+	Arn *string `type:"string"`
+}
+
+// String returns the string representation
+func (s KinesisDataStream) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s KinesisDataStream) GoString() string {
+	return s.String()
+}
+
+// SetArn sets the Arn field's value.
+func (s *KinesisDataStream) SetArn(v string) *KinesisDataStream {
+	s.Arn = &v
+	return s
+}
+
+// Kinesis video stream stream that provides the source streaming video for
+// a Amazon Rekognition Video stream processor. For more information, see CreateStreamProcessor
+// in the Amazon Rekognition Developer Guide.
+type KinesisVideoStream struct {
+	_ struct{} `type:"structure"`
+
+	// ARN of the Kinesis video stream stream that streams the source video.
+	Arn *string `type:"string"`
+}
+
+// String returns the string representation
+func (s KinesisVideoStream) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s KinesisVideoStream) GoString() string {
+	return s.String()
+}
+
+// SetArn sets the Arn field's value.
+func (s *KinesisVideoStream) SetArn(v string) *KinesisVideoStream {
+	s.Arn = &v
+	return s
+}
+
+// Structure containing details about the detected label, including the name,
+// detected instances, parent labels, and level of confidence.
 type Label struct {
 	_ struct{} `type:"structure"`
 
 	// Level of confidence.
 	Confidence *float64 `type:"float"`
 
-	// The name (label) of the object.
+	// If Label represents an object, Instances contains the bounding boxes for
+	// each instance of the detected object. Bounding boxes are returned for common
+	// object labels such as people, cars, furniture, apparel or pets.
+	Instances []*Instance `type:"list"`
+
+	// The name (label) of the object or scene.
 	Name *string `type:"string"`
+
+	// The parent labels for a label. The response includes all ancestor labels.
+	Parents []*Parent `type:"list"`
 }
 
 // String returns the string representation
@@ -3505,9 +12049,55 @@ func (s *Label) SetConfidence(v float64) *Label {
 	return s
 }
 
+// SetInstances sets the Instances field's value.
+func (s *Label) SetInstances(v []*Instance) *Label {
+	s.Instances = v
+	return s
+}
+
 // SetName sets the Name field's value.
 func (s *Label) SetName(v string) *Label {
 	s.Name = &v
+	return s
+}
+
+// SetParents sets the Parents field's value.
+func (s *Label) SetParents(v []*Parent) *Label {
+	s.Parents = v
+	return s
+}
+
+// Information about a label detected in a video analysis request and the time
+// the label was detected in the video.
+type LabelDetection struct {
+	_ struct{} `type:"structure"`
+
+	// Details about the detected label.
+	Label *Label `type:"structure"`
+
+	// Time, in milliseconds from the start of the video, that the label was detected.
+	Timestamp *int64 `type:"long"`
+}
+
+// String returns the string representation
+func (s LabelDetection) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s LabelDetection) GoString() string {
+	return s.String()
+}
+
+// SetLabel sets the Label field's value.
+func (s *LabelDetection) SetLabel(v *Label) *LabelDetection {
+	s.Label = v
+	return s
+}
+
+// SetTimestamp sets the Timestamp field's value.
+func (s *LabelDetection) SetTimestamp(v int64) *LabelDetection {
+	s.Timestamp = &v
 	return s
 }
 
@@ -3515,17 +12105,17 @@ func (s *Label) SetName(v string) *Label {
 type Landmark struct {
 	_ struct{} `type:"structure"`
 
-	// Type of the landmark.
+	// Type of landmark.
 	Type *string `type:"string" enum:"LandmarkType"`
 
-	// x-coordinate from the top left of the landmark expressed as the ration of
-	// the width of the image. For example, if the images is 700x200 and the x-coordinate
-	// of the landmark is at 350 pixels, this value is 0.5.
+	// The x-coordinate from the top left of the landmark expressed as the ratio
+	// of the width of the image. For example, if the image is 700 x 200 and the
+	// x-coordinate of the landmark is at 350 pixels, this value is 0.5.
 	X *float64 `type:"float"`
 
-	// y-coordinate from the top left of the landmark expressed as the ration of
-	// the height of the image. For example, if the images is 700x200 and the y-coordinate
-	// of the landmark is at 100 pixels, this value is 0.5.
+	// The y-coordinate from the top left of the landmark expressed as the ratio
+	// of the height of the image. For example, if the image is 700 x 200 and the
+	// y-coordinate of the landmark is at 100 pixels, this value is 0.5.
 	Y *float64 `type:"float"`
 }
 
@@ -3555,6 +12145,66 @@ func (s *Landmark) SetX(v float64) *Landmark {
 func (s *Landmark) SetY(v float64) *Landmark {
 	s.Y = &v
 	return s
+}
+
+// An Amazon Rekognition service limit was exceeded. For example, if you start
+// too many Amazon Rekognition Video jobs concurrently, calls to start operations
+// (StartLabelDetection, for example) will raise a LimitExceededException exception
+// (HTTP status code: 400) until the number of concurrently running jobs is
+// below the Amazon Rekognition service limit.
+type LimitExceededException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s LimitExceededException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s LimitExceededException) GoString() string {
+	return s.String()
+}
+
+func newErrorLimitExceededException(v protocol.ResponseMetadata) error {
+	return &LimitExceededException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *LimitExceededException) Code() string {
+	return "LimitExceededException"
+}
+
+// Message returns the exception's message.
+func (s *LimitExceededException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *LimitExceededException) OrigErr() error {
+	return nil
+}
+
+func (s *LimitExceededException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *LimitExceededException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *LimitExceededException) RequestID() string {
+	return s.RespMetadata.RequestID
 }
 
 type ListCollectionsInput struct {
@@ -3595,6 +12245,12 @@ type ListCollectionsOutput struct {
 	// An array of collection IDs.
 	CollectionIds []*string `type:"list"`
 
+	// Version numbers of the face detection models associated with the collections
+	// in the array CollectionIds. For example, the value of FaceModelVersions[2]
+	// is the version number for the face detection model used by the collection
+	// in CollectionId[2].
+	FaceModelVersions []*string `type:"list"`
+
 	// If the result is truncated, the response provides a NextToken that you can
 	// use in the subsequent request to fetch the next set of collection IDs.
 	NextToken *string `type:"string"`
@@ -3613,6 +12269,12 @@ func (s ListCollectionsOutput) GoString() string {
 // SetCollectionIds sets the CollectionIds field's value.
 func (s *ListCollectionsOutput) SetCollectionIds(v []*string) *ListCollectionsOutput {
 	s.CollectionIds = v
+	return s
+}
+
+// SetFaceModelVersions sets the FaceModelVersions field's value.
+func (s *ListCollectionsOutput) SetFaceModelVersions(v []*string) *ListCollectionsOutput {
+	s.FaceModelVersions = v
 	return s
 }
 
@@ -3686,6 +12348,10 @@ func (s *ListFacesInput) SetNextToken(v string) *ListFacesInput {
 type ListFacesOutput struct {
 	_ struct{} `type:"structure"`
 
+	// Version number of the face detection model associated with the input collection
+	// (CollectionId).
+	FaceModelVersion *string `type:"string"`
+
 	// An array of Face objects.
 	Faces []*Face `type:"list"`
 
@@ -3704,6 +12370,12 @@ func (s ListFacesOutput) GoString() string {
 	return s.String()
 }
 
+// SetFaceModelVersion sets the FaceModelVersion field's value.
+func (s *ListFacesOutput) SetFaceModelVersion(v string) *ListFacesOutput {
+	s.FaceModelVersion = &v
+	return s
+}
+
 // SetFaces sets the Faces field's value.
 func (s *ListFacesOutput) SetFaces(v []*Face) *ListFacesOutput {
 	s.Faces = v
@@ -3716,9 +12388,93 @@ func (s *ListFacesOutput) SetNextToken(v string) *ListFacesOutput {
 	return s
 }
 
-// Provides information about a single type of moderated content found in an
-// image. Each type of moderated content has a label within a hierarchical taxonomy.
-// For more information, see image-moderation.
+type ListStreamProcessorsInput struct {
+	_ struct{} `type:"structure"`
+
+	// Maximum number of stream processors you want Amazon Rekognition Video to
+	// return in the response. The default is 1000.
+	MaxResults *int64 `min:"1" type:"integer"`
+
+	// If the previous response was incomplete (because there are more stream processors
+	// to retrieve), Amazon Rekognition Video returns a pagination token in the
+	// response. You can use this pagination token to retrieve the next set of stream
+	// processors.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s ListStreamProcessorsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListStreamProcessorsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListStreamProcessorsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListStreamProcessorsInput"}
+	if s.MaxResults != nil && *s.MaxResults < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *ListStreamProcessorsInput) SetMaxResults(v int64) *ListStreamProcessorsInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListStreamProcessorsInput) SetNextToken(v string) *ListStreamProcessorsInput {
+	s.NextToken = &v
+	return s
+}
+
+type ListStreamProcessorsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// If the response is truncated, Amazon Rekognition Video returns this token
+	// that you can use in the subsequent request to retrieve the next set of stream
+	// processors.
+	NextToken *string `type:"string"`
+
+	// List of stream processors that you have created.
+	StreamProcessors []*StreamProcessor `type:"list"`
+}
+
+// String returns the string representation
+func (s ListStreamProcessorsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListStreamProcessorsOutput) GoString() string {
+	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListStreamProcessorsOutput) SetNextToken(v string) *ListStreamProcessorsOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetStreamProcessors sets the StreamProcessors field's value.
+func (s *ListStreamProcessorsOutput) SetStreamProcessors(v []*StreamProcessor) *ListStreamProcessorsOutput {
+	s.StreamProcessors = v
+	return s
+}
+
+// Provides information about a single type of unsafe content found in an image
+// or video. Each type of moderated content has a label within a hierarchical
+// taxonomy. For more information, see Detecting Unsafe Content in the Amazon
+// Rekognition Developer Guide.
 type ModerationLabel struct {
 	_ struct{} `type:"structure"`
 
@@ -3730,10 +12486,10 @@ type ModerationLabel struct {
 	// to 50 percent.
 	Confidence *float64 `type:"float"`
 
-	// The label name for the type of content detected in the image.
+	// The label name for the type of unsafe content detected in the image.
 	Name *string `type:"string"`
 
-	// The name for the parent label. Labels at the top-level of the hierarchy have
+	// The name for the parent label. Labels at the top level of the hierarchy have
 	// the parent label "".
 	ParentName *string `type:"string"`
 }
@@ -3834,6 +12590,305 @@ func (s *Mustache) SetValue(v bool) *Mustache {
 	return s
 }
 
+// The Amazon Simple Notification Service topic to which Amazon Rekognition
+// publishes the completion status of a video analysis operation. For more information,
+// see api-video.
+type NotificationChannel struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of an IAM role that gives Amazon Rekognition publishing permissions
+	// to the Amazon SNS topic.
+	//
+	// RoleArn is a required field
+	RoleArn *string `type:"string" required:"true"`
+
+	// The Amazon SNS topic to which Amazon Rekognition to posts the completion
+	// status.
+	//
+	// SNSTopicArn is a required field
+	SNSTopicArn *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s NotificationChannel) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s NotificationChannel) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *NotificationChannel) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "NotificationChannel"}
+	if s.RoleArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("RoleArn"))
+	}
+	if s.SNSTopicArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("SNSTopicArn"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetRoleArn sets the RoleArn field's value.
+func (s *NotificationChannel) SetRoleArn(v string) *NotificationChannel {
+	s.RoleArn = &v
+	return s
+}
+
+// SetSNSTopicArn sets the SNSTopicArn field's value.
+func (s *NotificationChannel) SetSNSTopicArn(v string) *NotificationChannel {
+	s.SNSTopicArn = &v
+	return s
+}
+
+// The S3 bucket and folder location where training output is placed.
+type OutputConfig struct {
+	_ struct{} `type:"structure"`
+
+	// The S3 bucket where training output is placed.
+	S3Bucket *string `min:"3" type:"string"`
+
+	// The prefix applied to the training output files.
+	S3KeyPrefix *string `type:"string"`
+}
+
+// String returns the string representation
+func (s OutputConfig) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s OutputConfig) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *OutputConfig) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "OutputConfig"}
+	if s.S3Bucket != nil && len(*s.S3Bucket) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("S3Bucket", 3))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetS3Bucket sets the S3Bucket field's value.
+func (s *OutputConfig) SetS3Bucket(v string) *OutputConfig {
+	s.S3Bucket = &v
+	return s
+}
+
+// SetS3KeyPrefix sets the S3KeyPrefix field's value.
+func (s *OutputConfig) SetS3KeyPrefix(v string) *OutputConfig {
+	s.S3KeyPrefix = &v
+	return s
+}
+
+// A parent label for a label. A label can have 0, 1, or more parents.
+type Parent struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the parent label.
+	Name *string `type:"string"`
+}
+
+// String returns the string representation
+func (s Parent) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Parent) GoString() string {
+	return s.String()
+}
+
+// SetName sets the Name field's value.
+func (s *Parent) SetName(v string) *Parent {
+	s.Name = &v
+	return s
+}
+
+// Details about a person detected in a video analysis request.
+type PersonDetail struct {
+	_ struct{} `type:"structure"`
+
+	// Bounding box around the detected person.
+	BoundingBox *BoundingBox `type:"structure"`
+
+	// Face details for the detected person.
+	Face *FaceDetail `type:"structure"`
+
+	// Identifier for the person detected person within a video. Use to keep track
+	// of the person throughout the video. The identifier is not stored by Amazon
+	// Rekognition.
+	Index *int64 `type:"long"`
+}
+
+// String returns the string representation
+func (s PersonDetail) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PersonDetail) GoString() string {
+	return s.String()
+}
+
+// SetBoundingBox sets the BoundingBox field's value.
+func (s *PersonDetail) SetBoundingBox(v *BoundingBox) *PersonDetail {
+	s.BoundingBox = v
+	return s
+}
+
+// SetFace sets the Face field's value.
+func (s *PersonDetail) SetFace(v *FaceDetail) *PersonDetail {
+	s.Face = v
+	return s
+}
+
+// SetIndex sets the Index field's value.
+func (s *PersonDetail) SetIndex(v int64) *PersonDetail {
+	s.Index = &v
+	return s
+}
+
+// Details and path tracking information for a single time a person's path is
+// tracked in a video. Amazon Rekognition operations that track people's paths
+// return an array of PersonDetection objects with elements for each time a
+// person's path is tracked in a video.
+//
+// For more information, see GetPersonTracking in the Amazon Rekognition Developer
+// Guide.
+type PersonDetection struct {
+	_ struct{} `type:"structure"`
+
+	// Details about a person whose path was tracked in a video.
+	Person *PersonDetail `type:"structure"`
+
+	// The time, in milliseconds from the start of the video, that the person's
+	// path was tracked.
+	Timestamp *int64 `type:"long"`
+}
+
+// String returns the string representation
+func (s PersonDetection) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PersonDetection) GoString() string {
+	return s.String()
+}
+
+// SetPerson sets the Person field's value.
+func (s *PersonDetection) SetPerson(v *PersonDetail) *PersonDetection {
+	s.Person = v
+	return s
+}
+
+// SetTimestamp sets the Timestamp field's value.
+func (s *PersonDetection) SetTimestamp(v int64) *PersonDetection {
+	s.Timestamp = &v
+	return s
+}
+
+// Information about a person whose face matches a face(s) in an Amazon Rekognition
+// collection. Includes information about the faces in the Amazon Rekognition
+// collection (FaceMatch), information about the person (PersonDetail), and
+// the time stamp for when the person was detected in a video. An array of PersonMatch
+// objects is returned by GetFaceSearch.
+type PersonMatch struct {
+	_ struct{} `type:"structure"`
+
+	// Information about the faces in the input collection that match the face of
+	// a person in the video.
+	FaceMatches []*FaceMatch `type:"list"`
+
+	// Information about the matched person.
+	Person *PersonDetail `type:"structure"`
+
+	// The time, in milliseconds from the beginning of the video, that the person
+	// was matched in the video.
+	Timestamp *int64 `type:"long"`
+}
+
+// String returns the string representation
+func (s PersonMatch) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PersonMatch) GoString() string {
+	return s.String()
+}
+
+// SetFaceMatches sets the FaceMatches field's value.
+func (s *PersonMatch) SetFaceMatches(v []*FaceMatch) *PersonMatch {
+	s.FaceMatches = v
+	return s
+}
+
+// SetPerson sets the Person field's value.
+func (s *PersonMatch) SetPerson(v *PersonDetail) *PersonMatch {
+	s.Person = v
+	return s
+}
+
+// SetTimestamp sets the Timestamp field's value.
+func (s *PersonMatch) SetTimestamp(v int64) *PersonMatch {
+	s.Timestamp = &v
+	return s
+}
+
+// The X and Y coordinates of a point on an image. The X and Y values returned
+// are ratios of the overall image size. For example, if the input image is
+// 700x200 and the operation returns X=0.5 and Y=0.25, then the point is at
+// the (350,50) pixel coordinate on the image.
+//
+// An array of Point objects, Polygon, is returned by DetectText and by DetectCustomLabels.
+// Polygon represents a fine-grained polygon around a detected item. For more
+// information, see Geometry in the Amazon Rekognition Developer Guide.
+type Point struct {
+	_ struct{} `type:"structure"`
+
+	// The value of the X coordinate for a point on a Polygon.
+	X *float64 `type:"float"`
+
+	// The value of the Y coordinate for a point on a Polygon.
+	Y *float64 `type:"float"`
+}
+
+// String returns the string representation
+func (s Point) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Point) GoString() string {
+	return s.String()
+}
+
+// SetX sets the X field's value.
+func (s *Point) SetX(v float64) *Point {
+	s.X = &v
+	return s
+}
+
+// SetY sets the Y field's value.
+func (s *Point) SetY(v float64) *Point {
+	s.Y = &v
+	return s
+}
+
 // Indicates the pose of the face as determined by its pitch, roll, and yaw.
 type Pose struct {
 	_ struct{} `type:"structure"`
@@ -3876,10 +12931,231 @@ func (s *Pose) SetYaw(v float64) *Pose {
 	return s
 }
 
+// A description of a Amazon Rekognition Custom Labels project.
+type ProjectDescription struct {
+	_ struct{} `type:"structure"`
+
+	// The Unix timestamp for the date and time that the project was created.
+	CreationTimestamp *time.Time `type:"timestamp"`
+
+	// The Amazon Resource Name (ARN) of the project.
+	ProjectArn *string `min:"20" type:"string"`
+
+	// The current status of the project.
+	Status *string `type:"string" enum:"ProjectStatus"`
+}
+
+// String returns the string representation
+func (s ProjectDescription) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ProjectDescription) GoString() string {
+	return s.String()
+}
+
+// SetCreationTimestamp sets the CreationTimestamp field's value.
+func (s *ProjectDescription) SetCreationTimestamp(v time.Time) *ProjectDescription {
+	s.CreationTimestamp = &v
+	return s
+}
+
+// SetProjectArn sets the ProjectArn field's value.
+func (s *ProjectDescription) SetProjectArn(v string) *ProjectDescription {
+	s.ProjectArn = &v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *ProjectDescription) SetStatus(v string) *ProjectDescription {
+	s.Status = &v
+	return s
+}
+
+// The description of a version of a model.
+type ProjectVersionDescription struct {
+	_ struct{} `type:"structure"`
+
+	// The duration, in seconds, that the model version has been billed for training.
+	// This value is only returned if the model version has been successfully trained.
+	BillableTrainingTimeInSeconds *int64 `type:"long"`
+
+	// The Unix datetime for the date and time that training started.
+	CreationTimestamp *time.Time `type:"timestamp"`
+
+	// The training results. EvaluationResult is only returned if training is successful.
+	EvaluationResult *EvaluationResult `type:"structure"`
+
+	// The minimum number of inference units used by the model. For more information,
+	// see StartProjectVersion.
+	MinInferenceUnits *int64 `min:"1" type:"integer"`
+
+	// The location where training results are saved.
+	OutputConfig *OutputConfig `type:"structure"`
+
+	// The Amazon Resource Name (ARN) of the model version.
+	ProjectVersionArn *string `min:"20" type:"string"`
+
+	// The current status of the model version.
+	Status *string `type:"string" enum:"ProjectVersionStatus"`
+
+	// A descriptive message for an error or warning that occurred.
+	StatusMessage *string `type:"string"`
+
+	// The manifest file that represents the testing results.
+	TestingDataResult *TestingDataResult `type:"structure"`
+
+	// The manifest file that represents the training results.
+	TrainingDataResult *TrainingDataResult `type:"structure"`
+
+	// The Unix date and time that training of the model ended.
+	TrainingEndTimestamp *time.Time `type:"timestamp"`
+}
+
+// String returns the string representation
+func (s ProjectVersionDescription) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ProjectVersionDescription) GoString() string {
+	return s.String()
+}
+
+// SetBillableTrainingTimeInSeconds sets the BillableTrainingTimeInSeconds field's value.
+func (s *ProjectVersionDescription) SetBillableTrainingTimeInSeconds(v int64) *ProjectVersionDescription {
+	s.BillableTrainingTimeInSeconds = &v
+	return s
+}
+
+// SetCreationTimestamp sets the CreationTimestamp field's value.
+func (s *ProjectVersionDescription) SetCreationTimestamp(v time.Time) *ProjectVersionDescription {
+	s.CreationTimestamp = &v
+	return s
+}
+
+// SetEvaluationResult sets the EvaluationResult field's value.
+func (s *ProjectVersionDescription) SetEvaluationResult(v *EvaluationResult) *ProjectVersionDescription {
+	s.EvaluationResult = v
+	return s
+}
+
+// SetMinInferenceUnits sets the MinInferenceUnits field's value.
+func (s *ProjectVersionDescription) SetMinInferenceUnits(v int64) *ProjectVersionDescription {
+	s.MinInferenceUnits = &v
+	return s
+}
+
+// SetOutputConfig sets the OutputConfig field's value.
+func (s *ProjectVersionDescription) SetOutputConfig(v *OutputConfig) *ProjectVersionDescription {
+	s.OutputConfig = v
+	return s
+}
+
+// SetProjectVersionArn sets the ProjectVersionArn field's value.
+func (s *ProjectVersionDescription) SetProjectVersionArn(v string) *ProjectVersionDescription {
+	s.ProjectVersionArn = &v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *ProjectVersionDescription) SetStatus(v string) *ProjectVersionDescription {
+	s.Status = &v
+	return s
+}
+
+// SetStatusMessage sets the StatusMessage field's value.
+func (s *ProjectVersionDescription) SetStatusMessage(v string) *ProjectVersionDescription {
+	s.StatusMessage = &v
+	return s
+}
+
+// SetTestingDataResult sets the TestingDataResult field's value.
+func (s *ProjectVersionDescription) SetTestingDataResult(v *TestingDataResult) *ProjectVersionDescription {
+	s.TestingDataResult = v
+	return s
+}
+
+// SetTrainingDataResult sets the TrainingDataResult field's value.
+func (s *ProjectVersionDescription) SetTrainingDataResult(v *TrainingDataResult) *ProjectVersionDescription {
+	s.TrainingDataResult = v
+	return s
+}
+
+// SetTrainingEndTimestamp sets the TrainingEndTimestamp field's value.
+func (s *ProjectVersionDescription) SetTrainingEndTimestamp(v time.Time) *ProjectVersionDescription {
+	s.TrainingEndTimestamp = &v
+	return s
+}
+
+// The number of requests exceeded your throughput limit. If you want to increase
+// this limit, contact Amazon Rekognition.
+type ProvisionedThroughputExceededException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s ProvisionedThroughputExceededException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ProvisionedThroughputExceededException) GoString() string {
+	return s.String()
+}
+
+func newErrorProvisionedThroughputExceededException(v protocol.ResponseMetadata) error {
+	return &ProvisionedThroughputExceededException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *ProvisionedThroughputExceededException) Code() string {
+	return "ProvisionedThroughputExceededException"
+}
+
+// Message returns the exception's message.
+func (s *ProvisionedThroughputExceededException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *ProvisionedThroughputExceededException) OrigErr() error {
+	return nil
+}
+
+func (s *ProvisionedThroughputExceededException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *ProvisionedThroughputExceededException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *ProvisionedThroughputExceededException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 type RecognizeCelebritiesInput struct {
 	_ struct{} `type:"structure"`
 
-	// The input image to use for celebrity recognition.
+	// The input image as base64-encoded bytes or an S3 object. If you use the AWS
+	// CLI to call Amazon Rekognition operations, passing base64-encoded image bytes
+	// is not supported.
+	//
+	// If you are using an AWS SDK to call Amazon Rekognition, you might not need
+	// to base64-encode image bytes passed using the Bytes field. For more information,
+	// see Images in the Amazon Rekognition developer guide.
 	//
 	// Image is a required field
 	Image *Image `type:"structure" required:"true"`
@@ -3934,10 +13210,9 @@ type RecognizeCelebritiesOutput struct {
 	// If the input image is in .jpeg format, it might contain exchangeable image
 	// (Exif) metadata that includes the image's orientation. If so, and the Exif
 	// metadata for the input image populates the orientation field, the value of
-	// OrientationCorrection is null and the CelebrityFaces and UnrecognizedFaces
-	// bounding box coordinates represent face locations after Exif metadata is
-	// used to correct the image orientation. Images in .png format don't contain
-	// Exif metadata.
+	// OrientationCorrection is null. The CelebrityFaces and UnrecognizedFaces bounding
+	// box coordinates represent face locations after Exif metadata is used to correct
+	// the image orientation. Images in .png format don't contain Exif metadata.
 	OrientationCorrection *string `type:"string" enum:"OrientationCorrection"`
 
 	// Details about each unrecognized face in the image.
@@ -3972,13 +13247,268 @@ func (s *RecognizeCelebritiesOutput) SetUnrecognizedFaces(v []*ComparedFace) *Re
 	return s
 }
 
+// Specifies a location within the frame that Rekognition checks for text. Uses
+// a BoundingBox object to set a region of the screen.
+//
+// A word is included in the region if the word is more than half in that region.
+// If there is more than one region, the word will be compared with all regions
+// of the screen. Any word more than half in a region is kept in the results.
+type RegionOfInterest struct {
+	_ struct{} `type:"structure"`
+
+	// The box representing a region of interest on screen.
+	BoundingBox *BoundingBox `type:"structure"`
+}
+
+// String returns the string representation
+func (s RegionOfInterest) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RegionOfInterest) GoString() string {
+	return s.String()
+}
+
+// SetBoundingBox sets the BoundingBox field's value.
+func (s *RegionOfInterest) SetBoundingBox(v *BoundingBox) *RegionOfInterest {
+	s.BoundingBox = v
+	return s
+}
+
+// A collection with the specified ID already exists.
+type ResourceAlreadyExistsException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s ResourceAlreadyExistsException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ResourceAlreadyExistsException) GoString() string {
+	return s.String()
+}
+
+func newErrorResourceAlreadyExistsException(v protocol.ResponseMetadata) error {
+	return &ResourceAlreadyExistsException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *ResourceAlreadyExistsException) Code() string {
+	return "ResourceAlreadyExistsException"
+}
+
+// Message returns the exception's message.
+func (s *ResourceAlreadyExistsException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *ResourceAlreadyExistsException) OrigErr() error {
+	return nil
+}
+
+func (s *ResourceAlreadyExistsException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *ResourceAlreadyExistsException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *ResourceAlreadyExistsException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// The specified resource is already being used.
+type ResourceInUseException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s ResourceInUseException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ResourceInUseException) GoString() string {
+	return s.String()
+}
+
+func newErrorResourceInUseException(v protocol.ResponseMetadata) error {
+	return &ResourceInUseException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *ResourceInUseException) Code() string {
+	return "ResourceInUseException"
+}
+
+// Message returns the exception's message.
+func (s *ResourceInUseException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *ResourceInUseException) OrigErr() error {
+	return nil
+}
+
+func (s *ResourceInUseException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *ResourceInUseException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *ResourceInUseException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// The collection specified in the request cannot be found.
+type ResourceNotFoundException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s ResourceNotFoundException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ResourceNotFoundException) GoString() string {
+	return s.String()
+}
+
+func newErrorResourceNotFoundException(v protocol.ResponseMetadata) error {
+	return &ResourceNotFoundException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *ResourceNotFoundException) Code() string {
+	return "ResourceNotFoundException"
+}
+
+// Message returns the exception's message.
+func (s *ResourceNotFoundException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *ResourceNotFoundException) OrigErr() error {
+	return nil
+}
+
+func (s *ResourceNotFoundException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *ResourceNotFoundException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *ResourceNotFoundException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// The requested resource isn't ready. For example, this exception occurs when
+// you call DetectCustomLabels with a model version that isn't deployed.
+type ResourceNotReadyException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s ResourceNotReadyException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ResourceNotReadyException) GoString() string {
+	return s.String()
+}
+
+func newErrorResourceNotReadyException(v protocol.ResponseMetadata) error {
+	return &ResourceNotReadyException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *ResourceNotReadyException) Code() string {
+	return "ResourceNotReadyException"
+}
+
+// Message returns the exception's message.
+func (s *ResourceNotReadyException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *ResourceNotReadyException) OrigErr() error {
+	return nil
+}
+
+func (s *ResourceNotReadyException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *ResourceNotReadyException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *ResourceNotReadyException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 // Provides the S3 bucket name and object name.
 //
 // The region for the S3 bucket containing the S3 object must match the region
 // you use for Amazon Rekognition operations.
 //
 // For Amazon Rekognition to process an S3 object, the user must have permission
-// to access the S3 object. For more information, see manage-access-resource-policies.
+// to access the S3 object. For more information, see Resource-Based Policies
+// in the Amazon Rekognition Developer Guide.
 type S3Object struct {
 	_ struct{} `type:"structure"`
 
@@ -4049,10 +13579,16 @@ type SearchFacesByImageInput struct {
 
 	// (Optional) Specifies the minimum confidence in the face match to return.
 	// For example, don't return any matches where confidence in matches is less
-	// than 70%.
+	// than 70%. The default value is 80%.
 	FaceMatchThreshold *float64 `type:"float"`
 
-	// The input image as bytes or an S3 object.
+	// The input image as base64-encoded bytes or an S3 object. If you use the AWS
+	// CLI to call Amazon Rekognition operations, passing base64-encoded image bytes
+	// is not supported.
+	//
+	// If you are using an AWS SDK to call Amazon Rekognition, you might not need
+	// to base64-encode image bytes passed using the Bytes field. For more information,
+	// see Images in the Amazon Rekognition developer guide.
 	//
 	// Image is a required field
 	Image *Image `type:"structure" required:"true"`
@@ -4060,6 +13596,20 @@ type SearchFacesByImageInput struct {
 	// Maximum number of faces to return. The operation returns the maximum number
 	// of faces with the highest confidence in the match.
 	MaxFaces *int64 `min:"1" type:"integer"`
+
+	// A filter that specifies a quality bar for how much filtering is done to identify
+	// faces. Filtered faces aren't searched for in the collection. If you specify
+	// AUTO, Amazon Rekognition chooses the quality bar. If you specify LOW, MEDIUM,
+	// or HIGH, filtering removes all faces that don’t meet the chosen quality
+	// bar. The quality bar is based on a variety of common use cases. Low-quality
+	// detections can occur for a number of reasons. Some examples are an object
+	// that's misidentified as a face, a face that's too blurry, or a face with
+	// a pose that's too extreme to use. If you specify NONE, no filtering is performed.
+	// The default value is NONE.
+	//
+	// To use quality filtering, the collection you are using must be associated
+	// with version 3 of the face model or higher.
+	QualityFilter *string `type:"string" enum:"QualityFilter"`
 }
 
 // String returns the string representation
@@ -4123,12 +13673,22 @@ func (s *SearchFacesByImageInput) SetMaxFaces(v int64) *SearchFacesByImageInput 
 	return s
 }
 
+// SetQualityFilter sets the QualityFilter field's value.
+func (s *SearchFacesByImageInput) SetQualityFilter(v string) *SearchFacesByImageInput {
+	s.QualityFilter = &v
+	return s
+}
+
 type SearchFacesByImageOutput struct {
 	_ struct{} `type:"structure"`
 
 	// An array of faces that match the input face, along with the confidence in
 	// the match.
 	FaceMatches []*FaceMatch `type:"list"`
+
+	// Version number of the face detection model associated with the input collection
+	// (CollectionId).
+	FaceModelVersion *string `type:"string"`
 
 	// The bounding box around the face in the input image that Amazon Rekognition
 	// used for the search.
@@ -4151,6 +13711,12 @@ func (s SearchFacesByImageOutput) GoString() string {
 // SetFaceMatches sets the FaceMatches field's value.
 func (s *SearchFacesByImageOutput) SetFaceMatches(v []*FaceMatch) *SearchFacesByImageOutput {
 	s.FaceMatches = v
+	return s
+}
+
+// SetFaceModelVersion sets the FaceModelVersion field's value.
+func (s *SearchFacesByImageOutput) SetFaceModelVersion(v string) *SearchFacesByImageOutput {
+	s.FaceModelVersion = &v
 	return s
 }
 
@@ -4181,7 +13747,7 @@ type SearchFacesInput struct {
 
 	// Optional value specifying the minimum confidence in the face match to return.
 	// For example, don't return any matches where confidence in matches is less
-	// than 70%.
+	// than 70%. The default value is 80%.
 	FaceMatchThreshold *float64 `type:"float"`
 
 	// Maximum number of faces to return. The operation returns the maximum number
@@ -4252,6 +13818,10 @@ type SearchFacesOutput struct {
 	// in the match.
 	FaceMatches []*FaceMatch `type:"list"`
 
+	// Version number of the face detection model associated with the input collection
+	// (CollectionId).
+	FaceModelVersion *string `type:"string"`
+
 	// ID of the face that was searched for matches in a collection.
 	SearchedFaceId *string `type:"string"`
 }
@@ -4272,9 +13842,189 @@ func (s *SearchFacesOutput) SetFaceMatches(v []*FaceMatch) *SearchFacesOutput {
 	return s
 }
 
+// SetFaceModelVersion sets the FaceModelVersion field's value.
+func (s *SearchFacesOutput) SetFaceModelVersion(v string) *SearchFacesOutput {
+	s.FaceModelVersion = &v
+	return s
+}
+
 // SetSearchedFaceId sets the SearchedFaceId field's value.
 func (s *SearchFacesOutput) SetSearchedFaceId(v string) *SearchFacesOutput {
 	s.SearchedFaceId = &v
+	return s
+}
+
+// A technical cue or shot detection segment detected in a video. An array of
+// SegmentDetection objects containing all segments detected in a stored video
+// is returned by GetSegmentDetection.
+type SegmentDetection struct {
+	_ struct{} `type:"structure"`
+
+	// The duration of the detected segment in milliseconds.
+	DurationMillis *int64 `type:"long"`
+
+	// The duration of the timecode for the detected segment in SMPTE format.
+	DurationSMPTE *string `type:"string"`
+
+	// The frame-accurate SMPTE timecode, from the start of a video, for the end
+	// of a detected segment. EndTimecode is in HH:MM:SS:fr format (and ;fr for
+	// drop frame-rates).
+	EndTimecodeSMPTE *string `type:"string"`
+
+	// The end time of the detected segment, in milliseconds, from the start of
+	// the video.
+	EndTimestampMillis *int64 `type:"long"`
+
+	// If the segment is a shot detection, contains information about the shot detection.
+	ShotSegment *ShotSegment `type:"structure"`
+
+	// The frame-accurate SMPTE timecode, from the start of a video, for the start
+	// of a detected segment. StartTimecode is in HH:MM:SS:fr format (and ;fr for
+	// drop frame-rates).
+	StartTimecodeSMPTE *string `type:"string"`
+
+	// The start time of the detected segment in milliseconds from the start of
+	// the video.
+	StartTimestampMillis *int64 `type:"long"`
+
+	// If the segment is a technical cue, contains information about the technical
+	// cue.
+	TechnicalCueSegment *TechnicalCueSegment `type:"structure"`
+
+	// The type of the segment. Valid values are TECHNICAL_CUE and SHOT.
+	Type *string `type:"string" enum:"SegmentType"`
+}
+
+// String returns the string representation
+func (s SegmentDetection) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s SegmentDetection) GoString() string {
+	return s.String()
+}
+
+// SetDurationMillis sets the DurationMillis field's value.
+func (s *SegmentDetection) SetDurationMillis(v int64) *SegmentDetection {
+	s.DurationMillis = &v
+	return s
+}
+
+// SetDurationSMPTE sets the DurationSMPTE field's value.
+func (s *SegmentDetection) SetDurationSMPTE(v string) *SegmentDetection {
+	s.DurationSMPTE = &v
+	return s
+}
+
+// SetEndTimecodeSMPTE sets the EndTimecodeSMPTE field's value.
+func (s *SegmentDetection) SetEndTimecodeSMPTE(v string) *SegmentDetection {
+	s.EndTimecodeSMPTE = &v
+	return s
+}
+
+// SetEndTimestampMillis sets the EndTimestampMillis field's value.
+func (s *SegmentDetection) SetEndTimestampMillis(v int64) *SegmentDetection {
+	s.EndTimestampMillis = &v
+	return s
+}
+
+// SetShotSegment sets the ShotSegment field's value.
+func (s *SegmentDetection) SetShotSegment(v *ShotSegment) *SegmentDetection {
+	s.ShotSegment = v
+	return s
+}
+
+// SetStartTimecodeSMPTE sets the StartTimecodeSMPTE field's value.
+func (s *SegmentDetection) SetStartTimecodeSMPTE(v string) *SegmentDetection {
+	s.StartTimecodeSMPTE = &v
+	return s
+}
+
+// SetStartTimestampMillis sets the StartTimestampMillis field's value.
+func (s *SegmentDetection) SetStartTimestampMillis(v int64) *SegmentDetection {
+	s.StartTimestampMillis = &v
+	return s
+}
+
+// SetTechnicalCueSegment sets the TechnicalCueSegment field's value.
+func (s *SegmentDetection) SetTechnicalCueSegment(v *TechnicalCueSegment) *SegmentDetection {
+	s.TechnicalCueSegment = v
+	return s
+}
+
+// SetType sets the Type field's value.
+func (s *SegmentDetection) SetType(v string) *SegmentDetection {
+	s.Type = &v
+	return s
+}
+
+// Information about the type of a segment requested in a call to StartSegmentDetection.
+// An array of SegmentTypeInfo objects is returned by the response from GetSegmentDetection.
+type SegmentTypeInfo struct {
+	_ struct{} `type:"structure"`
+
+	// The version of the model used to detect segments.
+	ModelVersion *string `type:"string"`
+
+	// The type of a segment (technical cue or shot detection).
+	Type *string `type:"string" enum:"SegmentType"`
+}
+
+// String returns the string representation
+func (s SegmentTypeInfo) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s SegmentTypeInfo) GoString() string {
+	return s.String()
+}
+
+// SetModelVersion sets the ModelVersion field's value.
+func (s *SegmentTypeInfo) SetModelVersion(v string) *SegmentTypeInfo {
+	s.ModelVersion = &v
+	return s
+}
+
+// SetType sets the Type field's value.
+func (s *SegmentTypeInfo) SetType(v string) *SegmentTypeInfo {
+	s.Type = &v
+	return s
+}
+
+// Information about a shot detection segment detected in a video. For more
+// information, see SegmentDetection.
+type ShotSegment struct {
+	_ struct{} `type:"structure"`
+
+	// The confidence that Amazon Rekognition Video has in the accuracy of the detected
+	// segment.
+	Confidence *float64 `min:"50" type:"float"`
+
+	// An Identifier for a shot detection segment detected in a video
+	Index *int64 `type:"long"`
+}
+
+// String returns the string representation
+func (s ShotSegment) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ShotSegment) GoString() string {
+	return s.String()
+}
+
+// SetConfidence sets the Confidence field's value.
+func (s *ShotSegment) SetConfidence(v float64) *ShotSegment {
+	s.Confidence = &v
+	return s
+}
+
+// SetIndex sets the Index field's value.
+func (s *ShotSegment) SetIndex(v int64) *ShotSegment {
+	s.Index = &v
 	return s
 }
 
@@ -4312,6 +14062,1632 @@ func (s *Smile) SetValue(v bool) *Smile {
 	return s
 }
 
+type StartCelebrityRecognitionInput struct {
+	_ struct{} `type:"structure"`
+
+	// Idempotent token used to identify the start request. If you use the same
+	// token with multiple StartCelebrityRecognition requests, the same JobId is
+	// returned. Use ClientRequestToken to prevent the same job from being accidently
+	// started more than once.
+	ClientRequestToken *string `min:"1" type:"string"`
+
+	// An identifier you specify that's returned in the completion notification
+	// that's published to your Amazon Simple Notification Service topic. For example,
+	// you can use JobTag to group related jobs and identify them in the completion
+	// notification.
+	JobTag *string `min:"1" type:"string"`
+
+	// The Amazon SNS topic ARN that you want Amazon Rekognition Video to publish
+	// the completion status of the celebrity recognition analysis to.
+	NotificationChannel *NotificationChannel `type:"structure"`
+
+	// The video in which you want to recognize celebrities. The video must be stored
+	// in an Amazon S3 bucket.
+	//
+	// Video is a required field
+	Video *Video `type:"structure" required:"true"`
+}
+
+// String returns the string representation
+func (s StartCelebrityRecognitionInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StartCelebrityRecognitionInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *StartCelebrityRecognitionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "StartCelebrityRecognitionInput"}
+	if s.ClientRequestToken != nil && len(*s.ClientRequestToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ClientRequestToken", 1))
+	}
+	if s.JobTag != nil && len(*s.JobTag) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("JobTag", 1))
+	}
+	if s.Video == nil {
+		invalidParams.Add(request.NewErrParamRequired("Video"))
+	}
+	if s.NotificationChannel != nil {
+		if err := s.NotificationChannel.Validate(); err != nil {
+			invalidParams.AddNested("NotificationChannel", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.Video != nil {
+		if err := s.Video.Validate(); err != nil {
+			invalidParams.AddNested("Video", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetClientRequestToken sets the ClientRequestToken field's value.
+func (s *StartCelebrityRecognitionInput) SetClientRequestToken(v string) *StartCelebrityRecognitionInput {
+	s.ClientRequestToken = &v
+	return s
+}
+
+// SetJobTag sets the JobTag field's value.
+func (s *StartCelebrityRecognitionInput) SetJobTag(v string) *StartCelebrityRecognitionInput {
+	s.JobTag = &v
+	return s
+}
+
+// SetNotificationChannel sets the NotificationChannel field's value.
+func (s *StartCelebrityRecognitionInput) SetNotificationChannel(v *NotificationChannel) *StartCelebrityRecognitionInput {
+	s.NotificationChannel = v
+	return s
+}
+
+// SetVideo sets the Video field's value.
+func (s *StartCelebrityRecognitionInput) SetVideo(v *Video) *StartCelebrityRecognitionInput {
+	s.Video = v
+	return s
+}
+
+type StartCelebrityRecognitionOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The identifier for the celebrity recognition analysis job. Use JobId to identify
+	// the job in a subsequent call to GetCelebrityRecognition.
+	JobId *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s StartCelebrityRecognitionOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StartCelebrityRecognitionOutput) GoString() string {
+	return s.String()
+}
+
+// SetJobId sets the JobId field's value.
+func (s *StartCelebrityRecognitionOutput) SetJobId(v string) *StartCelebrityRecognitionOutput {
+	s.JobId = &v
+	return s
+}
+
+type StartContentModerationInput struct {
+	_ struct{} `type:"structure"`
+
+	// Idempotent token used to identify the start request. If you use the same
+	// token with multiple StartContentModeration requests, the same JobId is returned.
+	// Use ClientRequestToken to prevent the same job from being accidently started
+	// more than once.
+	ClientRequestToken *string `min:"1" type:"string"`
+
+	// An identifier you specify that's returned in the completion notification
+	// that's published to your Amazon Simple Notification Service topic. For example,
+	// you can use JobTag to group related jobs and identify them in the completion
+	// notification.
+	JobTag *string `min:"1" type:"string"`
+
+	// Specifies the minimum confidence that Amazon Rekognition must have in order
+	// to return a moderated content label. Confidence represents how certain Amazon
+	// Rekognition is that the moderated content is correctly identified. 0 is the
+	// lowest confidence. 100 is the highest confidence. Amazon Rekognition doesn't
+	// return any moderated content labels with a confidence level lower than this
+	// specified value. If you don't specify MinConfidence, GetContentModeration
+	// returns labels with confidence values greater than or equal to 50 percent.
+	MinConfidence *float64 `type:"float"`
+
+	// The Amazon SNS topic ARN that you want Amazon Rekognition Video to publish
+	// the completion status of the unsafe content analysis to.
+	NotificationChannel *NotificationChannel `type:"structure"`
+
+	// The video in which you want to detect unsafe content. The video must be stored
+	// in an Amazon S3 bucket.
+	//
+	// Video is a required field
+	Video *Video `type:"structure" required:"true"`
+}
+
+// String returns the string representation
+func (s StartContentModerationInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StartContentModerationInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *StartContentModerationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "StartContentModerationInput"}
+	if s.ClientRequestToken != nil && len(*s.ClientRequestToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ClientRequestToken", 1))
+	}
+	if s.JobTag != nil && len(*s.JobTag) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("JobTag", 1))
+	}
+	if s.Video == nil {
+		invalidParams.Add(request.NewErrParamRequired("Video"))
+	}
+	if s.NotificationChannel != nil {
+		if err := s.NotificationChannel.Validate(); err != nil {
+			invalidParams.AddNested("NotificationChannel", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.Video != nil {
+		if err := s.Video.Validate(); err != nil {
+			invalidParams.AddNested("Video", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetClientRequestToken sets the ClientRequestToken field's value.
+func (s *StartContentModerationInput) SetClientRequestToken(v string) *StartContentModerationInput {
+	s.ClientRequestToken = &v
+	return s
+}
+
+// SetJobTag sets the JobTag field's value.
+func (s *StartContentModerationInput) SetJobTag(v string) *StartContentModerationInput {
+	s.JobTag = &v
+	return s
+}
+
+// SetMinConfidence sets the MinConfidence field's value.
+func (s *StartContentModerationInput) SetMinConfidence(v float64) *StartContentModerationInput {
+	s.MinConfidence = &v
+	return s
+}
+
+// SetNotificationChannel sets the NotificationChannel field's value.
+func (s *StartContentModerationInput) SetNotificationChannel(v *NotificationChannel) *StartContentModerationInput {
+	s.NotificationChannel = v
+	return s
+}
+
+// SetVideo sets the Video field's value.
+func (s *StartContentModerationInput) SetVideo(v *Video) *StartContentModerationInput {
+	s.Video = v
+	return s
+}
+
+type StartContentModerationOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The identifier for the unsafe content analysis job. Use JobId to identify
+	// the job in a subsequent call to GetContentModeration.
+	JobId *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s StartContentModerationOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StartContentModerationOutput) GoString() string {
+	return s.String()
+}
+
+// SetJobId sets the JobId field's value.
+func (s *StartContentModerationOutput) SetJobId(v string) *StartContentModerationOutput {
+	s.JobId = &v
+	return s
+}
+
+type StartFaceDetectionInput struct {
+	_ struct{} `type:"structure"`
+
+	// Idempotent token used to identify the start request. If you use the same
+	// token with multiple StartFaceDetection requests, the same JobId is returned.
+	// Use ClientRequestToken to prevent the same job from being accidently started
+	// more than once.
+	ClientRequestToken *string `min:"1" type:"string"`
+
+	// The face attributes you want returned.
+	//
+	// DEFAULT - The following subset of facial attributes are returned: BoundingBox,
+	// Confidence, Pose, Quality and Landmarks.
+	//
+	// ALL - All facial attributes are returned.
+	FaceAttributes *string `type:"string" enum:"FaceAttributes"`
+
+	// An identifier you specify that's returned in the completion notification
+	// that's published to your Amazon Simple Notification Service topic. For example,
+	// you can use JobTag to group related jobs and identify them in the completion
+	// notification.
+	JobTag *string `min:"1" type:"string"`
+
+	// The ARN of the Amazon SNS topic to which you want Amazon Rekognition Video
+	// to publish the completion status of the face detection operation.
+	NotificationChannel *NotificationChannel `type:"structure"`
+
+	// The video in which you want to detect faces. The video must be stored in
+	// an Amazon S3 bucket.
+	//
+	// Video is a required field
+	Video *Video `type:"structure" required:"true"`
+}
+
+// String returns the string representation
+func (s StartFaceDetectionInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StartFaceDetectionInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *StartFaceDetectionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "StartFaceDetectionInput"}
+	if s.ClientRequestToken != nil && len(*s.ClientRequestToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ClientRequestToken", 1))
+	}
+	if s.JobTag != nil && len(*s.JobTag) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("JobTag", 1))
+	}
+	if s.Video == nil {
+		invalidParams.Add(request.NewErrParamRequired("Video"))
+	}
+	if s.NotificationChannel != nil {
+		if err := s.NotificationChannel.Validate(); err != nil {
+			invalidParams.AddNested("NotificationChannel", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.Video != nil {
+		if err := s.Video.Validate(); err != nil {
+			invalidParams.AddNested("Video", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetClientRequestToken sets the ClientRequestToken field's value.
+func (s *StartFaceDetectionInput) SetClientRequestToken(v string) *StartFaceDetectionInput {
+	s.ClientRequestToken = &v
+	return s
+}
+
+// SetFaceAttributes sets the FaceAttributes field's value.
+func (s *StartFaceDetectionInput) SetFaceAttributes(v string) *StartFaceDetectionInput {
+	s.FaceAttributes = &v
+	return s
+}
+
+// SetJobTag sets the JobTag field's value.
+func (s *StartFaceDetectionInput) SetJobTag(v string) *StartFaceDetectionInput {
+	s.JobTag = &v
+	return s
+}
+
+// SetNotificationChannel sets the NotificationChannel field's value.
+func (s *StartFaceDetectionInput) SetNotificationChannel(v *NotificationChannel) *StartFaceDetectionInput {
+	s.NotificationChannel = v
+	return s
+}
+
+// SetVideo sets the Video field's value.
+func (s *StartFaceDetectionInput) SetVideo(v *Video) *StartFaceDetectionInput {
+	s.Video = v
+	return s
+}
+
+type StartFaceDetectionOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The identifier for the face detection job. Use JobId to identify the job
+	// in a subsequent call to GetFaceDetection.
+	JobId *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s StartFaceDetectionOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StartFaceDetectionOutput) GoString() string {
+	return s.String()
+}
+
+// SetJobId sets the JobId field's value.
+func (s *StartFaceDetectionOutput) SetJobId(v string) *StartFaceDetectionOutput {
+	s.JobId = &v
+	return s
+}
+
+type StartFaceSearchInput struct {
+	_ struct{} `type:"structure"`
+
+	// Idempotent token used to identify the start request. If you use the same
+	// token with multiple StartFaceSearch requests, the same JobId is returned.
+	// Use ClientRequestToken to prevent the same job from being accidently started
+	// more than once.
+	ClientRequestToken *string `min:"1" type:"string"`
+
+	// ID of the collection that contains the faces you want to search for.
+	//
+	// CollectionId is a required field
+	CollectionId *string `min:"1" type:"string" required:"true"`
+
+	// The minimum confidence in the person match to return. For example, don't
+	// return any matches where confidence in matches is less than 70%. The default
+	// value is 80%.
+	FaceMatchThreshold *float64 `type:"float"`
+
+	// An identifier you specify that's returned in the completion notification
+	// that's published to your Amazon Simple Notification Service topic. For example,
+	// you can use JobTag to group related jobs and identify them in the completion
+	// notification.
+	JobTag *string `min:"1" type:"string"`
+
+	// The ARN of the Amazon SNS topic to which you want Amazon Rekognition Video
+	// to publish the completion status of the search.
+	NotificationChannel *NotificationChannel `type:"structure"`
+
+	// The video you want to search. The video must be stored in an Amazon S3 bucket.
+	//
+	// Video is a required field
+	Video *Video `type:"structure" required:"true"`
+}
+
+// String returns the string representation
+func (s StartFaceSearchInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StartFaceSearchInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *StartFaceSearchInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "StartFaceSearchInput"}
+	if s.ClientRequestToken != nil && len(*s.ClientRequestToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ClientRequestToken", 1))
+	}
+	if s.CollectionId == nil {
+		invalidParams.Add(request.NewErrParamRequired("CollectionId"))
+	}
+	if s.CollectionId != nil && len(*s.CollectionId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("CollectionId", 1))
+	}
+	if s.JobTag != nil && len(*s.JobTag) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("JobTag", 1))
+	}
+	if s.Video == nil {
+		invalidParams.Add(request.NewErrParamRequired("Video"))
+	}
+	if s.NotificationChannel != nil {
+		if err := s.NotificationChannel.Validate(); err != nil {
+			invalidParams.AddNested("NotificationChannel", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.Video != nil {
+		if err := s.Video.Validate(); err != nil {
+			invalidParams.AddNested("Video", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetClientRequestToken sets the ClientRequestToken field's value.
+func (s *StartFaceSearchInput) SetClientRequestToken(v string) *StartFaceSearchInput {
+	s.ClientRequestToken = &v
+	return s
+}
+
+// SetCollectionId sets the CollectionId field's value.
+func (s *StartFaceSearchInput) SetCollectionId(v string) *StartFaceSearchInput {
+	s.CollectionId = &v
+	return s
+}
+
+// SetFaceMatchThreshold sets the FaceMatchThreshold field's value.
+func (s *StartFaceSearchInput) SetFaceMatchThreshold(v float64) *StartFaceSearchInput {
+	s.FaceMatchThreshold = &v
+	return s
+}
+
+// SetJobTag sets the JobTag field's value.
+func (s *StartFaceSearchInput) SetJobTag(v string) *StartFaceSearchInput {
+	s.JobTag = &v
+	return s
+}
+
+// SetNotificationChannel sets the NotificationChannel field's value.
+func (s *StartFaceSearchInput) SetNotificationChannel(v *NotificationChannel) *StartFaceSearchInput {
+	s.NotificationChannel = v
+	return s
+}
+
+// SetVideo sets the Video field's value.
+func (s *StartFaceSearchInput) SetVideo(v *Video) *StartFaceSearchInput {
+	s.Video = v
+	return s
+}
+
+type StartFaceSearchOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The identifier for the search job. Use JobId to identify the job in a subsequent
+	// call to GetFaceSearch.
+	JobId *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s StartFaceSearchOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StartFaceSearchOutput) GoString() string {
+	return s.String()
+}
+
+// SetJobId sets the JobId field's value.
+func (s *StartFaceSearchOutput) SetJobId(v string) *StartFaceSearchOutput {
+	s.JobId = &v
+	return s
+}
+
+type StartLabelDetectionInput struct {
+	_ struct{} `type:"structure"`
+
+	// Idempotent token used to identify the start request. If you use the same
+	// token with multiple StartLabelDetection requests, the same JobId is returned.
+	// Use ClientRequestToken to prevent the same job from being accidently started
+	// more than once.
+	ClientRequestToken *string `min:"1" type:"string"`
+
+	// An identifier you specify that's returned in the completion notification
+	// that's published to your Amazon Simple Notification Service topic. For example,
+	// you can use JobTag to group related jobs and identify them in the completion
+	// notification.
+	JobTag *string `min:"1" type:"string"`
+
+	// Specifies the minimum confidence that Amazon Rekognition Video must have
+	// in order to return a detected label. Confidence represents how certain Amazon
+	// Rekognition is that a label is correctly identified.0 is the lowest confidence.
+	// 100 is the highest confidence. Amazon Rekognition Video doesn't return any
+	// labels with a confidence level lower than this specified value.
+	//
+	// If you don't specify MinConfidence, the operation returns labels with confidence
+	// values greater than or equal to 50 percent.
+	MinConfidence *float64 `type:"float"`
+
+	// The Amazon SNS topic ARN you want Amazon Rekognition Video to publish the
+	// completion status of the label detection operation to.
+	NotificationChannel *NotificationChannel `type:"structure"`
+
+	// The video in which you want to detect labels. The video must be stored in
+	// an Amazon S3 bucket.
+	//
+	// Video is a required field
+	Video *Video `type:"structure" required:"true"`
+}
+
+// String returns the string representation
+func (s StartLabelDetectionInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StartLabelDetectionInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *StartLabelDetectionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "StartLabelDetectionInput"}
+	if s.ClientRequestToken != nil && len(*s.ClientRequestToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ClientRequestToken", 1))
+	}
+	if s.JobTag != nil && len(*s.JobTag) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("JobTag", 1))
+	}
+	if s.Video == nil {
+		invalidParams.Add(request.NewErrParamRequired("Video"))
+	}
+	if s.NotificationChannel != nil {
+		if err := s.NotificationChannel.Validate(); err != nil {
+			invalidParams.AddNested("NotificationChannel", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.Video != nil {
+		if err := s.Video.Validate(); err != nil {
+			invalidParams.AddNested("Video", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetClientRequestToken sets the ClientRequestToken field's value.
+func (s *StartLabelDetectionInput) SetClientRequestToken(v string) *StartLabelDetectionInput {
+	s.ClientRequestToken = &v
+	return s
+}
+
+// SetJobTag sets the JobTag field's value.
+func (s *StartLabelDetectionInput) SetJobTag(v string) *StartLabelDetectionInput {
+	s.JobTag = &v
+	return s
+}
+
+// SetMinConfidence sets the MinConfidence field's value.
+func (s *StartLabelDetectionInput) SetMinConfidence(v float64) *StartLabelDetectionInput {
+	s.MinConfidence = &v
+	return s
+}
+
+// SetNotificationChannel sets the NotificationChannel field's value.
+func (s *StartLabelDetectionInput) SetNotificationChannel(v *NotificationChannel) *StartLabelDetectionInput {
+	s.NotificationChannel = v
+	return s
+}
+
+// SetVideo sets the Video field's value.
+func (s *StartLabelDetectionInput) SetVideo(v *Video) *StartLabelDetectionInput {
+	s.Video = v
+	return s
+}
+
+type StartLabelDetectionOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The identifier for the label detection job. Use JobId to identify the job
+	// in a subsequent call to GetLabelDetection.
+	JobId *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s StartLabelDetectionOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StartLabelDetectionOutput) GoString() string {
+	return s.String()
+}
+
+// SetJobId sets the JobId field's value.
+func (s *StartLabelDetectionOutput) SetJobId(v string) *StartLabelDetectionOutput {
+	s.JobId = &v
+	return s
+}
+
+type StartPersonTrackingInput struct {
+	_ struct{} `type:"structure"`
+
+	// Idempotent token used to identify the start request. If you use the same
+	// token with multiple StartPersonTracking requests, the same JobId is returned.
+	// Use ClientRequestToken to prevent the same job from being accidently started
+	// more than once.
+	ClientRequestToken *string `min:"1" type:"string"`
+
+	// An identifier you specify that's returned in the completion notification
+	// that's published to your Amazon Simple Notification Service topic. For example,
+	// you can use JobTag to group related jobs and identify them in the completion
+	// notification.
+	JobTag *string `min:"1" type:"string"`
+
+	// The Amazon SNS topic ARN you want Amazon Rekognition Video to publish the
+	// completion status of the people detection operation to.
+	NotificationChannel *NotificationChannel `type:"structure"`
+
+	// The video in which you want to detect people. The video must be stored in
+	// an Amazon S3 bucket.
+	//
+	// Video is a required field
+	Video *Video `type:"structure" required:"true"`
+}
+
+// String returns the string representation
+func (s StartPersonTrackingInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StartPersonTrackingInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *StartPersonTrackingInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "StartPersonTrackingInput"}
+	if s.ClientRequestToken != nil && len(*s.ClientRequestToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ClientRequestToken", 1))
+	}
+	if s.JobTag != nil && len(*s.JobTag) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("JobTag", 1))
+	}
+	if s.Video == nil {
+		invalidParams.Add(request.NewErrParamRequired("Video"))
+	}
+	if s.NotificationChannel != nil {
+		if err := s.NotificationChannel.Validate(); err != nil {
+			invalidParams.AddNested("NotificationChannel", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.Video != nil {
+		if err := s.Video.Validate(); err != nil {
+			invalidParams.AddNested("Video", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetClientRequestToken sets the ClientRequestToken field's value.
+func (s *StartPersonTrackingInput) SetClientRequestToken(v string) *StartPersonTrackingInput {
+	s.ClientRequestToken = &v
+	return s
+}
+
+// SetJobTag sets the JobTag field's value.
+func (s *StartPersonTrackingInput) SetJobTag(v string) *StartPersonTrackingInput {
+	s.JobTag = &v
+	return s
+}
+
+// SetNotificationChannel sets the NotificationChannel field's value.
+func (s *StartPersonTrackingInput) SetNotificationChannel(v *NotificationChannel) *StartPersonTrackingInput {
+	s.NotificationChannel = v
+	return s
+}
+
+// SetVideo sets the Video field's value.
+func (s *StartPersonTrackingInput) SetVideo(v *Video) *StartPersonTrackingInput {
+	s.Video = v
+	return s
+}
+
+type StartPersonTrackingOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The identifier for the person detection job. Use JobId to identify the job
+	// in a subsequent call to GetPersonTracking.
+	JobId *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s StartPersonTrackingOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StartPersonTrackingOutput) GoString() string {
+	return s.String()
+}
+
+// SetJobId sets the JobId field's value.
+func (s *StartPersonTrackingOutput) SetJobId(v string) *StartPersonTrackingOutput {
+	s.JobId = &v
+	return s
+}
+
+type StartProjectVersionInput struct {
+	_ struct{} `type:"structure"`
+
+	// The minimum number of inference units to use. A single inference unit represents
+	// 1 hour of processing and can support up to 5 Transaction Pers Second (TPS).
+	// Use a higher number to increase the TPS throughput of your model. You are
+	// charged for the number of inference units that you use.
+	//
+	// MinInferenceUnits is a required field
+	MinInferenceUnits *int64 `min:"1" type:"integer" required:"true"`
+
+	// The Amazon Resource Name(ARN) of the model version that you want to start.
+	//
+	// ProjectVersionArn is a required field
+	ProjectVersionArn *string `min:"20" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s StartProjectVersionInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StartProjectVersionInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *StartProjectVersionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "StartProjectVersionInput"}
+	if s.MinInferenceUnits == nil {
+		invalidParams.Add(request.NewErrParamRequired("MinInferenceUnits"))
+	}
+	if s.MinInferenceUnits != nil && *s.MinInferenceUnits < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MinInferenceUnits", 1))
+	}
+	if s.ProjectVersionArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("ProjectVersionArn"))
+	}
+	if s.ProjectVersionArn != nil && len(*s.ProjectVersionArn) < 20 {
+		invalidParams.Add(request.NewErrParamMinLen("ProjectVersionArn", 20))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetMinInferenceUnits sets the MinInferenceUnits field's value.
+func (s *StartProjectVersionInput) SetMinInferenceUnits(v int64) *StartProjectVersionInput {
+	s.MinInferenceUnits = &v
+	return s
+}
+
+// SetProjectVersionArn sets the ProjectVersionArn field's value.
+func (s *StartProjectVersionInput) SetProjectVersionArn(v string) *StartProjectVersionInput {
+	s.ProjectVersionArn = &v
+	return s
+}
+
+type StartProjectVersionOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The current running status of the model.
+	Status *string `type:"string" enum:"ProjectVersionStatus"`
+}
+
+// String returns the string representation
+func (s StartProjectVersionOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StartProjectVersionOutput) GoString() string {
+	return s.String()
+}
+
+// SetStatus sets the Status field's value.
+func (s *StartProjectVersionOutput) SetStatus(v string) *StartProjectVersionOutput {
+	s.Status = &v
+	return s
+}
+
+// Filters applied to the technical cue or shot detection segments. For more
+// information, see StartSegmentDetection.
+type StartSegmentDetectionFilters struct {
+	_ struct{} `type:"structure"`
+
+	// Filters that are specific to shot detections.
+	ShotFilter *StartShotDetectionFilter `type:"structure"`
+
+	// Filters that are specific to technical cues.
+	TechnicalCueFilter *StartTechnicalCueDetectionFilter `type:"structure"`
+}
+
+// String returns the string representation
+func (s StartSegmentDetectionFilters) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StartSegmentDetectionFilters) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *StartSegmentDetectionFilters) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "StartSegmentDetectionFilters"}
+	if s.ShotFilter != nil {
+		if err := s.ShotFilter.Validate(); err != nil {
+			invalidParams.AddNested("ShotFilter", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.TechnicalCueFilter != nil {
+		if err := s.TechnicalCueFilter.Validate(); err != nil {
+			invalidParams.AddNested("TechnicalCueFilter", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetShotFilter sets the ShotFilter field's value.
+func (s *StartSegmentDetectionFilters) SetShotFilter(v *StartShotDetectionFilter) *StartSegmentDetectionFilters {
+	s.ShotFilter = v
+	return s
+}
+
+// SetTechnicalCueFilter sets the TechnicalCueFilter field's value.
+func (s *StartSegmentDetectionFilters) SetTechnicalCueFilter(v *StartTechnicalCueDetectionFilter) *StartSegmentDetectionFilters {
+	s.TechnicalCueFilter = v
+	return s
+}
+
+type StartSegmentDetectionInput struct {
+	_ struct{} `type:"structure"`
+
+	// Idempotent token used to identify the start request. If you use the same
+	// token with multiple StartSegmentDetection requests, the same JobId is returned.
+	// Use ClientRequestToken to prevent the same job from being accidently started
+	// more than once.
+	ClientRequestToken *string `min:"1" type:"string"`
+
+	// Filters for technical cue or shot detection.
+	Filters *StartSegmentDetectionFilters `type:"structure"`
+
+	// An identifier you specify that's returned in the completion notification
+	// that's published to your Amazon Simple Notification Service topic. For example,
+	// you can use JobTag to group related jobs and identify them in the completion
+	// notification.
+	JobTag *string `min:"1" type:"string"`
+
+	// The ARN of the Amazon SNS topic to which you want Amazon Rekognition Video
+	// to publish the completion status of the segment detection operation.
+	NotificationChannel *NotificationChannel `type:"structure"`
+
+	// An array of segment types to detect in the video. Valid values are TECHNICAL_CUE
+	// and SHOT.
+	//
+	// SegmentTypes is a required field
+	SegmentTypes []*string `min:"1" type:"list" required:"true"`
+
+	// Video file stored in an Amazon S3 bucket. Amazon Rekognition video start
+	// operations such as StartLabelDetection use Video to specify a video for analysis.
+	// The supported file formats are .mp4, .mov and .avi.
+	//
+	// Video is a required field
+	Video *Video `type:"structure" required:"true"`
+}
+
+// String returns the string representation
+func (s StartSegmentDetectionInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StartSegmentDetectionInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *StartSegmentDetectionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "StartSegmentDetectionInput"}
+	if s.ClientRequestToken != nil && len(*s.ClientRequestToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ClientRequestToken", 1))
+	}
+	if s.JobTag != nil && len(*s.JobTag) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("JobTag", 1))
+	}
+	if s.SegmentTypes == nil {
+		invalidParams.Add(request.NewErrParamRequired("SegmentTypes"))
+	}
+	if s.SegmentTypes != nil && len(s.SegmentTypes) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("SegmentTypes", 1))
+	}
+	if s.Video == nil {
+		invalidParams.Add(request.NewErrParamRequired("Video"))
+	}
+	if s.Filters != nil {
+		if err := s.Filters.Validate(); err != nil {
+			invalidParams.AddNested("Filters", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.NotificationChannel != nil {
+		if err := s.NotificationChannel.Validate(); err != nil {
+			invalidParams.AddNested("NotificationChannel", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.Video != nil {
+		if err := s.Video.Validate(); err != nil {
+			invalidParams.AddNested("Video", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetClientRequestToken sets the ClientRequestToken field's value.
+func (s *StartSegmentDetectionInput) SetClientRequestToken(v string) *StartSegmentDetectionInput {
+	s.ClientRequestToken = &v
+	return s
+}
+
+// SetFilters sets the Filters field's value.
+func (s *StartSegmentDetectionInput) SetFilters(v *StartSegmentDetectionFilters) *StartSegmentDetectionInput {
+	s.Filters = v
+	return s
+}
+
+// SetJobTag sets the JobTag field's value.
+func (s *StartSegmentDetectionInput) SetJobTag(v string) *StartSegmentDetectionInput {
+	s.JobTag = &v
+	return s
+}
+
+// SetNotificationChannel sets the NotificationChannel field's value.
+func (s *StartSegmentDetectionInput) SetNotificationChannel(v *NotificationChannel) *StartSegmentDetectionInput {
+	s.NotificationChannel = v
+	return s
+}
+
+// SetSegmentTypes sets the SegmentTypes field's value.
+func (s *StartSegmentDetectionInput) SetSegmentTypes(v []*string) *StartSegmentDetectionInput {
+	s.SegmentTypes = v
+	return s
+}
+
+// SetVideo sets the Video field's value.
+func (s *StartSegmentDetectionInput) SetVideo(v *Video) *StartSegmentDetectionInput {
+	s.Video = v
+	return s
+}
+
+type StartSegmentDetectionOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Unique identifier for the segment detection job. The JobId is returned from
+	// StartSegmentDetection.
+	JobId *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s StartSegmentDetectionOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StartSegmentDetectionOutput) GoString() string {
+	return s.String()
+}
+
+// SetJobId sets the JobId field's value.
+func (s *StartSegmentDetectionOutput) SetJobId(v string) *StartSegmentDetectionOutput {
+	s.JobId = &v
+	return s
+}
+
+// Filters for the shot detection segments returned by GetSegmentDetection.
+// For more information, see StartSegmentDetectionFilters.
+type StartShotDetectionFilter struct {
+	_ struct{} `type:"structure"`
+
+	// Specifies the minimum confidence that Amazon Rekognition Video must have
+	// in order to return a detected segment. Confidence represents how certain
+	// Amazon Rekognition is that a segment is correctly identified. 0 is the lowest
+	// confidence. 100 is the highest confidence. Amazon Rekognition Video doesn't
+	// return any segments with a confidence level lower than this specified value.
+	//
+	// If you don't specify MinSegmentConfidence, the GetSegmentDetection returns
+	// segments with confidence values greater than or equal to 50 percent.
+	MinSegmentConfidence *float64 `min:"50" type:"float"`
+}
+
+// String returns the string representation
+func (s StartShotDetectionFilter) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StartShotDetectionFilter) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *StartShotDetectionFilter) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "StartShotDetectionFilter"}
+	if s.MinSegmentConfidence != nil && *s.MinSegmentConfidence < 50 {
+		invalidParams.Add(request.NewErrParamMinValue("MinSegmentConfidence", 50))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetMinSegmentConfidence sets the MinSegmentConfidence field's value.
+func (s *StartShotDetectionFilter) SetMinSegmentConfidence(v float64) *StartShotDetectionFilter {
+	s.MinSegmentConfidence = &v
+	return s
+}
+
+type StartStreamProcessorInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the stream processor to start processing.
+	//
+	// Name is a required field
+	Name *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s StartStreamProcessorInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StartStreamProcessorInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *StartStreamProcessorInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "StartStreamProcessorInput"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetName sets the Name field's value.
+func (s *StartStreamProcessorInput) SetName(v string) *StartStreamProcessorInput {
+	s.Name = &v
+	return s
+}
+
+type StartStreamProcessorOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s StartStreamProcessorOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StartStreamProcessorOutput) GoString() string {
+	return s.String()
+}
+
+// Filters for the technical segments returned by GetSegmentDetection. For more
+// information, see StartSegmentDetectionFilters.
+type StartTechnicalCueDetectionFilter struct {
+	_ struct{} `type:"structure"`
+
+	// Specifies the minimum confidence that Amazon Rekognition Video must have
+	// in order to return a detected segment. Confidence represents how certain
+	// Amazon Rekognition is that a segment is correctly identified. 0 is the lowest
+	// confidence. 100 is the highest confidence. Amazon Rekognition Video doesn't
+	// return any segments with a confidence level lower than this specified value.
+	//
+	// If you don't specify MinSegmentConfidence, GetSegmentDetection returns segments
+	// with confidence values greater than or equal to 50 percent.
+	MinSegmentConfidence *float64 `min:"50" type:"float"`
+}
+
+// String returns the string representation
+func (s StartTechnicalCueDetectionFilter) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StartTechnicalCueDetectionFilter) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *StartTechnicalCueDetectionFilter) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "StartTechnicalCueDetectionFilter"}
+	if s.MinSegmentConfidence != nil && *s.MinSegmentConfidence < 50 {
+		invalidParams.Add(request.NewErrParamMinValue("MinSegmentConfidence", 50))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetMinSegmentConfidence sets the MinSegmentConfidence field's value.
+func (s *StartTechnicalCueDetectionFilter) SetMinSegmentConfidence(v float64) *StartTechnicalCueDetectionFilter {
+	s.MinSegmentConfidence = &v
+	return s
+}
+
+// Set of optional parameters that let you set the criteria text must meet to
+// be included in your response. WordFilter looks at a word's height, width
+// and minimum confidence. RegionOfInterest lets you set a specific region of
+// the screen to look for text in.
+type StartTextDetectionFilters struct {
+	_ struct{} `type:"structure"`
+
+	// Filter focusing on a certain area of the frame. Uses a BoundingBox object
+	// to set the region of the screen.
+	RegionsOfInterest []*RegionOfInterest `type:"list"`
+
+	// Filters focusing on qualities of the text, such as confidence or size.
+	WordFilter *DetectionFilter `type:"structure"`
+}
+
+// String returns the string representation
+func (s StartTextDetectionFilters) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StartTextDetectionFilters) GoString() string {
+	return s.String()
+}
+
+// SetRegionsOfInterest sets the RegionsOfInterest field's value.
+func (s *StartTextDetectionFilters) SetRegionsOfInterest(v []*RegionOfInterest) *StartTextDetectionFilters {
+	s.RegionsOfInterest = v
+	return s
+}
+
+// SetWordFilter sets the WordFilter field's value.
+func (s *StartTextDetectionFilters) SetWordFilter(v *DetectionFilter) *StartTextDetectionFilters {
+	s.WordFilter = v
+	return s
+}
+
+type StartTextDetectionInput struct {
+	_ struct{} `type:"structure"`
+
+	// Idempotent token used to identify the start request. If you use the same
+	// token with multiple StartTextDetection requests, the same JobId is returned.
+	// Use ClientRequestToken to prevent the same job from being accidentaly started
+	// more than once.
+	ClientRequestToken *string `min:"1" type:"string"`
+
+	// Optional parameters that let you set criteria the text must meet to be included
+	// in your response.
+	Filters *StartTextDetectionFilters `type:"structure"`
+
+	// An identifier returned in the completion status published by your Amazon
+	// Simple Notification Service topic. For example, you can use JobTag to group
+	// related jobs and identify them in the completion notification.
+	JobTag *string `min:"1" type:"string"`
+
+	// The Amazon Simple Notification Service topic to which Amazon Rekognition
+	// publishes the completion status of a video analysis operation. For more information,
+	// see api-video.
+	NotificationChannel *NotificationChannel `type:"structure"`
+
+	// Video file stored in an Amazon S3 bucket. Amazon Rekognition video start
+	// operations such as StartLabelDetection use Video to specify a video for analysis.
+	// The supported file formats are .mp4, .mov and .avi.
+	//
+	// Video is a required field
+	Video *Video `type:"structure" required:"true"`
+}
+
+// String returns the string representation
+func (s StartTextDetectionInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StartTextDetectionInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *StartTextDetectionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "StartTextDetectionInput"}
+	if s.ClientRequestToken != nil && len(*s.ClientRequestToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ClientRequestToken", 1))
+	}
+	if s.JobTag != nil && len(*s.JobTag) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("JobTag", 1))
+	}
+	if s.Video == nil {
+		invalidParams.Add(request.NewErrParamRequired("Video"))
+	}
+	if s.NotificationChannel != nil {
+		if err := s.NotificationChannel.Validate(); err != nil {
+			invalidParams.AddNested("NotificationChannel", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.Video != nil {
+		if err := s.Video.Validate(); err != nil {
+			invalidParams.AddNested("Video", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetClientRequestToken sets the ClientRequestToken field's value.
+func (s *StartTextDetectionInput) SetClientRequestToken(v string) *StartTextDetectionInput {
+	s.ClientRequestToken = &v
+	return s
+}
+
+// SetFilters sets the Filters field's value.
+func (s *StartTextDetectionInput) SetFilters(v *StartTextDetectionFilters) *StartTextDetectionInput {
+	s.Filters = v
+	return s
+}
+
+// SetJobTag sets the JobTag field's value.
+func (s *StartTextDetectionInput) SetJobTag(v string) *StartTextDetectionInput {
+	s.JobTag = &v
+	return s
+}
+
+// SetNotificationChannel sets the NotificationChannel field's value.
+func (s *StartTextDetectionInput) SetNotificationChannel(v *NotificationChannel) *StartTextDetectionInput {
+	s.NotificationChannel = v
+	return s
+}
+
+// SetVideo sets the Video field's value.
+func (s *StartTextDetectionInput) SetVideo(v *Video) *StartTextDetectionInput {
+	s.Video = v
+	return s
+}
+
+type StartTextDetectionOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Identifier for the text detection job. Use JobId to identify the job in a
+	// subsequent call to GetTextDetection.
+	JobId *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s StartTextDetectionOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StartTextDetectionOutput) GoString() string {
+	return s.String()
+}
+
+// SetJobId sets the JobId field's value.
+func (s *StartTextDetectionOutput) SetJobId(v string) *StartTextDetectionOutput {
+	s.JobId = &v
+	return s
+}
+
+type StopProjectVersionInput struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) of the model version that you want to delete.
+	//
+	// This operation requires permissions to perform the rekognition:StopProjectVersion
+	// action.
+	//
+	// ProjectVersionArn is a required field
+	ProjectVersionArn *string `min:"20" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s StopProjectVersionInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StopProjectVersionInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *StopProjectVersionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "StopProjectVersionInput"}
+	if s.ProjectVersionArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("ProjectVersionArn"))
+	}
+	if s.ProjectVersionArn != nil && len(*s.ProjectVersionArn) < 20 {
+		invalidParams.Add(request.NewErrParamMinLen("ProjectVersionArn", 20))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetProjectVersionArn sets the ProjectVersionArn field's value.
+func (s *StopProjectVersionInput) SetProjectVersionArn(v string) *StopProjectVersionInput {
+	s.ProjectVersionArn = &v
+	return s
+}
+
+type StopProjectVersionOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The current status of the stop operation.
+	Status *string `type:"string" enum:"ProjectVersionStatus"`
+}
+
+// String returns the string representation
+func (s StopProjectVersionOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StopProjectVersionOutput) GoString() string {
+	return s.String()
+}
+
+// SetStatus sets the Status field's value.
+func (s *StopProjectVersionOutput) SetStatus(v string) *StopProjectVersionOutput {
+	s.Status = &v
+	return s
+}
+
+type StopStreamProcessorInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of a stream processor created by CreateStreamProcessor.
+	//
+	// Name is a required field
+	Name *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s StopStreamProcessorInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StopStreamProcessorInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *StopStreamProcessorInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "StopStreamProcessorInput"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetName sets the Name field's value.
+func (s *StopStreamProcessorInput) SetName(v string) *StopStreamProcessorInput {
+	s.Name = &v
+	return s
+}
+
+type StopStreamProcessorOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s StopStreamProcessorOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StopStreamProcessorOutput) GoString() string {
+	return s.String()
+}
+
+// An object that recognizes faces in a streaming video. An Amazon Rekognition
+// stream processor is created by a call to CreateStreamProcessor. The request
+// parameters for CreateStreamProcessor describe the Kinesis video stream source
+// for the streaming video, face recognition parameters, and where to stream
+// the analysis resullts.
+type StreamProcessor struct {
+	_ struct{} `type:"structure"`
+
+	// Name of the Amazon Rekognition stream processor.
+	Name *string `min:"1" type:"string"`
+
+	// Current status of the Amazon Rekognition stream processor.
+	Status *string `type:"string" enum:"StreamProcessorStatus"`
+}
+
+// String returns the string representation
+func (s StreamProcessor) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StreamProcessor) GoString() string {
+	return s.String()
+}
+
+// SetName sets the Name field's value.
+func (s *StreamProcessor) SetName(v string) *StreamProcessor {
+	s.Name = &v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *StreamProcessor) SetStatus(v string) *StreamProcessor {
+	s.Status = &v
+	return s
+}
+
+// Information about the source streaming video.
+type StreamProcessorInput struct {
+	_ struct{} `type:"structure"`
+
+	// The Kinesis video stream input stream for the source streaming video.
+	KinesisVideoStream *KinesisVideoStream `type:"structure"`
+}
+
+// String returns the string representation
+func (s StreamProcessorInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StreamProcessorInput) GoString() string {
+	return s.String()
+}
+
+// SetKinesisVideoStream sets the KinesisVideoStream field's value.
+func (s *StreamProcessorInput) SetKinesisVideoStream(v *KinesisVideoStream) *StreamProcessorInput {
+	s.KinesisVideoStream = v
+	return s
+}
+
+// Information about the Amazon Kinesis Data Streams stream to which a Amazon
+// Rekognition Video stream processor streams the results of a video analysis.
+// For more information, see CreateStreamProcessor in the Amazon Rekognition
+// Developer Guide.
+type StreamProcessorOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Kinesis Data Streams stream to which the Amazon Rekognition stream
+	// processor streams the analysis results.
+	KinesisDataStream *KinesisDataStream `type:"structure"`
+}
+
+// String returns the string representation
+func (s StreamProcessorOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StreamProcessorOutput) GoString() string {
+	return s.String()
+}
+
+// SetKinesisDataStream sets the KinesisDataStream field's value.
+func (s *StreamProcessorOutput) SetKinesisDataStream(v *KinesisDataStream) *StreamProcessorOutput {
+	s.KinesisDataStream = v
+	return s
+}
+
+// Input parameters used to recognize faces in a streaming video analyzed by
+// a Amazon Rekognition stream processor.
+type StreamProcessorSettings struct {
+	_ struct{} `type:"structure"`
+
+	// Face search settings to use on a streaming video.
+	FaceSearch *FaceSearchSettings `type:"structure"`
+}
+
+// String returns the string representation
+func (s StreamProcessorSettings) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StreamProcessorSettings) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *StreamProcessorSettings) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "StreamProcessorSettings"}
+	if s.FaceSearch != nil {
+		if err := s.FaceSearch.Validate(); err != nil {
+			invalidParams.AddNested("FaceSearch", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetFaceSearch sets the FaceSearch field's value.
+func (s *StreamProcessorSettings) SetFaceSearch(v *FaceSearchSettings) *StreamProcessorSettings {
+	s.FaceSearch = v
+	return s
+}
+
+// The S3 bucket that contains the training summary. The training summary includes
+// aggregated evaluation metrics for the entire testing dataset and metrics
+// for each individual label.
+//
+// You get the training summary S3 bucket location by calling DescribeProjectVersions.
+type Summary struct {
+	_ struct{} `type:"structure"`
+
+	// Provides the S3 bucket name and object name.
+	//
+	// The region for the S3 bucket containing the S3 object must match the region
+	// you use for Amazon Rekognition operations.
+	//
+	// For Amazon Rekognition to process an S3 object, the user must have permission
+	// to access the S3 object. For more information, see Resource-Based Policies
+	// in the Amazon Rekognition Developer Guide.
+	S3Object *S3Object `type:"structure"`
+}
+
+// String returns the string representation
+func (s Summary) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Summary) GoString() string {
+	return s.String()
+}
+
+// SetS3Object sets the S3Object field's value.
+func (s *Summary) SetS3Object(v *S3Object) *Summary {
+	s.S3Object = v
+	return s
+}
+
 // Indicates whether or not the face is wearing sunglasses, and the confidence
 // level in the determination.
 type Sunglasses struct {
@@ -4346,6 +15722,606 @@ func (s *Sunglasses) SetValue(v bool) *Sunglasses {
 	return s
 }
 
+// Information about a technical cue segment. For more information, see SegmentDetection.
+type TechnicalCueSegment struct {
+	_ struct{} `type:"structure"`
+
+	// The confidence that Amazon Rekognition Video has in the accuracy of the detected
+	// segment.
+	Confidence *float64 `min:"50" type:"float"`
+
+	// The type of the technical cue.
+	Type *string `type:"string" enum:"TechnicalCueType"`
+}
+
+// String returns the string representation
+func (s TechnicalCueSegment) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TechnicalCueSegment) GoString() string {
+	return s.String()
+}
+
+// SetConfidence sets the Confidence field's value.
+func (s *TechnicalCueSegment) SetConfidence(v float64) *TechnicalCueSegment {
+	s.Confidence = &v
+	return s
+}
+
+// SetType sets the Type field's value.
+func (s *TechnicalCueSegment) SetType(v string) *TechnicalCueSegment {
+	s.Type = &v
+	return s
+}
+
+// The dataset used for testing. Optionally, if AutoCreate is set, Amazon Rekognition
+// Custom Labels creates a testing dataset using an 80/20 split of the training
+// dataset.
+type TestingData struct {
+	_ struct{} `type:"structure"`
+
+	// The assets used for testing.
+	Assets []*Asset `type:"list"`
+
+	// If specified, Amazon Rekognition Custom Labels creates a testing dataset
+	// with an 80/20 split of the training dataset.
+	AutoCreate *bool `type:"boolean"`
+}
+
+// String returns the string representation
+func (s TestingData) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TestingData) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *TestingData) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "TestingData"}
+	if s.Assets != nil {
+		for i, v := range s.Assets {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Assets", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAssets sets the Assets field's value.
+func (s *TestingData) SetAssets(v []*Asset) *TestingData {
+	s.Assets = v
+	return s
+}
+
+// SetAutoCreate sets the AutoCreate field's value.
+func (s *TestingData) SetAutoCreate(v bool) *TestingData {
+	s.AutoCreate = &v
+	return s
+}
+
+// A Sagemaker Groundtruth format manifest file representing the dataset used
+// for testing.
+type TestingDataResult struct {
+	_ struct{} `type:"structure"`
+
+	// The testing dataset that was supplied for training.
+	Input *TestingData `type:"structure"`
+
+	// The subset of the dataset that was actually tested. Some images (assets)
+	// might not be tested due to file formatting and other issues.
+	Output *TestingData `type:"structure"`
+}
+
+// String returns the string representation
+func (s TestingDataResult) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TestingDataResult) GoString() string {
+	return s.String()
+}
+
+// SetInput sets the Input field's value.
+func (s *TestingDataResult) SetInput(v *TestingData) *TestingDataResult {
+	s.Input = v
+	return s
+}
+
+// SetOutput sets the Output field's value.
+func (s *TestingDataResult) SetOutput(v *TestingData) *TestingDataResult {
+	s.Output = v
+	return s
+}
+
+// Information about a word or line of text detected by DetectText.
+//
+// The DetectedText field contains the text that Amazon Rekognition detected
+// in the image.
+//
+// Every word and line has an identifier (Id). Each word belongs to a line and
+// has a parent identifier (ParentId) that identifies the line of text in which
+// the word appears. The word Id is also an index for the word within a line
+// of words.
+//
+// For more information, see Detecting Text in the Amazon Rekognition Developer
+// Guide.
+type TextDetection struct {
+	_ struct{} `type:"structure"`
+
+	// The confidence that Amazon Rekognition has in the accuracy of the detected
+	// text and the accuracy of the geometry points around the detected text.
+	Confidence *float64 `type:"float"`
+
+	// The word or line of text recognized by Amazon Rekognition.
+	DetectedText *string `type:"string"`
+
+	// The location of the detected text on the image. Includes an axis aligned
+	// coarse bounding box surrounding the text and a finer grain polygon for more
+	// accurate spatial information.
+	Geometry *Geometry `type:"structure"`
+
+	// The identifier for the detected text. The identifier is only unique for a
+	// single call to DetectText.
+	Id *int64 `type:"integer"`
+
+	// The Parent identifier for the detected text identified by the value of ID.
+	// If the type of detected text is LINE, the value of ParentId is Null.
+	ParentId *int64 `type:"integer"`
+
+	// The type of text that was detected.
+	Type *string `type:"string" enum:"TextTypes"`
+}
+
+// String returns the string representation
+func (s TextDetection) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TextDetection) GoString() string {
+	return s.String()
+}
+
+// SetConfidence sets the Confidence field's value.
+func (s *TextDetection) SetConfidence(v float64) *TextDetection {
+	s.Confidence = &v
+	return s
+}
+
+// SetDetectedText sets the DetectedText field's value.
+func (s *TextDetection) SetDetectedText(v string) *TextDetection {
+	s.DetectedText = &v
+	return s
+}
+
+// SetGeometry sets the Geometry field's value.
+func (s *TextDetection) SetGeometry(v *Geometry) *TextDetection {
+	s.Geometry = v
+	return s
+}
+
+// SetId sets the Id field's value.
+func (s *TextDetection) SetId(v int64) *TextDetection {
+	s.Id = &v
+	return s
+}
+
+// SetParentId sets the ParentId field's value.
+func (s *TextDetection) SetParentId(v int64) *TextDetection {
+	s.ParentId = &v
+	return s
+}
+
+// SetType sets the Type field's value.
+func (s *TextDetection) SetType(v string) *TextDetection {
+	s.Type = &v
+	return s
+}
+
+// Information about text detected in a video. Incudes the detected text, the
+// time in milliseconds from the start of the video that the text was detected,
+// and where it was detected on the screen.
+type TextDetectionResult struct {
+	_ struct{} `type:"structure"`
+
+	// Details about text detected in a video.
+	TextDetection *TextDetection `type:"structure"`
+
+	// The time, in milliseconds from the start of the video, that the text was
+	// detected.
+	Timestamp *int64 `type:"long"`
+}
+
+// String returns the string representation
+func (s TextDetectionResult) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TextDetectionResult) GoString() string {
+	return s.String()
+}
+
+// SetTextDetection sets the TextDetection field's value.
+func (s *TextDetectionResult) SetTextDetection(v *TextDetection) *TextDetectionResult {
+	s.TextDetection = v
+	return s
+}
+
+// SetTimestamp sets the Timestamp field's value.
+func (s *TextDetectionResult) SetTimestamp(v int64) *TextDetectionResult {
+	s.Timestamp = &v
+	return s
+}
+
+// Amazon Rekognition is temporarily unable to process the request. Try your
+// call again.
+type ThrottlingException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s ThrottlingException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ThrottlingException) GoString() string {
+	return s.String()
+}
+
+func newErrorThrottlingException(v protocol.ResponseMetadata) error {
+	return &ThrottlingException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *ThrottlingException) Code() string {
+	return "ThrottlingException"
+}
+
+// Message returns the exception's message.
+func (s *ThrottlingException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *ThrottlingException) OrigErr() error {
+	return nil
+}
+
+func (s *ThrottlingException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *ThrottlingException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *ThrottlingException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// The dataset used for training.
+type TrainingData struct {
+	_ struct{} `type:"structure"`
+
+	// A Sagemaker GroundTruth manifest file that contains the training images (assets).
+	Assets []*Asset `type:"list"`
+}
+
+// String returns the string representation
+func (s TrainingData) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TrainingData) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *TrainingData) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "TrainingData"}
+	if s.Assets != nil {
+		for i, v := range s.Assets {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Assets", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAssets sets the Assets field's value.
+func (s *TrainingData) SetAssets(v []*Asset) *TrainingData {
+	s.Assets = v
+	return s
+}
+
+// A Sagemaker Groundtruth format manifest file that represents the dataset
+// used for training.
+type TrainingDataResult struct {
+	_ struct{} `type:"structure"`
+
+	// The training assets that you supplied for training.
+	Input *TrainingData `type:"structure"`
+
+	// The images (assets) that were actually trained by Amazon Rekognition Custom
+	// Labels.
+	Output *TrainingData `type:"structure"`
+}
+
+// String returns the string representation
+func (s TrainingDataResult) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TrainingDataResult) GoString() string {
+	return s.String()
+}
+
+// SetInput sets the Input field's value.
+func (s *TrainingDataResult) SetInput(v *TrainingData) *TrainingDataResult {
+	s.Input = v
+	return s
+}
+
+// SetOutput sets the Output field's value.
+func (s *TrainingDataResult) SetOutput(v *TrainingData) *TrainingDataResult {
+	s.Output = v
+	return s
+}
+
+// A face that IndexFaces detected, but didn't index. Use the Reasons response
+// attribute to determine why a face wasn't indexed.
+type UnindexedFace struct {
+	_ struct{} `type:"structure"`
+
+	// The structure that contains attributes of a face that IndexFacesdetected,
+	// but didn't index.
+	FaceDetail *FaceDetail `type:"structure"`
+
+	// An array of reasons that specify why a face wasn't indexed.
+	//
+	//    * EXTREME_POSE - The face is at a pose that can't be detected. For example,
+	//    the head is turned too far away from the camera.
+	//
+	//    * EXCEEDS_MAX_FACES - The number of faces detected is already higher than
+	//    that specified by the MaxFaces input parameter for IndexFaces.
+	//
+	//    * LOW_BRIGHTNESS - The image is too dark.
+	//
+	//    * LOW_SHARPNESS - The image is too blurry.
+	//
+	//    * LOW_CONFIDENCE - The face was detected with a low confidence.
+	//
+	//    * SMALL_BOUNDING_BOX - The bounding box around the face is too small.
+	Reasons []*string `type:"list"`
+}
+
+// String returns the string representation
+func (s UnindexedFace) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UnindexedFace) GoString() string {
+	return s.String()
+}
+
+// SetFaceDetail sets the FaceDetail field's value.
+func (s *UnindexedFace) SetFaceDetail(v *FaceDetail) *UnindexedFace {
+	s.FaceDetail = v
+	return s
+}
+
+// SetReasons sets the Reasons field's value.
+func (s *UnindexedFace) SetReasons(v []*string) *UnindexedFace {
+	s.Reasons = v
+	return s
+}
+
+// Video file stored in an Amazon S3 bucket. Amazon Rekognition video start
+// operations such as StartLabelDetection use Video to specify a video for analysis.
+// The supported file formats are .mp4, .mov and .avi.
+type Video struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon S3 bucket name and file name for the video.
+	S3Object *S3Object `type:"structure"`
+}
+
+// String returns the string representation
+func (s Video) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Video) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *Video) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "Video"}
+	if s.S3Object != nil {
+		if err := s.S3Object.Validate(); err != nil {
+			invalidParams.AddNested("S3Object", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetS3Object sets the S3Object field's value.
+func (s *Video) SetS3Object(v *S3Object) *Video {
+	s.S3Object = v
+	return s
+}
+
+// Information about a video that Amazon Rekognition analyzed. Videometadata
+// is returned in every page of paginated responses from a Amazon Rekognition
+// video operation.
+type VideoMetadata struct {
+	_ struct{} `type:"structure"`
+
+	// Type of compression used in the analyzed video.
+	Codec *string `type:"string"`
+
+	// Length of the video in milliseconds.
+	DurationMillis *int64 `type:"long"`
+
+	// Format of the analyzed video. Possible values are MP4, MOV and AVI.
+	Format *string `type:"string"`
+
+	// Vertical pixel dimension of the video.
+	FrameHeight *int64 `type:"long"`
+
+	// Number of frames per second in the video.
+	FrameRate *float64 `type:"float"`
+
+	// Horizontal pixel dimension of the video.
+	FrameWidth *int64 `type:"long"`
+}
+
+// String returns the string representation
+func (s VideoMetadata) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s VideoMetadata) GoString() string {
+	return s.String()
+}
+
+// SetCodec sets the Codec field's value.
+func (s *VideoMetadata) SetCodec(v string) *VideoMetadata {
+	s.Codec = &v
+	return s
+}
+
+// SetDurationMillis sets the DurationMillis field's value.
+func (s *VideoMetadata) SetDurationMillis(v int64) *VideoMetadata {
+	s.DurationMillis = &v
+	return s
+}
+
+// SetFormat sets the Format field's value.
+func (s *VideoMetadata) SetFormat(v string) *VideoMetadata {
+	s.Format = &v
+	return s
+}
+
+// SetFrameHeight sets the FrameHeight field's value.
+func (s *VideoMetadata) SetFrameHeight(v int64) *VideoMetadata {
+	s.FrameHeight = &v
+	return s
+}
+
+// SetFrameRate sets the FrameRate field's value.
+func (s *VideoMetadata) SetFrameRate(v float64) *VideoMetadata {
+	s.FrameRate = &v
+	return s
+}
+
+// SetFrameWidth sets the FrameWidth field's value.
+func (s *VideoMetadata) SetFrameWidth(v int64) *VideoMetadata {
+	s.FrameWidth = &v
+	return s
+}
+
+// The file size or duration of the supplied media is too large. The maximum
+// file size is 10GB. The maximum duration is 6 hours.
+type VideoTooLargeException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s VideoTooLargeException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s VideoTooLargeException) GoString() string {
+	return s.String()
+}
+
+func newErrorVideoTooLargeException(v protocol.ResponseMetadata) error {
+	return &VideoTooLargeException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *VideoTooLargeException) Code() string {
+	return "VideoTooLargeException"
+}
+
+// Message returns the exception's message.
+func (s *VideoTooLargeException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *VideoTooLargeException) OrigErr() error {
+	return nil
+}
+
+func (s *VideoTooLargeException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *VideoTooLargeException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *VideoTooLargeException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 const (
 	// AttributeDefault is a Attribute enum value
 	AttributeDefault = "DEFAULT"
@@ -4353,6 +16329,62 @@ const (
 	// AttributeAll is a Attribute enum value
 	AttributeAll = "ALL"
 )
+
+// Attribute_Values returns all elements of the Attribute enum
+func Attribute_Values() []string {
+	return []string{
+		AttributeDefault,
+		AttributeAll,
+	}
+}
+
+const (
+	// CelebrityRecognitionSortById is a CelebrityRecognitionSortBy enum value
+	CelebrityRecognitionSortById = "ID"
+
+	// CelebrityRecognitionSortByTimestamp is a CelebrityRecognitionSortBy enum value
+	CelebrityRecognitionSortByTimestamp = "TIMESTAMP"
+)
+
+// CelebrityRecognitionSortBy_Values returns all elements of the CelebrityRecognitionSortBy enum
+func CelebrityRecognitionSortBy_Values() []string {
+	return []string{
+		CelebrityRecognitionSortById,
+		CelebrityRecognitionSortByTimestamp,
+	}
+}
+
+const (
+	// ContentClassifierFreeOfPersonallyIdentifiableInformation is a ContentClassifier enum value
+	ContentClassifierFreeOfPersonallyIdentifiableInformation = "FreeOfPersonallyIdentifiableInformation"
+
+	// ContentClassifierFreeOfAdultContent is a ContentClassifier enum value
+	ContentClassifierFreeOfAdultContent = "FreeOfAdultContent"
+)
+
+// ContentClassifier_Values returns all elements of the ContentClassifier enum
+func ContentClassifier_Values() []string {
+	return []string{
+		ContentClassifierFreeOfPersonallyIdentifiableInformation,
+		ContentClassifierFreeOfAdultContent,
+	}
+}
+
+const (
+	// ContentModerationSortByName is a ContentModerationSortBy enum value
+	ContentModerationSortByName = "NAME"
+
+	// ContentModerationSortByTimestamp is a ContentModerationSortBy enum value
+	ContentModerationSortByTimestamp = "TIMESTAMP"
+)
+
+// ContentModerationSortBy_Values returns all elements of the ContentModerationSortBy enum
+func ContentModerationSortBy_Values() []string {
+	return []string{
+		ContentModerationSortByName,
+		ContentModerationSortByTimestamp,
+	}
+}
 
 const (
 	// EmotionNameHappy is a EmotionName enum value
@@ -4378,92 +16410,217 @@ const (
 
 	// EmotionNameUnknown is a EmotionName enum value
 	EmotionNameUnknown = "UNKNOWN"
+
+	// EmotionNameFear is a EmotionName enum value
+	EmotionNameFear = "FEAR"
 )
+
+// EmotionName_Values returns all elements of the EmotionName enum
+func EmotionName_Values() []string {
+	return []string{
+		EmotionNameHappy,
+		EmotionNameSad,
+		EmotionNameAngry,
+		EmotionNameConfused,
+		EmotionNameDisgusted,
+		EmotionNameSurprised,
+		EmotionNameCalm,
+		EmotionNameUnknown,
+		EmotionNameFear,
+	}
+}
+
+const (
+	// FaceAttributesDefault is a FaceAttributes enum value
+	FaceAttributesDefault = "DEFAULT"
+
+	// FaceAttributesAll is a FaceAttributes enum value
+	FaceAttributesAll = "ALL"
+)
+
+// FaceAttributes_Values returns all elements of the FaceAttributes enum
+func FaceAttributes_Values() []string {
+	return []string{
+		FaceAttributesDefault,
+		FaceAttributesAll,
+	}
+}
+
+const (
+	// FaceSearchSortByIndex is a FaceSearchSortBy enum value
+	FaceSearchSortByIndex = "INDEX"
+
+	// FaceSearchSortByTimestamp is a FaceSearchSortBy enum value
+	FaceSearchSortByTimestamp = "TIMESTAMP"
+)
+
+// FaceSearchSortBy_Values returns all elements of the FaceSearchSortBy enum
+func FaceSearchSortBy_Values() []string {
+	return []string{
+		FaceSearchSortByIndex,
+		FaceSearchSortByTimestamp,
+	}
+}
 
 const (
 	// GenderTypeMale is a GenderType enum value
-	GenderTypeMale = "MALE"
+	GenderTypeMale = "Male"
 
 	// GenderTypeFemale is a GenderType enum value
-	GenderTypeFemale = "FEMALE"
+	GenderTypeFemale = "Female"
 )
+
+// GenderType_Values returns all elements of the GenderType enum
+func GenderType_Values() []string {
+	return []string{
+		GenderTypeMale,
+		GenderTypeFemale,
+	}
+}
+
+const (
+	// LabelDetectionSortByName is a LabelDetectionSortBy enum value
+	LabelDetectionSortByName = "NAME"
+
+	// LabelDetectionSortByTimestamp is a LabelDetectionSortBy enum value
+	LabelDetectionSortByTimestamp = "TIMESTAMP"
+)
+
+// LabelDetectionSortBy_Values returns all elements of the LabelDetectionSortBy enum
+func LabelDetectionSortBy_Values() []string {
+	return []string{
+		LabelDetectionSortByName,
+		LabelDetectionSortByTimestamp,
+	}
+}
 
 const (
 	// LandmarkTypeEyeLeft is a LandmarkType enum value
-	LandmarkTypeEyeLeft = "EYE_LEFT"
+	LandmarkTypeEyeLeft = "eyeLeft"
 
 	// LandmarkTypeEyeRight is a LandmarkType enum value
-	LandmarkTypeEyeRight = "EYE_RIGHT"
+	LandmarkTypeEyeRight = "eyeRight"
 
 	// LandmarkTypeNose is a LandmarkType enum value
-	LandmarkTypeNose = "NOSE"
+	LandmarkTypeNose = "nose"
 
 	// LandmarkTypeMouthLeft is a LandmarkType enum value
-	LandmarkTypeMouthLeft = "MOUTH_LEFT"
+	LandmarkTypeMouthLeft = "mouthLeft"
 
 	// LandmarkTypeMouthRight is a LandmarkType enum value
-	LandmarkTypeMouthRight = "MOUTH_RIGHT"
+	LandmarkTypeMouthRight = "mouthRight"
 
-	// LandmarkTypeLeftEyebrowLeft is a LandmarkType enum value
-	LandmarkTypeLeftEyebrowLeft = "LEFT_EYEBROW_LEFT"
+	// LandmarkTypeLeftEyeBrowLeft is a LandmarkType enum value
+	LandmarkTypeLeftEyeBrowLeft = "leftEyeBrowLeft"
 
-	// LandmarkTypeLeftEyebrowRight is a LandmarkType enum value
-	LandmarkTypeLeftEyebrowRight = "LEFT_EYEBROW_RIGHT"
+	// LandmarkTypeLeftEyeBrowRight is a LandmarkType enum value
+	LandmarkTypeLeftEyeBrowRight = "leftEyeBrowRight"
 
-	// LandmarkTypeLeftEyebrowUp is a LandmarkType enum value
-	LandmarkTypeLeftEyebrowUp = "LEFT_EYEBROW_UP"
+	// LandmarkTypeLeftEyeBrowUp is a LandmarkType enum value
+	LandmarkTypeLeftEyeBrowUp = "leftEyeBrowUp"
 
-	// LandmarkTypeRightEyebrowLeft is a LandmarkType enum value
-	LandmarkTypeRightEyebrowLeft = "RIGHT_EYEBROW_LEFT"
+	// LandmarkTypeRightEyeBrowLeft is a LandmarkType enum value
+	LandmarkTypeRightEyeBrowLeft = "rightEyeBrowLeft"
 
-	// LandmarkTypeRightEyebrowRight is a LandmarkType enum value
-	LandmarkTypeRightEyebrowRight = "RIGHT_EYEBROW_RIGHT"
+	// LandmarkTypeRightEyeBrowRight is a LandmarkType enum value
+	LandmarkTypeRightEyeBrowRight = "rightEyeBrowRight"
 
-	// LandmarkTypeRightEyebrowUp is a LandmarkType enum value
-	LandmarkTypeRightEyebrowUp = "RIGHT_EYEBROW_UP"
+	// LandmarkTypeRightEyeBrowUp is a LandmarkType enum value
+	LandmarkTypeRightEyeBrowUp = "rightEyeBrowUp"
 
 	// LandmarkTypeLeftEyeLeft is a LandmarkType enum value
-	LandmarkTypeLeftEyeLeft = "LEFT_EYE_LEFT"
+	LandmarkTypeLeftEyeLeft = "leftEyeLeft"
 
 	// LandmarkTypeLeftEyeRight is a LandmarkType enum value
-	LandmarkTypeLeftEyeRight = "LEFT_EYE_RIGHT"
+	LandmarkTypeLeftEyeRight = "leftEyeRight"
 
 	// LandmarkTypeLeftEyeUp is a LandmarkType enum value
-	LandmarkTypeLeftEyeUp = "LEFT_EYE_UP"
+	LandmarkTypeLeftEyeUp = "leftEyeUp"
 
 	// LandmarkTypeLeftEyeDown is a LandmarkType enum value
-	LandmarkTypeLeftEyeDown = "LEFT_EYE_DOWN"
+	LandmarkTypeLeftEyeDown = "leftEyeDown"
 
 	// LandmarkTypeRightEyeLeft is a LandmarkType enum value
-	LandmarkTypeRightEyeLeft = "RIGHT_EYE_LEFT"
+	LandmarkTypeRightEyeLeft = "rightEyeLeft"
 
 	// LandmarkTypeRightEyeRight is a LandmarkType enum value
-	LandmarkTypeRightEyeRight = "RIGHT_EYE_RIGHT"
+	LandmarkTypeRightEyeRight = "rightEyeRight"
 
 	// LandmarkTypeRightEyeUp is a LandmarkType enum value
-	LandmarkTypeRightEyeUp = "RIGHT_EYE_UP"
+	LandmarkTypeRightEyeUp = "rightEyeUp"
 
 	// LandmarkTypeRightEyeDown is a LandmarkType enum value
-	LandmarkTypeRightEyeDown = "RIGHT_EYE_DOWN"
+	LandmarkTypeRightEyeDown = "rightEyeDown"
 
 	// LandmarkTypeNoseLeft is a LandmarkType enum value
-	LandmarkTypeNoseLeft = "NOSE_LEFT"
+	LandmarkTypeNoseLeft = "noseLeft"
 
 	// LandmarkTypeNoseRight is a LandmarkType enum value
-	LandmarkTypeNoseRight = "NOSE_RIGHT"
+	LandmarkTypeNoseRight = "noseRight"
 
 	// LandmarkTypeMouthUp is a LandmarkType enum value
-	LandmarkTypeMouthUp = "MOUTH_UP"
+	LandmarkTypeMouthUp = "mouthUp"
 
 	// LandmarkTypeMouthDown is a LandmarkType enum value
-	LandmarkTypeMouthDown = "MOUTH_DOWN"
+	LandmarkTypeMouthDown = "mouthDown"
 
 	// LandmarkTypeLeftPupil is a LandmarkType enum value
-	LandmarkTypeLeftPupil = "LEFT_PUPIL"
+	LandmarkTypeLeftPupil = "leftPupil"
 
 	// LandmarkTypeRightPupil is a LandmarkType enum value
-	LandmarkTypeRightPupil = "RIGHT_PUPIL"
+	LandmarkTypeRightPupil = "rightPupil"
+
+	// LandmarkTypeUpperJawlineLeft is a LandmarkType enum value
+	LandmarkTypeUpperJawlineLeft = "upperJawlineLeft"
+
+	// LandmarkTypeMidJawlineLeft is a LandmarkType enum value
+	LandmarkTypeMidJawlineLeft = "midJawlineLeft"
+
+	// LandmarkTypeChinBottom is a LandmarkType enum value
+	LandmarkTypeChinBottom = "chinBottom"
+
+	// LandmarkTypeMidJawlineRight is a LandmarkType enum value
+	LandmarkTypeMidJawlineRight = "midJawlineRight"
+
+	// LandmarkTypeUpperJawlineRight is a LandmarkType enum value
+	LandmarkTypeUpperJawlineRight = "upperJawlineRight"
 )
+
+// LandmarkType_Values returns all elements of the LandmarkType enum
+func LandmarkType_Values() []string {
+	return []string{
+		LandmarkTypeEyeLeft,
+		LandmarkTypeEyeRight,
+		LandmarkTypeNose,
+		LandmarkTypeMouthLeft,
+		LandmarkTypeMouthRight,
+		LandmarkTypeLeftEyeBrowLeft,
+		LandmarkTypeLeftEyeBrowRight,
+		LandmarkTypeLeftEyeBrowUp,
+		LandmarkTypeRightEyeBrowLeft,
+		LandmarkTypeRightEyeBrowRight,
+		LandmarkTypeRightEyeBrowUp,
+		LandmarkTypeLeftEyeLeft,
+		LandmarkTypeLeftEyeRight,
+		LandmarkTypeLeftEyeUp,
+		LandmarkTypeLeftEyeDown,
+		LandmarkTypeRightEyeLeft,
+		LandmarkTypeRightEyeRight,
+		LandmarkTypeRightEyeUp,
+		LandmarkTypeRightEyeDown,
+		LandmarkTypeNoseLeft,
+		LandmarkTypeNoseRight,
+		LandmarkTypeMouthUp,
+		LandmarkTypeMouthDown,
+		LandmarkTypeLeftPupil,
+		LandmarkTypeRightPupil,
+		LandmarkTypeUpperJawlineLeft,
+		LandmarkTypeMidJawlineLeft,
+		LandmarkTypeChinBottom,
+		LandmarkTypeMidJawlineRight,
+		LandmarkTypeUpperJawlineRight,
+	}
+}
 
 const (
 	// OrientationCorrectionRotate0 is a OrientationCorrection enum value
@@ -4478,3 +16635,257 @@ const (
 	// OrientationCorrectionRotate270 is a OrientationCorrection enum value
 	OrientationCorrectionRotate270 = "ROTATE_270"
 )
+
+// OrientationCorrection_Values returns all elements of the OrientationCorrection enum
+func OrientationCorrection_Values() []string {
+	return []string{
+		OrientationCorrectionRotate0,
+		OrientationCorrectionRotate90,
+		OrientationCorrectionRotate180,
+		OrientationCorrectionRotate270,
+	}
+}
+
+const (
+	// PersonTrackingSortByIndex is a PersonTrackingSortBy enum value
+	PersonTrackingSortByIndex = "INDEX"
+
+	// PersonTrackingSortByTimestamp is a PersonTrackingSortBy enum value
+	PersonTrackingSortByTimestamp = "TIMESTAMP"
+)
+
+// PersonTrackingSortBy_Values returns all elements of the PersonTrackingSortBy enum
+func PersonTrackingSortBy_Values() []string {
+	return []string{
+		PersonTrackingSortByIndex,
+		PersonTrackingSortByTimestamp,
+	}
+}
+
+const (
+	// ProjectStatusCreating is a ProjectStatus enum value
+	ProjectStatusCreating = "CREATING"
+
+	// ProjectStatusCreated is a ProjectStatus enum value
+	ProjectStatusCreated = "CREATED"
+
+	// ProjectStatusDeleting is a ProjectStatus enum value
+	ProjectStatusDeleting = "DELETING"
+)
+
+// ProjectStatus_Values returns all elements of the ProjectStatus enum
+func ProjectStatus_Values() []string {
+	return []string{
+		ProjectStatusCreating,
+		ProjectStatusCreated,
+		ProjectStatusDeleting,
+	}
+}
+
+const (
+	// ProjectVersionStatusTrainingInProgress is a ProjectVersionStatus enum value
+	ProjectVersionStatusTrainingInProgress = "TRAINING_IN_PROGRESS"
+
+	// ProjectVersionStatusTrainingCompleted is a ProjectVersionStatus enum value
+	ProjectVersionStatusTrainingCompleted = "TRAINING_COMPLETED"
+
+	// ProjectVersionStatusTrainingFailed is a ProjectVersionStatus enum value
+	ProjectVersionStatusTrainingFailed = "TRAINING_FAILED"
+
+	// ProjectVersionStatusStarting is a ProjectVersionStatus enum value
+	ProjectVersionStatusStarting = "STARTING"
+
+	// ProjectVersionStatusRunning is a ProjectVersionStatus enum value
+	ProjectVersionStatusRunning = "RUNNING"
+
+	// ProjectVersionStatusFailed is a ProjectVersionStatus enum value
+	ProjectVersionStatusFailed = "FAILED"
+
+	// ProjectVersionStatusStopping is a ProjectVersionStatus enum value
+	ProjectVersionStatusStopping = "STOPPING"
+
+	// ProjectVersionStatusStopped is a ProjectVersionStatus enum value
+	ProjectVersionStatusStopped = "STOPPED"
+
+	// ProjectVersionStatusDeleting is a ProjectVersionStatus enum value
+	ProjectVersionStatusDeleting = "DELETING"
+)
+
+// ProjectVersionStatus_Values returns all elements of the ProjectVersionStatus enum
+func ProjectVersionStatus_Values() []string {
+	return []string{
+		ProjectVersionStatusTrainingInProgress,
+		ProjectVersionStatusTrainingCompleted,
+		ProjectVersionStatusTrainingFailed,
+		ProjectVersionStatusStarting,
+		ProjectVersionStatusRunning,
+		ProjectVersionStatusFailed,
+		ProjectVersionStatusStopping,
+		ProjectVersionStatusStopped,
+		ProjectVersionStatusDeleting,
+	}
+}
+
+const (
+	// QualityFilterNone is a QualityFilter enum value
+	QualityFilterNone = "NONE"
+
+	// QualityFilterAuto is a QualityFilter enum value
+	QualityFilterAuto = "AUTO"
+
+	// QualityFilterLow is a QualityFilter enum value
+	QualityFilterLow = "LOW"
+
+	// QualityFilterMedium is a QualityFilter enum value
+	QualityFilterMedium = "MEDIUM"
+
+	// QualityFilterHigh is a QualityFilter enum value
+	QualityFilterHigh = "HIGH"
+)
+
+// QualityFilter_Values returns all elements of the QualityFilter enum
+func QualityFilter_Values() []string {
+	return []string{
+		QualityFilterNone,
+		QualityFilterAuto,
+		QualityFilterLow,
+		QualityFilterMedium,
+		QualityFilterHigh,
+	}
+}
+
+const (
+	// ReasonExceedsMaxFaces is a Reason enum value
+	ReasonExceedsMaxFaces = "EXCEEDS_MAX_FACES"
+
+	// ReasonExtremePose is a Reason enum value
+	ReasonExtremePose = "EXTREME_POSE"
+
+	// ReasonLowBrightness is a Reason enum value
+	ReasonLowBrightness = "LOW_BRIGHTNESS"
+
+	// ReasonLowSharpness is a Reason enum value
+	ReasonLowSharpness = "LOW_SHARPNESS"
+
+	// ReasonLowConfidence is a Reason enum value
+	ReasonLowConfidence = "LOW_CONFIDENCE"
+
+	// ReasonSmallBoundingBox is a Reason enum value
+	ReasonSmallBoundingBox = "SMALL_BOUNDING_BOX"
+
+	// ReasonLowFaceQuality is a Reason enum value
+	ReasonLowFaceQuality = "LOW_FACE_QUALITY"
+)
+
+// Reason_Values returns all elements of the Reason enum
+func Reason_Values() []string {
+	return []string{
+		ReasonExceedsMaxFaces,
+		ReasonExtremePose,
+		ReasonLowBrightness,
+		ReasonLowSharpness,
+		ReasonLowConfidence,
+		ReasonSmallBoundingBox,
+		ReasonLowFaceQuality,
+	}
+}
+
+const (
+	// SegmentTypeTechnicalCue is a SegmentType enum value
+	SegmentTypeTechnicalCue = "TECHNICAL_CUE"
+
+	// SegmentTypeShot is a SegmentType enum value
+	SegmentTypeShot = "SHOT"
+)
+
+// SegmentType_Values returns all elements of the SegmentType enum
+func SegmentType_Values() []string {
+	return []string{
+		SegmentTypeTechnicalCue,
+		SegmentTypeShot,
+	}
+}
+
+const (
+	// StreamProcessorStatusStopped is a StreamProcessorStatus enum value
+	StreamProcessorStatusStopped = "STOPPED"
+
+	// StreamProcessorStatusStarting is a StreamProcessorStatus enum value
+	StreamProcessorStatusStarting = "STARTING"
+
+	// StreamProcessorStatusRunning is a StreamProcessorStatus enum value
+	StreamProcessorStatusRunning = "RUNNING"
+
+	// StreamProcessorStatusFailed is a StreamProcessorStatus enum value
+	StreamProcessorStatusFailed = "FAILED"
+
+	// StreamProcessorStatusStopping is a StreamProcessorStatus enum value
+	StreamProcessorStatusStopping = "STOPPING"
+)
+
+// StreamProcessorStatus_Values returns all elements of the StreamProcessorStatus enum
+func StreamProcessorStatus_Values() []string {
+	return []string{
+		StreamProcessorStatusStopped,
+		StreamProcessorStatusStarting,
+		StreamProcessorStatusRunning,
+		StreamProcessorStatusFailed,
+		StreamProcessorStatusStopping,
+	}
+}
+
+const (
+	// TechnicalCueTypeColorBars is a TechnicalCueType enum value
+	TechnicalCueTypeColorBars = "ColorBars"
+
+	// TechnicalCueTypeEndCredits is a TechnicalCueType enum value
+	TechnicalCueTypeEndCredits = "EndCredits"
+
+	// TechnicalCueTypeBlackFrames is a TechnicalCueType enum value
+	TechnicalCueTypeBlackFrames = "BlackFrames"
+)
+
+// TechnicalCueType_Values returns all elements of the TechnicalCueType enum
+func TechnicalCueType_Values() []string {
+	return []string{
+		TechnicalCueTypeColorBars,
+		TechnicalCueTypeEndCredits,
+		TechnicalCueTypeBlackFrames,
+	}
+}
+
+const (
+	// TextTypesLine is a TextTypes enum value
+	TextTypesLine = "LINE"
+
+	// TextTypesWord is a TextTypes enum value
+	TextTypesWord = "WORD"
+)
+
+// TextTypes_Values returns all elements of the TextTypes enum
+func TextTypes_Values() []string {
+	return []string{
+		TextTypesLine,
+		TextTypesWord,
+	}
+}
+
+const (
+	// VideoJobStatusInProgress is a VideoJobStatus enum value
+	VideoJobStatusInProgress = "IN_PROGRESS"
+
+	// VideoJobStatusSucceeded is a VideoJobStatus enum value
+	VideoJobStatusSucceeded = "SUCCEEDED"
+
+	// VideoJobStatusFailed is a VideoJobStatus enum value
+	VideoJobStatusFailed = "FAILED"
+)
+
+// VideoJobStatus_Values returns all elements of the VideoJobStatus enum
+func VideoJobStatus_Values() []string {
+	return []string{
+		VideoJobStatusInProgress,
+		VideoJobStatusSucceeded,
+		VideoJobStatusFailed,
+	}
+}

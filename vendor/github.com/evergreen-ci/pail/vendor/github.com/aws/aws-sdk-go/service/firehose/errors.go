@@ -2,6 +2,10 @@
 
 package firehose
 
+import (
+	"github.com/aws/aws-sdk-go/private/protocol"
+)
+
 const (
 
 	// ErrCodeConcurrentModificationException for service response error code
@@ -14,8 +18,17 @@ const (
 	// ErrCodeInvalidArgumentException for service response error code
 	// "InvalidArgumentException".
 	//
-	// The specified input parameter has an value that is not valid.
+	// The specified input parameter has a value that is not valid.
 	ErrCodeInvalidArgumentException = "InvalidArgumentException"
+
+	// ErrCodeInvalidKMSResourceException for service response error code
+	// "InvalidKMSResourceException".
+	//
+	// Kinesis Data Firehose throws this exception when an attempt to put records
+	// or to start or stop delivery stream encryption fails. This happens when the
+	// KMS service throws one of the following exception types: AccessDeniedException,
+	// InvalidStateException, DisabledException, or NotFoundException.
+	ErrCodeInvalidKMSResourceException = "InvalidKMSResourceException"
 
 	// ErrCodeLimitExceededException for service response error code
 	// "LimitExceededException".
@@ -38,9 +51,19 @@ const (
 	// ErrCodeServiceUnavailableException for service response error code
 	// "ServiceUnavailableException".
 	//
-	// The service is unavailable, back off and retry the operation. If you continue
+	// The service is unavailable. Back off and retry the operation. If you continue
 	// to see the exception, throughput limits for the delivery stream may have
 	// been exceeded. For more information about limits and how to request an increase,
-	// see Amazon Kinesis Firehose Limits (http://docs.aws.amazon.com/firehose/latest/dev/limits.html).
+	// see Amazon Kinesis Data Firehose Limits (https://docs.aws.amazon.com/firehose/latest/dev/limits.html).
 	ErrCodeServiceUnavailableException = "ServiceUnavailableException"
 )
+
+var exceptionFromCode = map[string]func(protocol.ResponseMetadata) error{
+	"ConcurrentModificationException": newErrorConcurrentModificationException,
+	"InvalidArgumentException":        newErrorInvalidArgumentException,
+	"InvalidKMSResourceException":     newErrorInvalidKMSResourceException,
+	"LimitExceededException":          newErrorLimitExceededException,
+	"ResourceInUseException":          newErrorResourceInUseException,
+	"ResourceNotFoundException":       newErrorResourceNotFoundException,
+	"ServiceUnavailableException":     newErrorServiceUnavailableException,
+}

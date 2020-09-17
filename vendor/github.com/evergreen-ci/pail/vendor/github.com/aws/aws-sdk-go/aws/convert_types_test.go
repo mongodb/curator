@@ -1,10 +1,9 @@
 package aws
 
 import (
+	"reflect"
 	"testing"
 	"time"
-
-	"github.com/stretchr/testify/assert"
 )
 
 var testCasesStringSlice = [][]string{
@@ -18,14 +17,22 @@ func TestStringSlice(t *testing.T) {
 			continue
 		}
 		out := StringSlice(in)
-		assert.Len(t, out, len(in), "Unexpected len at idx %d", idx)
+		if e, a := len(out), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
 		for i := range out {
-			assert.Equal(t, in[i], *(out[i]), "Unexpected value at idx %d", idx)
+			if e, a := in[i], *(out[i]); e != a {
+				t.Errorf("Unexpected value at idx %d", idx)
+			}
 		}
 
 		out2 := StringValueSlice(out)
-		assert.Len(t, out2, len(in), "Unexpected len at idx %d", idx)
-		assert.Equal(t, in, out2, "Unexpected value at idx %d", idx)
+		if e, a := len(out2), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		if e, a := in, out2; !reflect.DeepEqual(e, a) {
+			t.Errorf("Unexpected value at idx %d", idx)
+		}
 	}
 }
 
@@ -39,22 +46,34 @@ func TestStringValueSlice(t *testing.T) {
 			continue
 		}
 		out := StringValueSlice(in)
-		assert.Len(t, out, len(in), "Unexpected len at idx %d", idx)
+		if e, a := len(out), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
 		for i := range out {
 			if in[i] == nil {
-				assert.Empty(t, out[i], "Unexpected value at idx %d", idx)
+				if out[i] != "" {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
 			} else {
-				assert.Equal(t, *(in[i]), out[i], "Unexpected value at idx %d", idx)
+				if e, a := *(in[i]), out[i]; e != a {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
 			}
 		}
 
 		out2 := StringSlice(out)
-		assert.Len(t, out2, len(in), "Unexpected len at idx %d", idx)
+		if e, a := len(out2), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
 		for i := range out2 {
 			if in[i] == nil {
-				assert.Empty(t, *(out2[i]), "Unexpected value at idx %d", idx)
+				if *(out2[i]) != "" {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
 			} else {
-				assert.Equal(t, in[i], out2[i], "Unexpected value at idx %d", idx)
+				if e, a := *in[i], *out2[i]; e != a {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
 			}
 		}
 	}
@@ -70,14 +89,22 @@ func TestStringMap(t *testing.T) {
 			continue
 		}
 		out := StringMap(in)
-		assert.Len(t, out, len(in), "Unexpected len at idx %d", idx)
+		if e, a := len(out), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
 		for i := range out {
-			assert.Equal(t, in[i], *(out[i]), "Unexpected value at idx %d", idx)
+			if e, a := in[i], *(out[i]); e != a {
+				t.Errorf("Unexpected value at idx %d", idx)
+			}
 		}
 
 		out2 := StringValueMap(out)
-		assert.Len(t, out2, len(in), "Unexpected len at idx %d", idx)
-		assert.Equal(t, in, out2, "Unexpected value at idx %d", idx)
+		if e, a := len(out2), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		if e, a := in, out2; !reflect.DeepEqual(e, a) {
+			t.Errorf("Unexpected value at idx %d", idx)
+		}
 	}
 }
 
@@ -91,14 +118,22 @@ func TestBoolSlice(t *testing.T) {
 			continue
 		}
 		out := BoolSlice(in)
-		assert.Len(t, out, len(in), "Unexpected len at idx %d", idx)
+		if e, a := len(out), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
 		for i := range out {
-			assert.Equal(t, in[i], *(out[i]), "Unexpected value at idx %d", idx)
+			if e, a := in[i], *(out[i]); e != a {
+				t.Errorf("Unexpected value at idx %d", idx)
+			}
 		}
 
 		out2 := BoolValueSlice(out)
-		assert.Len(t, out2, len(in), "Unexpected len at idx %d", idx)
-		assert.Equal(t, in, out2, "Unexpected value at idx %d", idx)
+		if e, a := len(out2), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		if e, a := in, out2; !reflect.DeepEqual(e, a) {
+			t.Errorf("Unexpected value at idx %d", idx)
+		}
 	}
 }
 
@@ -110,22 +145,34 @@ func TestBoolValueSlice(t *testing.T) {
 			continue
 		}
 		out := BoolValueSlice(in)
-		assert.Len(t, out, len(in), "Unexpected len at idx %d", idx)
+		if e, a := len(out), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
 		for i := range out {
 			if in[i] == nil {
-				assert.Empty(t, out[i], "Unexpected value at idx %d", idx)
+				if out[i] {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
 			} else {
-				assert.Equal(t, *(in[i]), out[i], "Unexpected value at idx %d", idx)
+				if e, a := *(in[i]), out[i]; e != a {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
 			}
 		}
 
 		out2 := BoolSlice(out)
-		assert.Len(t, out2, len(in), "Unexpected len at idx %d", idx)
+		if e, a := len(out2), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
 		for i := range out2 {
 			if in[i] == nil {
-				assert.Empty(t, *(out2[i]), "Unexpected value at idx %d", idx)
+				if *(out2[i]) {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
 			} else {
-				assert.Equal(t, in[i], out2[i], "Unexpected value at idx %d", idx)
+				if e, a := in[i], out2[i]; e != a {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
 			}
 		}
 	}
@@ -141,14 +188,121 @@ func TestBoolMap(t *testing.T) {
 			continue
 		}
 		out := BoolMap(in)
-		assert.Len(t, out, len(in), "Unexpected len at idx %d", idx)
+		if e, a := len(out), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
 		for i := range out {
-			assert.Equal(t, in[i], *(out[i]), "Unexpected value at idx %d", idx)
+			if e, a := in[i], *(out[i]); e != a {
+				t.Errorf("Unexpected value at idx %d", idx)
+			}
 		}
 
 		out2 := BoolValueMap(out)
-		assert.Len(t, out2, len(in), "Unexpected len at idx %d", idx)
-		assert.Equal(t, in, out2, "Unexpected value at idx %d", idx)
+		if e, a := len(out2), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		if e, a := in, out2; !reflect.DeepEqual(e, a) {
+			t.Errorf("Unexpected value at idx %d", idx)
+		}
+	}
+}
+
+var testCasesUintSlice = [][]uint{
+	{1, 2, 3, 4},
+}
+
+func TestUintSlice(t *testing.T) {
+	for idx, in := range testCasesUintSlice {
+		if in == nil {
+			continue
+		}
+		out := UintSlice(in)
+		if e, a := len(out), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		for i := range out {
+			if e, a := in[i], *(out[i]); e != a {
+				t.Errorf("Unexpected value at idx %d", idx)
+			}
+		}
+
+		out2 := UintValueSlice(out)
+		if e, a := len(out2), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		if e, a := in, out2; !reflect.DeepEqual(e, a) {
+			t.Errorf("Unexpected value at idx %d", idx)
+		}
+	}
+}
+
+var testCasesUintValueSlice = [][]*uint{}
+
+func TestUintValueSlice(t *testing.T) {
+	for idx, in := range testCasesUintValueSlice {
+		if in == nil {
+			continue
+		}
+		out := UintValueSlice(in)
+		if e, a := len(out), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		for i := range out {
+			if in[i] == nil {
+				if out[i] != 0 {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
+			} else {
+				if e, a := *(in[i]), out[i]; e != a {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
+			}
+		}
+
+		out2 := UintSlice(out)
+		if e, a := len(out2), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		for i := range out2 {
+			if in[i] == nil {
+				if *(out2[i]) != 0 {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
+			} else {
+				if e, a := in[i], out2[i]; e != a {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
+			}
+		}
+	}
+}
+
+var testCasesUintMap = []map[string]uint{
+	{"a": 3, "b": 2, "c": 1},
+}
+
+func TestUintMap(t *testing.T) {
+	for idx, in := range testCasesUintMap {
+		if in == nil {
+			continue
+		}
+		out := UintMap(in)
+		if e, a := len(out), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		for i := range out {
+			if e, a := in[i], *(out[i]); e != a {
+				t.Errorf("Unexpected value at idx %d", idx)
+			}
+		}
+
+		out2 := UintValueMap(out)
+		if e, a := len(out2), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		if e, a := in, out2; !reflect.DeepEqual(e, a) {
+			t.Errorf("Unexpected value at idx %d", idx)
+		}
 	}
 }
 
@@ -162,14 +316,22 @@ func TestIntSlice(t *testing.T) {
 			continue
 		}
 		out := IntSlice(in)
-		assert.Len(t, out, len(in), "Unexpected len at idx %d", idx)
+		if e, a := len(out), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
 		for i := range out {
-			assert.Equal(t, in[i], *(out[i]), "Unexpected value at idx %d", idx)
+			if e, a := in[i], *(out[i]); e != a {
+				t.Errorf("Unexpected value at idx %d", idx)
+			}
 		}
 
 		out2 := IntValueSlice(out)
-		assert.Len(t, out2, len(in), "Unexpected len at idx %d", idx)
-		assert.Equal(t, in, out2, "Unexpected value at idx %d", idx)
+		if e, a := len(out2), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		if e, a := in, out2; !reflect.DeepEqual(e, a) {
+			t.Errorf("Unexpected value at idx %d", idx)
+		}
 	}
 }
 
@@ -181,22 +343,34 @@ func TestIntValueSlice(t *testing.T) {
 			continue
 		}
 		out := IntValueSlice(in)
-		assert.Len(t, out, len(in), "Unexpected len at idx %d", idx)
+		if e, a := len(out), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
 		for i := range out {
 			if in[i] == nil {
-				assert.Empty(t, out[i], "Unexpected value at idx %d", idx)
+				if out[i] != 0 {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
 			} else {
-				assert.Equal(t, *(in[i]), out[i], "Unexpected value at idx %d", idx)
+				if e, a := *(in[i]), out[i]; e != a {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
 			}
 		}
 
 		out2 := IntSlice(out)
-		assert.Len(t, out2, len(in), "Unexpected len at idx %d", idx)
+		if e, a := len(out2), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
 		for i := range out2 {
 			if in[i] == nil {
-				assert.Empty(t, *(out2[i]), "Unexpected value at idx %d", idx)
+				if *(out2[i]) != 0 {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
 			} else {
-				assert.Equal(t, in[i], out2[i], "Unexpected value at idx %d", idx)
+				if e, a := in[i], out2[i]; e != a {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
 			}
 		}
 	}
@@ -212,14 +386,319 @@ func TestIntMap(t *testing.T) {
 			continue
 		}
 		out := IntMap(in)
-		assert.Len(t, out, len(in), "Unexpected len at idx %d", idx)
+		if e, a := len(out), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
 		for i := range out {
-			assert.Equal(t, in[i], *(out[i]), "Unexpected value at idx %d", idx)
+			if e, a := in[i], *(out[i]); e != a {
+				t.Errorf("Unexpected value at idx %d", idx)
+			}
 		}
 
 		out2 := IntValueMap(out)
-		assert.Len(t, out2, len(in), "Unexpected len at idx %d", idx)
-		assert.Equal(t, in, out2, "Unexpected value at idx %d", idx)
+		if e, a := len(out2), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		if e, a := in, out2; !reflect.DeepEqual(e, a) {
+			t.Errorf("Unexpected value at idx %d", idx)
+		}
+	}
+}
+
+var testCasesInt8Slice = [][]int8{
+	{1, 2, 3, 4},
+}
+
+func TestInt8Slice(t *testing.T) {
+	for idx, in := range testCasesInt8Slice {
+		if in == nil {
+			continue
+		}
+		out := Int8Slice(in)
+		if e, a := len(out), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		for i := range out {
+			if e, a := in[i], *(out[i]); e != a {
+				t.Errorf("Unexpected value at idx %d", idx)
+			}
+		}
+
+		out2 := Int8ValueSlice(out)
+		if e, a := len(out2), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		if e, a := in, out2; !reflect.DeepEqual(e, a) {
+			t.Errorf("Unexpected value at idx %d", idx)
+		}
+	}
+}
+
+var testCasesInt8ValueSlice = [][]*int8{}
+
+func TestInt8ValueSlice(t *testing.T) {
+	for idx, in := range testCasesInt8ValueSlice {
+		if in == nil {
+			continue
+		}
+		out := Int8ValueSlice(in)
+		if e, a := len(out), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		for i := range out {
+			if in[i] == nil {
+				if out[i] != 0 {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
+			} else {
+				if e, a := *(in[i]), out[i]; e != a {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
+			}
+		}
+
+		out2 := Int8Slice(out)
+		if e, a := len(out2), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		for i := range out2 {
+			if in[i] == nil {
+				if *(out2[i]) != 0 {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
+			} else {
+				if e, a := in[i], out2[i]; e != a {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
+			}
+		}
+	}
+}
+
+var testCasesInt8Map = []map[string]int8{
+	{"a": 3, "b": 2, "c": 1},
+}
+
+func TestInt8Map(t *testing.T) {
+	for idx, in := range testCasesInt8Map {
+		if in == nil {
+			continue
+		}
+		out := Int8Map(in)
+		if e, a := len(out), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		for i := range out {
+			if e, a := in[i], *(out[i]); e != a {
+				t.Errorf("Unexpected value at idx %d", idx)
+			}
+		}
+
+		out2 := Int8ValueMap(out)
+		if e, a := len(out2), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		if e, a := in, out2; !reflect.DeepEqual(e, a) {
+			t.Errorf("Unexpected value at idx %d", idx)
+		}
+	}
+}
+
+var testCasesInt16Slice = [][]int16{
+	{1, 2, 3, 4},
+}
+
+func TestInt16Slice(t *testing.T) {
+	for idx, in := range testCasesInt16Slice {
+		if in == nil {
+			continue
+		}
+		out := Int16Slice(in)
+		if e, a := len(out), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		for i := range out {
+			if e, a := in[i], *(out[i]); e != a {
+				t.Errorf("Unexpected value at idx %d", idx)
+			}
+		}
+
+		out2 := Int16ValueSlice(out)
+		if e, a := len(out2), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		if e, a := in, out2; !reflect.DeepEqual(e, a) {
+			t.Errorf("Unexpected value at idx %d", idx)
+		}
+	}
+}
+
+var testCasesInt16ValueSlice = [][]*int16{}
+
+func TestInt16ValueSlice(t *testing.T) {
+	for idx, in := range testCasesInt16ValueSlice {
+		if in == nil {
+			continue
+		}
+		out := Int16ValueSlice(in)
+		if e, a := len(out), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		for i := range out {
+			if in[i] == nil {
+				if out[i] != 0 {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
+			} else {
+				if e, a := *(in[i]), out[i]; e != a {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
+			}
+		}
+
+		out2 := Int16Slice(out)
+		if e, a := len(out2), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		for i := range out2 {
+			if in[i] == nil {
+				if *(out2[i]) != 0 {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
+			} else {
+				if e, a := in[i], out2[i]; e != a {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
+			}
+		}
+	}
+}
+
+var testCasesInt16Map = []map[string]int16{
+	{"a": 3, "b": 2, "c": 1},
+}
+
+func TestInt16Map(t *testing.T) {
+	for idx, in := range testCasesInt16Map {
+		if in == nil {
+			continue
+		}
+		out := Int16Map(in)
+		if e, a := len(out), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		for i := range out {
+			if e, a := in[i], *(out[i]); e != a {
+				t.Errorf("Unexpected value at idx %d", idx)
+			}
+		}
+
+		out2 := Int16ValueMap(out)
+		if e, a := len(out2), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		if e, a := in, out2; !reflect.DeepEqual(e, a) {
+			t.Errorf("Unexpected value at idx %d", idx)
+		}
+	}
+}
+
+var testCasesInt32Slice = [][]int32{
+	{1, 2, 3, 4},
+}
+
+func TestInt32Slice(t *testing.T) {
+	for idx, in := range testCasesInt32Slice {
+		if in == nil {
+			continue
+		}
+		out := Int32Slice(in)
+		if e, a := len(out), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		for i := range out {
+			if e, a := in[i], *(out[i]); e != a {
+				t.Errorf("Unexpected value at idx %d", idx)
+			}
+		}
+
+		out2 := Int32ValueSlice(out)
+		if e, a := len(out2), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		if e, a := in, out2; !reflect.DeepEqual(e, a) {
+			t.Errorf("Unexpected value at idx %d", idx)
+		}
+	}
+}
+
+var testCasesInt32ValueSlice = [][]*int32{}
+
+func TestInt32ValueSlice(t *testing.T) {
+	for idx, in := range testCasesInt32ValueSlice {
+		if in == nil {
+			continue
+		}
+		out := Int32ValueSlice(in)
+		if e, a := len(out), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		for i := range out {
+			if in[i] == nil {
+				if out[i] != 0 {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
+			} else {
+				if e, a := *(in[i]), out[i]; e != a {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
+			}
+		}
+
+		out2 := Int32Slice(out)
+		if e, a := len(out2), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		for i := range out2 {
+			if in[i] == nil {
+				if *(out2[i]) != 0 {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
+			} else {
+				if e, a := in[i], out2[i]; e != a {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
+			}
+		}
+	}
+}
+
+var testCasesInt32Map = []map[string]int32{
+	{"a": 3, "b": 2, "c": 1},
+}
+
+func TestInt32Map(t *testing.T) {
+	for idx, in := range testCasesInt32Map {
+		if in == nil {
+			continue
+		}
+		out := Int32Map(in)
+		if e, a := len(out), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		for i := range out {
+			if e, a := in[i], *(out[i]); e != a {
+				t.Errorf("Unexpected value at idx %d", idx)
+			}
+		}
+
+		out2 := Int32ValueMap(out)
+		if e, a := len(out2), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		if e, a := in, out2; !reflect.DeepEqual(e, a) {
+			t.Errorf("Unexpected value at idx %d", idx)
+		}
 	}
 }
 
@@ -233,14 +712,22 @@ func TestInt64Slice(t *testing.T) {
 			continue
 		}
 		out := Int64Slice(in)
-		assert.Len(t, out, len(in), "Unexpected len at idx %d", idx)
+		if e, a := len(out), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
 		for i := range out {
-			assert.Equal(t, in[i], *(out[i]), "Unexpected value at idx %d", idx)
+			if e, a := in[i], *(out[i]); e != a {
+				t.Errorf("Unexpected value at idx %d", idx)
+			}
 		}
 
 		out2 := Int64ValueSlice(out)
-		assert.Len(t, out2, len(in), "Unexpected len at idx %d", idx)
-		assert.Equal(t, in, out2, "Unexpected value at idx %d", idx)
+		if e, a := len(out2), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		if e, a := in, out2; !reflect.DeepEqual(e, a) {
+			t.Errorf("Unexpected value at idx %d", idx)
+		}
 	}
 }
 
@@ -252,22 +739,34 @@ func TestInt64ValueSlice(t *testing.T) {
 			continue
 		}
 		out := Int64ValueSlice(in)
-		assert.Len(t, out, len(in), "Unexpected len at idx %d", idx)
+		if e, a := len(out), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
 		for i := range out {
 			if in[i] == nil {
-				assert.Empty(t, out[i], "Unexpected value at idx %d", idx)
+				if out[i] != 0 {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
 			} else {
-				assert.Equal(t, *(in[i]), out[i], "Unexpected value at idx %d", idx)
+				if e, a := *(in[i]), out[i]; e != a {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
 			}
 		}
 
 		out2 := Int64Slice(out)
-		assert.Len(t, out2, len(in), "Unexpected len at idx %d", idx)
+		if e, a := len(out2), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
 		for i := range out2 {
 			if in[i] == nil {
-				assert.Empty(t, *(out2[i]), "Unexpected value at idx %d", idx)
+				if *(out2[i]) != 0 {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
 			} else {
-				assert.Equal(t, in[i], out2[i], "Unexpected value at idx %d", idx)
+				if e, a := in[i], out2[i]; e != a {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
 			}
 		}
 	}
@@ -283,14 +782,517 @@ func TestInt64Map(t *testing.T) {
 			continue
 		}
 		out := Int64Map(in)
-		assert.Len(t, out, len(in), "Unexpected len at idx %d", idx)
+		if e, a := len(out), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
 		for i := range out {
-			assert.Equal(t, in[i], *(out[i]), "Unexpected value at idx %d", idx)
+			if e, a := in[i], *(out[i]); e != a {
+				t.Errorf("Unexpected value at idx %d", idx)
+			}
 		}
 
 		out2 := Int64ValueMap(out)
-		assert.Len(t, out2, len(in), "Unexpected len at idx %d", idx)
-		assert.Equal(t, in, out2, "Unexpected value at idx %d", idx)
+		if e, a := len(out2), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		if e, a := in, out2; !reflect.DeepEqual(e, a) {
+			t.Errorf("Unexpected value at idx %d", idx)
+		}
+	}
+}
+
+var testCasesUint8Slice = [][]uint8{
+	{1, 2, 3, 4},
+}
+
+func TestUint8Slice(t *testing.T) {
+	for idx, in := range testCasesUint8Slice {
+		if in == nil {
+			continue
+		}
+		out := Uint8Slice(in)
+		if e, a := len(out), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		for i := range out {
+			if e, a := in[i], *(out[i]); e != a {
+				t.Errorf("Unexpected value at idx %d", idx)
+			}
+		}
+
+		out2 := Uint8ValueSlice(out)
+		if e, a := len(out2), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		if e, a := in, out2; !reflect.DeepEqual(e, a) {
+			t.Errorf("Unexpected value at idx %d", idx)
+		}
+	}
+}
+
+var testCasesUint8ValueSlice = [][]*uint8{}
+
+func TestUint8ValueSlice(t *testing.T) {
+	for idx, in := range testCasesUint8ValueSlice {
+		if in == nil {
+			continue
+		}
+		out := Uint8ValueSlice(in)
+		if e, a := len(out), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		for i := range out {
+			if in[i] == nil {
+				if out[i] != 0 {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
+			} else {
+				if e, a := *(in[i]), out[i]; e != a {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
+			}
+		}
+
+		out2 := Uint8Slice(out)
+		if e, a := len(out2), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		for i := range out2 {
+			if in[i] == nil {
+				if *(out2[i]) != 0 {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
+			} else {
+				if e, a := in[i], out2[i]; e != a {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
+			}
+		}
+	}
+}
+
+var testCasesUint8Map = []map[string]uint8{
+	{"a": 3, "b": 2, "c": 1},
+}
+
+func TestUint8Map(t *testing.T) {
+	for idx, in := range testCasesUint8Map {
+		if in == nil {
+			continue
+		}
+		out := Uint8Map(in)
+		if e, a := len(out), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		for i := range out {
+			if e, a := in[i], *(out[i]); e != a {
+				t.Errorf("Unexpected value at idx %d", idx)
+			}
+		}
+
+		out2 := Uint8ValueMap(out)
+		if e, a := len(out2), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		if e, a := in, out2; !reflect.DeepEqual(e, a) {
+			t.Errorf("Unexpected value at idx %d", idx)
+		}
+	}
+}
+
+var testCasesUint16Slice = [][]uint16{
+	{1, 2, 3, 4},
+}
+
+func TestUint16Slice(t *testing.T) {
+	for idx, in := range testCasesUint16Slice {
+		if in == nil {
+			continue
+		}
+		out := Uint16Slice(in)
+		if e, a := len(out), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		for i := range out {
+			if e, a := in[i], *(out[i]); e != a {
+				t.Errorf("Unexpected value at idx %d", idx)
+			}
+		}
+
+		out2 := Uint16ValueSlice(out)
+		if e, a := len(out2), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		if e, a := in, out2; !reflect.DeepEqual(e, a) {
+			t.Errorf("Unexpected value at idx %d", idx)
+		}
+	}
+}
+
+var testCasesUint16ValueSlice = [][]*uint16{}
+
+func TestUint16ValueSlice(t *testing.T) {
+	for idx, in := range testCasesUint16ValueSlice {
+		if in == nil {
+			continue
+		}
+		out := Uint16ValueSlice(in)
+		if e, a := len(out), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		for i := range out {
+			if in[i] == nil {
+				if out[i] != 0 {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
+			} else {
+				if e, a := *(in[i]), out[i]; e != a {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
+			}
+		}
+
+		out2 := Uint16Slice(out)
+		if e, a := len(out2), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		for i := range out2 {
+			if in[i] == nil {
+				if *(out2[i]) != 0 {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
+			} else {
+				if e, a := in[i], out2[i]; e != a {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
+			}
+		}
+	}
+}
+
+var testCasesUint16Map = []map[string]uint16{
+	{"a": 3, "b": 2, "c": 1},
+}
+
+func TestUint16Map(t *testing.T) {
+	for idx, in := range testCasesUint16Map {
+		if in == nil {
+			continue
+		}
+		out := Uint16Map(in)
+		if e, a := len(out), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		for i := range out {
+			if e, a := in[i], *(out[i]); e != a {
+				t.Errorf("Unexpected value at idx %d", idx)
+			}
+		}
+
+		out2 := Uint16ValueMap(out)
+		if e, a := len(out2), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		if e, a := in, out2; !reflect.DeepEqual(e, a) {
+			t.Errorf("Unexpected value at idx %d", idx)
+		}
+	}
+}
+
+var testCasesUint32Slice = [][]uint32{
+	{1, 2, 3, 4},
+}
+
+func TestUint32Slice(t *testing.T) {
+	for idx, in := range testCasesUint32Slice {
+		if in == nil {
+			continue
+		}
+		out := Uint32Slice(in)
+		if e, a := len(out), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		for i := range out {
+			if e, a := in[i], *(out[i]); e != a {
+				t.Errorf("Unexpected value at idx %d", idx)
+			}
+		}
+
+		out2 := Uint32ValueSlice(out)
+		if e, a := len(out2), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		if e, a := in, out2; !reflect.DeepEqual(e, a) {
+			t.Errorf("Unexpected value at idx %d", idx)
+		}
+	}
+}
+
+var testCasesUint32ValueSlice = [][]*uint32{}
+
+func TestUint32ValueSlice(t *testing.T) {
+	for idx, in := range testCasesUint32ValueSlice {
+		if in == nil {
+			continue
+		}
+		out := Uint32ValueSlice(in)
+		if e, a := len(out), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		for i := range out {
+			if in[i] == nil {
+				if out[i] != 0 {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
+			} else {
+				if e, a := *(in[i]), out[i]; e != a {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
+			}
+		}
+
+		out2 := Uint32Slice(out)
+		if e, a := len(out2), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		for i := range out2 {
+			if in[i] == nil {
+				if *(out2[i]) != 0 {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
+			} else {
+				if e, a := in[i], out2[i]; e != a {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
+			}
+		}
+	}
+}
+
+var testCasesUint32Map = []map[string]uint32{
+	{"a": 3, "b": 2, "c": 1},
+}
+
+func TestUint32Map(t *testing.T) {
+	for idx, in := range testCasesUint32Map {
+		if in == nil {
+			continue
+		}
+		out := Uint32Map(in)
+		if e, a := len(out), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		for i := range out {
+			if e, a := in[i], *(out[i]); e != a {
+				t.Errorf("Unexpected value at idx %d", idx)
+			}
+		}
+
+		out2 := Uint32ValueMap(out)
+		if e, a := len(out2), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		if e, a := in, out2; !reflect.DeepEqual(e, a) {
+			t.Errorf("Unexpected value at idx %d", idx)
+		}
+	}
+}
+
+var testCasesUint64Slice = [][]uint64{
+	{1, 2, 3, 4},
+}
+
+func TestUint64Slice(t *testing.T) {
+	for idx, in := range testCasesUint64Slice {
+		if in == nil {
+			continue
+		}
+		out := Uint64Slice(in)
+		if e, a := len(out), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		for i := range out {
+			if e, a := in[i], *(out[i]); e != a {
+				t.Errorf("Unexpected value at idx %d", idx)
+			}
+		}
+
+		out2 := Uint64ValueSlice(out)
+		if e, a := len(out2), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		if e, a := in, out2; !reflect.DeepEqual(e, a) {
+			t.Errorf("Unexpected value at idx %d", idx)
+		}
+	}
+}
+
+var testCasesUint64ValueSlice = [][]*uint64{}
+
+func TestUint64ValueSlice(t *testing.T) {
+	for idx, in := range testCasesUint64ValueSlice {
+		if in == nil {
+			continue
+		}
+		out := Uint64ValueSlice(in)
+		if e, a := len(out), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		for i := range out {
+			if in[i] == nil {
+				if out[i] != 0 {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
+			} else {
+				if e, a := *(in[i]), out[i]; e != a {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
+			}
+		}
+
+		out2 := Uint64Slice(out)
+		if e, a := len(out2), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		for i := range out2 {
+			if in[i] == nil {
+				if *(out2[i]) != 0 {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
+			} else {
+				if e, a := in[i], out2[i]; e != a {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
+			}
+		}
+	}
+}
+
+var testCasesUint64Map = []map[string]uint64{
+	{"a": 3, "b": 2, "c": 1},
+}
+
+func TestUint64Map(t *testing.T) {
+	for idx, in := range testCasesUint64Map {
+		if in == nil {
+			continue
+		}
+		out := Uint64Map(in)
+		if e, a := len(out), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		for i := range out {
+			if e, a := in[i], *(out[i]); e != a {
+				t.Errorf("Unexpected value at idx %d", idx)
+			}
+		}
+
+		out2 := Uint64ValueMap(out)
+		if e, a := len(out2), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		if e, a := in, out2; !reflect.DeepEqual(e, a) {
+			t.Errorf("Unexpected value at idx %d", idx)
+		}
+	}
+}
+
+var testCasesFloat32Slice = [][]float32{
+	{1, 2, 3, 4},
+}
+
+func TestFloat32Slice(t *testing.T) {
+	for idx, in := range testCasesFloat32Slice {
+		if in == nil {
+			continue
+		}
+		out := Float32Slice(in)
+		if e, a := len(out), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		for i := range out {
+			if e, a := in[i], *(out[i]); e != a {
+				t.Errorf("Unexpected value at idx %d", idx)
+			}
+		}
+
+		out2 := Float32ValueSlice(out)
+		if e, a := len(out2), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		if e, a := in, out2; !reflect.DeepEqual(e, a) {
+			t.Errorf("Unexpected value at idx %d", idx)
+		}
+	}
+}
+
+var testCasesFloat32ValueSlice = [][]*float32{}
+
+func TestFloat32ValueSlice(t *testing.T) {
+	for idx, in := range testCasesFloat32ValueSlice {
+		if in == nil {
+			continue
+		}
+		out := Float32ValueSlice(in)
+		if e, a := len(out), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		for i := range out {
+			if in[i] == nil {
+				if out[i] != 0 {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
+			} else {
+				if e, a := *(in[i]), out[i]; e != a {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
+			}
+		}
+
+		out2 := Float32Slice(out)
+		if e, a := len(out2), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		for i := range out2 {
+			if in[i] == nil {
+				if *(out2[i]) != 0 {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
+			} else {
+				if e, a := in[i], out2[i]; e != a {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
+			}
+		}
+	}
+}
+
+var testCasesFloat32Map = []map[string]float32{
+	{"a": 3, "b": 2, "c": 1},
+}
+
+func TestFloat32Map(t *testing.T) {
+	for idx, in := range testCasesFloat32Map {
+		if in == nil {
+			continue
+		}
+		out := Float32Map(in)
+		if e, a := len(out), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		for i := range out {
+			if e, a := in[i], *(out[i]); e != a {
+				t.Errorf("Unexpected value at idx %d", idx)
+			}
+		}
+
+		out2 := Float32ValueMap(out)
+		if e, a := len(out2), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		if e, a := in, out2; !reflect.DeepEqual(e, a) {
+			t.Errorf("Unexpected value at idx %d", idx)
+		}
 	}
 }
 
@@ -304,14 +1306,22 @@ func TestFloat64Slice(t *testing.T) {
 			continue
 		}
 		out := Float64Slice(in)
-		assert.Len(t, out, len(in), "Unexpected len at idx %d", idx)
+		if e, a := len(out), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
 		for i := range out {
-			assert.Equal(t, in[i], *(out[i]), "Unexpected value at idx %d", idx)
+			if e, a := in[i], *(out[i]); e != a {
+				t.Errorf("Unexpected value at idx %d", idx)
+			}
 		}
 
 		out2 := Float64ValueSlice(out)
-		assert.Len(t, out2, len(in), "Unexpected len at idx %d", idx)
-		assert.Equal(t, in, out2, "Unexpected value at idx %d", idx)
+		if e, a := len(out2), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		if e, a := in, out2; !reflect.DeepEqual(e, a) {
+			t.Errorf("Unexpected value at idx %d", idx)
+		}
 	}
 }
 
@@ -323,22 +1333,34 @@ func TestFloat64ValueSlice(t *testing.T) {
 			continue
 		}
 		out := Float64ValueSlice(in)
-		assert.Len(t, out, len(in), "Unexpected len at idx %d", idx)
+		if e, a := len(out), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
 		for i := range out {
 			if in[i] == nil {
-				assert.Empty(t, out[i], "Unexpected value at idx %d", idx)
+				if out[i] != 0 {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
 			} else {
-				assert.Equal(t, *(in[i]), out[i], "Unexpected value at idx %d", idx)
+				if e, a := *(in[i]), out[i]; e != a {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
 			}
 		}
 
 		out2 := Float64Slice(out)
-		assert.Len(t, out2, len(in), "Unexpected len at idx %d", idx)
+		if e, a := len(out2), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
 		for i := range out2 {
 			if in[i] == nil {
-				assert.Empty(t, *(out2[i]), "Unexpected value at idx %d", idx)
+				if *(out2[i]) != 0 {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
 			} else {
-				assert.Equal(t, in[i], out2[i], "Unexpected value at idx %d", idx)
+				if e, a := in[i], out2[i]; e != a {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
 			}
 		}
 	}
@@ -354,14 +1376,22 @@ func TestFloat64Map(t *testing.T) {
 			continue
 		}
 		out := Float64Map(in)
-		assert.Len(t, out, len(in), "Unexpected len at idx %d", idx)
+		if e, a := len(out), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
 		for i := range out {
-			assert.Equal(t, in[i], *(out[i]), "Unexpected value at idx %d", idx)
+			if e, a := in[i], *(out[i]); e != a {
+				t.Errorf("Unexpected value at idx %d", idx)
+			}
 		}
 
 		out2 := Float64ValueMap(out)
-		assert.Len(t, out2, len(in), "Unexpected len at idx %d", idx)
-		assert.Equal(t, in, out2, "Unexpected value at idx %d", idx)
+		if e, a := len(out2), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		if e, a := in, out2; !reflect.DeepEqual(e, a) {
+			t.Errorf("Unexpected value at idx %d", idx)
+		}
 	}
 }
 
@@ -375,14 +1405,22 @@ func TestTimeSlice(t *testing.T) {
 			continue
 		}
 		out := TimeSlice(in)
-		assert.Len(t, out, len(in), "Unexpected len at idx %d", idx)
+		if e, a := len(out), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
 		for i := range out {
-			assert.Equal(t, in[i], *(out[i]), "Unexpected value at idx %d", idx)
+			if e, a := in[i], *(out[i]); e != a {
+				t.Errorf("Unexpected value at idx %d", idx)
+			}
 		}
 
 		out2 := TimeValueSlice(out)
-		assert.Len(t, out2, len(in), "Unexpected len at idx %d", idx)
-		assert.Equal(t, in, out2, "Unexpected value at idx %d", idx)
+		if e, a := len(out2), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		if e, a := in, out2; !reflect.DeepEqual(e, a) {
+			t.Errorf("Unexpected value at idx %d", idx)
+		}
 	}
 }
 
@@ -394,22 +1432,34 @@ func TestTimeValueSlice(t *testing.T) {
 			continue
 		}
 		out := TimeValueSlice(in)
-		assert.Len(t, out, len(in), "Unexpected len at idx %d", idx)
+		if e, a := len(out), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
 		for i := range out {
 			if in[i] == nil {
-				assert.Empty(t, out[i], "Unexpected value at idx %d", idx)
+				if !out[i].IsZero() {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
 			} else {
-				assert.Equal(t, *(in[i]), out[i], "Unexpected value at idx %d", idx)
+				if e, a := *(in[i]), out[i]; e != a {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
 			}
 		}
 
 		out2 := TimeSlice(out)
-		assert.Len(t, out2, len(in), "Unexpected len at idx %d", idx)
+		if e, a := len(out2), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
 		for i := range out2 {
 			if in[i] == nil {
-				assert.Empty(t, *(out2[i]), "Unexpected value at idx %d", idx)
+				if !(out2[i]).IsZero() {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
 			} else {
-				assert.Equal(t, in[i], out2[i], "Unexpected value at idx %d", idx)
+				if e, a := in[i], out2[i]; e != a {
+					t.Errorf("Unexpected value at idx %d", idx)
+				}
 			}
 		}
 	}
@@ -425,14 +1475,22 @@ func TestTimeMap(t *testing.T) {
 			continue
 		}
 		out := TimeMap(in)
-		assert.Len(t, out, len(in), "Unexpected len at idx %d", idx)
+		if e, a := len(out), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
 		for i := range out {
-			assert.Equal(t, in[i], *(out[i]), "Unexpected value at idx %d", idx)
+			if e, a := in[i], *(out[i]); e != a {
+				t.Errorf("Unexpected value at idx %d", idx)
+			}
 		}
 
 		out2 := TimeValueMap(out)
-		assert.Len(t, out2, len(in), "Unexpected len at idx %d", idx)
-		assert.Equal(t, in, out2, "Unexpected value at idx %d", idx)
+		if e, a := len(out2), len(in); e != a {
+			t.Errorf("Unexpected len at idx %d", idx)
+		}
+		if e, a := in, out2; !reflect.DeepEqual(e, a) {
+			t.Errorf("Unexpected value at idx %d", idx)
+		}
 	}
 }
 
@@ -458,13 +1516,17 @@ var testCasesTimeValue = []TimeValueTestCase{
 func TestSecondsTimeValue(t *testing.T) {
 	for idx, testCase := range testCasesTimeValue {
 		out := SecondsTimeValue(&testCase.in)
-		assert.Equal(t, testCase.outSecs, out, "Unexpected value for time value at %d", idx)
+		if e, a := testCase.outSecs, out; e != a {
+			t.Errorf("Unexpected value for time value at %d", idx)
+		}
 	}
 }
 
 func TestMillisecondsTimeValue(t *testing.T) {
 	for idx, testCase := range testCasesTimeValue {
 		out := MillisecondsTimeValue(&testCase.in)
-		assert.Equal(t, testCase.outMillis, out, "Unexpected value for time value at %d", idx)
+		if e, a := testCase.outMillis, out; e != a {
+			t.Errorf("Unexpected value for time value at %d", idx)
+		}
 	}
 }

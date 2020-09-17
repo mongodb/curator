@@ -17,8 +17,8 @@ const opBulkPublish = "BulkPublish"
 
 // BulkPublishRequest generates a "aws/request.Request" representing the
 // client's request for the BulkPublish operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -38,7 +38,7 @@ const opBulkPublish = "BulkPublish"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/BulkPublish
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/BulkPublish
 func (c *CognitoSync) BulkPublishRequest(input *BulkPublishInput) (req *request.Request, output *BulkPublishOutput) {
 	op := &request.Operation{
 		Name:       opBulkPublish,
@@ -72,28 +72,28 @@ func (c *CognitoSync) BulkPublishRequest(input *BulkPublishInput) (req *request.
 // See the AWS API reference guide for Amazon Cognito Sync's
 // API operation BulkPublish for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeNotAuthorizedException "NotAuthorizedException"
+// Returned Error Types:
+//   * NotAuthorizedException
 //   Thrown when a user is not authorized to access the requested resource.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   Thrown when a request parameter does not comply with the associated constraints.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   Thrown if the resource doesn't exist.
 //
-//   * ErrCodeInternalErrorException "InternalErrorException"
+//   * InternalErrorException
 //   Indicates an internal service error.
 //
-//   * ErrCodeDuplicateRequestException "DuplicateRequestException"
+//   * DuplicateRequestException
 //   An exception thrown when there is an IN_PROGRESS bulk publish operation for
 //   the given identity pool.
 //
-//   * ErrCodeAlreadyStreamedException "AlreadyStreamedException"
+//   * AlreadyStreamedException
 //   An exception thrown when a bulk publish operation is requested less than
 //   24 hours after a previous bulk publish operation completed successfully.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/BulkPublish
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/BulkPublish
 func (c *CognitoSync) BulkPublish(input *BulkPublishInput) (*BulkPublishOutput, error) {
 	req, out := c.BulkPublishRequest(input)
 	return out, req.Send()
@@ -119,8 +119,8 @@ const opDeleteDataset = "DeleteDataset"
 
 // DeleteDatasetRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteDataset operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -140,7 +140,7 @@ const opDeleteDataset = "DeleteDataset"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/DeleteDataset
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/DeleteDataset
 func (c *CognitoSync) DeleteDatasetRequest(input *DeleteDatasetInput) (req *request.Request, output *DeleteDatasetOutput) {
 	op := &request.Operation{
 		Name:       opDeleteDataset,
@@ -174,27 +174,27 @@ func (c *CognitoSync) DeleteDatasetRequest(input *DeleteDatasetInput) (req *requ
 // See the AWS API reference guide for Amazon Cognito Sync's
 // API operation DeleteDataset for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeNotAuthorizedException "NotAuthorizedException"
+// Returned Error Types:
+//   * NotAuthorizedException
 //   Thrown when a user is not authorized to access the requested resource.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   Thrown when a request parameter does not comply with the associated constraints.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   Thrown if the resource doesn't exist.
 //
-//   * ErrCodeInternalErrorException "InternalErrorException"
+//   * InternalErrorException
 //   Indicates an internal service error.
 //
-//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   * TooManyRequestsException
 //   Thrown if the request is throttled.
 //
-//   * ErrCodeResourceConflictException "ResourceConflictException"
+//   * ResourceConflictException
 //   Thrown if an update can't be applied because the resource was changed by
 //   another call and this would result in a conflict.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/DeleteDataset
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/DeleteDataset
 func (c *CognitoSync) DeleteDataset(input *DeleteDatasetInput) (*DeleteDatasetOutput, error) {
 	req, out := c.DeleteDatasetRequest(input)
 	return out, req.Send()
@@ -220,8 +220,8 @@ const opDescribeDataset = "DescribeDataset"
 
 // DescribeDatasetRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeDataset operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -241,7 +241,7 @@ const opDescribeDataset = "DescribeDataset"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/DescribeDataset
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/DescribeDataset
 func (c *CognitoSync) DescribeDatasetRequest(input *DescribeDatasetInput) (req *request.Request, output *DescribeDatasetOutput) {
 	op := &request.Operation{
 		Name:       opDescribeDataset,
@@ -275,23 +275,23 @@ func (c *CognitoSync) DescribeDatasetRequest(input *DescribeDatasetInput) (req *
 // See the AWS API reference guide for Amazon Cognito Sync's
 // API operation DescribeDataset for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeNotAuthorizedException "NotAuthorizedException"
+// Returned Error Types:
+//   * NotAuthorizedException
 //   Thrown when a user is not authorized to access the requested resource.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   Thrown when a request parameter does not comply with the associated constraints.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   Thrown if the resource doesn't exist.
 //
-//   * ErrCodeInternalErrorException "InternalErrorException"
+//   * InternalErrorException
 //   Indicates an internal service error.
 //
-//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   * TooManyRequestsException
 //   Thrown if the request is throttled.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/DescribeDataset
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/DescribeDataset
 func (c *CognitoSync) DescribeDataset(input *DescribeDatasetInput) (*DescribeDatasetOutput, error) {
 	req, out := c.DescribeDatasetRequest(input)
 	return out, req.Send()
@@ -317,8 +317,8 @@ const opDescribeIdentityPoolUsage = "DescribeIdentityPoolUsage"
 
 // DescribeIdentityPoolUsageRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeIdentityPoolUsage operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -338,7 +338,7 @@ const opDescribeIdentityPoolUsage = "DescribeIdentityPoolUsage"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/DescribeIdentityPoolUsage
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/DescribeIdentityPoolUsage
 func (c *CognitoSync) DescribeIdentityPoolUsageRequest(input *DescribeIdentityPoolUsageInput) (req *request.Request, output *DescribeIdentityPoolUsageOutput) {
 	op := &request.Operation{
 		Name:       opDescribeIdentityPoolUsage,
@@ -370,23 +370,23 @@ func (c *CognitoSync) DescribeIdentityPoolUsageRequest(input *DescribeIdentityPo
 // See the AWS API reference guide for Amazon Cognito Sync's
 // API operation DescribeIdentityPoolUsage for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeNotAuthorizedException "NotAuthorizedException"
+// Returned Error Types:
+//   * NotAuthorizedException
 //   Thrown when a user is not authorized to access the requested resource.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   Thrown when a request parameter does not comply with the associated constraints.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   Thrown if the resource doesn't exist.
 //
-//   * ErrCodeInternalErrorException "InternalErrorException"
+//   * InternalErrorException
 //   Indicates an internal service error.
 //
-//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   * TooManyRequestsException
 //   Thrown if the request is throttled.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/DescribeIdentityPoolUsage
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/DescribeIdentityPoolUsage
 func (c *CognitoSync) DescribeIdentityPoolUsage(input *DescribeIdentityPoolUsageInput) (*DescribeIdentityPoolUsageOutput, error) {
 	req, out := c.DescribeIdentityPoolUsageRequest(input)
 	return out, req.Send()
@@ -412,8 +412,8 @@ const opDescribeIdentityUsage = "DescribeIdentityUsage"
 
 // DescribeIdentityUsageRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeIdentityUsage operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -433,7 +433,7 @@ const opDescribeIdentityUsage = "DescribeIdentityUsage"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/DescribeIdentityUsage
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/DescribeIdentityUsage
 func (c *CognitoSync) DescribeIdentityUsageRequest(input *DescribeIdentityUsageInput) (req *request.Request, output *DescribeIdentityUsageOutput) {
 	op := &request.Operation{
 		Name:       opDescribeIdentityUsage,
@@ -465,23 +465,23 @@ func (c *CognitoSync) DescribeIdentityUsageRequest(input *DescribeIdentityUsageI
 // See the AWS API reference guide for Amazon Cognito Sync's
 // API operation DescribeIdentityUsage for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeNotAuthorizedException "NotAuthorizedException"
+// Returned Error Types:
+//   * NotAuthorizedException
 //   Thrown when a user is not authorized to access the requested resource.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   Thrown when a request parameter does not comply with the associated constraints.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   Thrown if the resource doesn't exist.
 //
-//   * ErrCodeInternalErrorException "InternalErrorException"
+//   * InternalErrorException
 //   Indicates an internal service error.
 //
-//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   * TooManyRequestsException
 //   Thrown if the request is throttled.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/DescribeIdentityUsage
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/DescribeIdentityUsage
 func (c *CognitoSync) DescribeIdentityUsage(input *DescribeIdentityUsageInput) (*DescribeIdentityUsageOutput, error) {
 	req, out := c.DescribeIdentityUsageRequest(input)
 	return out, req.Send()
@@ -507,8 +507,8 @@ const opGetBulkPublishDetails = "GetBulkPublishDetails"
 
 // GetBulkPublishDetailsRequest generates a "aws/request.Request" representing the
 // client's request for the GetBulkPublishDetails operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -528,7 +528,7 @@ const opGetBulkPublishDetails = "GetBulkPublishDetails"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/GetBulkPublishDetails
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/GetBulkPublishDetails
 func (c *CognitoSync) GetBulkPublishDetailsRequest(input *GetBulkPublishDetailsInput) (req *request.Request, output *GetBulkPublishDetailsOutput) {
 	op := &request.Operation{
 		Name:       opGetBulkPublishDetails,
@@ -559,20 +559,20 @@ func (c *CognitoSync) GetBulkPublishDetailsRequest(input *GetBulkPublishDetailsI
 // See the AWS API reference guide for Amazon Cognito Sync's
 // API operation GetBulkPublishDetails for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeNotAuthorizedException "NotAuthorizedException"
+// Returned Error Types:
+//   * NotAuthorizedException
 //   Thrown when a user is not authorized to access the requested resource.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   Thrown when a request parameter does not comply with the associated constraints.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   Thrown if the resource doesn't exist.
 //
-//   * ErrCodeInternalErrorException "InternalErrorException"
+//   * InternalErrorException
 //   Indicates an internal service error.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/GetBulkPublishDetails
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/GetBulkPublishDetails
 func (c *CognitoSync) GetBulkPublishDetails(input *GetBulkPublishDetailsInput) (*GetBulkPublishDetailsOutput, error) {
 	req, out := c.GetBulkPublishDetailsRequest(input)
 	return out, req.Send()
@@ -598,8 +598,8 @@ const opGetCognitoEvents = "GetCognitoEvents"
 
 // GetCognitoEventsRequest generates a "aws/request.Request" representing the
 // client's request for the GetCognitoEvents operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -619,7 +619,7 @@ const opGetCognitoEvents = "GetCognitoEvents"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/GetCognitoEvents
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/GetCognitoEvents
 func (c *CognitoSync) GetCognitoEventsRequest(input *GetCognitoEventsInput) (req *request.Request, output *GetCognitoEventsOutput) {
 	op := &request.Operation{
 		Name:       opGetCognitoEvents,
@@ -651,23 +651,23 @@ func (c *CognitoSync) GetCognitoEventsRequest(input *GetCognitoEventsInput) (req
 // See the AWS API reference guide for Amazon Cognito Sync's
 // API operation GetCognitoEvents for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+// Returned Error Types:
+//   * InvalidParameterException
 //   Thrown when a request parameter does not comply with the associated constraints.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   Thrown if the resource doesn't exist.
 //
-//   * ErrCodeNotAuthorizedException "NotAuthorizedException"
+//   * NotAuthorizedException
 //   Thrown when a user is not authorized to access the requested resource.
 //
-//   * ErrCodeInternalErrorException "InternalErrorException"
+//   * InternalErrorException
 //   Indicates an internal service error.
 //
-//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   * TooManyRequestsException
 //   Thrown if the request is throttled.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/GetCognitoEvents
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/GetCognitoEvents
 func (c *CognitoSync) GetCognitoEvents(input *GetCognitoEventsInput) (*GetCognitoEventsOutput, error) {
 	req, out := c.GetCognitoEventsRequest(input)
 	return out, req.Send()
@@ -693,8 +693,8 @@ const opGetIdentityPoolConfiguration = "GetIdentityPoolConfiguration"
 
 // GetIdentityPoolConfigurationRequest generates a "aws/request.Request" representing the
 // client's request for the GetIdentityPoolConfiguration operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -714,7 +714,7 @@ const opGetIdentityPoolConfiguration = "GetIdentityPoolConfiguration"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/GetIdentityPoolConfiguration
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/GetIdentityPoolConfiguration
 func (c *CognitoSync) GetIdentityPoolConfigurationRequest(input *GetIdentityPoolConfigurationInput) (req *request.Request, output *GetIdentityPoolConfigurationOutput) {
 	op := &request.Operation{
 		Name:       opGetIdentityPoolConfiguration,
@@ -745,23 +745,23 @@ func (c *CognitoSync) GetIdentityPoolConfigurationRequest(input *GetIdentityPool
 // See the AWS API reference guide for Amazon Cognito Sync's
 // API operation GetIdentityPoolConfiguration for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeNotAuthorizedException "NotAuthorizedException"
+// Returned Error Types:
+//   * NotAuthorizedException
 //   Thrown when a user is not authorized to access the requested resource.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   Thrown when a request parameter does not comply with the associated constraints.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   Thrown if the resource doesn't exist.
 //
-//   * ErrCodeInternalErrorException "InternalErrorException"
+//   * InternalErrorException
 //   Indicates an internal service error.
 //
-//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   * TooManyRequestsException
 //   Thrown if the request is throttled.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/GetIdentityPoolConfiguration
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/GetIdentityPoolConfiguration
 func (c *CognitoSync) GetIdentityPoolConfiguration(input *GetIdentityPoolConfigurationInput) (*GetIdentityPoolConfigurationOutput, error) {
 	req, out := c.GetIdentityPoolConfigurationRequest(input)
 	return out, req.Send()
@@ -787,8 +787,8 @@ const opListDatasets = "ListDatasets"
 
 // ListDatasetsRequest generates a "aws/request.Request" representing the
 // client's request for the ListDatasets operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -808,7 +808,7 @@ const opListDatasets = "ListDatasets"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/ListDatasets
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/ListDatasets
 func (c *CognitoSync) ListDatasetsRequest(input *ListDatasetsInput) (req *request.Request, output *ListDatasetsOutput) {
 	op := &request.Operation{
 		Name:       opListDatasets,
@@ -842,20 +842,20 @@ func (c *CognitoSync) ListDatasetsRequest(input *ListDatasetsInput) (req *reques
 // See the AWS API reference guide for Amazon Cognito Sync's
 // API operation ListDatasets for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeNotAuthorizedException "NotAuthorizedException"
+// Returned Error Types:
+//   * NotAuthorizedException
 //   Thrown when a user is not authorized to access the requested resource.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   Thrown when a request parameter does not comply with the associated constraints.
 //
-//   * ErrCodeInternalErrorException "InternalErrorException"
+//   * InternalErrorException
 //   Indicates an internal service error.
 //
-//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   * TooManyRequestsException
 //   Thrown if the request is throttled.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/ListDatasets
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/ListDatasets
 func (c *CognitoSync) ListDatasets(input *ListDatasetsInput) (*ListDatasetsOutput, error) {
 	req, out := c.ListDatasetsRequest(input)
 	return out, req.Send()
@@ -881,8 +881,8 @@ const opListIdentityPoolUsage = "ListIdentityPoolUsage"
 
 // ListIdentityPoolUsageRequest generates a "aws/request.Request" representing the
 // client's request for the ListIdentityPoolUsage operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -902,7 +902,7 @@ const opListIdentityPoolUsage = "ListIdentityPoolUsage"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/ListIdentityPoolUsage
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/ListIdentityPoolUsage
 func (c *CognitoSync) ListIdentityPoolUsageRequest(input *ListIdentityPoolUsageInput) (req *request.Request, output *ListIdentityPoolUsageOutput) {
 	op := &request.Operation{
 		Name:       opListIdentityPoolUsage,
@@ -934,20 +934,20 @@ func (c *CognitoSync) ListIdentityPoolUsageRequest(input *ListIdentityPoolUsageI
 // See the AWS API reference guide for Amazon Cognito Sync's
 // API operation ListIdentityPoolUsage for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeNotAuthorizedException "NotAuthorizedException"
+// Returned Error Types:
+//   * NotAuthorizedException
 //   Thrown when a user is not authorized to access the requested resource.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   Thrown when a request parameter does not comply with the associated constraints.
 //
-//   * ErrCodeInternalErrorException "InternalErrorException"
+//   * InternalErrorException
 //   Indicates an internal service error.
 //
-//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   * TooManyRequestsException
 //   Thrown if the request is throttled.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/ListIdentityPoolUsage
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/ListIdentityPoolUsage
 func (c *CognitoSync) ListIdentityPoolUsage(input *ListIdentityPoolUsageInput) (*ListIdentityPoolUsageOutput, error) {
 	req, out := c.ListIdentityPoolUsageRequest(input)
 	return out, req.Send()
@@ -973,8 +973,8 @@ const opListRecords = "ListRecords"
 
 // ListRecordsRequest generates a "aws/request.Request" representing the
 // client's request for the ListRecords operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -994,7 +994,7 @@ const opListRecords = "ListRecords"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/ListRecords
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/ListRecords
 func (c *CognitoSync) ListRecordsRequest(input *ListRecordsInput) (req *request.Request, output *ListRecordsOutput) {
 	op := &request.Operation{
 		Name:       opListRecords,
@@ -1029,20 +1029,20 @@ func (c *CognitoSync) ListRecordsRequest(input *ListRecordsInput) (req *request.
 // See the AWS API reference guide for Amazon Cognito Sync's
 // API operation ListRecords for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+// Returned Error Types:
+//   * InvalidParameterException
 //   Thrown when a request parameter does not comply with the associated constraints.
 //
-//   * ErrCodeNotAuthorizedException "NotAuthorizedException"
+//   * NotAuthorizedException
 //   Thrown when a user is not authorized to access the requested resource.
 //
-//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   * TooManyRequestsException
 //   Thrown if the request is throttled.
 //
-//   * ErrCodeInternalErrorException "InternalErrorException"
+//   * InternalErrorException
 //   Indicates an internal service error.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/ListRecords
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/ListRecords
 func (c *CognitoSync) ListRecords(input *ListRecordsInput) (*ListRecordsOutput, error) {
 	req, out := c.ListRecordsRequest(input)
 	return out, req.Send()
@@ -1068,8 +1068,8 @@ const opRegisterDevice = "RegisterDevice"
 
 // RegisterDeviceRequest generates a "aws/request.Request" representing the
 // client's request for the RegisterDevice operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1089,7 +1089,7 @@ const opRegisterDevice = "RegisterDevice"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/RegisterDevice
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/RegisterDevice
 func (c *CognitoSync) RegisterDeviceRequest(input *RegisterDeviceInput) (req *request.Request, output *RegisterDeviceOutput) {
 	op := &request.Operation{
 		Name:       opRegisterDevice,
@@ -1120,25 +1120,25 @@ func (c *CognitoSync) RegisterDeviceRequest(input *RegisterDeviceInput) (req *re
 // See the AWS API reference guide for Amazon Cognito Sync's
 // API operation RegisterDevice for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeNotAuthorizedException "NotAuthorizedException"
+// Returned Error Types:
+//   * NotAuthorizedException
 //   Thrown when a user is not authorized to access the requested resource.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   Thrown when a request parameter does not comply with the associated constraints.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   Thrown if the resource doesn't exist.
 //
-//   * ErrCodeInternalErrorException "InternalErrorException"
+//   * InternalErrorException
 //   Indicates an internal service error.
 //
-//   * ErrCodeInvalidConfigurationException "InvalidConfigurationException"
+//   * InvalidConfigurationException
 //
-//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   * TooManyRequestsException
 //   Thrown if the request is throttled.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/RegisterDevice
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/RegisterDevice
 func (c *CognitoSync) RegisterDevice(input *RegisterDeviceInput) (*RegisterDeviceOutput, error) {
 	req, out := c.RegisterDeviceRequest(input)
 	return out, req.Send()
@@ -1164,8 +1164,8 @@ const opSetCognitoEvents = "SetCognitoEvents"
 
 // SetCognitoEventsRequest generates a "aws/request.Request" representing the
 // client's request for the SetCognitoEvents operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1185,7 +1185,7 @@ const opSetCognitoEvents = "SetCognitoEvents"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/SetCognitoEvents
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/SetCognitoEvents
 func (c *CognitoSync) SetCognitoEventsRequest(input *SetCognitoEventsInput) (req *request.Request, output *SetCognitoEventsOutput) {
 	op := &request.Operation{
 		Name:       opSetCognitoEvents,
@@ -1199,8 +1199,7 @@ func (c *CognitoSync) SetCognitoEventsRequest(input *SetCognitoEventsInput) (req
 
 	output = &SetCognitoEventsOutput{}
 	req = c.newRequest(op, input, output)
-	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1221,23 +1220,23 @@ func (c *CognitoSync) SetCognitoEventsRequest(input *SetCognitoEventsInput) (req
 // See the AWS API reference guide for Amazon Cognito Sync's
 // API operation SetCognitoEvents for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+// Returned Error Types:
+//   * InvalidParameterException
 //   Thrown when a request parameter does not comply with the associated constraints.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   Thrown if the resource doesn't exist.
 //
-//   * ErrCodeNotAuthorizedException "NotAuthorizedException"
+//   * NotAuthorizedException
 //   Thrown when a user is not authorized to access the requested resource.
 //
-//   * ErrCodeInternalErrorException "InternalErrorException"
+//   * InternalErrorException
 //   Indicates an internal service error.
 //
-//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   * TooManyRequestsException
 //   Thrown if the request is throttled.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/SetCognitoEvents
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/SetCognitoEvents
 func (c *CognitoSync) SetCognitoEvents(input *SetCognitoEventsInput) (*SetCognitoEventsOutput, error) {
 	req, out := c.SetCognitoEventsRequest(input)
 	return out, req.Send()
@@ -1263,8 +1262,8 @@ const opSetIdentityPoolConfiguration = "SetIdentityPoolConfiguration"
 
 // SetIdentityPoolConfigurationRequest generates a "aws/request.Request" representing the
 // client's request for the SetIdentityPoolConfiguration operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1284,7 +1283,7 @@ const opSetIdentityPoolConfiguration = "SetIdentityPoolConfiguration"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/SetIdentityPoolConfiguration
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/SetIdentityPoolConfiguration
 func (c *CognitoSync) SetIdentityPoolConfigurationRequest(input *SetIdentityPoolConfigurationInput) (req *request.Request, output *SetIdentityPoolConfigurationOutput) {
 	op := &request.Operation{
 		Name:       opSetIdentityPoolConfiguration,
@@ -1315,26 +1314,26 @@ func (c *CognitoSync) SetIdentityPoolConfigurationRequest(input *SetIdentityPool
 // See the AWS API reference guide for Amazon Cognito Sync's
 // API operation SetIdentityPoolConfiguration for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeNotAuthorizedException "NotAuthorizedException"
+// Returned Error Types:
+//   * NotAuthorizedException
 //   Thrown when a user is not authorized to access the requested resource.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   Thrown when a request parameter does not comply with the associated constraints.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   Thrown if the resource doesn't exist.
 //
-//   * ErrCodeInternalErrorException "InternalErrorException"
+//   * InternalErrorException
 //   Indicates an internal service error.
 //
-//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   * TooManyRequestsException
 //   Thrown if the request is throttled.
 //
-//   * ErrCodeConcurrentModificationException "ConcurrentModificationException"
+//   * ConcurrentModificationException
 //   Thrown if there are parallel requests to modify a resource.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/SetIdentityPoolConfiguration
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/SetIdentityPoolConfiguration
 func (c *CognitoSync) SetIdentityPoolConfiguration(input *SetIdentityPoolConfigurationInput) (*SetIdentityPoolConfigurationOutput, error) {
 	req, out := c.SetIdentityPoolConfigurationRequest(input)
 	return out, req.Send()
@@ -1360,8 +1359,8 @@ const opSubscribeToDataset = "SubscribeToDataset"
 
 // SubscribeToDatasetRequest generates a "aws/request.Request" representing the
 // client's request for the SubscribeToDataset operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1381,7 +1380,7 @@ const opSubscribeToDataset = "SubscribeToDataset"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/SubscribeToDataset
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/SubscribeToDataset
 func (c *CognitoSync) SubscribeToDatasetRequest(input *SubscribeToDatasetInput) (req *request.Request, output *SubscribeToDatasetOutput) {
 	op := &request.Operation{
 		Name:       opSubscribeToDataset,
@@ -1395,6 +1394,7 @@ func (c *CognitoSync) SubscribeToDatasetRequest(input *SubscribeToDatasetInput) 
 
 	output = &SubscribeToDatasetOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1413,25 +1413,25 @@ func (c *CognitoSync) SubscribeToDatasetRequest(input *SubscribeToDatasetInput) 
 // See the AWS API reference guide for Amazon Cognito Sync's
 // API operation SubscribeToDataset for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeNotAuthorizedException "NotAuthorizedException"
+// Returned Error Types:
+//   * NotAuthorizedException
 //   Thrown when a user is not authorized to access the requested resource.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   Thrown when a request parameter does not comply with the associated constraints.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   Thrown if the resource doesn't exist.
 //
-//   * ErrCodeInternalErrorException "InternalErrorException"
+//   * InternalErrorException
 //   Indicates an internal service error.
 //
-//   * ErrCodeInvalidConfigurationException "InvalidConfigurationException"
+//   * InvalidConfigurationException
 //
-//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   * TooManyRequestsException
 //   Thrown if the request is throttled.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/SubscribeToDataset
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/SubscribeToDataset
 func (c *CognitoSync) SubscribeToDataset(input *SubscribeToDatasetInput) (*SubscribeToDatasetOutput, error) {
 	req, out := c.SubscribeToDatasetRequest(input)
 	return out, req.Send()
@@ -1457,8 +1457,8 @@ const opUnsubscribeFromDataset = "UnsubscribeFromDataset"
 
 // UnsubscribeFromDatasetRequest generates a "aws/request.Request" representing the
 // client's request for the UnsubscribeFromDataset operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1478,7 +1478,7 @@ const opUnsubscribeFromDataset = "UnsubscribeFromDataset"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/UnsubscribeFromDataset
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/UnsubscribeFromDataset
 func (c *CognitoSync) UnsubscribeFromDatasetRequest(input *UnsubscribeFromDatasetInput) (req *request.Request, output *UnsubscribeFromDatasetOutput) {
 	op := &request.Operation{
 		Name:       opUnsubscribeFromDataset,
@@ -1492,6 +1492,7 @@ func (c *CognitoSync) UnsubscribeFromDatasetRequest(input *UnsubscribeFromDatase
 
 	output = &UnsubscribeFromDatasetOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(restjson.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1510,25 +1511,25 @@ func (c *CognitoSync) UnsubscribeFromDatasetRequest(input *UnsubscribeFromDatase
 // See the AWS API reference guide for Amazon Cognito Sync's
 // API operation UnsubscribeFromDataset for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeNotAuthorizedException "NotAuthorizedException"
+// Returned Error Types:
+//   * NotAuthorizedException
 //   Thrown when a user is not authorized to access the requested resource.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   Thrown when a request parameter does not comply with the associated constraints.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   Thrown if the resource doesn't exist.
 //
-//   * ErrCodeInternalErrorException "InternalErrorException"
+//   * InternalErrorException
 //   Indicates an internal service error.
 //
-//   * ErrCodeInvalidConfigurationException "InvalidConfigurationException"
+//   * InvalidConfigurationException
 //
-//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   * TooManyRequestsException
 //   Thrown if the request is throttled.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/UnsubscribeFromDataset
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/UnsubscribeFromDataset
 func (c *CognitoSync) UnsubscribeFromDataset(input *UnsubscribeFromDatasetInput) (*UnsubscribeFromDatasetOutput, error) {
 	req, out := c.UnsubscribeFromDatasetRequest(input)
 	return out, req.Send()
@@ -1554,8 +1555,8 @@ const opUpdateRecords = "UpdateRecords"
 
 // UpdateRecordsRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateRecords operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1575,7 +1576,7 @@ const opUpdateRecords = "UpdateRecords"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/UpdateRecords
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/UpdateRecords
 func (c *CognitoSync) UpdateRecordsRequest(input *UpdateRecordsInput) (req *request.Request, output *UpdateRecordsOutput) {
 	op := &request.Operation{
 		Name:       opUpdateRecords,
@@ -1618,36 +1619,36 @@ func (c *CognitoSync) UpdateRecordsRequest(input *UpdateRecordsInput) (req *requ
 // See the AWS API reference guide for Amazon Cognito Sync's
 // API operation UpdateRecords for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+// Returned Error Types:
+//   * InvalidParameterException
 //   Thrown when a request parameter does not comply with the associated constraints.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   Thrown when the limit on the number of objects or operations has been exceeded.
 //
-//   * ErrCodeNotAuthorizedException "NotAuthorizedException"
+//   * NotAuthorizedException
 //   Thrown when a user is not authorized to access the requested resource.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   Thrown if the resource doesn't exist.
 //
-//   * ErrCodeResourceConflictException "ResourceConflictException"
+//   * ResourceConflictException
 //   Thrown if an update can't be applied because the resource was changed by
 //   another call and this would result in a conflict.
 //
-//   * ErrCodeInvalidLambdaFunctionOutputException "InvalidLambdaFunctionOutputException"
+//   * InvalidLambdaFunctionOutputException
 //   The AWS Lambda function returned invalid output or an exception.
 //
-//   * ErrCodeLambdaThrottledException "LambdaThrottledException"
+//   * LambdaThrottledException
 //   AWS Lambda throttled your account, please contact AWS Support
 //
-//   * ErrCodeTooManyRequestsException "TooManyRequestsException"
+//   * TooManyRequestsException
 //   Thrown if the request is throttled.
 //
-//   * ErrCodeInternalErrorException "InternalErrorException"
+//   * InternalErrorException
 //   Indicates an internal service error.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/UpdateRecords
+// See also, https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/UpdateRecords
 func (c *CognitoSync) UpdateRecords(input *UpdateRecordsInput) (*UpdateRecordsOutput, error) {
 	req, out := c.UpdateRecordsRequest(input)
 	return out, req.Send()
@@ -1669,8 +1670,65 @@ func (c *CognitoSync) UpdateRecordsWithContext(ctx aws.Context, input *UpdateRec
 	return out, req.Send()
 }
 
+// An exception thrown when a bulk publish operation is requested less than
+// 24 hours after a previous bulk publish operation completed successfully.
+type AlreadyStreamedException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	// The message associated with the AlreadyStreamedException exception.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s AlreadyStreamedException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AlreadyStreamedException) GoString() string {
+	return s.String()
+}
+
+func newErrorAlreadyStreamedException(v protocol.ResponseMetadata) error {
+	return &AlreadyStreamedException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *AlreadyStreamedException) Code() string {
+	return "AlreadyStreamedException"
+}
+
+// Message returns the exception's message.
+func (s *AlreadyStreamedException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *AlreadyStreamedException) OrigErr() error {
+	return nil
+}
+
+func (s *AlreadyStreamedException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *AlreadyStreamedException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *AlreadyStreamedException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 // The input for the BulkPublish operation.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/BulkPublishRequest
 type BulkPublishInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1714,7 +1772,6 @@ func (s *BulkPublishInput) SetIdentityPoolId(v string) *BulkPublishInput {
 }
 
 // The output for the BulkPublish operation.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/BulkPublishResponse
 type BulkPublishOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1740,7 +1797,6 @@ func (s *BulkPublishOutput) SetIdentityPoolId(v string) *BulkPublishOutput {
 }
 
 // Configuration options for configure Cognito streams.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/CognitoStreams
 type CognitoStreams struct {
 	_ struct{} `type:"structure"`
 
@@ -1753,8 +1809,8 @@ type CognitoStreams struct {
 	// the developers account and in the same region as the identity pool.
 	StreamName *string `min:"1" type:"string"`
 
-	// Status of the Cognito streams. Valid values are: ENABLED - Streaming of updates
-	// to identity pool is enabled.
+	// Status of the Cognito streams. Valid values are:
+	// ENABLED - Streaming of updates to identity pool is enabled.
 	//
 	// DISABLED - Streaming of updates to identity pool is disabled. Bulk publish
 	// will also fail if StreamingStatus is DISABLED.
@@ -1805,17 +1861,73 @@ func (s *CognitoStreams) SetStreamingStatus(v string) *CognitoStreams {
 	return s
 }
 
+// Thrown if there are parallel requests to modify a resource.
+type ConcurrentModificationException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	// The message returned by a ConcurrentModicationException.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s ConcurrentModificationException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ConcurrentModificationException) GoString() string {
+	return s.String()
+}
+
+func newErrorConcurrentModificationException(v protocol.ResponseMetadata) error {
+	return &ConcurrentModificationException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *ConcurrentModificationException) Code() string {
+	return "ConcurrentModificationException"
+}
+
+// Message returns the exception's message.
+func (s *ConcurrentModificationException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *ConcurrentModificationException) OrigErr() error {
+	return nil
+}
+
+func (s *ConcurrentModificationException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *ConcurrentModificationException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *ConcurrentModificationException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 // A collection of data for an identity pool. An identity pool can have multiple
 // datasets. A dataset is per identity and can be general or associated with
 // a particular entity in an application (like a saved game). Datasets are automatically
 // created if they don't exist. Data is synced by dataset, and a dataset can
 // hold up to 1MB of key-value pairs.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/Dataset
 type Dataset struct {
 	_ struct{} `type:"structure"`
 
 	// Date on which the dataset was created.
-	CreationDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	CreationDate *time.Time `type:"timestamp"`
 
 	// Total size in bytes of the records in this dataset.
 	DataStorage *int64 `type:"long"`
@@ -1832,7 +1944,7 @@ type Dataset struct {
 	LastModifiedBy *string `type:"string"`
 
 	// Date when the dataset was last modified.
-	LastModifiedDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	LastModifiedDate *time.Time `type:"timestamp"`
 
 	// Number of records in this dataset.
 	NumRecords *int64 `type:"long"`
@@ -1891,7 +2003,6 @@ func (s *Dataset) SetNumRecords(v int64) *Dataset {
 }
 
 // A request to delete the specific dataset.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/DeleteDatasetRequest
 type DeleteDatasetInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1971,7 +2082,6 @@ func (s *DeleteDatasetInput) SetIdentityPoolId(v string) *DeleteDatasetInput {
 }
 
 // Response to a successful DeleteDataset request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/DeleteDatasetResponse
 type DeleteDatasetOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2001,7 +2111,6 @@ func (s *DeleteDatasetOutput) SetDataset(v *Dataset) *DeleteDatasetOutput {
 
 // A request for meta data about a dataset (creation date, number of records,
 // size) by owner and dataset name.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/DescribeDatasetRequest
 type DescribeDatasetInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2081,7 +2190,6 @@ func (s *DescribeDatasetInput) SetIdentityPoolId(v string) *DescribeDatasetInput
 }
 
 // Response to a successful DescribeDataset request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/DescribeDatasetResponse
 type DescribeDatasetOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2110,7 +2218,6 @@ func (s *DescribeDatasetOutput) SetDataset(v *Dataset) *DescribeDatasetOutput {
 }
 
 // A request for usage information about the identity pool.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/DescribeIdentityPoolUsageRequest
 type DescribeIdentityPoolUsageInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2154,7 +2261,6 @@ func (s *DescribeIdentityPoolUsageInput) SetIdentityPoolId(v string) *DescribeId
 }
 
 // Response to a successful DescribeIdentityPoolUsage request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/DescribeIdentityPoolUsageResponse
 type DescribeIdentityPoolUsageOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2179,7 +2285,6 @@ func (s *DescribeIdentityPoolUsageOutput) SetIdentityPoolUsage(v *IdentityPoolUs
 }
 
 // A request for information about the usage of an identity pool.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/DescribeIdentityUsageRequest
 type DescribeIdentityUsageInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2241,7 +2346,6 @@ func (s *DescribeIdentityUsageInput) SetIdentityPoolId(v string) *DescribeIdenti
 }
 
 // The response to a successful DescribeIdentityUsage request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/DescribeIdentityUsageResponse
 type DescribeIdentityUsageOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2265,8 +2369,65 @@ func (s *DescribeIdentityUsageOutput) SetIdentityUsage(v *IdentityUsage) *Descri
 	return s
 }
 
+// An exception thrown when there is an IN_PROGRESS bulk publish operation for
+// the given identity pool.
+type DuplicateRequestException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	// The message associated with the DuplicateRequestException exception.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s DuplicateRequestException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DuplicateRequestException) GoString() string {
+	return s.String()
+}
+
+func newErrorDuplicateRequestException(v protocol.ResponseMetadata) error {
+	return &DuplicateRequestException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *DuplicateRequestException) Code() string {
+	return "DuplicateRequestException"
+}
+
+// Message returns the exception's message.
+func (s *DuplicateRequestException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *DuplicateRequestException) OrigErr() error {
+	return nil
+}
+
+func (s *DuplicateRequestException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *DuplicateRequestException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *DuplicateRequestException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 // The input for the GetBulkPublishDetails operation.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/GetBulkPublishDetailsRequest
 type GetBulkPublishDetailsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2310,19 +2471,18 @@ func (s *GetBulkPublishDetailsInput) SetIdentityPoolId(v string) *GetBulkPublish
 }
 
 // The output for the GetBulkPublishDetails operation.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/GetBulkPublishDetailsResponse
 type GetBulkPublishDetailsOutput struct {
 	_ struct{} `type:"structure"`
 
 	// If BulkPublishStatus is SUCCEEDED, the time the last bulk publish operation
 	// completed.
-	BulkPublishCompleteTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	BulkPublishCompleteTime *time.Time `type:"timestamp"`
 
 	// The date/time at which the last bulk publish was initiated.
-	BulkPublishStartTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	BulkPublishStartTime *time.Time `type:"timestamp"`
 
-	// Status of the last bulk publish operation, valid values are: NOT_STARTED
-	// - No bulk publish has been requested for this identity pool
+	// Status of the last bulk publish operation, valid values are:
+	// NOT_STARTED - No bulk publish has been requested for this identity pool
 	//
 	// IN_PROGRESS - Data is being published to the configured stream
 	//
@@ -2383,7 +2543,6 @@ func (s *GetBulkPublishDetailsOutput) SetIdentityPoolId(v string) *GetBulkPublis
 }
 
 // A request for a list of the configured Cognito Events
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/GetCognitoEventsRequest
 type GetCognitoEventsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2426,7 +2585,6 @@ func (s *GetCognitoEventsInput) SetIdentityPoolId(v string) *GetCognitoEventsInp
 }
 
 // The response from the GetCognitoEvents request
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/GetCognitoEventsResponse
 type GetCognitoEventsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2451,7 +2609,6 @@ func (s *GetCognitoEventsOutput) SetEvents(v map[string]*string) *GetCognitoEven
 }
 
 // The input for the GetIdentityPoolConfiguration operation.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/GetIdentityPoolConfigurationRequest
 type GetIdentityPoolConfigurationInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2496,7 +2653,6 @@ func (s *GetIdentityPoolConfigurationInput) SetIdentityPoolId(v string) *GetIden
 }
 
 // The output for the GetIdentityPoolConfiguration operation.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/GetIdentityPoolConfigurationResponse
 type GetIdentityPoolConfigurationOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2540,7 +2696,6 @@ func (s *GetIdentityPoolConfigurationOutput) SetPushSync(v *PushSync) *GetIdenti
 }
 
 // Usage information for the identity pool.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/IdentityPoolUsage
 type IdentityPoolUsage struct {
 	_ struct{} `type:"structure"`
 
@@ -2552,7 +2707,7 @@ type IdentityPoolUsage struct {
 	IdentityPoolId *string `min:"1" type:"string"`
 
 	// Date on which the identity pool was last modified.
-	LastModifiedDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	LastModifiedDate *time.Time `type:"timestamp"`
 
 	// Number of sync sessions for the identity pool.
 	SyncSessionsCount *int64 `type:"long"`
@@ -2593,7 +2748,6 @@ func (s *IdentityPoolUsage) SetSyncSessionsCount(v int64) *IdentityPoolUsage {
 }
 
 // Usage information for the identity.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/IdentityUsage
 type IdentityUsage struct {
 	_ struct{} `type:"structure"`
 
@@ -2612,7 +2766,7 @@ type IdentityUsage struct {
 	IdentityPoolId *string `min:"1" type:"string"`
 
 	// Date on which the identity was last modified.
-	LastModifiedDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	LastModifiedDate *time.Time `type:"timestamp"`
 }
 
 // String returns the string representation
@@ -2655,8 +2809,348 @@ func (s *IdentityUsage) SetLastModifiedDate(v time.Time) *IdentityUsage {
 	return s
 }
 
+// Indicates an internal service error.
+type InternalErrorException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	// Message returned by InternalErrorException.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s InternalErrorException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InternalErrorException) GoString() string {
+	return s.String()
+}
+
+func newErrorInternalErrorException(v protocol.ResponseMetadata) error {
+	return &InternalErrorException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *InternalErrorException) Code() string {
+	return "InternalErrorException"
+}
+
+// Message returns the exception's message.
+func (s *InternalErrorException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *InternalErrorException) OrigErr() error {
+	return nil
+}
+
+func (s *InternalErrorException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *InternalErrorException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *InternalErrorException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+type InvalidConfigurationException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	// Message returned by InvalidConfigurationException.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidConfigurationException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidConfigurationException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidConfigurationException(v protocol.ResponseMetadata) error {
+	return &InvalidConfigurationException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *InvalidConfigurationException) Code() string {
+	return "InvalidConfigurationException"
+}
+
+// Message returns the exception's message.
+func (s *InvalidConfigurationException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *InvalidConfigurationException) OrigErr() error {
+	return nil
+}
+
+func (s *InvalidConfigurationException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *InvalidConfigurationException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *InvalidConfigurationException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// The AWS Lambda function returned invalid output or an exception.
+type InvalidLambdaFunctionOutputException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	// A message returned when an InvalidLambdaFunctionOutputException occurs
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidLambdaFunctionOutputException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidLambdaFunctionOutputException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidLambdaFunctionOutputException(v protocol.ResponseMetadata) error {
+	return &InvalidLambdaFunctionOutputException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *InvalidLambdaFunctionOutputException) Code() string {
+	return "InvalidLambdaFunctionOutputException"
+}
+
+// Message returns the exception's message.
+func (s *InvalidLambdaFunctionOutputException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *InvalidLambdaFunctionOutputException) OrigErr() error {
+	return nil
+}
+
+func (s *InvalidLambdaFunctionOutputException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *InvalidLambdaFunctionOutputException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *InvalidLambdaFunctionOutputException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// Thrown when a request parameter does not comply with the associated constraints.
+type InvalidParameterException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	// Message returned by InvalidParameterException.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidParameterException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidParameterException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidParameterException(v protocol.ResponseMetadata) error {
+	return &InvalidParameterException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *InvalidParameterException) Code() string {
+	return "InvalidParameterException"
+}
+
+// Message returns the exception's message.
+func (s *InvalidParameterException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *InvalidParameterException) OrigErr() error {
+	return nil
+}
+
+func (s *InvalidParameterException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *InvalidParameterException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *InvalidParameterException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// AWS Lambda throttled your account, please contact AWS Support
+type LambdaThrottledException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	// A message returned when an LambdaThrottledException is thrown
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s LambdaThrottledException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s LambdaThrottledException) GoString() string {
+	return s.String()
+}
+
+func newErrorLambdaThrottledException(v protocol.ResponseMetadata) error {
+	return &LambdaThrottledException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *LambdaThrottledException) Code() string {
+	return "LambdaThrottledException"
+}
+
+// Message returns the exception's message.
+func (s *LambdaThrottledException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *LambdaThrottledException) OrigErr() error {
+	return nil
+}
+
+func (s *LambdaThrottledException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *LambdaThrottledException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *LambdaThrottledException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// Thrown when the limit on the number of objects or operations has been exceeded.
+type LimitExceededException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	// Message returned by LimitExceededException.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s LimitExceededException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s LimitExceededException) GoString() string {
+	return s.String()
+}
+
+func newErrorLimitExceededException(v protocol.ResponseMetadata) error {
+	return &LimitExceededException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *LimitExceededException) Code() string {
+	return "LimitExceededException"
+}
+
+// Message returns the exception's message.
+func (s *LimitExceededException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *LimitExceededException) OrigErr() error {
+	return nil
+}
+
+func (s *LimitExceededException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *LimitExceededException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *LimitExceededException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 // Request for a list of datasets for an identity.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/ListDatasetsRequest
 type ListDatasetsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2736,7 +3230,6 @@ func (s *ListDatasetsInput) SetNextToken(v string) *ListDatasetsInput {
 }
 
 // Returned for a successful ListDatasets request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/ListDatasetsResponse
 type ListDatasetsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2779,7 +3272,6 @@ func (s *ListDatasetsOutput) SetNextToken(v string) *ListDatasetsOutput {
 }
 
 // A request for usage information on an identity pool.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/ListIdentityPoolUsageRequest
 type ListIdentityPoolUsageInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2813,7 +3305,6 @@ func (s *ListIdentityPoolUsageInput) SetNextToken(v string) *ListIdentityPoolUsa
 }
 
 // Returned for a successful ListIdentityPoolUsage request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/ListIdentityPoolUsageResponse
 type ListIdentityPoolUsageOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2865,7 +3356,6 @@ func (s *ListIdentityPoolUsageOutput) SetNextToken(v string) *ListIdentityPoolUs
 }
 
 // A request for a list of records.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/ListRecordsRequest
 type ListRecordsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2981,7 +3471,6 @@ func (s *ListRecordsInput) SetSyncSessionToken(v string) *ListRecordsInput {
 }
 
 // Returned for a successful ListRecordsRequest.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/ListRecordsResponse
 type ListRecordsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3077,8 +3566,64 @@ func (s *ListRecordsOutput) SetSyncSessionToken(v string) *ListRecordsOutput {
 	return s
 }
 
+// Thrown when a user is not authorized to access the requested resource.
+type NotAuthorizedException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	// The message returned by a NotAuthorizedException.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s NotAuthorizedException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s NotAuthorizedException) GoString() string {
+	return s.String()
+}
+
+func newErrorNotAuthorizedException(v protocol.ResponseMetadata) error {
+	return &NotAuthorizedException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *NotAuthorizedException) Code() string {
+	return "NotAuthorizedException"
+}
+
+// Message returns the exception's message.
+func (s *NotAuthorizedException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *NotAuthorizedException) OrigErr() error {
+	return nil
+}
+
+func (s *NotAuthorizedException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *NotAuthorizedException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *NotAuthorizedException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 // Configuration options to be applied to the identity pool.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/PushSync
 type PushSync struct {
 	_ struct{} `type:"structure"`
 
@@ -3125,12 +3670,11 @@ func (s *PushSync) SetRoleArn(v string) *PushSync {
 }
 
 // The basic data structure of a dataset.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/Record
 type Record struct {
 	_ struct{} `type:"structure"`
 
 	// The last modified date of the client device.
-	DeviceLastModifiedDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	DeviceLastModifiedDate *time.Time `type:"timestamp"`
 
 	// The key for the record.
 	Key *string `min:"1" type:"string"`
@@ -3139,7 +3683,7 @@ type Record struct {
 	LastModifiedBy *string `type:"string"`
 
 	// The date on which the record was last modified.
-	LastModifiedDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	LastModifiedDate *time.Time `type:"timestamp"`
 
 	// The server sync count for this record.
 	SyncCount *int64 `type:"long"`
@@ -3195,12 +3739,11 @@ func (s *Record) SetValue(v string) *Record {
 }
 
 // An update operation for a record.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/RecordPatch
 type RecordPatch struct {
 	_ struct{} `type:"structure"`
 
 	// The last modified date of the client device.
-	DeviceLastModifiedDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	DeviceLastModifiedDate *time.Time `type:"timestamp"`
 
 	// The key associated with the record patch.
 	//
@@ -3284,7 +3827,6 @@ func (s *RecordPatch) SetValue(v string) *RecordPatch {
 }
 
 // A request to RegisterDevice.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/RegisterDeviceRequest
 type RegisterDeviceInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3374,7 +3916,6 @@ func (s *RegisterDeviceInput) SetToken(v string) *RegisterDeviceInput {
 }
 
 // Response to a RegisterDevice request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/RegisterDeviceResponse
 type RegisterDeviceOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3398,8 +3939,123 @@ func (s *RegisterDeviceOutput) SetDeviceId(v string) *RegisterDeviceOutput {
 	return s
 }
 
+// Thrown if an update can't be applied because the resource was changed by
+// another call and this would result in a conflict.
+type ResourceConflictException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	// The message returned by a ResourceConflictException.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s ResourceConflictException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ResourceConflictException) GoString() string {
+	return s.String()
+}
+
+func newErrorResourceConflictException(v protocol.ResponseMetadata) error {
+	return &ResourceConflictException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *ResourceConflictException) Code() string {
+	return "ResourceConflictException"
+}
+
+// Message returns the exception's message.
+func (s *ResourceConflictException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *ResourceConflictException) OrigErr() error {
+	return nil
+}
+
+func (s *ResourceConflictException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *ResourceConflictException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *ResourceConflictException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// Thrown if the resource doesn't exist.
+type ResourceNotFoundException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	// Message returned by a ResourceNotFoundException.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s ResourceNotFoundException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ResourceNotFoundException) GoString() string {
+	return s.String()
+}
+
+func newErrorResourceNotFoundException(v protocol.ResponseMetadata) error {
+	return &ResourceNotFoundException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *ResourceNotFoundException) Code() string {
+	return "ResourceNotFoundException"
+}
+
+// Message returns the exception's message.
+func (s *ResourceNotFoundException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *ResourceNotFoundException) OrigErr() error {
+	return nil
+}
+
+func (s *ResourceNotFoundException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *ResourceNotFoundException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *ResourceNotFoundException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 // A request to configure Cognito Events"
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/SetCognitoEventsRequest
+// "
 type SetCognitoEventsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3455,7 +4111,6 @@ func (s *SetCognitoEventsInput) SetIdentityPoolId(v string) *SetCognitoEventsInp
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/SetCognitoEventsOutput
 type SetCognitoEventsOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3471,7 +4126,6 @@ func (s SetCognitoEventsOutput) GoString() string {
 }
 
 // The input for the SetIdentityPoolConfiguration operation.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/SetIdentityPoolConfigurationRequest
 type SetIdentityPoolConfigurationInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3543,7 +4197,6 @@ func (s *SetIdentityPoolConfigurationInput) SetPushSync(v *PushSync) *SetIdentit
 }
 
 // The output for the SetIdentityPoolConfiguration operation
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/SetIdentityPoolConfigurationResponse
 type SetIdentityPoolConfigurationOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3587,7 +4240,6 @@ func (s *SetIdentityPoolConfigurationOutput) SetPushSync(v *PushSync) *SetIdenti
 }
 
 // A request to SubscribeToDatasetRequest.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/SubscribeToDatasetRequest
 type SubscribeToDatasetInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3682,7 +4334,6 @@ func (s *SubscribeToDatasetInput) SetIdentityPoolId(v string) *SubscribeToDatase
 }
 
 // Response to a SubscribeToDataset request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/SubscribeToDatasetResponse
 type SubscribeToDatasetOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3697,8 +4348,64 @@ func (s SubscribeToDatasetOutput) GoString() string {
 	return s.String()
 }
 
+// Thrown if the request is throttled.
+type TooManyRequestsException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	// Message returned by a TooManyRequestsException.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s TooManyRequestsException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TooManyRequestsException) GoString() string {
+	return s.String()
+}
+
+func newErrorTooManyRequestsException(v protocol.ResponseMetadata) error {
+	return &TooManyRequestsException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *TooManyRequestsException) Code() string {
+	return "TooManyRequestsException"
+}
+
+// Message returns the exception's message.
+func (s *TooManyRequestsException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *TooManyRequestsException) OrigErr() error {
+	return nil
+}
+
+func (s *TooManyRequestsException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *TooManyRequestsException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *TooManyRequestsException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 // A request to UnsubscribeFromDataset.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/UnsubscribeFromDatasetRequest
 type UnsubscribeFromDatasetInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3793,7 +4500,6 @@ func (s *UnsubscribeFromDatasetInput) SetIdentityPoolId(v string) *UnsubscribeFr
 }
 
 // Response to an UnsubscribeFromDataset request.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/UnsubscribeFromDatasetResponse
 type UnsubscribeFromDatasetOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3810,7 +4516,6 @@ func (s UnsubscribeFromDatasetOutput) GoString() string {
 
 // A request to post updates to records or add and delete records for a dataset
 // and user.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/UpdateRecordsRequest
 type UpdateRecordsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3946,7 +4651,6 @@ func (s *UpdateRecordsInput) SetSyncSessionToken(v string) *UpdateRecordsInput {
 }
 
 // Returned for a successful UpdateRecordsRequest.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/cognito-sync-2014-06-30/UpdateRecordsResponse
 type UpdateRecordsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3984,6 +4688,16 @@ const (
 	BulkPublishStatusSucceeded = "SUCCEEDED"
 )
 
+// BulkPublishStatus_Values returns all elements of the BulkPublishStatus enum
+func BulkPublishStatus_Values() []string {
+	return []string{
+		BulkPublishStatusNotStarted,
+		BulkPublishStatusInProgress,
+		BulkPublishStatusFailed,
+		BulkPublishStatusSucceeded,
+	}
+}
+
 const (
 	// OperationReplace is a Operation enum value
 	OperationReplace = "replace"
@@ -3991,6 +4705,14 @@ const (
 	// OperationRemove is a Operation enum value
 	OperationRemove = "remove"
 )
+
+// Operation_Values returns all elements of the Operation enum
+func Operation_Values() []string {
+	return []string{
+		OperationReplace,
+		OperationRemove,
+	}
+}
 
 const (
 	// PlatformApns is a Platform enum value
@@ -4006,6 +4728,16 @@ const (
 	PlatformAdm = "ADM"
 )
 
+// Platform_Values returns all elements of the Platform enum
+func Platform_Values() []string {
+	return []string{
+		PlatformApns,
+		PlatformApnsSandbox,
+		PlatformGcm,
+		PlatformAdm,
+	}
+}
+
 const (
 	// StreamingStatusEnabled is a StreamingStatus enum value
 	StreamingStatusEnabled = "ENABLED"
@@ -4013,3 +4745,11 @@ const (
 	// StreamingStatusDisabled is a StreamingStatus enum value
 	StreamingStatusDisabled = "DISABLED"
 )
+
+// StreamingStatus_Values returns all elements of the StreamingStatus enum
+func StreamingStatus_Values() []string {
+	return []string{
+		StreamingStatusEnabled,
+		StreamingStatusDisabled,
+	}
+}

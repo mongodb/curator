@@ -185,6 +185,12 @@ func ExampleKMS_CreateKey_shared00() {
 				fmt.Println(kms.ErrCodeLimitExceededException, aerr.Error())
 			case kms.ErrCodeTagException:
 				fmt.Println(kms.ErrCodeTagException, aerr.Error())
+			case kms.ErrCodeCustomKeyStoreNotFoundException:
+				fmt.Println(kms.ErrCodeCustomKeyStoreNotFoundException, aerr.Error())
+			case kms.ErrCodeCustomKeyStoreInvalidStateException:
+				fmt.Println(kms.ErrCodeCustomKeyStoreInvalidStateException, aerr.Error())
+			case kms.ErrCodeCloudHsmClusterInvalidConfigurationException:
+				fmt.Println(kms.ErrCodeCloudHsmClusterInvalidConfigurationException, aerr.Error())
 			default:
 				fmt.Println(aerr.Error())
 			}
@@ -221,6 +227,10 @@ func ExampleKMS_Decrypt_shared00() {
 				fmt.Println(kms.ErrCodeInvalidCiphertextException, aerr.Error())
 			case kms.ErrCodeKeyUnavailableException:
 				fmt.Println(kms.ErrCodeKeyUnavailableException, aerr.Error())
+			case kms.ErrCodeIncorrectKeyException:
+				fmt.Println(kms.ErrCodeIncorrectKeyException, aerr.Error())
+			case kms.ErrCodeInvalidKeyUsageException:
+				fmt.Println(kms.ErrCodeInvalidKeyUsageException, aerr.Error())
 			case kms.ErrCodeDependencyTimeoutException:
 				fmt.Println(kms.ErrCodeDependencyTimeoutException, aerr.Error())
 			case kms.ErrCodeInvalidGrantTokenException:
@@ -666,6 +676,10 @@ func ExampleKMS_GenerateRandom_shared00() {
 				fmt.Println(kms.ErrCodeDependencyTimeoutException, aerr.Error())
 			case kms.ErrCodeInternalException:
 				fmt.Println(kms.ErrCodeInternalException, aerr.Error())
+			case kms.ErrCodeCustomKeyStoreNotFoundException:
+				fmt.Println(kms.ErrCodeCustomKeyStoreNotFoundException, aerr.Error())
+			case kms.ErrCodeCustomKeyStoreInvalidStateException:
+				fmt.Println(kms.ErrCodeCustomKeyStoreInvalidStateException, aerr.Error())
 			default:
 				fmt.Println(aerr.Error())
 			}
@@ -868,6 +882,10 @@ func ExampleKMS_ListAliases_shared00() {
 				fmt.Println(kms.ErrCodeInvalidMarkerException, aerr.Error())
 			case kms.ErrCodeInternalException:
 				fmt.Println(kms.ErrCodeInternalException, aerr.Error())
+			case kms.ErrCodeInvalidArnException:
+				fmt.Println(kms.ErrCodeInvalidArnException, aerr.Error())
+			case kms.ErrCodeNotFoundException:
+				fmt.Println(kms.ErrCodeNotFoundException, aerr.Error())
 			default:
 				fmt.Println(aerr.Error())
 			}
@@ -1129,6 +1147,8 @@ func ExampleKMS_ReEncrypt_shared00() {
 				fmt.Println(kms.ErrCodeInvalidCiphertextException, aerr.Error())
 			case kms.ErrCodeKeyUnavailableException:
 				fmt.Println(kms.ErrCodeKeyUnavailableException, aerr.Error())
+			case kms.ErrCodeIncorrectKeyException:
+				fmt.Println(kms.ErrCodeIncorrectKeyException, aerr.Error())
 			case kms.ErrCodeDependencyTimeoutException:
 				fmt.Println(kms.ErrCodeDependencyTimeoutException, aerr.Error())
 			case kms.ErrCodeInvalidKeyUsageException:
@@ -1167,6 +1187,8 @@ func ExampleKMS_RetireGrant_shared00() {
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
 			switch aerr.Code() {
+			case kms.ErrCodeInvalidArnException:
+				fmt.Println(kms.ErrCodeInvalidArnException, aerr.Error())
 			case kms.ErrCodeInvalidGrantTokenException:
 				fmt.Println(kms.ErrCodeInvalidGrantTokenException, aerr.Error())
 			case kms.ErrCodeInvalidGrantIdException:
@@ -1378,6 +1400,8 @@ func ExampleKMS_UpdateAlias_shared00() {
 				fmt.Println(kms.ErrCodeNotFoundException, aerr.Error())
 			case kms.ErrCodeInternalException:
 				fmt.Println(kms.ErrCodeInternalException, aerr.Error())
+			case kms.ErrCodeLimitExceededException:
+				fmt.Println(kms.ErrCodeLimitExceededException, aerr.Error())
 			case kms.ErrCodeInvalidStateException:
 				fmt.Println(kms.ErrCodeInvalidStateException, aerr.Error())
 			default:

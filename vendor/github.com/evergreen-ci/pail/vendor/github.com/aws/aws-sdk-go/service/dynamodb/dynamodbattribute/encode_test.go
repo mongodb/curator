@@ -2,13 +2,13 @@ package dynamodbattribute
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestMarshalErrorTypes(t *testing.T) {
@@ -18,7 +18,12 @@ func TestMarshalErrorTypes(t *testing.T) {
 
 func TestMarshalShared(t *testing.T) {
 	for i, c := range sharedTestCases {
-		av, err := Marshal(c.expected)
+		var opts []func(*Encoder)
+		if c.encoderOpts != nil {
+			opts = append(opts, c.encoderOpts)
+		}
+		e := NewEncoder(opts...)
+		av, err := e.Encode(c.expected)
 		assertConvertTest(t, i, av, c.in, err, c.err)
 	}
 }
@@ -73,9 +78,13 @@ func TestMarshalMashaler(t *testing.T) {
 	}
 
 	actual, err := Marshal(m)
-	assert.NoError(t, err)
+	if err != nil {
+		t.Errorf("expect nil, got %v", err)
+	}
 
-	assert.Equal(t, expect, actual)
+	if e, a := expect, actual; !reflect.DeepEqual(e, a) {
+		t.Errorf("expect %v, got %v", e, a)
+	}
 }
 
 type testOmitEmptyElemListStruct struct {
@@ -99,8 +108,12 @@ func TestMarshalListOmitEmptyElem(t *testing.T) {
 	m := testOmitEmptyElemListStruct{Values: []string{"abc", "", "123"}}
 
 	actual, err := Marshal(m)
-	assert.NoError(t, err)
-	assert.Equal(t, expect, actual)
+	if err != nil {
+		t.Errorf("expect nil, got %v", err)
+	}
+	if e, a := expect, actual; !reflect.DeepEqual(e, a) {
+		t.Errorf("expect %v, got %v", e, a)
+	}
 }
 
 func TestMarshalMapOmitEmptyElem(t *testing.T) {
@@ -121,8 +134,12 @@ func TestMarshalMapOmitEmptyElem(t *testing.T) {
 	}}
 
 	actual, err := Marshal(m)
-	assert.NoError(t, err)
-	assert.Equal(t, expect, actual)
+	if err != nil {
+		t.Errorf("expect nil, got %v", err)
+	}
+	if e, a := expect, actual; !reflect.DeepEqual(e, a) {
+		t.Errorf("expect %v, got %v", e, a)
+	}
 }
 
 type testOmitEmptyScalar struct {
@@ -141,8 +158,12 @@ func TestMarshalOmitEmpty(t *testing.T) {
 	m := testOmitEmptyScalar{IntPtrSetZero: aws.Int(0)}
 
 	actual, err := Marshal(m)
-	assert.NoError(t, err)
-	assert.Equal(t, expect, actual)
+	if err != nil {
+		t.Errorf("expect nil, got %v", err)
+	}
+	if e, a := expect, actual; !reflect.DeepEqual(e, a) {
+		t.Errorf("expect %v, got %v", e, a)
+	}
 }
 
 func TestEncodeEmbeddedPointerStruct(t *testing.T) {
@@ -158,12 +179,20 @@ func TestEncodeEmbeddedPointerStruct(t *testing.T) {
 		*C
 	}
 	a := A{Aint: 321, B: &B{123}}
-	assert.Equal(t, 321, a.Aint)
-	assert.Equal(t, 123, a.Bint)
-	assert.Nil(t, a.C)
+	if e, a := 321, a.Aint; e != a {
+		t.Errorf("expect %v, got %v", e, a)
+	}
+	if e, a := 123, a.Bint; e != a {
+		t.Errorf("expect %v, got %v", e, a)
+	}
+	if a.C != nil {
+		t.Errorf("expect nil, got %v", a.C)
+	}
 
 	actual, err := Marshal(a)
-	assert.NoError(t, err)
+	if err != nil {
+		t.Errorf("expect nil, got %v", err)
+	}
 	expect := &dynamodb.AttributeValue{
 		M: map[string]*dynamodb.AttributeValue{
 			"Aint": {
@@ -174,7 +203,9 @@ func TestEncodeEmbeddedPointerStruct(t *testing.T) {
 			},
 		},
 	}
-	assert.Equal(t, expect, actual)
+	if e, a := expect, actual; !reflect.DeepEqual(e, a) {
+		t.Errorf("expect %v, got %v", e, a)
+	}
 }
 
 func TestEncodeUnixTime(t *testing.T) {
@@ -191,7 +222,9 @@ func TestEncodeUnixTime(t *testing.T) {
 	}
 
 	actual, err := Marshal(a)
-	assert.NoError(t, err)
+	if err != nil {
+		t.Errorf("expect nil, got %v", err)
+	}
 	expect := &dynamodb.AttributeValue{
 		M: map[string]*dynamodb.AttributeValue{
 			"Normal": {
@@ -205,5 +238,69 @@ func TestEncodeUnixTime(t *testing.T) {
 			},
 		},
 	}
-	assert.Equal(t, expect, actual)
+	if e, a := expect, actual; !reflect.DeepEqual(e, a) {
+		t.Errorf("expect %v, got %v", e, a)
+	}
+}
+
+type AliasedTime time.Time
+
+func TestEncodeAliasedUnixTime(t *testing.T) {
+	type A struct {
+		Normal AliasedTime
+		Tagged AliasedTime `dynamodbav:",unixtime"`
+	}
+
+	a := A{
+		Normal: AliasedTime(time.Unix(123, 0).UTC()),
+		Tagged: AliasedTime(time.Unix(456, 0)),
+	}
+
+	actual, err := Marshal(a)
+	if err != nil {
+		t.Errorf("expect no err, got %v", err)
+	}
+	expect := &dynamodb.AttributeValue{
+		M: map[string]*dynamodb.AttributeValue{
+			"Normal": {
+				S: aws.String("1970-01-01T00:02:03Z"),
+			},
+			"Tagged": {
+				N: aws.String("456"),
+			},
+		},
+	}
+	if e, a := expect, actual; !reflect.DeepEqual(e, a) {
+		t.Errorf("expect %v, got %v", e, a)
+	}
+}
+
+func TestEncoderFieldByIndex(t *testing.T) {
+	type (
+		Middle struct{ Inner int }
+		Outer  struct{ *Middle }
+	)
+
+	// nil embedded struct
+	outer := Outer{}
+	outerFields := unionStructFields(reflect.TypeOf(outer), MarshalOptions{})
+	innerField, _ := outerFields.FieldByName("Inner")
+
+	_, found := encoderFieldByIndex(reflect.ValueOf(&outer).Elem(), innerField.Index)
+	if found != false {
+		t.Error("expected found to be false when embedded struct is nil")
+	}
+
+	// non-nil embedded struct
+	outer = Outer{Middle: &Middle{Inner: 3}}
+	outerFields = unionStructFields(reflect.TypeOf(outer), MarshalOptions{})
+	innerField, _ = outerFields.FieldByName("Inner")
+
+	f, found := encoderFieldByIndex(reflect.ValueOf(&outer).Elem(), innerField.Index)
+	if !found {
+		t.Error("expected found to be true")
+	}
+	if f.Kind() != reflect.Int || f.Int() != int64(outer.Inner) {
+		t.Error("expected f to be of kind Int with value equal to outer.Inner")
+	}
 }

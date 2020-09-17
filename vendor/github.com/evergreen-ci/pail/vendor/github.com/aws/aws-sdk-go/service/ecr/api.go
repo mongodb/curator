@@ -3,19 +3,22 @@
 package ecr
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/private/protocol"
+	"github.com/aws/aws-sdk-go/private/protocol/jsonrpc"
 )
 
 const opBatchCheckLayerAvailability = "BatchCheckLayerAvailability"
 
 // BatchCheckLayerAvailabilityRequest generates a "aws/request.Request" representing the
 // client's request for the BatchCheckLayerAvailability operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -35,7 +38,7 @@ const opBatchCheckLayerAvailability = "BatchCheckLayerAvailability"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/BatchCheckLayerAvailability
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/BatchCheckLayerAvailability
 func (c *ECR) BatchCheckLayerAvailabilityRequest(input *BatchCheckLayerAvailabilityInput) (req *request.Request, output *BatchCheckLayerAvailabilityOutput) {
 	op := &request.Operation{
 		Name:       opBatchCheckLayerAvailability,
@@ -54,12 +57,15 @@ func (c *ECR) BatchCheckLayerAvailabilityRequest(input *BatchCheckLayerAvailabil
 
 // BatchCheckLayerAvailability API operation for Amazon EC2 Container Registry.
 //
-// Check the availability of multiple image layers in a specified registry and
-// repository.
+// Checks the availability of one or more image layers in a repository.
 //
-// This operation is used by the Amazon ECR proxy, and it is not intended for
-// general use by customers for pulling and pushing images. In most cases, you
-// should use the docker CLI to pull, tag, and push images.
+// When an image is pushed to a repository, each image layer is checked to verify
+// if it has been uploaded before. If it has been uploaded, then the image layer
+// is skipped.
+//
+// This operation is used by the Amazon ECR proxy and is not generally used
+// by customers for pulling and pushing images. In most cases, you should use
+// the docker CLI to pull, tag, and push images.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -68,19 +74,19 @@ func (c *ECR) BatchCheckLayerAvailabilityRequest(input *BatchCheckLayerAvailabil
 // See the AWS API reference guide for Amazon EC2 Container Registry's
 // API operation BatchCheckLayerAvailability for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeRepositoryNotFoundException "RepositoryNotFoundException"
+// Returned Error Types:
+//   * RepositoryNotFoundException
 //   The specified repository could not be found. Check the spelling of the specified
 //   repository and ensure that you are performing operations on the correct registry.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
-//   * ErrCodeServerException "ServerException"
+//   * ServerException
 //   These errors are usually caused by a server-side issue.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/BatchCheckLayerAvailability
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/BatchCheckLayerAvailability
 func (c *ECR) BatchCheckLayerAvailability(input *BatchCheckLayerAvailabilityInput) (*BatchCheckLayerAvailabilityOutput, error) {
 	req, out := c.BatchCheckLayerAvailabilityRequest(input)
 	return out, req.Send()
@@ -106,8 +112,8 @@ const opBatchDeleteImage = "BatchDeleteImage"
 
 // BatchDeleteImageRequest generates a "aws/request.Request" representing the
 // client's request for the BatchDeleteImage operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -127,7 +133,7 @@ const opBatchDeleteImage = "BatchDeleteImage"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/BatchDeleteImage
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/BatchDeleteImage
 func (c *ECR) BatchDeleteImageRequest(input *BatchDeleteImageInput) (req *request.Request, output *BatchDeleteImageOutput) {
 	op := &request.Operation{
 		Name:       opBatchDeleteImage,
@@ -146,8 +152,8 @@ func (c *ECR) BatchDeleteImageRequest(input *BatchDeleteImageInput) (req *reques
 
 // BatchDeleteImage API operation for Amazon EC2 Container Registry.
 //
-// Deletes a list of specified images within a specified repository. Images
-// are specified with either imageTag or imageDigest.
+// Deletes a list of specified images within a repository. Images are specified
+// with either an imageTag or imageDigest.
 //
 // You can remove a tag from an image by specifying the image's tag in your
 // request. When you remove the last tag from an image, the image is deleted
@@ -163,19 +169,19 @@ func (c *ECR) BatchDeleteImageRequest(input *BatchDeleteImageInput) (req *reques
 // See the AWS API reference guide for Amazon EC2 Container Registry's
 // API operation BatchDeleteImage for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServerException "ServerException"
+// Returned Error Types:
+//   * ServerException
 //   These errors are usually caused by a server-side issue.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
-//   * ErrCodeRepositoryNotFoundException "RepositoryNotFoundException"
+//   * RepositoryNotFoundException
 //   The specified repository could not be found. Check the spelling of the specified
 //   repository and ensure that you are performing operations on the correct registry.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/BatchDeleteImage
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/BatchDeleteImage
 func (c *ECR) BatchDeleteImage(input *BatchDeleteImageInput) (*BatchDeleteImageOutput, error) {
 	req, out := c.BatchDeleteImageRequest(input)
 	return out, req.Send()
@@ -201,8 +207,8 @@ const opBatchGetImage = "BatchGetImage"
 
 // BatchGetImageRequest generates a "aws/request.Request" representing the
 // client's request for the BatchGetImage operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -222,7 +228,7 @@ const opBatchGetImage = "BatchGetImage"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/BatchGetImage
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/BatchGetImage
 func (c *ECR) BatchGetImageRequest(input *BatchGetImageInput) (req *request.Request, output *BatchGetImageOutput) {
 	op := &request.Operation{
 		Name:       opBatchGetImage,
@@ -241,8 +247,11 @@ func (c *ECR) BatchGetImageRequest(input *BatchGetImageInput) (req *request.Requ
 
 // BatchGetImage API operation for Amazon EC2 Container Registry.
 //
-// Gets detailed information for specified images within a specified repository.
-// Images are specified with either imageTag or imageDigest.
+// Gets detailed information for an image. Images are specified with either
+// an imageTag or imageDigest.
+//
+// When an image is pulled, the BatchGetImage API is called once to retrieve
+// the image manifest.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -251,19 +260,19 @@ func (c *ECR) BatchGetImageRequest(input *BatchGetImageInput) (req *request.Requ
 // See the AWS API reference guide for Amazon EC2 Container Registry's
 // API operation BatchGetImage for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServerException "ServerException"
+// Returned Error Types:
+//   * ServerException
 //   These errors are usually caused by a server-side issue.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
-//   * ErrCodeRepositoryNotFoundException "RepositoryNotFoundException"
+//   * RepositoryNotFoundException
 //   The specified repository could not be found. Check the spelling of the specified
 //   repository and ensure that you are performing operations on the correct registry.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/BatchGetImage
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/BatchGetImage
 func (c *ECR) BatchGetImage(input *BatchGetImageInput) (*BatchGetImageOutput, error) {
 	req, out := c.BatchGetImageRequest(input)
 	return out, req.Send()
@@ -289,8 +298,8 @@ const opCompleteLayerUpload = "CompleteLayerUpload"
 
 // CompleteLayerUploadRequest generates a "aws/request.Request" representing the
 // client's request for the CompleteLayerUpload operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -310,7 +319,7 @@ const opCompleteLayerUpload = "CompleteLayerUpload"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/CompleteLayerUpload
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/CompleteLayerUpload
 func (c *ECR) CompleteLayerUploadRequest(input *CompleteLayerUploadInput) (req *request.Request, output *CompleteLayerUploadOutput) {
 	op := &request.Operation{
 		Name:       opCompleteLayerUpload,
@@ -329,13 +338,16 @@ func (c *ECR) CompleteLayerUploadRequest(input *CompleteLayerUploadInput) (req *
 
 // CompleteLayerUpload API operation for Amazon EC2 Container Registry.
 //
-// Inform Amazon ECR that the image layer upload for a specified registry, repository
-// name, and upload ID, has completed. You can optionally provide a sha256 digest
-// of the image layer for data validation purposes.
+// Informs Amazon ECR that the image layer upload has completed for a specified
+// registry, repository name, and upload ID. You can optionally provide a sha256
+// digest of the image layer for data validation purposes.
 //
-// This operation is used by the Amazon ECR proxy, and it is not intended for
-// general use by customers for pulling and pushing images. In most cases, you
-// should use the docker CLI to pull, tag, and push images.
+// When an image is pushed, the CompleteLayerUpload API is called once per each
+// new image layer to verify that the upload has completed.
+//
+// This operation is used by the Amazon ECR proxy and is not generally used
+// by customers for pulling and pushing images. In most cases, you should use
+// the docker CLI to pull, tag, and push images.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -344,36 +356,39 @@ func (c *ECR) CompleteLayerUploadRequest(input *CompleteLayerUploadInput) (req *
 // See the AWS API reference guide for Amazon EC2 Container Registry's
 // API operation CompleteLayerUpload for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServerException "ServerException"
+// Returned Error Types:
+//   * ServerException
 //   These errors are usually caused by a server-side issue.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
-//   * ErrCodeRepositoryNotFoundException "RepositoryNotFoundException"
+//   * RepositoryNotFoundException
 //   The specified repository could not be found. Check the spelling of the specified
 //   repository and ensure that you are performing operations on the correct registry.
 //
-//   * ErrCodeUploadNotFoundException "UploadNotFoundException"
-//   The upload could not be found, or the specified upload id is not valid for
+//   * UploadNotFoundException
+//   The upload could not be found, or the specified upload ID is not valid for
 //   this repository.
 //
-//   * ErrCodeInvalidLayerException "InvalidLayerException"
+//   * InvalidLayerException
 //   The layer digest calculation performed by Amazon ECR upon receipt of the
 //   image layer does not match the digest specified.
 //
-//   * ErrCodeLayerPartTooSmallException "LayerPartTooSmallException"
+//   * LayerPartTooSmallException
 //   Layer parts must be at least 5 MiB in size.
 //
-//   * ErrCodeLayerAlreadyExistsException "LayerAlreadyExistsException"
+//   * LayerAlreadyExistsException
 //   The image layer already exists in the associated repository.
 //
-//   * ErrCodeEmptyUploadException "EmptyUploadException"
+//   * EmptyUploadException
 //   The specified layer upload does not contain any layer parts.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/CompleteLayerUpload
+//   * KmsException
+//   The operation failed due to a KMS exception.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/CompleteLayerUpload
 func (c *ECR) CompleteLayerUpload(input *CompleteLayerUploadInput) (*CompleteLayerUploadOutput, error) {
 	req, out := c.CompleteLayerUploadRequest(input)
 	return out, req.Send()
@@ -399,8 +414,8 @@ const opCreateRepository = "CreateRepository"
 
 // CreateRepositoryRequest generates a "aws/request.Request" representing the
 // client's request for the CreateRepository operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -420,7 +435,7 @@ const opCreateRepository = "CreateRepository"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/CreateRepository
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/CreateRepository
 func (c *ECR) CreateRepositoryRequest(input *CreateRepositoryInput) (req *request.Request, output *CreateRepositoryOutput) {
 	op := &request.Operation{
 		Name:       opCreateRepository,
@@ -439,7 +454,8 @@ func (c *ECR) CreateRepositoryRequest(input *CreateRepositoryInput) (req *reques
 
 // CreateRepository API operation for Amazon EC2 Container Registry.
 //
-// Creates an image repository.
+// Creates a repository. For more information, see Amazon ECR Repositories (https://docs.aws.amazon.com/AmazonECR/latest/userguide/Repositories.html)
+// in the Amazon Elastic Container Registry User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -448,24 +464,35 @@ func (c *ECR) CreateRepositoryRequest(input *CreateRepositoryInput) (req *reques
 // See the AWS API reference guide for Amazon EC2 Container Registry's
 // API operation CreateRepository for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServerException "ServerException"
+// Returned Error Types:
+//   * ServerException
 //   These errors are usually caused by a server-side issue.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
-//   * ErrCodeRepositoryAlreadyExistsException "RepositoryAlreadyExistsException"
+//   * InvalidTagParameterException
+//   An invalid parameter has been specified. Tag keys can have a maximum character
+//   length of 128 characters, and tag values can have a maximum length of 256
+//   characters.
+//
+//   * TooManyTagsException
+//   The list of tags on the repository is over the limit. The maximum number
+//   of tags that can be applied to a repository is 50.
+//
+//   * RepositoryAlreadyExistsException
 //   The specified repository already exists in the specified registry.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   The operation did not succeed because it would have exceeded a service limit
-//   for your account. For more information, see Amazon ECR Default Service Limits
-//   (http://docs.aws.amazon.com/AmazonECR/latest/userguide/service_limits.html)
-//   in the Amazon EC2 Container Registry User Guide.
+//   for your account. For more information, see Amazon ECR Service Quotas (https://docs.aws.amazon.com/AmazonECR/latest/userguide/service-quotas.html)
+//   in the Amazon Elastic Container Registry User Guide.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/CreateRepository
+//   * KmsException
+//   The operation failed due to a KMS exception.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/CreateRepository
 func (c *ECR) CreateRepository(input *CreateRepositoryInput) (*CreateRepositoryOutput, error) {
 	req, out := c.CreateRepositoryRequest(input)
 	return out, req.Send()
@@ -487,12 +514,102 @@ func (c *ECR) CreateRepositoryWithContext(ctx aws.Context, input *CreateReposito
 	return out, req.Send()
 }
 
+const opDeleteLifecyclePolicy = "DeleteLifecyclePolicy"
+
+// DeleteLifecyclePolicyRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteLifecyclePolicy operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DeleteLifecyclePolicy for more information on using the DeleteLifecyclePolicy
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DeleteLifecyclePolicyRequest method.
+//    req, resp := client.DeleteLifecyclePolicyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/DeleteLifecyclePolicy
+func (c *ECR) DeleteLifecyclePolicyRequest(input *DeleteLifecyclePolicyInput) (req *request.Request, output *DeleteLifecyclePolicyOutput) {
+	op := &request.Operation{
+		Name:       opDeleteLifecyclePolicy,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeleteLifecyclePolicyInput{}
+	}
+
+	output = &DeleteLifecyclePolicyOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DeleteLifecyclePolicy API operation for Amazon EC2 Container Registry.
+//
+// Deletes the lifecycle policy associated with the specified repository.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon EC2 Container Registry's
+// API operation DeleteLifecyclePolicy for usage and error information.
+//
+// Returned Error Types:
+//   * ServerException
+//   These errors are usually caused by a server-side issue.
+//
+//   * InvalidParameterException
+//   The specified parameter is invalid. Review the available parameters for the
+//   API request.
+//
+//   * RepositoryNotFoundException
+//   The specified repository could not be found. Check the spelling of the specified
+//   repository and ensure that you are performing operations on the correct registry.
+//
+//   * LifecyclePolicyNotFoundException
+//   The lifecycle policy could not be found, and no policy is set to the repository.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/DeleteLifecyclePolicy
+func (c *ECR) DeleteLifecyclePolicy(input *DeleteLifecyclePolicyInput) (*DeleteLifecyclePolicyOutput, error) {
+	req, out := c.DeleteLifecyclePolicyRequest(input)
+	return out, req.Send()
+}
+
+// DeleteLifecyclePolicyWithContext is the same as DeleteLifecyclePolicy with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DeleteLifecyclePolicy for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ECR) DeleteLifecyclePolicyWithContext(ctx aws.Context, input *DeleteLifecyclePolicyInput, opts ...request.Option) (*DeleteLifecyclePolicyOutput, error) {
+	req, out := c.DeleteLifecyclePolicyRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opDeleteRepository = "DeleteRepository"
 
 // DeleteRepositoryRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteRepository operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -512,7 +629,7 @@ const opDeleteRepository = "DeleteRepository"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/DeleteRepository
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/DeleteRepository
 func (c *ECR) DeleteRepositoryRequest(input *DeleteRepositoryInput) (req *request.Request, output *DeleteRepositoryOutput) {
 	op := &request.Operation{
 		Name:       opDeleteRepository,
@@ -531,8 +648,9 @@ func (c *ECR) DeleteRepositoryRequest(input *DeleteRepositoryInput) (req *reques
 
 // DeleteRepository API operation for Amazon EC2 Container Registry.
 //
-// Deletes an existing image repository. If a repository contains images, you
-// must use the force option to delete it.
+// Deletes a repository. If the repository contains images, you must either
+// delete all images in the repository or use the force option to delete the
+// repository.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -541,23 +659,26 @@ func (c *ECR) DeleteRepositoryRequest(input *DeleteRepositoryInput) (req *reques
 // See the AWS API reference guide for Amazon EC2 Container Registry's
 // API operation DeleteRepository for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServerException "ServerException"
+// Returned Error Types:
+//   * ServerException
 //   These errors are usually caused by a server-side issue.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
-//   * ErrCodeRepositoryNotFoundException "RepositoryNotFoundException"
+//   * RepositoryNotFoundException
 //   The specified repository could not be found. Check the spelling of the specified
 //   repository and ensure that you are performing operations on the correct registry.
 //
-//   * ErrCodeRepositoryNotEmptyException "RepositoryNotEmptyException"
+//   * RepositoryNotEmptyException
 //   The specified repository contains images. To delete a repository that contains
 //   images, you must force the deletion with the force parameter.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/DeleteRepository
+//   * KmsException
+//   The operation failed due to a KMS exception.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/DeleteRepository
 func (c *ECR) DeleteRepository(input *DeleteRepositoryInput) (*DeleteRepositoryOutput, error) {
 	req, out := c.DeleteRepositoryRequest(input)
 	return out, req.Send()
@@ -583,8 +704,8 @@ const opDeleteRepositoryPolicy = "DeleteRepositoryPolicy"
 
 // DeleteRepositoryPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteRepositoryPolicy operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -604,7 +725,7 @@ const opDeleteRepositoryPolicy = "DeleteRepositoryPolicy"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/DeleteRepositoryPolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/DeleteRepositoryPolicy
 func (c *ECR) DeleteRepositoryPolicyRequest(input *DeleteRepositoryPolicyInput) (req *request.Request, output *DeleteRepositoryPolicyOutput) {
 	op := &request.Operation{
 		Name:       opDeleteRepositoryPolicy,
@@ -623,7 +744,7 @@ func (c *ECR) DeleteRepositoryPolicyRequest(input *DeleteRepositoryPolicyInput) 
 
 // DeleteRepositoryPolicy API operation for Amazon EC2 Container Registry.
 //
-// Deletes the repository policy from a specified repository.
+// Deletes the repository policy associated with the specified repository.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -632,23 +753,23 @@ func (c *ECR) DeleteRepositoryPolicyRequest(input *DeleteRepositoryPolicyInput) 
 // See the AWS API reference guide for Amazon EC2 Container Registry's
 // API operation DeleteRepositoryPolicy for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServerException "ServerException"
+// Returned Error Types:
+//   * ServerException
 //   These errors are usually caused by a server-side issue.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
-//   * ErrCodeRepositoryNotFoundException "RepositoryNotFoundException"
+//   * RepositoryNotFoundException
 //   The specified repository could not be found. Check the spelling of the specified
 //   repository and ensure that you are performing operations on the correct registry.
 //
-//   * ErrCodeRepositoryPolicyNotFoundException "RepositoryPolicyNotFoundException"
+//   * RepositoryPolicyNotFoundException
 //   The specified repository and registry combination does not have an associated
 //   repository policy.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/DeleteRepositoryPolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/DeleteRepositoryPolicy
 func (c *ECR) DeleteRepositoryPolicy(input *DeleteRepositoryPolicyInput) (*DeleteRepositoryPolicyOutput, error) {
 	req, out := c.DeleteRepositoryPolicyRequest(input)
 	return out, req.Send()
@@ -670,12 +791,164 @@ func (c *ECR) DeleteRepositoryPolicyWithContext(ctx aws.Context, input *DeleteRe
 	return out, req.Send()
 }
 
+const opDescribeImageScanFindings = "DescribeImageScanFindings"
+
+// DescribeImageScanFindingsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeImageScanFindings operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeImageScanFindings for more information on using the DescribeImageScanFindings
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DescribeImageScanFindingsRequest method.
+//    req, resp := client.DescribeImageScanFindingsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/DescribeImageScanFindings
+func (c *ECR) DescribeImageScanFindingsRequest(input *DescribeImageScanFindingsInput) (req *request.Request, output *DescribeImageScanFindingsOutput) {
+	op := &request.Operation{
+		Name:       opDescribeImageScanFindings,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"nextToken"},
+			OutputTokens:    []string{"nextToken"},
+			LimitToken:      "maxResults",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &DescribeImageScanFindingsInput{}
+	}
+
+	output = &DescribeImageScanFindingsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeImageScanFindings API operation for Amazon EC2 Container Registry.
+//
+// Returns the scan findings for the specified image.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon EC2 Container Registry's
+// API operation DescribeImageScanFindings for usage and error information.
+//
+// Returned Error Types:
+//   * ServerException
+//   These errors are usually caused by a server-side issue.
+//
+//   * InvalidParameterException
+//   The specified parameter is invalid. Review the available parameters for the
+//   API request.
+//
+//   * RepositoryNotFoundException
+//   The specified repository could not be found. Check the spelling of the specified
+//   repository and ensure that you are performing operations on the correct registry.
+//
+//   * ImageNotFoundException
+//   The image requested does not exist in the specified repository.
+//
+//   * ScanNotFoundException
+//   The specified image scan could not be found. Ensure that image scanning is
+//   enabled on the repository and try again.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/DescribeImageScanFindings
+func (c *ECR) DescribeImageScanFindings(input *DescribeImageScanFindingsInput) (*DescribeImageScanFindingsOutput, error) {
+	req, out := c.DescribeImageScanFindingsRequest(input)
+	return out, req.Send()
+}
+
+// DescribeImageScanFindingsWithContext is the same as DescribeImageScanFindings with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeImageScanFindings for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ECR) DescribeImageScanFindingsWithContext(ctx aws.Context, input *DescribeImageScanFindingsInput, opts ...request.Option) (*DescribeImageScanFindingsOutput, error) {
+	req, out := c.DescribeImageScanFindingsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+// DescribeImageScanFindingsPages iterates over the pages of a DescribeImageScanFindings operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeImageScanFindings method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeImageScanFindings operation.
+//    pageNum := 0
+//    err := client.DescribeImageScanFindingsPages(params,
+//        func(page *ecr.DescribeImageScanFindingsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *ECR) DescribeImageScanFindingsPages(input *DescribeImageScanFindingsInput, fn func(*DescribeImageScanFindingsOutput, bool) bool) error {
+	return c.DescribeImageScanFindingsPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// DescribeImageScanFindingsPagesWithContext same as DescribeImageScanFindingsPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ECR) DescribeImageScanFindingsPagesWithContext(ctx aws.Context, input *DescribeImageScanFindingsInput, fn func(*DescribeImageScanFindingsOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *DescribeImageScanFindingsInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.DescribeImageScanFindingsRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	for p.Next() {
+		if !fn(p.Page().(*DescribeImageScanFindingsOutput), !p.HasNextPage()) {
+			break
+		}
+	}
+
+	return p.Err()
+}
+
 const opDescribeImages = "DescribeImages"
 
 // DescribeImagesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeImages operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -695,7 +968,7 @@ const opDescribeImages = "DescribeImages"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/DescribeImages
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/DescribeImages
 func (c *ECR) DescribeImagesRequest(input *DescribeImagesInput) (req *request.Request, output *DescribeImagesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeImages,
@@ -720,8 +993,7 @@ func (c *ECR) DescribeImagesRequest(input *DescribeImagesInput) (req *request.Re
 
 // DescribeImages API operation for Amazon EC2 Container Registry.
 //
-// Returns metadata about the images in a repository, including image size,
-// image tags, and creation date.
+// Returns metadata about the images in a repository.
 //
 // Beginning with Docker version 1.9, the Docker client compresses image layers
 // before pushing them to a V2 Docker registry. The output of the docker images
@@ -735,22 +1007,22 @@ func (c *ECR) DescribeImagesRequest(input *DescribeImagesInput) (req *request.Re
 // See the AWS API reference guide for Amazon EC2 Container Registry's
 // API operation DescribeImages for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServerException "ServerException"
+// Returned Error Types:
+//   * ServerException
 //   These errors are usually caused by a server-side issue.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
-//   * ErrCodeRepositoryNotFoundException "RepositoryNotFoundException"
+//   * RepositoryNotFoundException
 //   The specified repository could not be found. Check the spelling of the specified
 //   repository and ensure that you are performing operations on the correct registry.
 //
-//   * ErrCodeImageNotFoundException "ImageNotFoundException"
+//   * ImageNotFoundException
 //   The image requested does not exist in the specified repository.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/DescribeImages
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/DescribeImages
 func (c *ECR) DescribeImages(input *DescribeImagesInput) (*DescribeImagesOutput, error) {
 	req, out := c.DescribeImagesRequest(input)
 	return out, req.Send()
@@ -783,7 +1055,7 @@ func (c *ECR) DescribeImagesWithContext(ctx aws.Context, input *DescribeImagesIn
 //    // Example iterating over at most 3 pages of a DescribeImages operation.
 //    pageNum := 0
 //    err := client.DescribeImagesPages(params,
-//        func(page *DescribeImagesOutput, lastPage bool) bool {
+//        func(page *ecr.DescribeImagesOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -815,10 +1087,12 @@ func (c *ECR) DescribeImagesPagesWithContext(ctx aws.Context, input *DescribeIma
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*DescribeImagesOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*DescribeImagesOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -826,8 +1100,8 @@ const opDescribeRepositories = "DescribeRepositories"
 
 // DescribeRepositoriesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeRepositories operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -847,7 +1121,7 @@ const opDescribeRepositories = "DescribeRepositories"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/DescribeRepositories
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/DescribeRepositories
 func (c *ECR) DescribeRepositoriesRequest(input *DescribeRepositoriesInput) (req *request.Request, output *DescribeRepositoriesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeRepositories,
@@ -881,19 +1155,19 @@ func (c *ECR) DescribeRepositoriesRequest(input *DescribeRepositoriesInput) (req
 // See the AWS API reference guide for Amazon EC2 Container Registry's
 // API operation DescribeRepositories for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServerException "ServerException"
+// Returned Error Types:
+//   * ServerException
 //   These errors are usually caused by a server-side issue.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
-//   * ErrCodeRepositoryNotFoundException "RepositoryNotFoundException"
+//   * RepositoryNotFoundException
 //   The specified repository could not be found. Check the spelling of the specified
 //   repository and ensure that you are performing operations on the correct registry.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/DescribeRepositories
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/DescribeRepositories
 func (c *ECR) DescribeRepositories(input *DescribeRepositoriesInput) (*DescribeRepositoriesOutput, error) {
 	req, out := c.DescribeRepositoriesRequest(input)
 	return out, req.Send()
@@ -926,7 +1200,7 @@ func (c *ECR) DescribeRepositoriesWithContext(ctx aws.Context, input *DescribeRe
 //    // Example iterating over at most 3 pages of a DescribeRepositories operation.
 //    pageNum := 0
 //    err := client.DescribeRepositoriesPages(params,
-//        func(page *DescribeRepositoriesOutput, lastPage bool) bool {
+//        func(page *ecr.DescribeRepositoriesOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -958,10 +1232,12 @@ func (c *ECR) DescribeRepositoriesPagesWithContext(ctx aws.Context, input *Descr
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*DescribeRepositoriesOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*DescribeRepositoriesOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -969,8 +1245,8 @@ const opGetAuthorizationToken = "GetAuthorizationToken"
 
 // GetAuthorizationTokenRequest generates a "aws/request.Request" representing the
 // client's request for the GetAuthorizationToken operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -990,7 +1266,7 @@ const opGetAuthorizationToken = "GetAuthorizationToken"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/GetAuthorizationToken
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/GetAuthorizationToken
 func (c *ECR) GetAuthorizationTokenRequest(input *GetAuthorizationTokenInput) (req *request.Request, output *GetAuthorizationTokenOutput) {
 	op := &request.Operation{
 		Name:       opGetAuthorizationToken,
@@ -1009,14 +1285,16 @@ func (c *ECR) GetAuthorizationTokenRequest(input *GetAuthorizationTokenInput) (r
 
 // GetAuthorizationToken API operation for Amazon EC2 Container Registry.
 //
-// Retrieves a token that is valid for a specified registry for 12 hours. This
-// command allows you to use the docker CLI to push and pull images with Amazon
-// ECR. If you do not specify a registry, the default registry is assumed.
+// Retrieves an authorization token. An authorization token represents your
+// IAM authentication credentials and can be used to access any Amazon ECR registry
+// that your IAM principal has access to. The authorization token is valid for
+// 12 hours.
 //
-// The authorizationToken returned for each registry specified is a base64 encoded
-// string that can be decoded and used in a docker login command to authenticate
-// to a registry. The AWS CLI offers an aws ecr get-login command that simplifies
-// the login process.
+// The authorizationToken returned is a base64 encoded string that can be decoded
+// and used in a docker login command to authenticate to a registry. The AWS
+// CLI offers an get-login-password command that simplifies the login process.
+// For more information, see Registry Authentication (https://docs.aws.amazon.com/AmazonECR/latest/userguide/Registries.html#registry_auth)
+// in the Amazon Elastic Container Registry User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1025,15 +1303,15 @@ func (c *ECR) GetAuthorizationTokenRequest(input *GetAuthorizationTokenInput) (r
 // See the AWS API reference guide for Amazon EC2 Container Registry's
 // API operation GetAuthorizationToken for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServerException "ServerException"
+// Returned Error Types:
+//   * ServerException
 //   These errors are usually caused by a server-side issue.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/GetAuthorizationToken
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/GetAuthorizationToken
 func (c *ECR) GetAuthorizationToken(input *GetAuthorizationTokenInput) (*GetAuthorizationTokenOutput, error) {
 	req, out := c.GetAuthorizationTokenRequest(input)
 	return out, req.Send()
@@ -1059,8 +1337,8 @@ const opGetDownloadUrlForLayer = "GetDownloadUrlForLayer"
 
 // GetDownloadUrlForLayerRequest generates a "aws/request.Request" representing the
 // client's request for the GetDownloadUrlForLayer operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1080,7 +1358,7 @@ const opGetDownloadUrlForLayer = "GetDownloadUrlForLayer"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/GetDownloadUrlForLayer
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/GetDownloadUrlForLayer
 func (c *ECR) GetDownloadUrlForLayerRequest(input *GetDownloadUrlForLayerInput) (req *request.Request, output *GetDownloadUrlForLayerOutput) {
 	op := &request.Operation{
 		Name:       opGetDownloadUrlForLayer,
@@ -1102,9 +1380,12 @@ func (c *ECR) GetDownloadUrlForLayerRequest(input *GetDownloadUrlForLayerInput) 
 // Retrieves the pre-signed Amazon S3 download URL corresponding to an image
 // layer. You can only get URLs for image layers that are referenced in an image.
 //
-// This operation is used by the Amazon ECR proxy, and it is not intended for
-// general use by customers for pulling and pushing images. In most cases, you
-// should use the docker CLI to pull, tag, and push images.
+// When an image is pulled, the GetDownloadUrlForLayer API is called once per
+// image layer that is not already cached.
+//
+// This operation is used by the Amazon ECR proxy and is not generally used
+// by customers for pulling and pushing images. In most cases, you should use
+// the docker CLI to pull, tag, and push images.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1113,27 +1394,27 @@ func (c *ECR) GetDownloadUrlForLayerRequest(input *GetDownloadUrlForLayerInput) 
 // See the AWS API reference guide for Amazon EC2 Container Registry's
 // API operation GetDownloadUrlForLayer for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServerException "ServerException"
+// Returned Error Types:
+//   * ServerException
 //   These errors are usually caused by a server-side issue.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
-//   * ErrCodeLayersNotFoundException "LayersNotFoundException"
+//   * LayersNotFoundException
 //   The specified layers could not be found, or the specified layer is not valid
 //   for this repository.
 //
-//   * ErrCodeLayerInaccessibleException "LayerInaccessibleException"
+//   * LayerInaccessibleException
 //   The specified layer is not available because it is not associated with an
 //   image. Unassociated image layers may be cleaned up at any time.
 //
-//   * ErrCodeRepositoryNotFoundException "RepositoryNotFoundException"
+//   * RepositoryNotFoundException
 //   The specified repository could not be found. Check the spelling of the specified
 //   repository and ensure that you are performing operations on the correct registry.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/GetDownloadUrlForLayer
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/GetDownloadUrlForLayer
 func (c *ECR) GetDownloadUrlForLayer(input *GetDownloadUrlForLayerInput) (*GetDownloadUrlForLayerOutput, error) {
 	req, out := c.GetDownloadUrlForLayerRequest(input)
 	return out, req.Send()
@@ -1155,12 +1436,251 @@ func (c *ECR) GetDownloadUrlForLayerWithContext(ctx aws.Context, input *GetDownl
 	return out, req.Send()
 }
 
+const opGetLifecyclePolicy = "GetLifecyclePolicy"
+
+// GetLifecyclePolicyRequest generates a "aws/request.Request" representing the
+// client's request for the GetLifecyclePolicy operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetLifecyclePolicy for more information on using the GetLifecyclePolicy
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the GetLifecyclePolicyRequest method.
+//    req, resp := client.GetLifecyclePolicyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/GetLifecyclePolicy
+func (c *ECR) GetLifecyclePolicyRequest(input *GetLifecyclePolicyInput) (req *request.Request, output *GetLifecyclePolicyOutput) {
+	op := &request.Operation{
+		Name:       opGetLifecyclePolicy,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &GetLifecyclePolicyInput{}
+	}
+
+	output = &GetLifecyclePolicyOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetLifecyclePolicy API operation for Amazon EC2 Container Registry.
+//
+// Retrieves the lifecycle policy for the specified repository.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon EC2 Container Registry's
+// API operation GetLifecyclePolicy for usage and error information.
+//
+// Returned Error Types:
+//   * ServerException
+//   These errors are usually caused by a server-side issue.
+//
+//   * InvalidParameterException
+//   The specified parameter is invalid. Review the available parameters for the
+//   API request.
+//
+//   * RepositoryNotFoundException
+//   The specified repository could not be found. Check the spelling of the specified
+//   repository and ensure that you are performing operations on the correct registry.
+//
+//   * LifecyclePolicyNotFoundException
+//   The lifecycle policy could not be found, and no policy is set to the repository.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/GetLifecyclePolicy
+func (c *ECR) GetLifecyclePolicy(input *GetLifecyclePolicyInput) (*GetLifecyclePolicyOutput, error) {
+	req, out := c.GetLifecyclePolicyRequest(input)
+	return out, req.Send()
+}
+
+// GetLifecyclePolicyWithContext is the same as GetLifecyclePolicy with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetLifecyclePolicy for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ECR) GetLifecyclePolicyWithContext(ctx aws.Context, input *GetLifecyclePolicyInput, opts ...request.Option) (*GetLifecyclePolicyOutput, error) {
+	req, out := c.GetLifecyclePolicyRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opGetLifecyclePolicyPreview = "GetLifecyclePolicyPreview"
+
+// GetLifecyclePolicyPreviewRequest generates a "aws/request.Request" representing the
+// client's request for the GetLifecyclePolicyPreview operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetLifecyclePolicyPreview for more information on using the GetLifecyclePolicyPreview
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the GetLifecyclePolicyPreviewRequest method.
+//    req, resp := client.GetLifecyclePolicyPreviewRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/GetLifecyclePolicyPreview
+func (c *ECR) GetLifecyclePolicyPreviewRequest(input *GetLifecyclePolicyPreviewInput) (req *request.Request, output *GetLifecyclePolicyPreviewOutput) {
+	op := &request.Operation{
+		Name:       opGetLifecyclePolicyPreview,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"nextToken"},
+			OutputTokens:    []string{"nextToken"},
+			LimitToken:      "maxResults",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &GetLifecyclePolicyPreviewInput{}
+	}
+
+	output = &GetLifecyclePolicyPreviewOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetLifecyclePolicyPreview API operation for Amazon EC2 Container Registry.
+//
+// Retrieves the results of the lifecycle policy preview request for the specified
+// repository.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon EC2 Container Registry's
+// API operation GetLifecyclePolicyPreview for usage and error information.
+//
+// Returned Error Types:
+//   * ServerException
+//   These errors are usually caused by a server-side issue.
+//
+//   * InvalidParameterException
+//   The specified parameter is invalid. Review the available parameters for the
+//   API request.
+//
+//   * RepositoryNotFoundException
+//   The specified repository could not be found. Check the spelling of the specified
+//   repository and ensure that you are performing operations on the correct registry.
+//
+//   * LifecyclePolicyPreviewNotFoundException
+//   There is no dry run for this repository.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/GetLifecyclePolicyPreview
+func (c *ECR) GetLifecyclePolicyPreview(input *GetLifecyclePolicyPreviewInput) (*GetLifecyclePolicyPreviewOutput, error) {
+	req, out := c.GetLifecyclePolicyPreviewRequest(input)
+	return out, req.Send()
+}
+
+// GetLifecyclePolicyPreviewWithContext is the same as GetLifecyclePolicyPreview with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetLifecyclePolicyPreview for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ECR) GetLifecyclePolicyPreviewWithContext(ctx aws.Context, input *GetLifecyclePolicyPreviewInput, opts ...request.Option) (*GetLifecyclePolicyPreviewOutput, error) {
+	req, out := c.GetLifecyclePolicyPreviewRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+// GetLifecyclePolicyPreviewPages iterates over the pages of a GetLifecyclePolicyPreview operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See GetLifecyclePolicyPreview method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a GetLifecyclePolicyPreview operation.
+//    pageNum := 0
+//    err := client.GetLifecyclePolicyPreviewPages(params,
+//        func(page *ecr.GetLifecyclePolicyPreviewOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *ECR) GetLifecyclePolicyPreviewPages(input *GetLifecyclePolicyPreviewInput, fn func(*GetLifecyclePolicyPreviewOutput, bool) bool) error {
+	return c.GetLifecyclePolicyPreviewPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// GetLifecyclePolicyPreviewPagesWithContext same as GetLifecyclePolicyPreviewPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ECR) GetLifecyclePolicyPreviewPagesWithContext(ctx aws.Context, input *GetLifecyclePolicyPreviewInput, fn func(*GetLifecyclePolicyPreviewOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *GetLifecyclePolicyPreviewInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.GetLifecyclePolicyPreviewRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	for p.Next() {
+		if !fn(p.Page().(*GetLifecyclePolicyPreviewOutput), !p.HasNextPage()) {
+			break
+		}
+	}
+
+	return p.Err()
+}
+
 const opGetRepositoryPolicy = "GetRepositoryPolicy"
 
 // GetRepositoryPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the GetRepositoryPolicy operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1180,7 +1700,7 @@ const opGetRepositoryPolicy = "GetRepositoryPolicy"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/GetRepositoryPolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/GetRepositoryPolicy
 func (c *ECR) GetRepositoryPolicyRequest(input *GetRepositoryPolicyInput) (req *request.Request, output *GetRepositoryPolicyOutput) {
 	op := &request.Operation{
 		Name:       opGetRepositoryPolicy,
@@ -1199,7 +1719,7 @@ func (c *ECR) GetRepositoryPolicyRequest(input *GetRepositoryPolicyInput) (req *
 
 // GetRepositoryPolicy API operation for Amazon EC2 Container Registry.
 //
-// Retrieves the repository policy for a specified repository.
+// Retrieves the repository policy for the specified repository.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1208,23 +1728,23 @@ func (c *ECR) GetRepositoryPolicyRequest(input *GetRepositoryPolicyInput) (req *
 // See the AWS API reference guide for Amazon EC2 Container Registry's
 // API operation GetRepositoryPolicy for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServerException "ServerException"
+// Returned Error Types:
+//   * ServerException
 //   These errors are usually caused by a server-side issue.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
-//   * ErrCodeRepositoryNotFoundException "RepositoryNotFoundException"
+//   * RepositoryNotFoundException
 //   The specified repository could not be found. Check the spelling of the specified
 //   repository and ensure that you are performing operations on the correct registry.
 //
-//   * ErrCodeRepositoryPolicyNotFoundException "RepositoryPolicyNotFoundException"
+//   * RepositoryPolicyNotFoundException
 //   The specified repository and registry combination does not have an associated
 //   repository policy.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/GetRepositoryPolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/GetRepositoryPolicy
 func (c *ECR) GetRepositoryPolicy(input *GetRepositoryPolicyInput) (*GetRepositoryPolicyOutput, error) {
 	req, out := c.GetRepositoryPolicyRequest(input)
 	return out, req.Send()
@@ -1250,8 +1770,8 @@ const opInitiateLayerUpload = "InitiateLayerUpload"
 
 // InitiateLayerUploadRequest generates a "aws/request.Request" representing the
 // client's request for the InitiateLayerUpload operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1271,7 +1791,7 @@ const opInitiateLayerUpload = "InitiateLayerUpload"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/InitiateLayerUpload
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/InitiateLayerUpload
 func (c *ECR) InitiateLayerUploadRequest(input *InitiateLayerUploadInput) (req *request.Request, output *InitiateLayerUploadOutput) {
 	op := &request.Operation{
 		Name:       opInitiateLayerUpload,
@@ -1290,11 +1810,15 @@ func (c *ECR) InitiateLayerUploadRequest(input *InitiateLayerUploadInput) (req *
 
 // InitiateLayerUpload API operation for Amazon EC2 Container Registry.
 //
-// Notify Amazon ECR that you intend to upload an image layer.
+// Notifies Amazon ECR that you intend to upload an image layer.
 //
-// This operation is used by the Amazon ECR proxy, and it is not intended for
-// general use by customers for pulling and pushing images. In most cases, you
-// should use the docker CLI to pull, tag, and push images.
+// When an image is pushed, the InitiateLayerUpload API is called once per image
+// layer that has not already been uploaded. Whether or not an image layer has
+// been uploaded is determined by the BatchCheckLayerAvailability API action.
+//
+// This operation is used by the Amazon ECR proxy and is not generally used
+// by customers for pulling and pushing images. In most cases, you should use
+// the docker CLI to pull, tag, and push images.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1303,19 +1827,22 @@ func (c *ECR) InitiateLayerUploadRequest(input *InitiateLayerUploadInput) (req *
 // See the AWS API reference guide for Amazon EC2 Container Registry's
 // API operation InitiateLayerUpload for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServerException "ServerException"
+// Returned Error Types:
+//   * ServerException
 //   These errors are usually caused by a server-side issue.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
-//   * ErrCodeRepositoryNotFoundException "RepositoryNotFoundException"
+//   * RepositoryNotFoundException
 //   The specified repository could not be found. Check the spelling of the specified
 //   repository and ensure that you are performing operations on the correct registry.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/InitiateLayerUpload
+//   * KmsException
+//   The operation failed due to a KMS exception.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/InitiateLayerUpload
 func (c *ECR) InitiateLayerUpload(input *InitiateLayerUploadInput) (*InitiateLayerUploadOutput, error) {
 	req, out := c.InitiateLayerUploadRequest(input)
 	return out, req.Send()
@@ -1341,8 +1868,8 @@ const opListImages = "ListImages"
 
 // ListImagesRequest generates a "aws/request.Request" representing the
 // client's request for the ListImages operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1362,7 +1889,7 @@ const opListImages = "ListImages"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/ListImages
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/ListImages
 func (c *ECR) ListImagesRequest(input *ListImagesInput) (req *request.Request, output *ListImagesOutput) {
 	op := &request.Operation{
 		Name:       opListImages,
@@ -1387,13 +1914,14 @@ func (c *ECR) ListImagesRequest(input *ListImagesInput) (req *request.Request, o
 
 // ListImages API operation for Amazon EC2 Container Registry.
 //
-// Lists all the image IDs for a given repository.
+// Lists all the image IDs for the specified repository.
 //
-// You can filter images based on whether or not they are tagged by setting
-// the tagStatus parameter to TAGGED or UNTAGGED. For example, you can filter
-// your results to return only UNTAGGED images and then pipe that result to
-// a BatchDeleteImage operation to delete them. Or, you can filter your results
-// to return only TAGGED images to list all of the tags in your repository.
+// You can filter images based on whether or not they are tagged by using the
+// tagStatus filter and specifying either TAGGED, UNTAGGED or ANY. For example,
+// you can filter your results to return only UNTAGGED images and then pipe
+// that result to a BatchDeleteImage operation to delete them. Or, you can filter
+// your results to return only TAGGED images to list all of the tags in your
+// repository.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1402,19 +1930,19 @@ func (c *ECR) ListImagesRequest(input *ListImagesInput) (req *request.Request, o
 // See the AWS API reference guide for Amazon EC2 Container Registry's
 // API operation ListImages for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServerException "ServerException"
+// Returned Error Types:
+//   * ServerException
 //   These errors are usually caused by a server-side issue.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
-//   * ErrCodeRepositoryNotFoundException "RepositoryNotFoundException"
+//   * RepositoryNotFoundException
 //   The specified repository could not be found. Check the spelling of the specified
 //   repository and ensure that you are performing operations on the correct registry.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/ListImages
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/ListImages
 func (c *ECR) ListImages(input *ListImagesInput) (*ListImagesOutput, error) {
 	req, out := c.ListImagesRequest(input)
 	return out, req.Send()
@@ -1447,7 +1975,7 @@ func (c *ECR) ListImagesWithContext(ctx aws.Context, input *ListImagesInput, opt
 //    // Example iterating over at most 3 pages of a ListImages operation.
 //    pageNum := 0
 //    err := client.ListImagesPages(params,
-//        func(page *ListImagesOutput, lastPage bool) bool {
+//        func(page *ecr.ListImagesOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -1479,19 +2007,108 @@ func (c *ECR) ListImagesPagesWithContext(ctx aws.Context, input *ListImagesInput
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*ListImagesOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*ListImagesOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
+}
+
+const opListTagsForResource = "ListTagsForResource"
+
+// ListTagsForResourceRequest generates a "aws/request.Request" representing the
+// client's request for the ListTagsForResource operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListTagsForResource for more information on using the ListTagsForResource
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ListTagsForResourceRequest method.
+//    req, resp := client.ListTagsForResourceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/ListTagsForResource
+func (c *ECR) ListTagsForResourceRequest(input *ListTagsForResourceInput) (req *request.Request, output *ListTagsForResourceOutput) {
+	op := &request.Operation{
+		Name:       opListTagsForResource,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ListTagsForResourceInput{}
+	}
+
+	output = &ListTagsForResourceOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListTagsForResource API operation for Amazon EC2 Container Registry.
+//
+// List the tags for an Amazon ECR resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon EC2 Container Registry's
+// API operation ListTagsForResource for usage and error information.
+//
+// Returned Error Types:
+//   * InvalidParameterException
+//   The specified parameter is invalid. Review the available parameters for the
+//   API request.
+//
+//   * RepositoryNotFoundException
+//   The specified repository could not be found. Check the spelling of the specified
+//   repository and ensure that you are performing operations on the correct registry.
+//
+//   * ServerException
+//   These errors are usually caused by a server-side issue.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/ListTagsForResource
+func (c *ECR) ListTagsForResource(input *ListTagsForResourceInput) (*ListTagsForResourceOutput, error) {
+	req, out := c.ListTagsForResourceRequest(input)
+	return out, req.Send()
+}
+
+// ListTagsForResourceWithContext is the same as ListTagsForResource with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListTagsForResource for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ECR) ListTagsForResourceWithContext(ctx aws.Context, input *ListTagsForResourceInput, opts ...request.Option) (*ListTagsForResourceOutput, error) {
+	req, out := c.ListTagsForResourceRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
 }
 
 const opPutImage = "PutImage"
 
 // PutImageRequest generates a "aws/request.Request" representing the
 // client's request for the PutImage operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1511,7 +2128,7 @@ const opPutImage = "PutImage"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/PutImage
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/PutImage
 func (c *ECR) PutImageRequest(input *PutImageInput) (req *request.Request, output *PutImageOutput) {
 	op := &request.Operation{
 		Name:       opPutImage,
@@ -1532,9 +2149,13 @@ func (c *ECR) PutImageRequest(input *PutImageInput) (req *request.Request, outpu
 //
 // Creates or updates the image manifest and tags associated with an image.
 //
-// This operation is used by the Amazon ECR proxy, and it is not intended for
-// general use by customers for pulling and pushing images. In most cases, you
-// should use the docker CLI to pull, tag, and push images.
+// When an image is pushed and all new image layers have been uploaded, the
+// PutImage API is called once to create or update the image manifest and the
+// tags associated with the image.
+//
+// This operation is used by the Amazon ECR proxy and is not generally used
+// by customers for pulling and pushing images. In most cases, you should use
+// the docker CLI to pull, tag, and push images.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1543,33 +2164,46 @@ func (c *ECR) PutImageRequest(input *PutImageInput) (req *request.Request, outpu
 // See the AWS API reference guide for Amazon EC2 Container Registry's
 // API operation PutImage for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServerException "ServerException"
+// Returned Error Types:
+//   * ServerException
 //   These errors are usually caused by a server-side issue.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
-//   * ErrCodeRepositoryNotFoundException "RepositoryNotFoundException"
+//   * RepositoryNotFoundException
 //   The specified repository could not be found. Check the spelling of the specified
 //   repository and ensure that you are performing operations on the correct registry.
 //
-//   * ErrCodeImageAlreadyExistsException "ImageAlreadyExistsException"
-//   The specified image has already been pushed, and there are no changes to
-//   the manifest or image tag since the last push.
+//   * ImageAlreadyExistsException
+//   The specified image has already been pushed, and there were no changes to
+//   the manifest or image tag after the last push.
 //
-//   * ErrCodeLayersNotFoundException "LayersNotFoundException"
+//   * LayersNotFoundException
 //   The specified layers could not be found, or the specified layer is not valid
 //   for this repository.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
-//   The operation did not succeed because it would have exceeded a service limit
-//   for your account. For more information, see Amazon ECR Default Service Limits
-//   (http://docs.aws.amazon.com/AmazonECR/latest/userguide/service_limits.html)
-//   in the Amazon EC2 Container Registry User Guide.
+//   * ReferencedImagesNotFoundException
+//   The manifest list is referencing an image that does not exist.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/PutImage
+//   * LimitExceededException
+//   The operation did not succeed because it would have exceeded a service limit
+//   for your account. For more information, see Amazon ECR Service Quotas (https://docs.aws.amazon.com/AmazonECR/latest/userguide/service-quotas.html)
+//   in the Amazon Elastic Container Registry User Guide.
+//
+//   * ImageTagAlreadyExistsException
+//   The specified image is tagged with a tag that already exists. The repository
+//   is configured for tag immutability.
+//
+//   * ImageDigestDoesNotMatchException
+//   The specified image digest does not match the digest that Amazon ECR calculated
+//   for the image.
+//
+//   * KmsException
+//   The operation failed due to a KMS exception.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/PutImage
 func (c *ECR) PutImage(input *PutImageInput) (*PutImageOutput, error) {
 	req, out := c.PutImageRequest(input)
 	return out, req.Send()
@@ -1591,12 +2225,276 @@ func (c *ECR) PutImageWithContext(ctx aws.Context, input *PutImageInput, opts ..
 	return out, req.Send()
 }
 
+const opPutImageScanningConfiguration = "PutImageScanningConfiguration"
+
+// PutImageScanningConfigurationRequest generates a "aws/request.Request" representing the
+// client's request for the PutImageScanningConfiguration operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See PutImageScanningConfiguration for more information on using the PutImageScanningConfiguration
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the PutImageScanningConfigurationRequest method.
+//    req, resp := client.PutImageScanningConfigurationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/PutImageScanningConfiguration
+func (c *ECR) PutImageScanningConfigurationRequest(input *PutImageScanningConfigurationInput) (req *request.Request, output *PutImageScanningConfigurationOutput) {
+	op := &request.Operation{
+		Name:       opPutImageScanningConfiguration,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &PutImageScanningConfigurationInput{}
+	}
+
+	output = &PutImageScanningConfigurationOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// PutImageScanningConfiguration API operation for Amazon EC2 Container Registry.
+//
+// Updates the image scanning configuration for the specified repository.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon EC2 Container Registry's
+// API operation PutImageScanningConfiguration for usage and error information.
+//
+// Returned Error Types:
+//   * ServerException
+//   These errors are usually caused by a server-side issue.
+//
+//   * InvalidParameterException
+//   The specified parameter is invalid. Review the available parameters for the
+//   API request.
+//
+//   * RepositoryNotFoundException
+//   The specified repository could not be found. Check the spelling of the specified
+//   repository and ensure that you are performing operations on the correct registry.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/PutImageScanningConfiguration
+func (c *ECR) PutImageScanningConfiguration(input *PutImageScanningConfigurationInput) (*PutImageScanningConfigurationOutput, error) {
+	req, out := c.PutImageScanningConfigurationRequest(input)
+	return out, req.Send()
+}
+
+// PutImageScanningConfigurationWithContext is the same as PutImageScanningConfiguration with the addition of
+// the ability to pass a context and additional request options.
+//
+// See PutImageScanningConfiguration for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ECR) PutImageScanningConfigurationWithContext(ctx aws.Context, input *PutImageScanningConfigurationInput, opts ...request.Option) (*PutImageScanningConfigurationOutput, error) {
+	req, out := c.PutImageScanningConfigurationRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opPutImageTagMutability = "PutImageTagMutability"
+
+// PutImageTagMutabilityRequest generates a "aws/request.Request" representing the
+// client's request for the PutImageTagMutability operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See PutImageTagMutability for more information on using the PutImageTagMutability
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the PutImageTagMutabilityRequest method.
+//    req, resp := client.PutImageTagMutabilityRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/PutImageTagMutability
+func (c *ECR) PutImageTagMutabilityRequest(input *PutImageTagMutabilityInput) (req *request.Request, output *PutImageTagMutabilityOutput) {
+	op := &request.Operation{
+		Name:       opPutImageTagMutability,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &PutImageTagMutabilityInput{}
+	}
+
+	output = &PutImageTagMutabilityOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// PutImageTagMutability API operation for Amazon EC2 Container Registry.
+//
+// Updates the image tag mutability settings for the specified repository. For
+// more information, see Image Tag Mutability (https://docs.aws.amazon.com/AmazonECR/latest/userguide/image-tag-mutability.html)
+// in the Amazon Elastic Container Registry User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon EC2 Container Registry's
+// API operation PutImageTagMutability for usage and error information.
+//
+// Returned Error Types:
+//   * ServerException
+//   These errors are usually caused by a server-side issue.
+//
+//   * InvalidParameterException
+//   The specified parameter is invalid. Review the available parameters for the
+//   API request.
+//
+//   * RepositoryNotFoundException
+//   The specified repository could not be found. Check the spelling of the specified
+//   repository and ensure that you are performing operations on the correct registry.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/PutImageTagMutability
+func (c *ECR) PutImageTagMutability(input *PutImageTagMutabilityInput) (*PutImageTagMutabilityOutput, error) {
+	req, out := c.PutImageTagMutabilityRequest(input)
+	return out, req.Send()
+}
+
+// PutImageTagMutabilityWithContext is the same as PutImageTagMutability with the addition of
+// the ability to pass a context and additional request options.
+//
+// See PutImageTagMutability for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ECR) PutImageTagMutabilityWithContext(ctx aws.Context, input *PutImageTagMutabilityInput, opts ...request.Option) (*PutImageTagMutabilityOutput, error) {
+	req, out := c.PutImageTagMutabilityRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opPutLifecyclePolicy = "PutLifecyclePolicy"
+
+// PutLifecyclePolicyRequest generates a "aws/request.Request" representing the
+// client's request for the PutLifecyclePolicy operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See PutLifecyclePolicy for more information on using the PutLifecyclePolicy
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the PutLifecyclePolicyRequest method.
+//    req, resp := client.PutLifecyclePolicyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/PutLifecyclePolicy
+func (c *ECR) PutLifecyclePolicyRequest(input *PutLifecyclePolicyInput) (req *request.Request, output *PutLifecyclePolicyOutput) {
+	op := &request.Operation{
+		Name:       opPutLifecyclePolicy,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &PutLifecyclePolicyInput{}
+	}
+
+	output = &PutLifecyclePolicyOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// PutLifecyclePolicy API operation for Amazon EC2 Container Registry.
+//
+// Creates or updates the lifecycle policy for the specified repository. For
+// more information, see Lifecycle Policy Template (https://docs.aws.amazon.com/AmazonECR/latest/userguide/LifecyclePolicies.html).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon EC2 Container Registry's
+// API operation PutLifecyclePolicy for usage and error information.
+//
+// Returned Error Types:
+//   * ServerException
+//   These errors are usually caused by a server-side issue.
+//
+//   * InvalidParameterException
+//   The specified parameter is invalid. Review the available parameters for the
+//   API request.
+//
+//   * RepositoryNotFoundException
+//   The specified repository could not be found. Check the spelling of the specified
+//   repository and ensure that you are performing operations on the correct registry.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/PutLifecyclePolicy
+func (c *ECR) PutLifecyclePolicy(input *PutLifecyclePolicyInput) (*PutLifecyclePolicyOutput, error) {
+	req, out := c.PutLifecyclePolicyRequest(input)
+	return out, req.Send()
+}
+
+// PutLifecyclePolicyWithContext is the same as PutLifecyclePolicy with the addition of
+// the ability to pass a context and additional request options.
+//
+// See PutLifecyclePolicy for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ECR) PutLifecyclePolicyWithContext(ctx aws.Context, input *PutLifecyclePolicyInput, opts ...request.Option) (*PutLifecyclePolicyOutput, error) {
+	req, out := c.PutLifecyclePolicyRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opSetRepositoryPolicy = "SetRepositoryPolicy"
 
 // SetRepositoryPolicyRequest generates a "aws/request.Request" representing the
 // client's request for the SetRepositoryPolicy operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1616,7 +2514,7 @@ const opSetRepositoryPolicy = "SetRepositoryPolicy"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/SetRepositoryPolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/SetRepositoryPolicy
 func (c *ECR) SetRepositoryPolicyRequest(input *SetRepositoryPolicyInput) (req *request.Request, output *SetRepositoryPolicyOutput) {
 	op := &request.Operation{
 		Name:       opSetRepositoryPolicy,
@@ -1635,7 +2533,9 @@ func (c *ECR) SetRepositoryPolicyRequest(input *SetRepositoryPolicyInput) (req *
 
 // SetRepositoryPolicy API operation for Amazon EC2 Container Registry.
 //
-// Applies a repository policy on a specified repository to control access permissions.
+// Applies a repository policy to the specified repository to control access
+// permissions. For more information, see Amazon ECR Repository Policies (https://docs.aws.amazon.com/AmazonECR/latest/userguide/repository-policies.html)
+// in the Amazon Elastic Container Registry User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1644,19 +2544,19 @@ func (c *ECR) SetRepositoryPolicyRequest(input *SetRepositoryPolicyInput) (req *
 // See the AWS API reference guide for Amazon EC2 Container Registry's
 // API operation SetRepositoryPolicy for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServerException "ServerException"
+// Returned Error Types:
+//   * ServerException
 //   These errors are usually caused by a server-side issue.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
-//   * ErrCodeRepositoryNotFoundException "RepositoryNotFoundException"
+//   * RepositoryNotFoundException
 //   The specified repository could not be found. Check the spelling of the specified
 //   repository and ensure that you are performing operations on the correct registry.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/SetRepositoryPolicy
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/SetRepositoryPolicy
 func (c *ECR) SetRepositoryPolicy(input *SetRepositoryPolicyInput) (*SetRepositoryPolicyOutput, error) {
 	req, out := c.SetRepositoryPolicyRequest(input)
 	return out, req.Send()
@@ -1678,12 +2578,404 @@ func (c *ECR) SetRepositoryPolicyWithContext(ctx aws.Context, input *SetReposito
 	return out, req.Send()
 }
 
+const opStartImageScan = "StartImageScan"
+
+// StartImageScanRequest generates a "aws/request.Request" representing the
+// client's request for the StartImageScan operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See StartImageScan for more information on using the StartImageScan
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the StartImageScanRequest method.
+//    req, resp := client.StartImageScanRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/StartImageScan
+func (c *ECR) StartImageScanRequest(input *StartImageScanInput) (req *request.Request, output *StartImageScanOutput) {
+	op := &request.Operation{
+		Name:       opStartImageScan,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &StartImageScanInput{}
+	}
+
+	output = &StartImageScanOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// StartImageScan API operation for Amazon EC2 Container Registry.
+//
+// Starts an image vulnerability scan. An image scan can only be started once
+// per day on an individual image. This limit includes if an image was scanned
+// on initial push. For more information, see Image Scanning (https://docs.aws.amazon.com/AmazonECR/latest/userguide/image-scanning.html)
+// in the Amazon Elastic Container Registry User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon EC2 Container Registry's
+// API operation StartImageScan for usage and error information.
+//
+// Returned Error Types:
+//   * ServerException
+//   These errors are usually caused by a server-side issue.
+//
+//   * InvalidParameterException
+//   The specified parameter is invalid. Review the available parameters for the
+//   API request.
+//
+//   * UnsupportedImageTypeException
+//   The image is of a type that cannot be scanned.
+//
+//   * LimitExceededException
+//   The operation did not succeed because it would have exceeded a service limit
+//   for your account. For more information, see Amazon ECR Service Quotas (https://docs.aws.amazon.com/AmazonECR/latest/userguide/service-quotas.html)
+//   in the Amazon Elastic Container Registry User Guide.
+//
+//   * RepositoryNotFoundException
+//   The specified repository could not be found. Check the spelling of the specified
+//   repository and ensure that you are performing operations on the correct registry.
+//
+//   * ImageNotFoundException
+//   The image requested does not exist in the specified repository.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/StartImageScan
+func (c *ECR) StartImageScan(input *StartImageScanInput) (*StartImageScanOutput, error) {
+	req, out := c.StartImageScanRequest(input)
+	return out, req.Send()
+}
+
+// StartImageScanWithContext is the same as StartImageScan with the addition of
+// the ability to pass a context and additional request options.
+//
+// See StartImageScan for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ECR) StartImageScanWithContext(ctx aws.Context, input *StartImageScanInput, opts ...request.Option) (*StartImageScanOutput, error) {
+	req, out := c.StartImageScanRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opStartLifecyclePolicyPreview = "StartLifecyclePolicyPreview"
+
+// StartLifecyclePolicyPreviewRequest generates a "aws/request.Request" representing the
+// client's request for the StartLifecyclePolicyPreview operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See StartLifecyclePolicyPreview for more information on using the StartLifecyclePolicyPreview
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the StartLifecyclePolicyPreviewRequest method.
+//    req, resp := client.StartLifecyclePolicyPreviewRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/StartLifecyclePolicyPreview
+func (c *ECR) StartLifecyclePolicyPreviewRequest(input *StartLifecyclePolicyPreviewInput) (req *request.Request, output *StartLifecyclePolicyPreviewOutput) {
+	op := &request.Operation{
+		Name:       opStartLifecyclePolicyPreview,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &StartLifecyclePolicyPreviewInput{}
+	}
+
+	output = &StartLifecyclePolicyPreviewOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// StartLifecyclePolicyPreview API operation for Amazon EC2 Container Registry.
+//
+// Starts a preview of a lifecycle policy for the specified repository. This
+// allows you to see the results before associating the lifecycle policy with
+// the repository.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon EC2 Container Registry's
+// API operation StartLifecyclePolicyPreview for usage and error information.
+//
+// Returned Error Types:
+//   * ServerException
+//   These errors are usually caused by a server-side issue.
+//
+//   * InvalidParameterException
+//   The specified parameter is invalid. Review the available parameters for the
+//   API request.
+//
+//   * RepositoryNotFoundException
+//   The specified repository could not be found. Check the spelling of the specified
+//   repository and ensure that you are performing operations on the correct registry.
+//
+//   * LifecyclePolicyNotFoundException
+//   The lifecycle policy could not be found, and no policy is set to the repository.
+//
+//   * LifecyclePolicyPreviewInProgressException
+//   The previous lifecycle policy preview request has not completed. Wait and
+//   try again.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/StartLifecyclePolicyPreview
+func (c *ECR) StartLifecyclePolicyPreview(input *StartLifecyclePolicyPreviewInput) (*StartLifecyclePolicyPreviewOutput, error) {
+	req, out := c.StartLifecyclePolicyPreviewRequest(input)
+	return out, req.Send()
+}
+
+// StartLifecyclePolicyPreviewWithContext is the same as StartLifecyclePolicyPreview with the addition of
+// the ability to pass a context and additional request options.
+//
+// See StartLifecyclePolicyPreview for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ECR) StartLifecyclePolicyPreviewWithContext(ctx aws.Context, input *StartLifecyclePolicyPreviewInput, opts ...request.Option) (*StartLifecyclePolicyPreviewOutput, error) {
+	req, out := c.StartLifecyclePolicyPreviewRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opTagResource = "TagResource"
+
+// TagResourceRequest generates a "aws/request.Request" representing the
+// client's request for the TagResource operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See TagResource for more information on using the TagResource
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the TagResourceRequest method.
+//    req, resp := client.TagResourceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/TagResource
+func (c *ECR) TagResourceRequest(input *TagResourceInput) (req *request.Request, output *TagResourceOutput) {
+	op := &request.Operation{
+		Name:       opTagResource,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &TagResourceInput{}
+	}
+
+	output = &TagResourceOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// TagResource API operation for Amazon EC2 Container Registry.
+//
+// Adds specified tags to a resource with the specified ARN. Existing tags on
+// a resource are not changed if they are not specified in the request parameters.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon EC2 Container Registry's
+// API operation TagResource for usage and error information.
+//
+// Returned Error Types:
+//   * InvalidParameterException
+//   The specified parameter is invalid. Review the available parameters for the
+//   API request.
+//
+//   * InvalidTagParameterException
+//   An invalid parameter has been specified. Tag keys can have a maximum character
+//   length of 128 characters, and tag values can have a maximum length of 256
+//   characters.
+//
+//   * TooManyTagsException
+//   The list of tags on the repository is over the limit. The maximum number
+//   of tags that can be applied to a repository is 50.
+//
+//   * RepositoryNotFoundException
+//   The specified repository could not be found. Check the spelling of the specified
+//   repository and ensure that you are performing operations on the correct registry.
+//
+//   * ServerException
+//   These errors are usually caused by a server-side issue.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/TagResource
+func (c *ECR) TagResource(input *TagResourceInput) (*TagResourceOutput, error) {
+	req, out := c.TagResourceRequest(input)
+	return out, req.Send()
+}
+
+// TagResourceWithContext is the same as TagResource with the addition of
+// the ability to pass a context and additional request options.
+//
+// See TagResource for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ECR) TagResourceWithContext(ctx aws.Context, input *TagResourceInput, opts ...request.Option) (*TagResourceOutput, error) {
+	req, out := c.TagResourceRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opUntagResource = "UntagResource"
+
+// UntagResourceRequest generates a "aws/request.Request" representing the
+// client's request for the UntagResource operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See UntagResource for more information on using the UntagResource
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the UntagResourceRequest method.
+//    req, resp := client.UntagResourceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/UntagResource
+func (c *ECR) UntagResourceRequest(input *UntagResourceInput) (req *request.Request, output *UntagResourceOutput) {
+	op := &request.Operation{
+		Name:       opUntagResource,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &UntagResourceInput{}
+	}
+
+	output = &UntagResourceOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// UntagResource API operation for Amazon EC2 Container Registry.
+//
+// Deletes specified tags from a resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon EC2 Container Registry's
+// API operation UntagResource for usage and error information.
+//
+// Returned Error Types:
+//   * InvalidParameterException
+//   The specified parameter is invalid. Review the available parameters for the
+//   API request.
+//
+//   * InvalidTagParameterException
+//   An invalid parameter has been specified. Tag keys can have a maximum character
+//   length of 128 characters, and tag values can have a maximum length of 256
+//   characters.
+//
+//   * TooManyTagsException
+//   The list of tags on the repository is over the limit. The maximum number
+//   of tags that can be applied to a repository is 50.
+//
+//   * RepositoryNotFoundException
+//   The specified repository could not be found. Check the spelling of the specified
+//   repository and ensure that you are performing operations on the correct registry.
+//
+//   * ServerException
+//   These errors are usually caused by a server-side issue.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/UntagResource
+func (c *ECR) UntagResource(input *UntagResourceInput) (*UntagResourceOutput, error) {
+	req, out := c.UntagResourceRequest(input)
+	return out, req.Send()
+}
+
+// UntagResourceWithContext is the same as UntagResource with the addition of
+// the ability to pass a context and additional request options.
+//
+// See UntagResource for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ECR) UntagResourceWithContext(ctx aws.Context, input *UntagResourceInput, opts ...request.Option) (*UntagResourceOutput, error) {
+	req, out := c.UntagResourceRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opUploadLayerPart = "UploadLayerPart"
 
 // UploadLayerPartRequest generates a "aws/request.Request" representing the
 // client's request for the UploadLayerPart operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1703,7 +2995,7 @@ const opUploadLayerPart = "UploadLayerPart"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/UploadLayerPart
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/UploadLayerPart
 func (c *ECR) UploadLayerPartRequest(input *UploadLayerPartInput) (req *request.Request, output *UploadLayerPartOutput) {
 	op := &request.Operation{
 		Name:       opUploadLayerPart,
@@ -1724,9 +3016,13 @@ func (c *ECR) UploadLayerPartRequest(input *UploadLayerPartInput) (req *request.
 //
 // Uploads an image layer part to Amazon ECR.
 //
-// This operation is used by the Amazon ECR proxy, and it is not intended for
-// general use by customers for pulling and pushing images. In most cases, you
-// should use the docker CLI to pull, tag, and push images.
+// When an image is pushed, each new image layer is uploaded in parts. The maximum
+// size of each image layer part can be 20971520 bytes (or about 20MB). The
+// UploadLayerPart API is called once per each new image layer part.
+//
+// This operation is used by the Amazon ECR proxy and is not generally used
+// by customers for pulling and pushing images. In most cases, you should use
+// the docker CLI to pull, tag, and push images.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1735,33 +3031,35 @@ func (c *ECR) UploadLayerPartRequest(input *UploadLayerPartInput) (req *request.
 // See the AWS API reference guide for Amazon EC2 Container Registry's
 // API operation UploadLayerPart for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeServerException "ServerException"
+// Returned Error Types:
+//   * ServerException
 //   These errors are usually caused by a server-side issue.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   The specified parameter is invalid. Review the available parameters for the
 //   API request.
 //
-//   * ErrCodeInvalidLayerPartException "InvalidLayerPartException"
+//   * InvalidLayerPartException
 //   The layer part size is not valid, or the first byte specified is not consecutive
 //   to the last byte of a previous layer part upload.
 //
-//   * ErrCodeRepositoryNotFoundException "RepositoryNotFoundException"
+//   * RepositoryNotFoundException
 //   The specified repository could not be found. Check the spelling of the specified
 //   repository and ensure that you are performing operations on the correct registry.
 //
-//   * ErrCodeUploadNotFoundException "UploadNotFoundException"
-//   The upload could not be found, or the specified upload id is not valid for
+//   * UploadNotFoundException
+//   The upload could not be found, or the specified upload ID is not valid for
 //   this repository.
 //
-//   * ErrCodeLimitExceededException "LimitExceededException"
+//   * LimitExceededException
 //   The operation did not succeed because it would have exceeded a service limit
-//   for your account. For more information, see Amazon ECR Default Service Limits
-//   (http://docs.aws.amazon.com/AmazonECR/latest/userguide/service_limits.html)
-//   in the Amazon EC2 Container Registry User Guide.
+//   for your account. For more information, see Amazon ECR Service Quotas (https://docs.aws.amazon.com/AmazonECR/latest/userguide/service-quotas.html)
+//   in the Amazon Elastic Container Registry User Guide.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/UploadLayerPart
+//   * KmsException
+//   The operation failed due to a KMS exception.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/UploadLayerPart
 func (c *ECR) UploadLayerPart(input *UploadLayerPartInput) (*UploadLayerPartOutput, error) {
 	req, out := c.UploadLayerPartRequest(input)
 	return out, req.Send()
@@ -1783,8 +3081,42 @@ func (c *ECR) UploadLayerPartWithContext(ctx aws.Context, input *UploadLayerPart
 	return out, req.Send()
 }
 
+// This data type is used in the ImageScanFinding data type.
+type Attribute struct {
+	_ struct{} `type:"structure"`
+
+	// The attribute key.
+	//
+	// Key is a required field
+	Key *string `locationName:"key" min:"1" type:"string" required:"true"`
+
+	// The value assigned to the attribute key.
+	Value *string `locationName:"value" min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s Attribute) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Attribute) GoString() string {
+	return s.String()
+}
+
+// SetKey sets the Key field's value.
+func (s *Attribute) SetKey(v string) *Attribute {
+	s.Key = &v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *Attribute) SetValue(v string) *Attribute {
+	s.Value = &v
+	return s
+}
+
 // An object representing authorization data for an Amazon ECR registry.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/AuthorizationData
 type AuthorizationData struct {
 	_ struct{} `type:"structure"`
 
@@ -1795,7 +3127,7 @@ type AuthorizationData struct {
 
 	// The Unix time in seconds and milliseconds when the authorization token expires.
 	// Authorization tokens are valid for 12 hours.
-	ExpiresAt *time.Time `locationName:"expiresAt" type:"timestamp" timestampFormat:"unix"`
+	ExpiresAt *time.Time `locationName:"expiresAt" type:"timestamp"`
 
 	// The registry URL to use for this authorization token in a docker login command.
 	// The Amazon ECR registry URL format is https://aws_account_id.dkr.ecr.region.amazonaws.com.
@@ -1831,7 +3163,6 @@ func (s *AuthorizationData) SetProxyEndpoint(v string) *AuthorizationData {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/BatchCheckLayerAvailabilityRequest
 type BatchCheckLayerAvailabilityInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1900,7 +3231,6 @@ func (s *BatchCheckLayerAvailabilityInput) SetRepositoryName(v string) *BatchChe
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/BatchCheckLayerAvailabilityResponse
 type BatchCheckLayerAvailabilityOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1936,7 +3266,6 @@ func (s *BatchCheckLayerAvailabilityOutput) SetLayers(v []*Layer) *BatchCheckLay
 
 // Deletes specified images within a specified repository. Images are specified
 // with either the imageTag or imageDigest.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/BatchDeleteImageRequest
 type BatchDeleteImageInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1981,6 +3310,16 @@ func (s *BatchDeleteImageInput) Validate() error {
 	if s.RepositoryName != nil && len(*s.RepositoryName) < 2 {
 		invalidParams.Add(request.NewErrParamMinLen("RepositoryName", 2))
 	}
+	if s.ImageIds != nil {
+		for i, v := range s.ImageIds {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "ImageIds", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -2006,7 +3345,6 @@ func (s *BatchDeleteImageInput) SetRepositoryName(v string) *BatchDeleteImageInp
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/BatchDeleteImageResponse
 type BatchDeleteImageOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2039,7 +3377,6 @@ func (s *BatchDeleteImageOutput) SetImageIds(v []*ImageIdentifier) *BatchDeleteI
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/BatchGetImageRequest
 type BatchGetImageInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2093,6 +3430,16 @@ func (s *BatchGetImageInput) Validate() error {
 	if s.RepositoryName != nil && len(*s.RepositoryName) < 2 {
 		invalidParams.Add(request.NewErrParamMinLen("RepositoryName", 2))
 	}
+	if s.ImageIds != nil {
+		for i, v := range s.ImageIds {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "ImageIds", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -2124,7 +3471,6 @@ func (s *BatchGetImageInput) SetRepositoryName(v string) *BatchGetImageInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/BatchGetImageResponse
 type BatchGetImageOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2157,7 +3503,6 @@ func (s *BatchGetImageOutput) SetImages(v []*Image) *BatchGetImageOutput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/CompleteLayerUploadRequest
 type CompleteLayerUploadInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2241,7 +3586,6 @@ func (s *CompleteLayerUploadInput) SetUploadId(v string) *CompleteLayerUploadInp
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/CompleteLayerUploadResponse
 type CompleteLayerUploadOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2292,9 +3636,22 @@ func (s *CompleteLayerUploadOutput) SetUploadId(v string) *CompleteLayerUploadOu
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/CreateRepositoryRequest
 type CreateRepositoryInput struct {
 	_ struct{} `type:"structure"`
+
+	// The encryption configuration for the repository. This determines how the
+	// contents of your repository are encrypted at rest.
+	EncryptionConfiguration *EncryptionConfiguration `locationName:"encryptionConfiguration" type:"structure"`
+
+	// The image scanning configuration for the repository. This determines whether
+	// images are scanned for known vulnerabilities after being pushed to the repository.
+	ImageScanningConfiguration *ImageScanningConfiguration `locationName:"imageScanningConfiguration" type:"structure"`
+
+	// The tag mutability setting for the repository. If this parameter is omitted,
+	// the default setting of MUTABLE will be used which will allow image tags to
+	// be overwritten. If IMMUTABLE is specified, all image tags within the repository
+	// will be immutable which will prevent them from being overwritten.
+	ImageTagMutability *string `locationName:"imageTagMutability" type:"string" enum:"ImageTagMutability"`
 
 	// The name to use for the repository. The repository name may be specified
 	// on its own (such as nginx-web-app) or it can be prepended with a namespace
@@ -2302,6 +3659,12 @@ type CreateRepositoryInput struct {
 	//
 	// RepositoryName is a required field
 	RepositoryName *string `locationName:"repositoryName" min:"2" type:"string" required:"true"`
+
+	// The metadata that you apply to the repository to help you categorize and
+	// organize them. Each tag consists of a key and an optional value, both of
+	// which you define. Tag keys can have a maximum character length of 128 characters,
+	// and tag values can have a maximum length of 256 characters.
+	Tags []*Tag `locationName:"tags" type:"list"`
 }
 
 // String returns the string representation
@@ -2323,11 +3686,34 @@ func (s *CreateRepositoryInput) Validate() error {
 	if s.RepositoryName != nil && len(*s.RepositoryName) < 2 {
 		invalidParams.Add(request.NewErrParamMinLen("RepositoryName", 2))
 	}
+	if s.EncryptionConfiguration != nil {
+		if err := s.EncryptionConfiguration.Validate(); err != nil {
+			invalidParams.AddNested("EncryptionConfiguration", err.(request.ErrInvalidParams))
+		}
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetEncryptionConfiguration sets the EncryptionConfiguration field's value.
+func (s *CreateRepositoryInput) SetEncryptionConfiguration(v *EncryptionConfiguration) *CreateRepositoryInput {
+	s.EncryptionConfiguration = v
+	return s
+}
+
+// SetImageScanningConfiguration sets the ImageScanningConfiguration field's value.
+func (s *CreateRepositoryInput) SetImageScanningConfiguration(v *ImageScanningConfiguration) *CreateRepositoryInput {
+	s.ImageScanningConfiguration = v
+	return s
+}
+
+// SetImageTagMutability sets the ImageTagMutability field's value.
+func (s *CreateRepositoryInput) SetImageTagMutability(v string) *CreateRepositoryInput {
+	s.ImageTagMutability = &v
+	return s
 }
 
 // SetRepositoryName sets the RepositoryName field's value.
@@ -2336,7 +3722,12 @@ func (s *CreateRepositoryInput) SetRepositoryName(v string) *CreateRepositoryInp
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/CreateRepositoryResponse
+// SetTags sets the Tags field's value.
+func (s *CreateRepositoryInput) SetTags(v []*Tag) *CreateRepositoryInput {
+	s.Tags = v
+	return s
+}
+
 type CreateRepositoryOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2360,11 +3751,111 @@ func (s *CreateRepositoryOutput) SetRepository(v *Repository) *CreateRepositoryO
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/DeleteRepositoryRequest
+type DeleteLifecyclePolicyInput struct {
+	_ struct{} `type:"structure"`
+
+	// The AWS account ID associated with the registry that contains the repository.
+	// If you do not specify a registry, the default registry is assumed.
+	RegistryId *string `locationName:"registryId" type:"string"`
+
+	// The name of the repository.
+	//
+	// RepositoryName is a required field
+	RepositoryName *string `locationName:"repositoryName" min:"2" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DeleteLifecyclePolicyInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteLifecyclePolicyInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteLifecyclePolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteLifecyclePolicyInput"}
+	if s.RepositoryName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RepositoryName"))
+	}
+	if s.RepositoryName != nil && len(*s.RepositoryName) < 2 {
+		invalidParams.Add(request.NewErrParamMinLen("RepositoryName", 2))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetRegistryId sets the RegistryId field's value.
+func (s *DeleteLifecyclePolicyInput) SetRegistryId(v string) *DeleteLifecyclePolicyInput {
+	s.RegistryId = &v
+	return s
+}
+
+// SetRepositoryName sets the RepositoryName field's value.
+func (s *DeleteLifecyclePolicyInput) SetRepositoryName(v string) *DeleteLifecyclePolicyInput {
+	s.RepositoryName = &v
+	return s
+}
+
+type DeleteLifecyclePolicyOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The time stamp of the last time that the lifecycle policy was run.
+	LastEvaluatedAt *time.Time `locationName:"lastEvaluatedAt" type:"timestamp"`
+
+	// The JSON lifecycle policy text.
+	LifecyclePolicyText *string `locationName:"lifecyclePolicyText" min:"100" type:"string"`
+
+	// The registry ID associated with the request.
+	RegistryId *string `locationName:"registryId" type:"string"`
+
+	// The repository name associated with the request.
+	RepositoryName *string `locationName:"repositoryName" min:"2" type:"string"`
+}
+
+// String returns the string representation
+func (s DeleteLifecyclePolicyOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteLifecyclePolicyOutput) GoString() string {
+	return s.String()
+}
+
+// SetLastEvaluatedAt sets the LastEvaluatedAt field's value.
+func (s *DeleteLifecyclePolicyOutput) SetLastEvaluatedAt(v time.Time) *DeleteLifecyclePolicyOutput {
+	s.LastEvaluatedAt = &v
+	return s
+}
+
+// SetLifecyclePolicyText sets the LifecyclePolicyText field's value.
+func (s *DeleteLifecyclePolicyOutput) SetLifecyclePolicyText(v string) *DeleteLifecyclePolicyOutput {
+	s.LifecyclePolicyText = &v
+	return s
+}
+
+// SetRegistryId sets the RegistryId field's value.
+func (s *DeleteLifecyclePolicyOutput) SetRegistryId(v string) *DeleteLifecyclePolicyOutput {
+	s.RegistryId = &v
+	return s
+}
+
+// SetRepositoryName sets the RepositoryName field's value.
+func (s *DeleteLifecyclePolicyOutput) SetRepositoryName(v string) *DeleteLifecyclePolicyOutput {
+	s.RepositoryName = &v
+	return s
+}
+
 type DeleteRepositoryInput struct {
 	_ struct{} `type:"structure"`
 
-	// Force the deletion of the repository if it contains images.
+	// If a repository contains images, forces the deletion.
 	Force *bool `locationName:"force" type:"boolean"`
 
 	// The AWS account ID associated with the registry that contains the repository
@@ -2421,7 +3912,6 @@ func (s *DeleteRepositoryInput) SetRepositoryName(v string) *DeleteRepositoryInp
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/DeleteRepositoryResponse
 type DeleteRepositoryOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2445,7 +3935,6 @@ func (s *DeleteRepositoryOutput) SetRepository(v *Repository) *DeleteRepositoryO
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/DeleteRepositoryPolicyRequest
 type DeleteRepositoryPolicyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2499,7 +3988,6 @@ func (s *DeleteRepositoryPolicyInput) SetRepositoryName(v string) *DeleteReposit
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/DeleteRepositoryPolicyResponse
 type DeleteRepositoryPolicyOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2541,8 +4029,181 @@ func (s *DeleteRepositoryPolicyOutput) SetRepositoryName(v string) *DeleteReposi
 	return s
 }
 
+type DescribeImageScanFindingsInput struct {
+	_ struct{} `type:"structure"`
+
+	// An object with identifying information for an Amazon ECR image.
+	//
+	// ImageId is a required field
+	ImageId *ImageIdentifier `locationName:"imageId" type:"structure" required:"true"`
+
+	// The maximum number of image scan results returned by DescribeImageScanFindings
+	// in paginated output. When this parameter is used, DescribeImageScanFindings
+	// only returns maxResults results in a single page along with a nextToken response
+	// element. The remaining results of the initial request can be seen by sending
+	// another DescribeImageScanFindings request with the returned nextToken value.
+	// This value can be between 1 and 1000. If this parameter is not used, then
+	// DescribeImageScanFindings returns up to 100 results and a nextToken value,
+	// if applicable.
+	MaxResults *int64 `locationName:"maxResults" min:"1" type:"integer"`
+
+	// The nextToken value returned from a previous paginated DescribeImageScanFindings
+	// request where maxResults was used and the results exceeded the value of that
+	// parameter. Pagination continues from the end of the previous results that
+	// returned the nextToken value. This value is null when there are no more results
+	// to return.
+	NextToken *string `locationName:"nextToken" type:"string"`
+
+	// The AWS account ID associated with the registry that contains the repository
+	// in which to describe the image scan findings for. If you do not specify a
+	// registry, the default registry is assumed.
+	RegistryId *string `locationName:"registryId" type:"string"`
+
+	// The repository for the image for which to describe the scan findings.
+	//
+	// RepositoryName is a required field
+	RepositoryName *string `locationName:"repositoryName" min:"2" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DescribeImageScanFindingsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeImageScanFindingsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeImageScanFindingsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeImageScanFindingsInput"}
+	if s.ImageId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ImageId"))
+	}
+	if s.MaxResults != nil && *s.MaxResults < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
+	}
+	if s.RepositoryName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RepositoryName"))
+	}
+	if s.RepositoryName != nil && len(*s.RepositoryName) < 2 {
+		invalidParams.Add(request.NewErrParamMinLen("RepositoryName", 2))
+	}
+	if s.ImageId != nil {
+		if err := s.ImageId.Validate(); err != nil {
+			invalidParams.AddNested("ImageId", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetImageId sets the ImageId field's value.
+func (s *DescribeImageScanFindingsInput) SetImageId(v *ImageIdentifier) *DescribeImageScanFindingsInput {
+	s.ImageId = v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *DescribeImageScanFindingsInput) SetMaxResults(v int64) *DescribeImageScanFindingsInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeImageScanFindingsInput) SetNextToken(v string) *DescribeImageScanFindingsInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetRegistryId sets the RegistryId field's value.
+func (s *DescribeImageScanFindingsInput) SetRegistryId(v string) *DescribeImageScanFindingsInput {
+	s.RegistryId = &v
+	return s
+}
+
+// SetRepositoryName sets the RepositoryName field's value.
+func (s *DescribeImageScanFindingsInput) SetRepositoryName(v string) *DescribeImageScanFindingsInput {
+	s.RepositoryName = &v
+	return s
+}
+
+type DescribeImageScanFindingsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// An object with identifying information for an Amazon ECR image.
+	ImageId *ImageIdentifier `locationName:"imageId" type:"structure"`
+
+	// The information contained in the image scan findings.
+	ImageScanFindings *ImageScanFindings `locationName:"imageScanFindings" type:"structure"`
+
+	// The current state of the scan.
+	ImageScanStatus *ImageScanStatus `locationName:"imageScanStatus" type:"structure"`
+
+	// The nextToken value to include in a future DescribeImageScanFindings request.
+	// When the results of a DescribeImageScanFindings request exceed maxResults,
+	// this value can be used to retrieve the next page of results. This value is
+	// null when there are no more results to return.
+	NextToken *string `locationName:"nextToken" type:"string"`
+
+	// The registry ID associated with the request.
+	RegistryId *string `locationName:"registryId" type:"string"`
+
+	// The repository name associated with the request.
+	RepositoryName *string `locationName:"repositoryName" min:"2" type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeImageScanFindingsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeImageScanFindingsOutput) GoString() string {
+	return s.String()
+}
+
+// SetImageId sets the ImageId field's value.
+func (s *DescribeImageScanFindingsOutput) SetImageId(v *ImageIdentifier) *DescribeImageScanFindingsOutput {
+	s.ImageId = v
+	return s
+}
+
+// SetImageScanFindings sets the ImageScanFindings field's value.
+func (s *DescribeImageScanFindingsOutput) SetImageScanFindings(v *ImageScanFindings) *DescribeImageScanFindingsOutput {
+	s.ImageScanFindings = v
+	return s
+}
+
+// SetImageScanStatus sets the ImageScanStatus field's value.
+func (s *DescribeImageScanFindingsOutput) SetImageScanStatus(v *ImageScanStatus) *DescribeImageScanFindingsOutput {
+	s.ImageScanStatus = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeImageScanFindingsOutput) SetNextToken(v string) *DescribeImageScanFindingsOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetRegistryId sets the RegistryId field's value.
+func (s *DescribeImageScanFindingsOutput) SetRegistryId(v string) *DescribeImageScanFindingsOutput {
+	s.RegistryId = &v
+	return s
+}
+
+// SetRepositoryName sets the RepositoryName field's value.
+func (s *DescribeImageScanFindingsOutput) SetRepositoryName(v string) *DescribeImageScanFindingsOutput {
+	s.RepositoryName = &v
+	return s
+}
+
 // An object representing a filter on a DescribeImages operation.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/DescribeImagesFilter
 type DescribeImagesFilter struct {
 	_ struct{} `type:"structure"`
 
@@ -2567,7 +4228,6 @@ func (s *DescribeImagesFilter) SetTagStatus(v string) *DescribeImagesFilter {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/DescribeImagesRequest
 type DescribeImagesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2582,14 +4242,16 @@ type DescribeImagesInput struct {
 	// results in a single page along with a nextToken response element. The remaining
 	// results of the initial request can be seen by sending another DescribeImages
 	// request with the returned nextToken value. This value can be between 1 and
-	// 100. If this parameter is not used, then DescribeImages returns up to 100
-	// results and a nextToken value, if applicable.
+	// 1000. If this parameter is not used, then DescribeImages returns up to 100
+	// results and a nextToken value, if applicable. This option cannot be used
+	// when you specify images with imageIds.
 	MaxResults *int64 `locationName:"maxResults" min:"1" type:"integer"`
 
 	// The nextToken value returned from a previous paginated DescribeImages request
 	// where maxResults was used and the results exceeded the value of that parameter.
 	// Pagination continues from the end of the previous results that returned the
 	// nextToken value. This value is null when there are no more results to return.
+	// This option cannot be used when you specify images with imageIds.
 	NextToken *string `locationName:"nextToken" type:"string"`
 
 	// The AWS account ID associated with the registry that contains the repository
@@ -2597,8 +4259,7 @@ type DescribeImagesInput struct {
 	// registry is assumed.
 	RegistryId *string `locationName:"registryId" type:"string"`
 
-	// A list of repositories to describe. If this parameter is omitted, then all
-	// repositories in a registry are described.
+	// The repository that contains the images to describe.
 	//
 	// RepositoryName is a required field
 	RepositoryName *string `locationName:"repositoryName" min:"2" type:"string" required:"true"`
@@ -2628,6 +4289,16 @@ func (s *DescribeImagesInput) Validate() error {
 	}
 	if s.RepositoryName != nil && len(*s.RepositoryName) < 2 {
 		invalidParams.Add(request.NewErrParamMinLen("RepositoryName", 2))
+	}
+	if s.ImageIds != nil {
+		for i, v := range s.ImageIds {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "ImageIds", i), err.(request.ErrInvalidParams))
+			}
+		}
 	}
 
 	if invalidParams.Len() > 0 {
@@ -2672,7 +4343,6 @@ func (s *DescribeImagesInput) SetRepositoryName(v string) *DescribeImagesInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/DescribeImagesResponse
 type DescribeImagesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2708,7 +4378,6 @@ func (s *DescribeImagesOutput) SetNextToken(v string) *DescribeImagesOutput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/DescribeRepositoriesRequest
 type DescribeRepositoriesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2717,15 +4386,17 @@ type DescribeRepositoriesInput struct {
 	// returns maxResults results in a single page along with a nextToken response
 	// element. The remaining results of the initial request can be seen by sending
 	// another DescribeRepositories request with the returned nextToken value. This
-	// value can be between 1 and 100. If this parameter is not used, then DescribeRepositories
-	// returns up to 100 results and a nextToken value, if applicable.
+	// value can be between 1 and 1000. If this parameter is not used, then DescribeRepositories
+	// returns up to 100 results and a nextToken value, if applicable. This option
+	// cannot be used when you specify repositories with repositoryNames.
 	MaxResults *int64 `locationName:"maxResults" min:"1" type:"integer"`
 
 	// The nextToken value returned from a previous paginated DescribeRepositories
 	// request where maxResults was used and the results exceeded the value of that
 	// parameter. Pagination continues from the end of the previous results that
 	// returned the nextToken value. This value is null when there are no more results
-	// to return.
+	// to return. This option cannot be used when you specify repositories with
+	// repositoryNames.
 	//
 	// This token should be treated as an opaque identifier that is only used to
 	// retrieve the next items in a list and not for other programmatic purposes.
@@ -2791,7 +4462,6 @@ func (s *DescribeRepositoriesInput) SetRepositoryNames(v []*string) *DescribeRep
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/DescribeRepositoriesResponse
 type DescribeRepositoriesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2827,12 +4497,149 @@ func (s *DescribeRepositoriesOutput) SetRepositories(v []*Repository) *DescribeR
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/GetAuthorizationTokenRequest
+// The specified layer upload does not contain any layer parts.
+type EmptyUploadException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	// The error message associated with the exception.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s EmptyUploadException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s EmptyUploadException) GoString() string {
+	return s.String()
+}
+
+func newErrorEmptyUploadException(v protocol.ResponseMetadata) error {
+	return &EmptyUploadException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *EmptyUploadException) Code() string {
+	return "EmptyUploadException"
+}
+
+// Message returns the exception's message.
+func (s *EmptyUploadException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *EmptyUploadException) OrigErr() error {
+	return nil
+}
+
+func (s *EmptyUploadException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *EmptyUploadException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *EmptyUploadException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// The encryption configuration for the repository. This determines how the
+// contents of your repository are encrypted at rest.
+//
+// By default, when no encryption configuration is set or the AES256 encryption
+// type is used, Amazon ECR uses server-side encryption with Amazon S3-managed
+// encryption keys which encrypts your data at rest using an AES-256 encryption
+// algorithm. This does not require any action on your part.
+//
+// For more control over the encryption of the contents of your repository,
+// you can use server-side encryption with customer master keys (CMKs) stored
+// in AWS Key Management Service (AWS KMS) to encrypt your images. For more
+// information, see Amazon ECR encryption at rest (https://docs.aws.amazon.com/AmazonECR/latest/userguide/encryption-at-rest.html)
+// in the Amazon Elastic Container Registry User Guide.
+type EncryptionConfiguration struct {
+	_ struct{} `type:"structure"`
+
+	// The encryption type to use.
+	//
+	// If you use the KMS encryption type, the contents of the repository will be
+	// encrypted using server-side encryption with customer master keys (CMKs) stored
+	// in AWS KMS. When you use AWS KMS to encrypt your data, you can either use
+	// the default AWS managed CMK for Amazon ECR, or specify your own CMK, which
+	// you already created. For more information, see Protecting Data Using Server-Side
+	// Encryption with CMKs Stored in AWS Key Management Service (SSE-KMS) (https://docs.aws.amazon.com/AmazonS3/latest/dev/UsingKMSEncryption.html)
+	// in the Amazon Simple Storage Service Console Developer Guide..
+	//
+	// If you use the AES256 encryption type, Amazon ECR uses server-side encryption
+	// with Amazon S3-managed encryption keys which encrypts the images in the repository
+	// using an AES-256 encryption algorithm. For more information, see Protecting
+	// Data Using Server-Side Encryption with Amazon S3-Managed Encryption Keys
+	// (SSE-S3) (https://docs.aws.amazon.com/AmazonS3/latest/dev/UsingServerSideEncryption.html)
+	// in the Amazon Simple Storage Service Console Developer Guide..
+	//
+	// EncryptionType is a required field
+	EncryptionType *string `locationName:"encryptionType" type:"string" required:"true" enum:"EncryptionType"`
+
+	// If you use the KMS encryption type, specify the CMK to use for encryption.
+	// The alias, key ID, or full ARN of the CMK can be specified. The key must
+	// exist in the same Region as the repository. If no key is specified, the default
+	// AWS managed CMK for Amazon ECR will be used.
+	KmsKey *string `locationName:"kmsKey" min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s EncryptionConfiguration) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s EncryptionConfiguration) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *EncryptionConfiguration) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "EncryptionConfiguration"}
+	if s.EncryptionType == nil {
+		invalidParams.Add(request.NewErrParamRequired("EncryptionType"))
+	}
+	if s.KmsKey != nil && len(*s.KmsKey) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("KmsKey", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetEncryptionType sets the EncryptionType field's value.
+func (s *EncryptionConfiguration) SetEncryptionType(v string) *EncryptionConfiguration {
+	s.EncryptionType = &v
+	return s
+}
+
+// SetKmsKey sets the KmsKey field's value.
+func (s *EncryptionConfiguration) SetKmsKey(v string) *EncryptionConfiguration {
+	s.KmsKey = &v
+	return s
+}
+
 type GetAuthorizationTokenInput struct {
 	_ struct{} `type:"structure"`
 
 	// A list of AWS account IDs that are associated with the registries for which
-	// to get authorization tokens. If you do not specify a registry, the default
+	// to get AuthorizationData objects. If you do not specify a registry, the default
 	// registry is assumed.
 	RegistryIds []*string `locationName:"registryIds" min:"1" type:"list"`
 }
@@ -2866,7 +4673,6 @@ func (s *GetAuthorizationTokenInput) SetRegistryIds(v []*string) *GetAuthorizati
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/GetAuthorizationTokenResponse
 type GetAuthorizationTokenOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2891,7 +4697,6 @@ func (s *GetAuthorizationTokenOutput) SetAuthorizationData(v []*AuthorizationDat
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/GetDownloadUrlForLayerRequest
 type GetDownloadUrlForLayerInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2957,7 +4762,6 @@ func (s *GetDownloadUrlForLayerInput) SetRepositoryName(v string) *GetDownloadUr
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/GetDownloadUrlForLayerResponse
 type GetDownloadUrlForLayerOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2990,7 +4794,303 @@ func (s *GetDownloadUrlForLayerOutput) SetLayerDigest(v string) *GetDownloadUrlF
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/GetRepositoryPolicyRequest
+type GetLifecyclePolicyInput struct {
+	_ struct{} `type:"structure"`
+
+	// The AWS account ID associated with the registry that contains the repository.
+	// If you do not specify a registry, the default registry is assumed.
+	RegistryId *string `locationName:"registryId" type:"string"`
+
+	// The name of the repository.
+	//
+	// RepositoryName is a required field
+	RepositoryName *string `locationName:"repositoryName" min:"2" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s GetLifecyclePolicyInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetLifecyclePolicyInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetLifecyclePolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetLifecyclePolicyInput"}
+	if s.RepositoryName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RepositoryName"))
+	}
+	if s.RepositoryName != nil && len(*s.RepositoryName) < 2 {
+		invalidParams.Add(request.NewErrParamMinLen("RepositoryName", 2))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetRegistryId sets the RegistryId field's value.
+func (s *GetLifecyclePolicyInput) SetRegistryId(v string) *GetLifecyclePolicyInput {
+	s.RegistryId = &v
+	return s
+}
+
+// SetRepositoryName sets the RepositoryName field's value.
+func (s *GetLifecyclePolicyInput) SetRepositoryName(v string) *GetLifecyclePolicyInput {
+	s.RepositoryName = &v
+	return s
+}
+
+type GetLifecyclePolicyOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The time stamp of the last time that the lifecycle policy was run.
+	LastEvaluatedAt *time.Time `locationName:"lastEvaluatedAt" type:"timestamp"`
+
+	// The JSON lifecycle policy text.
+	LifecyclePolicyText *string `locationName:"lifecyclePolicyText" min:"100" type:"string"`
+
+	// The registry ID associated with the request.
+	RegistryId *string `locationName:"registryId" type:"string"`
+
+	// The repository name associated with the request.
+	RepositoryName *string `locationName:"repositoryName" min:"2" type:"string"`
+}
+
+// String returns the string representation
+func (s GetLifecyclePolicyOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetLifecyclePolicyOutput) GoString() string {
+	return s.String()
+}
+
+// SetLastEvaluatedAt sets the LastEvaluatedAt field's value.
+func (s *GetLifecyclePolicyOutput) SetLastEvaluatedAt(v time.Time) *GetLifecyclePolicyOutput {
+	s.LastEvaluatedAt = &v
+	return s
+}
+
+// SetLifecyclePolicyText sets the LifecyclePolicyText field's value.
+func (s *GetLifecyclePolicyOutput) SetLifecyclePolicyText(v string) *GetLifecyclePolicyOutput {
+	s.LifecyclePolicyText = &v
+	return s
+}
+
+// SetRegistryId sets the RegistryId field's value.
+func (s *GetLifecyclePolicyOutput) SetRegistryId(v string) *GetLifecyclePolicyOutput {
+	s.RegistryId = &v
+	return s
+}
+
+// SetRepositoryName sets the RepositoryName field's value.
+func (s *GetLifecyclePolicyOutput) SetRepositoryName(v string) *GetLifecyclePolicyOutput {
+	s.RepositoryName = &v
+	return s
+}
+
+type GetLifecyclePolicyPreviewInput struct {
+	_ struct{} `type:"structure"`
+
+	// An optional parameter that filters results based on image tag status and
+	// all tags, if tagged.
+	Filter *LifecyclePolicyPreviewFilter `locationName:"filter" type:"structure"`
+
+	// The list of imageIDs to be included.
+	ImageIds []*ImageIdentifier `locationName:"imageIds" min:"1" type:"list"`
+
+	// The maximum number of repository results returned by GetLifecyclePolicyPreviewRequest
+	// in paginated output. When this parameter is used, GetLifecyclePolicyPreviewRequest
+	// only returns maxResults results in a single page along with a nextToken response
+	// element. The remaining results of the initial request can be seen by sending
+	// another GetLifecyclePolicyPreviewRequest request with the returned nextToken
+	// value. This value can be between 1 and 1000. If this parameter is not used,
+	// then GetLifecyclePolicyPreviewRequest returns up to 100 results and a nextToken
+	// value, if applicable. This option cannot be used when you specify images
+	// with imageIds.
+	MaxResults *int64 `locationName:"maxResults" min:"1" type:"integer"`
+
+	// The nextToken value returned from a previous paginated GetLifecyclePolicyPreviewRequest
+	// request where maxResults was used and the results exceeded the value of that
+	// parameter. Pagination continues from the end of the previous results that
+	// returned the nextToken value. This value is null when there are no more results
+	// to return. This option cannot be used when you specify images with imageIds.
+	NextToken *string `locationName:"nextToken" type:"string"`
+
+	// The AWS account ID associated with the registry that contains the repository.
+	// If you do not specify a registry, the default registry is assumed.
+	RegistryId *string `locationName:"registryId" type:"string"`
+
+	// The name of the repository.
+	//
+	// RepositoryName is a required field
+	RepositoryName *string `locationName:"repositoryName" min:"2" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s GetLifecyclePolicyPreviewInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetLifecyclePolicyPreviewInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetLifecyclePolicyPreviewInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetLifecyclePolicyPreviewInput"}
+	if s.ImageIds != nil && len(s.ImageIds) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ImageIds", 1))
+	}
+	if s.MaxResults != nil && *s.MaxResults < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
+	}
+	if s.RepositoryName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RepositoryName"))
+	}
+	if s.RepositoryName != nil && len(*s.RepositoryName) < 2 {
+		invalidParams.Add(request.NewErrParamMinLen("RepositoryName", 2))
+	}
+	if s.ImageIds != nil {
+		for i, v := range s.ImageIds {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "ImageIds", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetFilter sets the Filter field's value.
+func (s *GetLifecyclePolicyPreviewInput) SetFilter(v *LifecyclePolicyPreviewFilter) *GetLifecyclePolicyPreviewInput {
+	s.Filter = v
+	return s
+}
+
+// SetImageIds sets the ImageIds field's value.
+func (s *GetLifecyclePolicyPreviewInput) SetImageIds(v []*ImageIdentifier) *GetLifecyclePolicyPreviewInput {
+	s.ImageIds = v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *GetLifecyclePolicyPreviewInput) SetMaxResults(v int64) *GetLifecyclePolicyPreviewInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *GetLifecyclePolicyPreviewInput) SetNextToken(v string) *GetLifecyclePolicyPreviewInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetRegistryId sets the RegistryId field's value.
+func (s *GetLifecyclePolicyPreviewInput) SetRegistryId(v string) *GetLifecyclePolicyPreviewInput {
+	s.RegistryId = &v
+	return s
+}
+
+// SetRepositoryName sets the RepositoryName field's value.
+func (s *GetLifecyclePolicyPreviewInput) SetRepositoryName(v string) *GetLifecyclePolicyPreviewInput {
+	s.RepositoryName = &v
+	return s
+}
+
+type GetLifecyclePolicyPreviewOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The JSON lifecycle policy text.
+	LifecyclePolicyText *string `locationName:"lifecyclePolicyText" min:"100" type:"string"`
+
+	// The nextToken value to include in a future GetLifecyclePolicyPreview request.
+	// When the results of a GetLifecyclePolicyPreview request exceed maxResults,
+	// this value can be used to retrieve the next page of results. This value is
+	// null when there are no more results to return.
+	NextToken *string `locationName:"nextToken" type:"string"`
+
+	// The results of the lifecycle policy preview request.
+	PreviewResults []*LifecyclePolicyPreviewResult `locationName:"previewResults" type:"list"`
+
+	// The registry ID associated with the request.
+	RegistryId *string `locationName:"registryId" type:"string"`
+
+	// The repository name associated with the request.
+	RepositoryName *string `locationName:"repositoryName" min:"2" type:"string"`
+
+	// The status of the lifecycle policy preview request.
+	Status *string `locationName:"status" type:"string" enum:"LifecyclePolicyPreviewStatus"`
+
+	// The list of images that is returned as a result of the action.
+	Summary *LifecyclePolicyPreviewSummary `locationName:"summary" type:"structure"`
+}
+
+// String returns the string representation
+func (s GetLifecyclePolicyPreviewOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetLifecyclePolicyPreviewOutput) GoString() string {
+	return s.String()
+}
+
+// SetLifecyclePolicyText sets the LifecyclePolicyText field's value.
+func (s *GetLifecyclePolicyPreviewOutput) SetLifecyclePolicyText(v string) *GetLifecyclePolicyPreviewOutput {
+	s.LifecyclePolicyText = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *GetLifecyclePolicyPreviewOutput) SetNextToken(v string) *GetLifecyclePolicyPreviewOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetPreviewResults sets the PreviewResults field's value.
+func (s *GetLifecyclePolicyPreviewOutput) SetPreviewResults(v []*LifecyclePolicyPreviewResult) *GetLifecyclePolicyPreviewOutput {
+	s.PreviewResults = v
+	return s
+}
+
+// SetRegistryId sets the RegistryId field's value.
+func (s *GetLifecyclePolicyPreviewOutput) SetRegistryId(v string) *GetLifecyclePolicyPreviewOutput {
+	s.RegistryId = &v
+	return s
+}
+
+// SetRepositoryName sets the RepositoryName field's value.
+func (s *GetLifecyclePolicyPreviewOutput) SetRepositoryName(v string) *GetLifecyclePolicyPreviewOutput {
+	s.RepositoryName = &v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *GetLifecyclePolicyPreviewOutput) SetStatus(v string) *GetLifecyclePolicyPreviewOutput {
+	s.Status = &v
+	return s
+}
+
+// SetSummary sets the Summary field's value.
+func (s *GetLifecyclePolicyPreviewOutput) SetSummary(v *LifecyclePolicyPreviewSummary) *GetLifecyclePolicyPreviewOutput {
+	s.Summary = v
+	return s
+}
+
 type GetRepositoryPolicyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2998,7 +5098,7 @@ type GetRepositoryPolicyInput struct {
 	// If you do not specify a registry, the default registry is assumed.
 	RegistryId *string `locationName:"registryId" type:"string"`
 
-	// The name of the repository whose policy you want to retrieve.
+	// The name of the repository with the policy to retrieve.
 	//
 	// RepositoryName is a required field
 	RepositoryName *string `locationName:"repositoryName" min:"2" type:"string" required:"true"`
@@ -3042,7 +5142,6 @@ func (s *GetRepositoryPolicyInput) SetRepositoryName(v string) *GetRepositoryPol
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/GetRepositoryPolicyResponse
 type GetRepositoryPolicyOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3085,7 +5184,6 @@ func (s *GetRepositoryPolicyOutput) SetRepositoryName(v string) *GetRepositoryPo
 }
 
 // An object representing an Amazon ECR image.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/Image
 type Image struct {
 	_ struct{} `type:"structure"`
 
@@ -3093,7 +5191,10 @@ type Image struct {
 	ImageId *ImageIdentifier `locationName:"imageId" type:"structure"`
 
 	// The image manifest associated with the image.
-	ImageManifest *string `locationName:"imageManifest" type:"string"`
+	ImageManifest *string `locationName:"imageManifest" min:"1" type:"string"`
+
+	// The manifest media type of the image.
+	ImageManifestMediaType *string `locationName:"imageManifestMediaType" type:"string"`
 
 	// The AWS account ID associated with the registry containing the image.
 	RegistryId *string `locationName:"registryId" type:"string"`
@@ -3124,6 +5225,12 @@ func (s *Image) SetImageManifest(v string) *Image {
 	return s
 }
 
+// SetImageManifestMediaType sets the ImageManifestMediaType field's value.
+func (s *Image) SetImageManifestMediaType(v string) *Image {
+	s.ImageManifestMediaType = &v
+	return s
+}
+
 // SetRegistryId sets the RegistryId field's value.
 func (s *Image) SetRegistryId(v string) *Image {
 	s.RegistryId = &v
@@ -3136,19 +5243,91 @@ func (s *Image) SetRepositoryName(v string) *Image {
 	return s
 }
 
+// The specified image has already been pushed, and there were no changes to
+// the manifest or image tag after the last push.
+type ImageAlreadyExistsException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	// The error message associated with the exception.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s ImageAlreadyExistsException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ImageAlreadyExistsException) GoString() string {
+	return s.String()
+}
+
+func newErrorImageAlreadyExistsException(v protocol.ResponseMetadata) error {
+	return &ImageAlreadyExistsException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *ImageAlreadyExistsException) Code() string {
+	return "ImageAlreadyExistsException"
+}
+
+// Message returns the exception's message.
+func (s *ImageAlreadyExistsException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *ImageAlreadyExistsException) OrigErr() error {
+	return nil
+}
+
+func (s *ImageAlreadyExistsException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *ImageAlreadyExistsException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *ImageAlreadyExistsException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 // An object that describes an image returned by a DescribeImages operation.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/ImageDetail
 type ImageDetail struct {
 	_ struct{} `type:"structure"`
+
+	// The artifact media type of the image.
+	ArtifactMediaType *string `locationName:"artifactMediaType" type:"string"`
 
 	// The sha256 digest of the image manifest.
 	ImageDigest *string `locationName:"imageDigest" type:"string"`
 
+	// The media type of the image manifest.
+	ImageManifestMediaType *string `locationName:"imageManifestMediaType" type:"string"`
+
 	// The date and time, expressed in standard JavaScript date format, at which
 	// the current image was pushed to the repository.
-	ImagePushedAt *time.Time `locationName:"imagePushedAt" type:"timestamp" timestampFormat:"unix"`
+	ImagePushedAt *time.Time `locationName:"imagePushedAt" type:"timestamp"`
+
+	// A summary of the last completed image scan.
+	ImageScanFindingsSummary *ImageScanFindingsSummary `locationName:"imageScanFindingsSummary" type:"structure"`
+
+	// The current state of the scan.
+	ImageScanStatus *ImageScanStatus `locationName:"imageScanStatus" type:"structure"`
 
 	// The size, in bytes, of the image in the repository.
+	//
+	// If the image is a manifest list, this will be the max size of all manifests
+	// in the list.
 	//
 	// Beginning with Docker version 1.9, the Docker client compresses image layers
 	// before pushing them to a V2 Docker registry. The output of the docker images
@@ -3176,15 +5355,39 @@ func (s ImageDetail) GoString() string {
 	return s.String()
 }
 
+// SetArtifactMediaType sets the ArtifactMediaType field's value.
+func (s *ImageDetail) SetArtifactMediaType(v string) *ImageDetail {
+	s.ArtifactMediaType = &v
+	return s
+}
+
 // SetImageDigest sets the ImageDigest field's value.
 func (s *ImageDetail) SetImageDigest(v string) *ImageDetail {
 	s.ImageDigest = &v
 	return s
 }
 
+// SetImageManifestMediaType sets the ImageManifestMediaType field's value.
+func (s *ImageDetail) SetImageManifestMediaType(v string) *ImageDetail {
+	s.ImageManifestMediaType = &v
+	return s
+}
+
 // SetImagePushedAt sets the ImagePushedAt field's value.
 func (s *ImageDetail) SetImagePushedAt(v time.Time) *ImageDetail {
 	s.ImagePushedAt = &v
+	return s
+}
+
+// SetImageScanFindingsSummary sets the ImageScanFindingsSummary field's value.
+func (s *ImageDetail) SetImageScanFindingsSummary(v *ImageScanFindingsSummary) *ImageDetail {
+	s.ImageScanFindingsSummary = v
+	return s
+}
+
+// SetImageScanStatus sets the ImageScanStatus field's value.
+func (s *ImageDetail) SetImageScanStatus(v *ImageScanStatus) *ImageDetail {
+	s.ImageScanStatus = v
 	return s
 }
 
@@ -3212,8 +5415,64 @@ func (s *ImageDetail) SetRepositoryName(v string) *ImageDetail {
 	return s
 }
 
+// The specified image digest does not match the digest that Amazon ECR calculated
+// for the image.
+type ImageDigestDoesNotMatchException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s ImageDigestDoesNotMatchException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ImageDigestDoesNotMatchException) GoString() string {
+	return s.String()
+}
+
+func newErrorImageDigestDoesNotMatchException(v protocol.ResponseMetadata) error {
+	return &ImageDigestDoesNotMatchException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *ImageDigestDoesNotMatchException) Code() string {
+	return "ImageDigestDoesNotMatchException"
+}
+
+// Message returns the exception's message.
+func (s *ImageDigestDoesNotMatchException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *ImageDigestDoesNotMatchException) OrigErr() error {
+	return nil
+}
+
+func (s *ImageDigestDoesNotMatchException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *ImageDigestDoesNotMatchException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *ImageDigestDoesNotMatchException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 // An object representing an Amazon ECR image failure.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/ImageFailure
 type ImageFailure struct {
 	_ struct{} `type:"structure"`
 
@@ -3256,7 +5515,6 @@ func (s *ImageFailure) SetImageId(v *ImageIdentifier) *ImageFailure {
 }
 
 // An object with identifying information for an Amazon ECR image.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/ImageIdentifier
 type ImageIdentifier struct {
 	_ struct{} `type:"structure"`
 
@@ -3264,7 +5522,7 @@ type ImageIdentifier struct {
 	ImageDigest *string `locationName:"imageDigest" type:"string"`
 
 	// The tag used for the image.
-	ImageTag *string `locationName:"imageTag" type:"string"`
+	ImageTag *string `locationName:"imageTag" min:"1" type:"string"`
 }
 
 // String returns the string representation
@@ -3275,6 +5533,19 @@ func (s ImageIdentifier) String() string {
 // GoString returns the string representation
 func (s ImageIdentifier) GoString() string {
 	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ImageIdentifier) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ImageIdentifier"}
+	if s.ImageTag != nil && len(*s.ImageTag) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ImageTag", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
 }
 
 // SetImageDigest sets the ImageDigest field's value.
@@ -3289,15 +5560,341 @@ func (s *ImageIdentifier) SetImageTag(v string) *ImageIdentifier {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/InitiateLayerUploadRequest
+// The image requested does not exist in the specified repository.
+type ImageNotFoundException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s ImageNotFoundException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ImageNotFoundException) GoString() string {
+	return s.String()
+}
+
+func newErrorImageNotFoundException(v protocol.ResponseMetadata) error {
+	return &ImageNotFoundException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *ImageNotFoundException) Code() string {
+	return "ImageNotFoundException"
+}
+
+// Message returns the exception's message.
+func (s *ImageNotFoundException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *ImageNotFoundException) OrigErr() error {
+	return nil
+}
+
+func (s *ImageNotFoundException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *ImageNotFoundException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *ImageNotFoundException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// Contains information about an image scan finding.
+type ImageScanFinding struct {
+	_ struct{} `type:"structure"`
+
+	// A collection of attributes of the host from which the finding is generated.
+	Attributes []*Attribute `locationName:"attributes" type:"list"`
+
+	// The description of the finding.
+	Description *string `locationName:"description" type:"string"`
+
+	// The name associated with the finding, usually a CVE number.
+	Name *string `locationName:"name" type:"string"`
+
+	// The finding severity.
+	Severity *string `locationName:"severity" type:"string" enum:"FindingSeverity"`
+
+	// A link containing additional details about the security vulnerability.
+	Uri *string `locationName:"uri" type:"string"`
+}
+
+// String returns the string representation
+func (s ImageScanFinding) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ImageScanFinding) GoString() string {
+	return s.String()
+}
+
+// SetAttributes sets the Attributes field's value.
+func (s *ImageScanFinding) SetAttributes(v []*Attribute) *ImageScanFinding {
+	s.Attributes = v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *ImageScanFinding) SetDescription(v string) *ImageScanFinding {
+	s.Description = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *ImageScanFinding) SetName(v string) *ImageScanFinding {
+	s.Name = &v
+	return s
+}
+
+// SetSeverity sets the Severity field's value.
+func (s *ImageScanFinding) SetSeverity(v string) *ImageScanFinding {
+	s.Severity = &v
+	return s
+}
+
+// SetUri sets the Uri field's value.
+func (s *ImageScanFinding) SetUri(v string) *ImageScanFinding {
+	s.Uri = &v
+	return s
+}
+
+// The details of an image scan.
+type ImageScanFindings struct {
+	_ struct{} `type:"structure"`
+
+	// The image vulnerability counts, sorted by severity.
+	FindingSeverityCounts map[string]*int64 `locationName:"findingSeverityCounts" type:"map"`
+
+	// The findings from the image scan.
+	Findings []*ImageScanFinding `locationName:"findings" type:"list"`
+
+	// The time of the last completed image scan.
+	ImageScanCompletedAt *time.Time `locationName:"imageScanCompletedAt" type:"timestamp"`
+
+	// The time when the vulnerability data was last scanned.
+	VulnerabilitySourceUpdatedAt *time.Time `locationName:"vulnerabilitySourceUpdatedAt" type:"timestamp"`
+}
+
+// String returns the string representation
+func (s ImageScanFindings) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ImageScanFindings) GoString() string {
+	return s.String()
+}
+
+// SetFindingSeverityCounts sets the FindingSeverityCounts field's value.
+func (s *ImageScanFindings) SetFindingSeverityCounts(v map[string]*int64) *ImageScanFindings {
+	s.FindingSeverityCounts = v
+	return s
+}
+
+// SetFindings sets the Findings field's value.
+func (s *ImageScanFindings) SetFindings(v []*ImageScanFinding) *ImageScanFindings {
+	s.Findings = v
+	return s
+}
+
+// SetImageScanCompletedAt sets the ImageScanCompletedAt field's value.
+func (s *ImageScanFindings) SetImageScanCompletedAt(v time.Time) *ImageScanFindings {
+	s.ImageScanCompletedAt = &v
+	return s
+}
+
+// SetVulnerabilitySourceUpdatedAt sets the VulnerabilitySourceUpdatedAt field's value.
+func (s *ImageScanFindings) SetVulnerabilitySourceUpdatedAt(v time.Time) *ImageScanFindings {
+	s.VulnerabilitySourceUpdatedAt = &v
+	return s
+}
+
+// A summary of the last completed image scan.
+type ImageScanFindingsSummary struct {
+	_ struct{} `type:"structure"`
+
+	// The image vulnerability counts, sorted by severity.
+	FindingSeverityCounts map[string]*int64 `locationName:"findingSeverityCounts" type:"map"`
+
+	// The time of the last completed image scan.
+	ImageScanCompletedAt *time.Time `locationName:"imageScanCompletedAt" type:"timestamp"`
+
+	// The time when the vulnerability data was last scanned.
+	VulnerabilitySourceUpdatedAt *time.Time `locationName:"vulnerabilitySourceUpdatedAt" type:"timestamp"`
+}
+
+// String returns the string representation
+func (s ImageScanFindingsSummary) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ImageScanFindingsSummary) GoString() string {
+	return s.String()
+}
+
+// SetFindingSeverityCounts sets the FindingSeverityCounts field's value.
+func (s *ImageScanFindingsSummary) SetFindingSeverityCounts(v map[string]*int64) *ImageScanFindingsSummary {
+	s.FindingSeverityCounts = v
+	return s
+}
+
+// SetImageScanCompletedAt sets the ImageScanCompletedAt field's value.
+func (s *ImageScanFindingsSummary) SetImageScanCompletedAt(v time.Time) *ImageScanFindingsSummary {
+	s.ImageScanCompletedAt = &v
+	return s
+}
+
+// SetVulnerabilitySourceUpdatedAt sets the VulnerabilitySourceUpdatedAt field's value.
+func (s *ImageScanFindingsSummary) SetVulnerabilitySourceUpdatedAt(v time.Time) *ImageScanFindingsSummary {
+	s.VulnerabilitySourceUpdatedAt = &v
+	return s
+}
+
+// The current status of an image scan.
+type ImageScanStatus struct {
+	_ struct{} `type:"structure"`
+
+	// The description of the image scan status.
+	Description *string `locationName:"description" type:"string"`
+
+	// The current state of an image scan.
+	Status *string `locationName:"status" type:"string" enum:"ScanStatus"`
+}
+
+// String returns the string representation
+func (s ImageScanStatus) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ImageScanStatus) GoString() string {
+	return s.String()
+}
+
+// SetDescription sets the Description field's value.
+func (s *ImageScanStatus) SetDescription(v string) *ImageScanStatus {
+	s.Description = &v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *ImageScanStatus) SetStatus(v string) *ImageScanStatus {
+	s.Status = &v
+	return s
+}
+
+// The image scanning configuration for a repository.
+type ImageScanningConfiguration struct {
+	_ struct{} `type:"structure"`
+
+	// The setting that determines whether images are scanned after being pushed
+	// to a repository. If set to true, images will be scanned after being pushed.
+	// If this parameter is not specified, it will default to false and images will
+	// not be scanned unless a scan is manually started with the StartImageScan
+	// API.
+	ScanOnPush *bool `locationName:"scanOnPush" type:"boolean"`
+}
+
+// String returns the string representation
+func (s ImageScanningConfiguration) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ImageScanningConfiguration) GoString() string {
+	return s.String()
+}
+
+// SetScanOnPush sets the ScanOnPush field's value.
+func (s *ImageScanningConfiguration) SetScanOnPush(v bool) *ImageScanningConfiguration {
+	s.ScanOnPush = &v
+	return s
+}
+
+// The specified image is tagged with a tag that already exists. The repository
+// is configured for tag immutability.
+type ImageTagAlreadyExistsException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s ImageTagAlreadyExistsException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ImageTagAlreadyExistsException) GoString() string {
+	return s.String()
+}
+
+func newErrorImageTagAlreadyExistsException(v protocol.ResponseMetadata) error {
+	return &ImageTagAlreadyExistsException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *ImageTagAlreadyExistsException) Code() string {
+	return "ImageTagAlreadyExistsException"
+}
+
+// Message returns the exception's message.
+func (s *ImageTagAlreadyExistsException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *ImageTagAlreadyExistsException) OrigErr() error {
+	return nil
+}
+
+func (s *ImageTagAlreadyExistsException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *ImageTagAlreadyExistsException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *ImageTagAlreadyExistsException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 type InitiateLayerUploadInput struct {
 	_ struct{} `type:"structure"`
 
-	// The AWS account ID associated with the registry that you intend to upload
-	// layers to. If you do not specify a registry, the default registry is assumed.
+	// The AWS account ID associated with the registry to which you intend to upload
+	// layers. If you do not specify a registry, the default registry is assumed.
 	RegistryId *string `locationName:"registryId" type:"string"`
 
-	// The name of the repository that you intend to upload layers to.
+	// The name of the repository to which you intend to upload layers.
 	//
 	// RepositoryName is a required field
 	RepositoryName *string `locationName:"repositoryName" min:"2" type:"string" required:"true"`
@@ -3341,7 +5938,6 @@ func (s *InitiateLayerUploadInput) SetRepositoryName(v string) *InitiateLayerUpl
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/InitiateLayerUploadResponse
 type InitiateLayerUploadOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3376,8 +5972,311 @@ func (s *InitiateLayerUploadOutput) SetUploadId(v string) *InitiateLayerUploadOu
 	return s
 }
 
+// The layer digest calculation performed by Amazon ECR upon receipt of the
+// image layer does not match the digest specified.
+type InvalidLayerException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	// The error message associated with the exception.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidLayerException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidLayerException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidLayerException(v protocol.ResponseMetadata) error {
+	return &InvalidLayerException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *InvalidLayerException) Code() string {
+	return "InvalidLayerException"
+}
+
+// Message returns the exception's message.
+func (s *InvalidLayerException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *InvalidLayerException) OrigErr() error {
+	return nil
+}
+
+func (s *InvalidLayerException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *InvalidLayerException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *InvalidLayerException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// The layer part size is not valid, or the first byte specified is not consecutive
+// to the last byte of a previous layer part upload.
+type InvalidLayerPartException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	// The last valid byte received from the layer part upload that is associated
+	// with the exception.
+	LastValidByteReceived *int64 `locationName:"lastValidByteReceived" type:"long"`
+
+	// The error message associated with the exception.
+	Message_ *string `locationName:"message" type:"string"`
+
+	// The registry ID associated with the exception.
+	RegistryId *string `locationName:"registryId" type:"string"`
+
+	// The repository name associated with the exception.
+	RepositoryName *string `locationName:"repositoryName" min:"2" type:"string"`
+
+	// The upload ID associated with the exception.
+	UploadId *string `locationName:"uploadId" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidLayerPartException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidLayerPartException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidLayerPartException(v protocol.ResponseMetadata) error {
+	return &InvalidLayerPartException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *InvalidLayerPartException) Code() string {
+	return "InvalidLayerPartException"
+}
+
+// Message returns the exception's message.
+func (s *InvalidLayerPartException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *InvalidLayerPartException) OrigErr() error {
+	return nil
+}
+
+func (s *InvalidLayerPartException) Error() string {
+	return fmt.Sprintf("%s: %s\n%s", s.Code(), s.Message(), s.String())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *InvalidLayerPartException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *InvalidLayerPartException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// The specified parameter is invalid. Review the available parameters for the
+// API request.
+type InvalidParameterException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	// The error message associated with the exception.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidParameterException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidParameterException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidParameterException(v protocol.ResponseMetadata) error {
+	return &InvalidParameterException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *InvalidParameterException) Code() string {
+	return "InvalidParameterException"
+}
+
+// Message returns the exception's message.
+func (s *InvalidParameterException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *InvalidParameterException) OrigErr() error {
+	return nil
+}
+
+func (s *InvalidParameterException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *InvalidParameterException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *InvalidParameterException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// An invalid parameter has been specified. Tag keys can have a maximum character
+// length of 128 characters, and tag values can have a maximum length of 256
+// characters.
+type InvalidTagParameterException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidTagParameterException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidTagParameterException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidTagParameterException(v protocol.ResponseMetadata) error {
+	return &InvalidTagParameterException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *InvalidTagParameterException) Code() string {
+	return "InvalidTagParameterException"
+}
+
+// Message returns the exception's message.
+func (s *InvalidTagParameterException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *InvalidTagParameterException) OrigErr() error {
+	return nil
+}
+
+func (s *InvalidTagParameterException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *InvalidTagParameterException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *InvalidTagParameterException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// The operation failed due to a KMS exception.
+type KmsException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	// The error code returned by AWS KMS.
+	KmsError *string `locationName:"kmsError" type:"string"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s KmsException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s KmsException) GoString() string {
+	return s.String()
+}
+
+func newErrorKmsException(v protocol.ResponseMetadata) error {
+	return &KmsException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *KmsException) Code() string {
+	return "KmsException"
+}
+
+// Message returns the exception's message.
+func (s *KmsException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *KmsException) OrigErr() error {
+	return nil
+}
+
+func (s *KmsException) Error() string {
+	return fmt.Sprintf("%s: %s\n%s", s.Code(), s.Message(), s.String())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *KmsException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *KmsException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 // An object representing an Amazon ECR image layer.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/Layer
 type Layer struct {
 	_ struct{} `type:"structure"`
 
@@ -3429,8 +6328,64 @@ func (s *Layer) SetMediaType(v string) *Layer {
 	return s
 }
 
+// The image layer already exists in the associated repository.
+type LayerAlreadyExistsException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	// The error message associated with the exception.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s LayerAlreadyExistsException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s LayerAlreadyExistsException) GoString() string {
+	return s.String()
+}
+
+func newErrorLayerAlreadyExistsException(v protocol.ResponseMetadata) error {
+	return &LayerAlreadyExistsException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *LayerAlreadyExistsException) Code() string {
+	return "LayerAlreadyExistsException"
+}
+
+// Message returns the exception's message.
+func (s *LayerAlreadyExistsException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *LayerAlreadyExistsException) OrigErr() error {
+	return nil
+}
+
+func (s *LayerAlreadyExistsException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *LayerAlreadyExistsException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *LayerAlreadyExistsException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 // An object representing an Amazon ECR image layer failure.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/LayerFailure
 type LayerFailure struct {
 	_ struct{} `type:"structure"`
 
@@ -3472,8 +6427,541 @@ func (s *LayerFailure) SetLayerDigest(v string) *LayerFailure {
 	return s
 }
 
+// The specified layer is not available because it is not associated with an
+// image. Unassociated image layers may be cleaned up at any time.
+type LayerInaccessibleException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	// The error message associated with the exception.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s LayerInaccessibleException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s LayerInaccessibleException) GoString() string {
+	return s.String()
+}
+
+func newErrorLayerInaccessibleException(v protocol.ResponseMetadata) error {
+	return &LayerInaccessibleException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *LayerInaccessibleException) Code() string {
+	return "LayerInaccessibleException"
+}
+
+// Message returns the exception's message.
+func (s *LayerInaccessibleException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *LayerInaccessibleException) OrigErr() error {
+	return nil
+}
+
+func (s *LayerInaccessibleException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *LayerInaccessibleException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *LayerInaccessibleException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// Layer parts must be at least 5 MiB in size.
+type LayerPartTooSmallException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	// The error message associated with the exception.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s LayerPartTooSmallException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s LayerPartTooSmallException) GoString() string {
+	return s.String()
+}
+
+func newErrorLayerPartTooSmallException(v protocol.ResponseMetadata) error {
+	return &LayerPartTooSmallException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *LayerPartTooSmallException) Code() string {
+	return "LayerPartTooSmallException"
+}
+
+// Message returns the exception's message.
+func (s *LayerPartTooSmallException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *LayerPartTooSmallException) OrigErr() error {
+	return nil
+}
+
+func (s *LayerPartTooSmallException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *LayerPartTooSmallException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *LayerPartTooSmallException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// The specified layers could not be found, or the specified layer is not valid
+// for this repository.
+type LayersNotFoundException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	// The error message associated with the exception.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s LayersNotFoundException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s LayersNotFoundException) GoString() string {
+	return s.String()
+}
+
+func newErrorLayersNotFoundException(v protocol.ResponseMetadata) error {
+	return &LayersNotFoundException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *LayersNotFoundException) Code() string {
+	return "LayersNotFoundException"
+}
+
+// Message returns the exception's message.
+func (s *LayersNotFoundException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *LayersNotFoundException) OrigErr() error {
+	return nil
+}
+
+func (s *LayersNotFoundException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *LayersNotFoundException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *LayersNotFoundException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// The lifecycle policy could not be found, and no policy is set to the repository.
+type LifecyclePolicyNotFoundException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s LifecyclePolicyNotFoundException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s LifecyclePolicyNotFoundException) GoString() string {
+	return s.String()
+}
+
+func newErrorLifecyclePolicyNotFoundException(v protocol.ResponseMetadata) error {
+	return &LifecyclePolicyNotFoundException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *LifecyclePolicyNotFoundException) Code() string {
+	return "LifecyclePolicyNotFoundException"
+}
+
+// Message returns the exception's message.
+func (s *LifecyclePolicyNotFoundException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *LifecyclePolicyNotFoundException) OrigErr() error {
+	return nil
+}
+
+func (s *LifecyclePolicyNotFoundException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *LifecyclePolicyNotFoundException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *LifecyclePolicyNotFoundException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// The filter for the lifecycle policy preview.
+type LifecyclePolicyPreviewFilter struct {
+	_ struct{} `type:"structure"`
+
+	// The tag status of the image.
+	TagStatus *string `locationName:"tagStatus" type:"string" enum:"TagStatus"`
+}
+
+// String returns the string representation
+func (s LifecyclePolicyPreviewFilter) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s LifecyclePolicyPreviewFilter) GoString() string {
+	return s.String()
+}
+
+// SetTagStatus sets the TagStatus field's value.
+func (s *LifecyclePolicyPreviewFilter) SetTagStatus(v string) *LifecyclePolicyPreviewFilter {
+	s.TagStatus = &v
+	return s
+}
+
+// The previous lifecycle policy preview request has not completed. Wait and
+// try again.
+type LifecyclePolicyPreviewInProgressException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s LifecyclePolicyPreviewInProgressException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s LifecyclePolicyPreviewInProgressException) GoString() string {
+	return s.String()
+}
+
+func newErrorLifecyclePolicyPreviewInProgressException(v protocol.ResponseMetadata) error {
+	return &LifecyclePolicyPreviewInProgressException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *LifecyclePolicyPreviewInProgressException) Code() string {
+	return "LifecyclePolicyPreviewInProgressException"
+}
+
+// Message returns the exception's message.
+func (s *LifecyclePolicyPreviewInProgressException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *LifecyclePolicyPreviewInProgressException) OrigErr() error {
+	return nil
+}
+
+func (s *LifecyclePolicyPreviewInProgressException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *LifecyclePolicyPreviewInProgressException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *LifecyclePolicyPreviewInProgressException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// There is no dry run for this repository.
+type LifecyclePolicyPreviewNotFoundException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s LifecyclePolicyPreviewNotFoundException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s LifecyclePolicyPreviewNotFoundException) GoString() string {
+	return s.String()
+}
+
+func newErrorLifecyclePolicyPreviewNotFoundException(v protocol.ResponseMetadata) error {
+	return &LifecyclePolicyPreviewNotFoundException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *LifecyclePolicyPreviewNotFoundException) Code() string {
+	return "LifecyclePolicyPreviewNotFoundException"
+}
+
+// Message returns the exception's message.
+func (s *LifecyclePolicyPreviewNotFoundException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *LifecyclePolicyPreviewNotFoundException) OrigErr() error {
+	return nil
+}
+
+func (s *LifecyclePolicyPreviewNotFoundException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *LifecyclePolicyPreviewNotFoundException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *LifecyclePolicyPreviewNotFoundException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// The result of the lifecycle policy preview.
+type LifecyclePolicyPreviewResult struct {
+	_ struct{} `type:"structure"`
+
+	// The type of action to be taken.
+	Action *LifecyclePolicyRuleAction `locationName:"action" type:"structure"`
+
+	// The priority of the applied rule.
+	AppliedRulePriority *int64 `locationName:"appliedRulePriority" min:"1" type:"integer"`
+
+	// The sha256 digest of the image manifest.
+	ImageDigest *string `locationName:"imageDigest" type:"string"`
+
+	// The date and time, expressed in standard JavaScript date format, at which
+	// the current image was pushed to the repository.
+	ImagePushedAt *time.Time `locationName:"imagePushedAt" type:"timestamp"`
+
+	// The list of tags associated with this image.
+	ImageTags []*string `locationName:"imageTags" type:"list"`
+}
+
+// String returns the string representation
+func (s LifecyclePolicyPreviewResult) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s LifecyclePolicyPreviewResult) GoString() string {
+	return s.String()
+}
+
+// SetAction sets the Action field's value.
+func (s *LifecyclePolicyPreviewResult) SetAction(v *LifecyclePolicyRuleAction) *LifecyclePolicyPreviewResult {
+	s.Action = v
+	return s
+}
+
+// SetAppliedRulePriority sets the AppliedRulePriority field's value.
+func (s *LifecyclePolicyPreviewResult) SetAppliedRulePriority(v int64) *LifecyclePolicyPreviewResult {
+	s.AppliedRulePriority = &v
+	return s
+}
+
+// SetImageDigest sets the ImageDigest field's value.
+func (s *LifecyclePolicyPreviewResult) SetImageDigest(v string) *LifecyclePolicyPreviewResult {
+	s.ImageDigest = &v
+	return s
+}
+
+// SetImagePushedAt sets the ImagePushedAt field's value.
+func (s *LifecyclePolicyPreviewResult) SetImagePushedAt(v time.Time) *LifecyclePolicyPreviewResult {
+	s.ImagePushedAt = &v
+	return s
+}
+
+// SetImageTags sets the ImageTags field's value.
+func (s *LifecyclePolicyPreviewResult) SetImageTags(v []*string) *LifecyclePolicyPreviewResult {
+	s.ImageTags = v
+	return s
+}
+
+// The summary of the lifecycle policy preview request.
+type LifecyclePolicyPreviewSummary struct {
+	_ struct{} `type:"structure"`
+
+	// The number of expiring images.
+	ExpiringImageTotalCount *int64 `locationName:"expiringImageTotalCount" type:"integer"`
+}
+
+// String returns the string representation
+func (s LifecyclePolicyPreviewSummary) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s LifecyclePolicyPreviewSummary) GoString() string {
+	return s.String()
+}
+
+// SetExpiringImageTotalCount sets the ExpiringImageTotalCount field's value.
+func (s *LifecyclePolicyPreviewSummary) SetExpiringImageTotalCount(v int64) *LifecyclePolicyPreviewSummary {
+	s.ExpiringImageTotalCount = &v
+	return s
+}
+
+// The type of action to be taken.
+type LifecyclePolicyRuleAction struct {
+	_ struct{} `type:"structure"`
+
+	// The type of action to be taken.
+	Type *string `locationName:"type" type:"string" enum:"ImageActionType"`
+}
+
+// String returns the string representation
+func (s LifecyclePolicyRuleAction) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s LifecyclePolicyRuleAction) GoString() string {
+	return s.String()
+}
+
+// SetType sets the Type field's value.
+func (s *LifecyclePolicyRuleAction) SetType(v string) *LifecyclePolicyRuleAction {
+	s.Type = &v
+	return s
+}
+
+// The operation did not succeed because it would have exceeded a service limit
+// for your account. For more information, see Amazon ECR Service Quotas (https://docs.aws.amazon.com/AmazonECR/latest/userguide/service-quotas.html)
+// in the Amazon Elastic Container Registry User Guide.
+type LimitExceededException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	// The error message associated with the exception.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s LimitExceededException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s LimitExceededException) GoString() string {
+	return s.String()
+}
+
+func newErrorLimitExceededException(v protocol.ResponseMetadata) error {
+	return &LimitExceededException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *LimitExceededException) Code() string {
+	return "LimitExceededException"
+}
+
+// Message returns the exception's message.
+func (s *LimitExceededException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *LimitExceededException) OrigErr() error {
+	return nil
+}
+
+func (s *LimitExceededException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *LimitExceededException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *LimitExceededException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 // An object representing a filter on a ListImages operation.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/ListImagesFilter
 type ListImagesFilter struct {
 	_ struct{} `type:"structure"`
 
@@ -3498,7 +6986,6 @@ func (s *ListImagesFilter) SetTagStatus(v string) *ListImagesFilter {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/ListImagesRequest
 type ListImagesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3509,9 +6996,9 @@ type ListImagesInput struct {
 	// When this parameter is used, ListImages only returns maxResults results in
 	// a single page along with a nextToken response element. The remaining results
 	// of the initial request can be seen by sending another ListImages request
-	// with the returned nextToken value. This value can be between 1 and 100. If
-	// this parameter is not used, then ListImages returns up to 100 results and
-	// a nextToken value, if applicable.
+	// with the returned nextToken value. This value can be between 1 and 1000.
+	// If this parameter is not used, then ListImages returns up to 100 results
+	// and a nextToken value, if applicable.
 	MaxResults *int64 `locationName:"maxResults" min:"1" type:"integer"`
 
 	// The nextToken value returned from a previous paginated ListImages request
@@ -3524,11 +7011,11 @@ type ListImagesInput struct {
 	NextToken *string `locationName:"nextToken" type:"string"`
 
 	// The AWS account ID associated with the registry that contains the repository
-	// to list images in. If you do not specify a registry, the default registry
+	// in which to list images. If you do not specify a registry, the default registry
 	// is assumed.
 	RegistryId *string `locationName:"registryId" type:"string"`
 
-	// The repository whose image IDs are to be listed.
+	// The repository with image IDs to be listed.
 	//
 	// RepositoryName is a required field
 	RepositoryName *string `locationName:"repositoryName" min:"2" type:"string" required:"true"`
@@ -3593,7 +7080,6 @@ func (s *ListImagesInput) SetRepositoryName(v string) *ListImagesInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/ListImagesResponse
 type ListImagesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3629,18 +7115,88 @@ func (s *ListImagesOutput) SetNextToken(v string) *ListImagesOutput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/PutImageRequest
+type ListTagsForResourceInput struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) that identifies the resource for which to
+	// list the tags. Currently, the only supported resource is an Amazon ECR repository.
+	//
+	// ResourceArn is a required field
+	ResourceArn *string `locationName:"resourceArn" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s ListTagsForResourceInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListTagsForResourceInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListTagsForResourceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListTagsForResourceInput"}
+	if s.ResourceArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceArn"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetResourceArn sets the ResourceArn field's value.
+func (s *ListTagsForResourceInput) SetResourceArn(v string) *ListTagsForResourceInput {
+	s.ResourceArn = &v
+	return s
+}
+
+type ListTagsForResourceOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The tags for the resource.
+	Tags []*Tag `locationName:"tags" type:"list"`
+}
+
+// String returns the string representation
+func (s ListTagsForResourceOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListTagsForResourceOutput) GoString() string {
+	return s.String()
+}
+
+// SetTags sets the Tags field's value.
+func (s *ListTagsForResourceOutput) SetTags(v []*Tag) *ListTagsForResourceOutput {
+	s.Tags = v
+	return s
+}
+
 type PutImageInput struct {
 	_ struct{} `type:"structure"`
+
+	// The image digest of the image manifest corresponding to the image.
+	ImageDigest *string `locationName:"imageDigest" type:"string"`
 
 	// The image manifest corresponding to the image to be uploaded.
 	//
 	// ImageManifest is a required field
-	ImageManifest *string `locationName:"imageManifest" type:"string" required:"true"`
+	ImageManifest *string `locationName:"imageManifest" min:"1" type:"string" required:"true"`
+
+	// The media type of the image manifest. If you push an image manifest that
+	// does not contain the mediaType field, you must specify the imageManifestMediaType
+	// in the request.
+	ImageManifestMediaType *string `locationName:"imageManifestMediaType" type:"string"`
 
 	// The tag to associate with the image. This parameter is required for images
-	// that use the Docker Image Manifest V2 Schema 2 or OCI formats.
-	ImageTag *string `locationName:"imageTag" type:"string"`
+	// that use the Docker Image Manifest V2 Schema 2 or Open Container Initiative
+	// (OCI) formats.
+	ImageTag *string `locationName:"imageTag" min:"1" type:"string"`
 
 	// The AWS account ID associated with the registry that contains the repository
 	// in which to put the image. If you do not specify a registry, the default
@@ -3669,6 +7225,12 @@ func (s *PutImageInput) Validate() error {
 	if s.ImageManifest == nil {
 		invalidParams.Add(request.NewErrParamRequired("ImageManifest"))
 	}
+	if s.ImageManifest != nil && len(*s.ImageManifest) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ImageManifest", 1))
+	}
+	if s.ImageTag != nil && len(*s.ImageTag) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ImageTag", 1))
+	}
 	if s.RepositoryName == nil {
 		invalidParams.Add(request.NewErrParamRequired("RepositoryName"))
 	}
@@ -3682,9 +7244,21 @@ func (s *PutImageInput) Validate() error {
 	return nil
 }
 
+// SetImageDigest sets the ImageDigest field's value.
+func (s *PutImageInput) SetImageDigest(v string) *PutImageInput {
+	s.ImageDigest = &v
+	return s
+}
+
 // SetImageManifest sets the ImageManifest field's value.
 func (s *PutImageInput) SetImageManifest(v string) *PutImageInput {
 	s.ImageManifest = &v
+	return s
+}
+
+// SetImageManifestMediaType sets the ImageManifestMediaType field's value.
+func (s *PutImageInput) SetImageManifestMediaType(v string) *PutImageInput {
+	s.ImageManifestMediaType = &v
 	return s
 }
 
@@ -3706,7 +7280,6 @@ func (s *PutImageInput) SetRepositoryName(v string) *PutImageInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/PutImageResponse
 type PutImageOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3730,29 +7303,421 @@ func (s *PutImageOutput) SetImage(v *Image) *PutImageOutput {
 	return s
 }
 
+type PutImageScanningConfigurationInput struct {
+	_ struct{} `type:"structure"`
+
+	// The image scanning configuration for the repository. This setting determines
+	// whether images are scanned for known vulnerabilities after being pushed to
+	// the repository.
+	//
+	// ImageScanningConfiguration is a required field
+	ImageScanningConfiguration *ImageScanningConfiguration `locationName:"imageScanningConfiguration" type:"structure" required:"true"`
+
+	// The AWS account ID associated with the registry that contains the repository
+	// in which to update the image scanning configuration setting. If you do not
+	// specify a registry, the default registry is assumed.
+	RegistryId *string `locationName:"registryId" type:"string"`
+
+	// The name of the repository in which to update the image scanning configuration
+	// setting.
+	//
+	// RepositoryName is a required field
+	RepositoryName *string `locationName:"repositoryName" min:"2" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s PutImageScanningConfigurationInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutImageScanningConfigurationInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutImageScanningConfigurationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutImageScanningConfigurationInput"}
+	if s.ImageScanningConfiguration == nil {
+		invalidParams.Add(request.NewErrParamRequired("ImageScanningConfiguration"))
+	}
+	if s.RepositoryName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RepositoryName"))
+	}
+	if s.RepositoryName != nil && len(*s.RepositoryName) < 2 {
+		invalidParams.Add(request.NewErrParamMinLen("RepositoryName", 2))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetImageScanningConfiguration sets the ImageScanningConfiguration field's value.
+func (s *PutImageScanningConfigurationInput) SetImageScanningConfiguration(v *ImageScanningConfiguration) *PutImageScanningConfigurationInput {
+	s.ImageScanningConfiguration = v
+	return s
+}
+
+// SetRegistryId sets the RegistryId field's value.
+func (s *PutImageScanningConfigurationInput) SetRegistryId(v string) *PutImageScanningConfigurationInput {
+	s.RegistryId = &v
+	return s
+}
+
+// SetRepositoryName sets the RepositoryName field's value.
+func (s *PutImageScanningConfigurationInput) SetRepositoryName(v string) *PutImageScanningConfigurationInput {
+	s.RepositoryName = &v
+	return s
+}
+
+type PutImageScanningConfigurationOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The image scanning configuration setting for the repository.
+	ImageScanningConfiguration *ImageScanningConfiguration `locationName:"imageScanningConfiguration" type:"structure"`
+
+	// The registry ID associated with the request.
+	RegistryId *string `locationName:"registryId" type:"string"`
+
+	// The repository name associated with the request.
+	RepositoryName *string `locationName:"repositoryName" min:"2" type:"string"`
+}
+
+// String returns the string representation
+func (s PutImageScanningConfigurationOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutImageScanningConfigurationOutput) GoString() string {
+	return s.String()
+}
+
+// SetImageScanningConfiguration sets the ImageScanningConfiguration field's value.
+func (s *PutImageScanningConfigurationOutput) SetImageScanningConfiguration(v *ImageScanningConfiguration) *PutImageScanningConfigurationOutput {
+	s.ImageScanningConfiguration = v
+	return s
+}
+
+// SetRegistryId sets the RegistryId field's value.
+func (s *PutImageScanningConfigurationOutput) SetRegistryId(v string) *PutImageScanningConfigurationOutput {
+	s.RegistryId = &v
+	return s
+}
+
+// SetRepositoryName sets the RepositoryName field's value.
+func (s *PutImageScanningConfigurationOutput) SetRepositoryName(v string) *PutImageScanningConfigurationOutput {
+	s.RepositoryName = &v
+	return s
+}
+
+type PutImageTagMutabilityInput struct {
+	_ struct{} `type:"structure"`
+
+	// The tag mutability setting for the repository. If MUTABLE is specified, image
+	// tags can be overwritten. If IMMUTABLE is specified, all image tags within
+	// the repository will be immutable which will prevent them from being overwritten.
+	//
+	// ImageTagMutability is a required field
+	ImageTagMutability *string `locationName:"imageTagMutability" type:"string" required:"true" enum:"ImageTagMutability"`
+
+	// The AWS account ID associated with the registry that contains the repository
+	// in which to update the image tag mutability settings. If you do not specify
+	// a registry, the default registry is assumed.
+	RegistryId *string `locationName:"registryId" type:"string"`
+
+	// The name of the repository in which to update the image tag mutability settings.
+	//
+	// RepositoryName is a required field
+	RepositoryName *string `locationName:"repositoryName" min:"2" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s PutImageTagMutabilityInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutImageTagMutabilityInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutImageTagMutabilityInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutImageTagMutabilityInput"}
+	if s.ImageTagMutability == nil {
+		invalidParams.Add(request.NewErrParamRequired("ImageTagMutability"))
+	}
+	if s.RepositoryName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RepositoryName"))
+	}
+	if s.RepositoryName != nil && len(*s.RepositoryName) < 2 {
+		invalidParams.Add(request.NewErrParamMinLen("RepositoryName", 2))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetImageTagMutability sets the ImageTagMutability field's value.
+func (s *PutImageTagMutabilityInput) SetImageTagMutability(v string) *PutImageTagMutabilityInput {
+	s.ImageTagMutability = &v
+	return s
+}
+
+// SetRegistryId sets the RegistryId field's value.
+func (s *PutImageTagMutabilityInput) SetRegistryId(v string) *PutImageTagMutabilityInput {
+	s.RegistryId = &v
+	return s
+}
+
+// SetRepositoryName sets the RepositoryName field's value.
+func (s *PutImageTagMutabilityInput) SetRepositoryName(v string) *PutImageTagMutabilityInput {
+	s.RepositoryName = &v
+	return s
+}
+
+type PutImageTagMutabilityOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The image tag mutability setting for the repository.
+	ImageTagMutability *string `locationName:"imageTagMutability" type:"string" enum:"ImageTagMutability"`
+
+	// The registry ID associated with the request.
+	RegistryId *string `locationName:"registryId" type:"string"`
+
+	// The repository name associated with the request.
+	RepositoryName *string `locationName:"repositoryName" min:"2" type:"string"`
+}
+
+// String returns the string representation
+func (s PutImageTagMutabilityOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutImageTagMutabilityOutput) GoString() string {
+	return s.String()
+}
+
+// SetImageTagMutability sets the ImageTagMutability field's value.
+func (s *PutImageTagMutabilityOutput) SetImageTagMutability(v string) *PutImageTagMutabilityOutput {
+	s.ImageTagMutability = &v
+	return s
+}
+
+// SetRegistryId sets the RegistryId field's value.
+func (s *PutImageTagMutabilityOutput) SetRegistryId(v string) *PutImageTagMutabilityOutput {
+	s.RegistryId = &v
+	return s
+}
+
+// SetRepositoryName sets the RepositoryName field's value.
+func (s *PutImageTagMutabilityOutput) SetRepositoryName(v string) *PutImageTagMutabilityOutput {
+	s.RepositoryName = &v
+	return s
+}
+
+type PutLifecyclePolicyInput struct {
+	_ struct{} `type:"structure"`
+
+	// The JSON repository policy text to apply to the repository.
+	//
+	// LifecyclePolicyText is a required field
+	LifecyclePolicyText *string `locationName:"lifecyclePolicyText" min:"100" type:"string" required:"true"`
+
+	// The AWS account ID associated with the registry that contains the repository.
+	// If you do not specify a registry, the default registry is assumed.
+	RegistryId *string `locationName:"registryId" type:"string"`
+
+	// The name of the repository to receive the policy.
+	//
+	// RepositoryName is a required field
+	RepositoryName *string `locationName:"repositoryName" min:"2" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s PutLifecyclePolicyInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutLifecyclePolicyInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PutLifecyclePolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PutLifecyclePolicyInput"}
+	if s.LifecyclePolicyText == nil {
+		invalidParams.Add(request.NewErrParamRequired("LifecyclePolicyText"))
+	}
+	if s.LifecyclePolicyText != nil && len(*s.LifecyclePolicyText) < 100 {
+		invalidParams.Add(request.NewErrParamMinLen("LifecyclePolicyText", 100))
+	}
+	if s.RepositoryName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RepositoryName"))
+	}
+	if s.RepositoryName != nil && len(*s.RepositoryName) < 2 {
+		invalidParams.Add(request.NewErrParamMinLen("RepositoryName", 2))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetLifecyclePolicyText sets the LifecyclePolicyText field's value.
+func (s *PutLifecyclePolicyInput) SetLifecyclePolicyText(v string) *PutLifecyclePolicyInput {
+	s.LifecyclePolicyText = &v
+	return s
+}
+
+// SetRegistryId sets the RegistryId field's value.
+func (s *PutLifecyclePolicyInput) SetRegistryId(v string) *PutLifecyclePolicyInput {
+	s.RegistryId = &v
+	return s
+}
+
+// SetRepositoryName sets the RepositoryName field's value.
+func (s *PutLifecyclePolicyInput) SetRepositoryName(v string) *PutLifecyclePolicyInput {
+	s.RepositoryName = &v
+	return s
+}
+
+type PutLifecyclePolicyOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The JSON repository policy text.
+	LifecyclePolicyText *string `locationName:"lifecyclePolicyText" min:"100" type:"string"`
+
+	// The registry ID associated with the request.
+	RegistryId *string `locationName:"registryId" type:"string"`
+
+	// The repository name associated with the request.
+	RepositoryName *string `locationName:"repositoryName" min:"2" type:"string"`
+}
+
+// String returns the string representation
+func (s PutLifecyclePolicyOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutLifecyclePolicyOutput) GoString() string {
+	return s.String()
+}
+
+// SetLifecyclePolicyText sets the LifecyclePolicyText field's value.
+func (s *PutLifecyclePolicyOutput) SetLifecyclePolicyText(v string) *PutLifecyclePolicyOutput {
+	s.LifecyclePolicyText = &v
+	return s
+}
+
+// SetRegistryId sets the RegistryId field's value.
+func (s *PutLifecyclePolicyOutput) SetRegistryId(v string) *PutLifecyclePolicyOutput {
+	s.RegistryId = &v
+	return s
+}
+
+// SetRepositoryName sets the RepositoryName field's value.
+func (s *PutLifecyclePolicyOutput) SetRepositoryName(v string) *PutLifecyclePolicyOutput {
+	s.RepositoryName = &v
+	return s
+}
+
+// The manifest list is referencing an image that does not exist.
+type ReferencedImagesNotFoundException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s ReferencedImagesNotFoundException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ReferencedImagesNotFoundException) GoString() string {
+	return s.String()
+}
+
+func newErrorReferencedImagesNotFoundException(v protocol.ResponseMetadata) error {
+	return &ReferencedImagesNotFoundException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *ReferencedImagesNotFoundException) Code() string {
+	return "ReferencedImagesNotFoundException"
+}
+
+// Message returns the exception's message.
+func (s *ReferencedImagesNotFoundException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *ReferencedImagesNotFoundException) OrigErr() error {
+	return nil
+}
+
+func (s *ReferencedImagesNotFoundException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *ReferencedImagesNotFoundException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *ReferencedImagesNotFoundException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 // An object representing a repository.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/Repository
 type Repository struct {
 	_ struct{} `type:"structure"`
 
-	// The date and time, in JavaScript date/time format, when the repository was
-	// created.
-	CreatedAt *time.Time `locationName:"createdAt" type:"timestamp" timestampFormat:"unix"`
+	// The date and time, in JavaScript date format, when the repository was created.
+	CreatedAt *time.Time `locationName:"createdAt" type:"timestamp"`
+
+	// The encryption configuration for the repository. This determines how the
+	// contents of your repository are encrypted at rest.
+	EncryptionConfiguration *EncryptionConfiguration `locationName:"encryptionConfiguration" type:"structure"`
+
+	// The image scanning configuration for a repository.
+	ImageScanningConfiguration *ImageScanningConfiguration `locationName:"imageScanningConfiguration" type:"structure"`
+
+	// The tag mutability setting for the repository.
+	ImageTagMutability *string `locationName:"imageTagMutability" type:"string" enum:"ImageTagMutability"`
 
 	// The AWS account ID associated with the registry that contains the repository.
 	RegistryId *string `locationName:"registryId" type:"string"`
 
 	// The Amazon Resource Name (ARN) that identifies the repository. The ARN contains
-	// the arn:aws:ecr namespace, followed by the region of the repository, the
-	// AWS account ID of the repository owner, the repository namespace, and then
-	// the repository name. For example, arn:aws:ecr:region:012345678910:repository/test.
+	// the arn:aws:ecr namespace, followed by the region of the repository, AWS
+	// account ID of the repository owner, repository namespace, and repository
+	// name. For example, arn:aws:ecr:region:012345678910:repository/test.
 	RepositoryArn *string `locationName:"repositoryArn" type:"string"`
 
 	// The name of the repository.
 	RepositoryName *string `locationName:"repositoryName" min:"2" type:"string"`
 
-	// The URI for the repository. You can use this URI for Docker push and pull
-	// operations.
+	// The URI for the repository. You can use this URI for container image push
+	// and pull operations.
 	RepositoryUri *string `locationName:"repositoryUri" type:"string"`
 }
 
@@ -3769,6 +7734,24 @@ func (s Repository) GoString() string {
 // SetCreatedAt sets the CreatedAt field's value.
 func (s *Repository) SetCreatedAt(v time.Time) *Repository {
 	s.CreatedAt = &v
+	return s
+}
+
+// SetEncryptionConfiguration sets the EncryptionConfiguration field's value.
+func (s *Repository) SetEncryptionConfiguration(v *EncryptionConfiguration) *Repository {
+	s.EncryptionConfiguration = v
+	return s
+}
+
+// SetImageScanningConfiguration sets the ImageScanningConfiguration field's value.
+func (s *Repository) SetImageScanningConfiguration(v *ImageScanningConfiguration) *Repository {
+	s.ImageScanningConfiguration = v
+	return s
+}
+
+// SetImageTagMutability sets the ImageTagMutability field's value.
+func (s *Repository) SetImageTagMutability(v string) *Repository {
+	s.ImageTagMutability = &v
 	return s
 }
 
@@ -3796,7 +7779,351 @@ func (s *Repository) SetRepositoryUri(v string) *Repository {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/SetRepositoryPolicyRequest
+// The specified repository already exists in the specified registry.
+type RepositoryAlreadyExistsException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	// The error message associated with the exception.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s RepositoryAlreadyExistsException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RepositoryAlreadyExistsException) GoString() string {
+	return s.String()
+}
+
+func newErrorRepositoryAlreadyExistsException(v protocol.ResponseMetadata) error {
+	return &RepositoryAlreadyExistsException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *RepositoryAlreadyExistsException) Code() string {
+	return "RepositoryAlreadyExistsException"
+}
+
+// Message returns the exception's message.
+func (s *RepositoryAlreadyExistsException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *RepositoryAlreadyExistsException) OrigErr() error {
+	return nil
+}
+
+func (s *RepositoryAlreadyExistsException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *RepositoryAlreadyExistsException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *RepositoryAlreadyExistsException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// The specified repository contains images. To delete a repository that contains
+// images, you must force the deletion with the force parameter.
+type RepositoryNotEmptyException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	// The error message associated with the exception.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s RepositoryNotEmptyException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RepositoryNotEmptyException) GoString() string {
+	return s.String()
+}
+
+func newErrorRepositoryNotEmptyException(v protocol.ResponseMetadata) error {
+	return &RepositoryNotEmptyException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *RepositoryNotEmptyException) Code() string {
+	return "RepositoryNotEmptyException"
+}
+
+// Message returns the exception's message.
+func (s *RepositoryNotEmptyException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *RepositoryNotEmptyException) OrigErr() error {
+	return nil
+}
+
+func (s *RepositoryNotEmptyException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *RepositoryNotEmptyException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *RepositoryNotEmptyException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// The specified repository could not be found. Check the spelling of the specified
+// repository and ensure that you are performing operations on the correct registry.
+type RepositoryNotFoundException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	// The error message associated with the exception.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s RepositoryNotFoundException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RepositoryNotFoundException) GoString() string {
+	return s.String()
+}
+
+func newErrorRepositoryNotFoundException(v protocol.ResponseMetadata) error {
+	return &RepositoryNotFoundException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *RepositoryNotFoundException) Code() string {
+	return "RepositoryNotFoundException"
+}
+
+// Message returns the exception's message.
+func (s *RepositoryNotFoundException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *RepositoryNotFoundException) OrigErr() error {
+	return nil
+}
+
+func (s *RepositoryNotFoundException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *RepositoryNotFoundException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *RepositoryNotFoundException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// The specified repository and registry combination does not have an associated
+// repository policy.
+type RepositoryPolicyNotFoundException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	// The error message associated with the exception.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s RepositoryPolicyNotFoundException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RepositoryPolicyNotFoundException) GoString() string {
+	return s.String()
+}
+
+func newErrorRepositoryPolicyNotFoundException(v protocol.ResponseMetadata) error {
+	return &RepositoryPolicyNotFoundException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *RepositoryPolicyNotFoundException) Code() string {
+	return "RepositoryPolicyNotFoundException"
+}
+
+// Message returns the exception's message.
+func (s *RepositoryPolicyNotFoundException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *RepositoryPolicyNotFoundException) OrigErr() error {
+	return nil
+}
+
+func (s *RepositoryPolicyNotFoundException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *RepositoryPolicyNotFoundException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *RepositoryPolicyNotFoundException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// The specified image scan could not be found. Ensure that image scanning is
+// enabled on the repository and try again.
+type ScanNotFoundException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s ScanNotFoundException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ScanNotFoundException) GoString() string {
+	return s.String()
+}
+
+func newErrorScanNotFoundException(v protocol.ResponseMetadata) error {
+	return &ScanNotFoundException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *ScanNotFoundException) Code() string {
+	return "ScanNotFoundException"
+}
+
+// Message returns the exception's message.
+func (s *ScanNotFoundException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *ScanNotFoundException) OrigErr() error {
+	return nil
+}
+
+func (s *ScanNotFoundException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *ScanNotFoundException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *ScanNotFoundException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// These errors are usually caused by a server-side issue.
+type ServerException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	// The error message associated with the exception.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s ServerException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ServerException) GoString() string {
+	return s.String()
+}
+
+func newErrorServerException(v protocol.ResponseMetadata) error {
+	return &ServerException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *ServerException) Code() string {
+	return "ServerException"
+}
+
+// Message returns the exception's message.
+func (s *ServerException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *ServerException) OrigErr() error {
+	return nil
+}
+
+func (s *ServerException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *ServerException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *ServerException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 type SetRepositoryPolicyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3805,7 +8132,9 @@ type SetRepositoryPolicyInput struct {
 	// operation. This is intended to prevent accidental repository lock outs.
 	Force *bool `locationName:"force" type:"boolean"`
 
-	// The JSON repository policy text to apply to the repository.
+	// The JSON repository policy text to apply to the repository. For more information,
+	// see Amazon ECR Repository Policies (https://docs.aws.amazon.com/AmazonECR/latest/userguide/repository-policy-examples.html)
+	// in the Amazon Elastic Container Registry User Guide.
 	//
 	// PolicyText is a required field
 	PolicyText *string `locationName:"policyText" type:"string" required:"true"`
@@ -3873,7 +8202,6 @@ func (s *SetRepositoryPolicyInput) SetRepositoryName(v string) *SetRepositoryPol
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/SetRepositoryPolicyResponse
 type SetRepositoryPolicyOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3915,7 +8243,528 @@ func (s *SetRepositoryPolicyOutput) SetRepositoryName(v string) *SetRepositoryPo
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/UploadLayerPartRequest
+type StartImageScanInput struct {
+	_ struct{} `type:"structure"`
+
+	// An object with identifying information for an Amazon ECR image.
+	//
+	// ImageId is a required field
+	ImageId *ImageIdentifier `locationName:"imageId" type:"structure" required:"true"`
+
+	// The AWS account ID associated with the registry that contains the repository
+	// in which to start an image scan request. If you do not specify a registry,
+	// the default registry is assumed.
+	RegistryId *string `locationName:"registryId" type:"string"`
+
+	// The name of the repository that contains the images to scan.
+	//
+	// RepositoryName is a required field
+	RepositoryName *string `locationName:"repositoryName" min:"2" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s StartImageScanInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StartImageScanInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *StartImageScanInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "StartImageScanInput"}
+	if s.ImageId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ImageId"))
+	}
+	if s.RepositoryName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RepositoryName"))
+	}
+	if s.RepositoryName != nil && len(*s.RepositoryName) < 2 {
+		invalidParams.Add(request.NewErrParamMinLen("RepositoryName", 2))
+	}
+	if s.ImageId != nil {
+		if err := s.ImageId.Validate(); err != nil {
+			invalidParams.AddNested("ImageId", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetImageId sets the ImageId field's value.
+func (s *StartImageScanInput) SetImageId(v *ImageIdentifier) *StartImageScanInput {
+	s.ImageId = v
+	return s
+}
+
+// SetRegistryId sets the RegistryId field's value.
+func (s *StartImageScanInput) SetRegistryId(v string) *StartImageScanInput {
+	s.RegistryId = &v
+	return s
+}
+
+// SetRepositoryName sets the RepositoryName field's value.
+func (s *StartImageScanInput) SetRepositoryName(v string) *StartImageScanInput {
+	s.RepositoryName = &v
+	return s
+}
+
+type StartImageScanOutput struct {
+	_ struct{} `type:"structure"`
+
+	// An object with identifying information for an Amazon ECR image.
+	ImageId *ImageIdentifier `locationName:"imageId" type:"structure"`
+
+	// The current state of the scan.
+	ImageScanStatus *ImageScanStatus `locationName:"imageScanStatus" type:"structure"`
+
+	// The registry ID associated with the request.
+	RegistryId *string `locationName:"registryId" type:"string"`
+
+	// The repository name associated with the request.
+	RepositoryName *string `locationName:"repositoryName" min:"2" type:"string"`
+}
+
+// String returns the string representation
+func (s StartImageScanOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StartImageScanOutput) GoString() string {
+	return s.String()
+}
+
+// SetImageId sets the ImageId field's value.
+func (s *StartImageScanOutput) SetImageId(v *ImageIdentifier) *StartImageScanOutput {
+	s.ImageId = v
+	return s
+}
+
+// SetImageScanStatus sets the ImageScanStatus field's value.
+func (s *StartImageScanOutput) SetImageScanStatus(v *ImageScanStatus) *StartImageScanOutput {
+	s.ImageScanStatus = v
+	return s
+}
+
+// SetRegistryId sets the RegistryId field's value.
+func (s *StartImageScanOutput) SetRegistryId(v string) *StartImageScanOutput {
+	s.RegistryId = &v
+	return s
+}
+
+// SetRepositoryName sets the RepositoryName field's value.
+func (s *StartImageScanOutput) SetRepositoryName(v string) *StartImageScanOutput {
+	s.RepositoryName = &v
+	return s
+}
+
+type StartLifecyclePolicyPreviewInput struct {
+	_ struct{} `type:"structure"`
+
+	// The policy to be evaluated against. If you do not specify a policy, the current
+	// policy for the repository is used.
+	LifecyclePolicyText *string `locationName:"lifecyclePolicyText" min:"100" type:"string"`
+
+	// The AWS account ID associated with the registry that contains the repository.
+	// If you do not specify a registry, the default registry is assumed.
+	RegistryId *string `locationName:"registryId" type:"string"`
+
+	// The name of the repository to be evaluated.
+	//
+	// RepositoryName is a required field
+	RepositoryName *string `locationName:"repositoryName" min:"2" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s StartLifecyclePolicyPreviewInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StartLifecyclePolicyPreviewInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *StartLifecyclePolicyPreviewInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "StartLifecyclePolicyPreviewInput"}
+	if s.LifecyclePolicyText != nil && len(*s.LifecyclePolicyText) < 100 {
+		invalidParams.Add(request.NewErrParamMinLen("LifecyclePolicyText", 100))
+	}
+	if s.RepositoryName == nil {
+		invalidParams.Add(request.NewErrParamRequired("RepositoryName"))
+	}
+	if s.RepositoryName != nil && len(*s.RepositoryName) < 2 {
+		invalidParams.Add(request.NewErrParamMinLen("RepositoryName", 2))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetLifecyclePolicyText sets the LifecyclePolicyText field's value.
+func (s *StartLifecyclePolicyPreviewInput) SetLifecyclePolicyText(v string) *StartLifecyclePolicyPreviewInput {
+	s.LifecyclePolicyText = &v
+	return s
+}
+
+// SetRegistryId sets the RegistryId field's value.
+func (s *StartLifecyclePolicyPreviewInput) SetRegistryId(v string) *StartLifecyclePolicyPreviewInput {
+	s.RegistryId = &v
+	return s
+}
+
+// SetRepositoryName sets the RepositoryName field's value.
+func (s *StartLifecyclePolicyPreviewInput) SetRepositoryName(v string) *StartLifecyclePolicyPreviewInput {
+	s.RepositoryName = &v
+	return s
+}
+
+type StartLifecyclePolicyPreviewOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The JSON repository policy text.
+	LifecyclePolicyText *string `locationName:"lifecyclePolicyText" min:"100" type:"string"`
+
+	// The registry ID associated with the request.
+	RegistryId *string `locationName:"registryId" type:"string"`
+
+	// The repository name associated with the request.
+	RepositoryName *string `locationName:"repositoryName" min:"2" type:"string"`
+
+	// The status of the lifecycle policy preview request.
+	Status *string `locationName:"status" type:"string" enum:"LifecyclePolicyPreviewStatus"`
+}
+
+// String returns the string representation
+func (s StartLifecyclePolicyPreviewOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StartLifecyclePolicyPreviewOutput) GoString() string {
+	return s.String()
+}
+
+// SetLifecyclePolicyText sets the LifecyclePolicyText field's value.
+func (s *StartLifecyclePolicyPreviewOutput) SetLifecyclePolicyText(v string) *StartLifecyclePolicyPreviewOutput {
+	s.LifecyclePolicyText = &v
+	return s
+}
+
+// SetRegistryId sets the RegistryId field's value.
+func (s *StartLifecyclePolicyPreviewOutput) SetRegistryId(v string) *StartLifecyclePolicyPreviewOutput {
+	s.RegistryId = &v
+	return s
+}
+
+// SetRepositoryName sets the RepositoryName field's value.
+func (s *StartLifecyclePolicyPreviewOutput) SetRepositoryName(v string) *StartLifecyclePolicyPreviewOutput {
+	s.RepositoryName = &v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *StartLifecyclePolicyPreviewOutput) SetStatus(v string) *StartLifecyclePolicyPreviewOutput {
+	s.Status = &v
+	return s
+}
+
+// The metadata that you apply to a resource to help you categorize and organize
+// them. Each tag consists of a key and an optional value, both of which you
+// define. Tag keys can have a maximum character length of 128 characters, and
+// tag values can have a maximum length of 256 characters.
+type Tag struct {
+	_ struct{} `type:"structure"`
+
+	// One part of a key-value pair that make up a tag. A key is a general label
+	// that acts like a category for more specific tag values.
+	Key *string `type:"string"`
+
+	// The optional part of a key-value pair that make up a tag. A value acts as
+	// a descriptor within a tag category (key).
+	Value *string `type:"string"`
+}
+
+// String returns the string representation
+func (s Tag) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Tag) GoString() string {
+	return s.String()
+}
+
+// SetKey sets the Key field's value.
+func (s *Tag) SetKey(v string) *Tag {
+	s.Key = &v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *Tag) SetValue(v string) *Tag {
+	s.Value = &v
+	return s
+}
+
+type TagResourceInput struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) of the the resource to which to add tags.
+	// Currently, the only supported resource is an Amazon ECR repository.
+	//
+	// ResourceArn is a required field
+	ResourceArn *string `locationName:"resourceArn" type:"string" required:"true"`
+
+	// The tags to add to the resource. A tag is an array of key-value pairs. Tag
+	// keys can have a maximum character length of 128 characters, and tag values
+	// can have a maximum length of 256 characters.
+	//
+	// Tags is a required field
+	Tags []*Tag `locationName:"tags" type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s TagResourceInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TagResourceInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *TagResourceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "TagResourceInput"}
+	if s.ResourceArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceArn"))
+	}
+	if s.Tags == nil {
+		invalidParams.Add(request.NewErrParamRequired("Tags"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetResourceArn sets the ResourceArn field's value.
+func (s *TagResourceInput) SetResourceArn(v string) *TagResourceInput {
+	s.ResourceArn = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *TagResourceInput) SetTags(v []*Tag) *TagResourceInput {
+	s.Tags = v
+	return s
+}
+
+type TagResourceOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s TagResourceOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TagResourceOutput) GoString() string {
+	return s.String()
+}
+
+// The list of tags on the repository is over the limit. The maximum number
+// of tags that can be applied to a repository is 50.
+type TooManyTagsException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s TooManyTagsException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TooManyTagsException) GoString() string {
+	return s.String()
+}
+
+func newErrorTooManyTagsException(v protocol.ResponseMetadata) error {
+	return &TooManyTagsException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *TooManyTagsException) Code() string {
+	return "TooManyTagsException"
+}
+
+// Message returns the exception's message.
+func (s *TooManyTagsException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *TooManyTagsException) OrigErr() error {
+	return nil
+}
+
+func (s *TooManyTagsException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *TooManyTagsException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *TooManyTagsException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// The image is of a type that cannot be scanned.
+type UnsupportedImageTypeException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s UnsupportedImageTypeException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UnsupportedImageTypeException) GoString() string {
+	return s.String()
+}
+
+func newErrorUnsupportedImageTypeException(v protocol.ResponseMetadata) error {
+	return &UnsupportedImageTypeException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *UnsupportedImageTypeException) Code() string {
+	return "UnsupportedImageTypeException"
+}
+
+// Message returns the exception's message.
+func (s *UnsupportedImageTypeException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *UnsupportedImageTypeException) OrigErr() error {
+	return nil
+}
+
+func (s *UnsupportedImageTypeException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *UnsupportedImageTypeException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *UnsupportedImageTypeException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+type UntagResourceInput struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) of the resource from which to remove tags.
+	// Currently, the only supported resource is an Amazon ECR repository.
+	//
+	// ResourceArn is a required field
+	ResourceArn *string `locationName:"resourceArn" type:"string" required:"true"`
+
+	// The keys of the tags to be removed.
+	//
+	// TagKeys is a required field
+	TagKeys []*string `locationName:"tagKeys" type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s UntagResourceInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UntagResourceInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UntagResourceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UntagResourceInput"}
+	if s.ResourceArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("ResourceArn"))
+	}
+	if s.TagKeys == nil {
+		invalidParams.Add(request.NewErrParamRequired("TagKeys"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetResourceArn sets the ResourceArn field's value.
+func (s *UntagResourceInput) SetResourceArn(v string) *UntagResourceInput {
+	s.ResourceArn = &v
+	return s
+}
+
+// SetTagKeys sets the TagKeys field's value.
+func (s *UntagResourceInput) SetTagKeys(v []*string) *UntagResourceInput {
+	s.TagKeys = v
+	return s
+}
+
+type UntagResourceOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s UntagResourceOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UntagResourceOutput) GoString() string {
+	return s.String()
+}
+
 type UploadLayerPartInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3926,21 +8775,23 @@ type UploadLayerPartInput struct {
 	// LayerPartBlob is a required field
 	LayerPartBlob []byte `locationName:"layerPartBlob" type:"blob" required:"true"`
 
-	// The integer value of the first byte of the layer part.
+	// The position of the first byte of the layer part witin the overall image
+	// layer.
 	//
 	// PartFirstByte is a required field
 	PartFirstByte *int64 `locationName:"partFirstByte" type:"long" required:"true"`
 
-	// The integer value of the last byte of the layer part.
+	// The position of the last byte of the layer part within the overall image
+	// layer.
 	//
 	// PartLastByte is a required field
 	PartLastByte *int64 `locationName:"partLastByte" type:"long" required:"true"`
 
-	// The AWS account ID associated with the registry that you are uploading layer
-	// parts to. If you do not specify a registry, the default registry is assumed.
+	// The AWS account ID associated with the registry to which you are uploading
+	// layer parts. If you do not specify a registry, the default registry is assumed.
 	RegistryId *string `locationName:"registryId" type:"string"`
 
-	// The name of the repository that you are uploading layer parts to.
+	// The name of the repository to which you are uploading layer parts.
 	//
 	// RepositoryName is a required field
 	RepositoryName *string `locationName:"repositoryName" min:"2" type:"string" required:"true"`
@@ -4026,7 +8877,6 @@ func (s *UploadLayerPartInput) SetUploadId(v string) *UploadLayerPartInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21/UploadLayerPartResponse
 type UploadLayerPartOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4077,6 +8927,124 @@ func (s *UploadLayerPartOutput) SetUploadId(v string) *UploadLayerPartOutput {
 	return s
 }
 
+// The upload could not be found, or the specified upload ID is not valid for
+// this repository.
+type UploadNotFoundException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	// The error message associated with the exception.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s UploadNotFoundException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UploadNotFoundException) GoString() string {
+	return s.String()
+}
+
+func newErrorUploadNotFoundException(v protocol.ResponseMetadata) error {
+	return &UploadNotFoundException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *UploadNotFoundException) Code() string {
+	return "UploadNotFoundException"
+}
+
+// Message returns the exception's message.
+func (s *UploadNotFoundException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *UploadNotFoundException) OrigErr() error {
+	return nil
+}
+
+func (s *UploadNotFoundException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *UploadNotFoundException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *UploadNotFoundException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+const (
+	// EncryptionTypeAes256 is a EncryptionType enum value
+	EncryptionTypeAes256 = "AES256"
+
+	// EncryptionTypeKms is a EncryptionType enum value
+	EncryptionTypeKms = "KMS"
+)
+
+// EncryptionType_Values returns all elements of the EncryptionType enum
+func EncryptionType_Values() []string {
+	return []string{
+		EncryptionTypeAes256,
+		EncryptionTypeKms,
+	}
+}
+
+const (
+	// FindingSeverityInformational is a FindingSeverity enum value
+	FindingSeverityInformational = "INFORMATIONAL"
+
+	// FindingSeverityLow is a FindingSeverity enum value
+	FindingSeverityLow = "LOW"
+
+	// FindingSeverityMedium is a FindingSeverity enum value
+	FindingSeverityMedium = "MEDIUM"
+
+	// FindingSeverityHigh is a FindingSeverity enum value
+	FindingSeverityHigh = "HIGH"
+
+	// FindingSeverityCritical is a FindingSeverity enum value
+	FindingSeverityCritical = "CRITICAL"
+
+	// FindingSeverityUndefined is a FindingSeverity enum value
+	FindingSeverityUndefined = "UNDEFINED"
+)
+
+// FindingSeverity_Values returns all elements of the FindingSeverity enum
+func FindingSeverity_Values() []string {
+	return []string{
+		FindingSeverityInformational,
+		FindingSeverityLow,
+		FindingSeverityMedium,
+		FindingSeverityHigh,
+		FindingSeverityCritical,
+		FindingSeverityUndefined,
+	}
+}
+
+const (
+	// ImageActionTypeExpire is a ImageActionType enum value
+	ImageActionTypeExpire = "EXPIRE"
+)
+
+// ImageActionType_Values returns all elements of the ImageActionType enum
+func ImageActionType_Values() []string {
+	return []string{
+		ImageActionTypeExpire,
+	}
+}
+
 const (
 	// ImageFailureCodeInvalidImageDigest is a ImageFailureCode enum value
 	ImageFailureCodeInvalidImageDigest = "InvalidImageDigest"
@@ -4092,7 +9060,42 @@ const (
 
 	// ImageFailureCodeMissingDigestAndTag is a ImageFailureCode enum value
 	ImageFailureCodeMissingDigestAndTag = "MissingDigestAndTag"
+
+	// ImageFailureCodeImageReferencedByManifestList is a ImageFailureCode enum value
+	ImageFailureCodeImageReferencedByManifestList = "ImageReferencedByManifestList"
+
+	// ImageFailureCodeKmsError is a ImageFailureCode enum value
+	ImageFailureCodeKmsError = "KmsError"
 )
+
+// ImageFailureCode_Values returns all elements of the ImageFailureCode enum
+func ImageFailureCode_Values() []string {
+	return []string{
+		ImageFailureCodeInvalidImageDigest,
+		ImageFailureCodeInvalidImageTag,
+		ImageFailureCodeImageTagDoesNotMatchDigest,
+		ImageFailureCodeImageNotFound,
+		ImageFailureCodeMissingDigestAndTag,
+		ImageFailureCodeImageReferencedByManifestList,
+		ImageFailureCodeKmsError,
+	}
+}
+
+const (
+	// ImageTagMutabilityMutable is a ImageTagMutability enum value
+	ImageTagMutabilityMutable = "MUTABLE"
+
+	// ImageTagMutabilityImmutable is a ImageTagMutability enum value
+	ImageTagMutabilityImmutable = "IMMUTABLE"
+)
+
+// ImageTagMutability_Values returns all elements of the ImageTagMutability enum
+func ImageTagMutability_Values() []string {
+	return []string{
+		ImageTagMutabilityMutable,
+		ImageTagMutabilityImmutable,
+	}
+}
 
 const (
 	// LayerAvailabilityAvailable is a LayerAvailability enum value
@@ -4102,6 +9105,14 @@ const (
 	LayerAvailabilityUnavailable = "UNAVAILABLE"
 )
 
+// LayerAvailability_Values returns all elements of the LayerAvailability enum
+func LayerAvailability_Values() []string {
+	return []string{
+		LayerAvailabilityAvailable,
+		LayerAvailabilityUnavailable,
+	}
+}
+
 const (
 	// LayerFailureCodeInvalidLayerDigest is a LayerFailureCode enum value
 	LayerFailureCodeInvalidLayerDigest = "InvalidLayerDigest"
@@ -4110,10 +9121,74 @@ const (
 	LayerFailureCodeMissingLayerDigest = "MissingLayerDigest"
 )
 
+// LayerFailureCode_Values returns all elements of the LayerFailureCode enum
+func LayerFailureCode_Values() []string {
+	return []string{
+		LayerFailureCodeInvalidLayerDigest,
+		LayerFailureCodeMissingLayerDigest,
+	}
+}
+
+const (
+	// LifecyclePolicyPreviewStatusInProgress is a LifecyclePolicyPreviewStatus enum value
+	LifecyclePolicyPreviewStatusInProgress = "IN_PROGRESS"
+
+	// LifecyclePolicyPreviewStatusComplete is a LifecyclePolicyPreviewStatus enum value
+	LifecyclePolicyPreviewStatusComplete = "COMPLETE"
+
+	// LifecyclePolicyPreviewStatusExpired is a LifecyclePolicyPreviewStatus enum value
+	LifecyclePolicyPreviewStatusExpired = "EXPIRED"
+
+	// LifecyclePolicyPreviewStatusFailed is a LifecyclePolicyPreviewStatus enum value
+	LifecyclePolicyPreviewStatusFailed = "FAILED"
+)
+
+// LifecyclePolicyPreviewStatus_Values returns all elements of the LifecyclePolicyPreviewStatus enum
+func LifecyclePolicyPreviewStatus_Values() []string {
+	return []string{
+		LifecyclePolicyPreviewStatusInProgress,
+		LifecyclePolicyPreviewStatusComplete,
+		LifecyclePolicyPreviewStatusExpired,
+		LifecyclePolicyPreviewStatusFailed,
+	}
+}
+
+const (
+	// ScanStatusInProgress is a ScanStatus enum value
+	ScanStatusInProgress = "IN_PROGRESS"
+
+	// ScanStatusComplete is a ScanStatus enum value
+	ScanStatusComplete = "COMPLETE"
+
+	// ScanStatusFailed is a ScanStatus enum value
+	ScanStatusFailed = "FAILED"
+)
+
+// ScanStatus_Values returns all elements of the ScanStatus enum
+func ScanStatus_Values() []string {
+	return []string{
+		ScanStatusInProgress,
+		ScanStatusComplete,
+		ScanStatusFailed,
+	}
+}
+
 const (
 	// TagStatusTagged is a TagStatus enum value
 	TagStatusTagged = "TAGGED"
 
 	// TagStatusUntagged is a TagStatus enum value
 	TagStatusUntagged = "UNTAGGED"
+
+	// TagStatusAny is a TagStatus enum value
+	TagStatusAny = "ANY"
 )
+
+// TagStatus_Values returns all elements of the TagStatus enum
+func TagStatus_Values() []string {
+	return []string{
+		TagStatusTagged,
+		TagStatusUntagged,
+		TagStatusAny,
+	}
+}

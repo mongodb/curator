@@ -10,9 +10,9 @@
 // Amazon SQS moves data between distributed application components and helps
 // you decouple these components.
 //
-// Standard queues (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/standard-queues.html)
-// are available in all regions. FIFO queues (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-queues.html)
-// are available in US West (Oregon) and US East (Ohio).
+// For information on the permissions you need to use this API, see Identity
+// and access management (https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-authentication-and-access-control.html)
+// in the Amazon Simple Queue Service Developer Guide.
 //
 // You can use AWS SDKs (http://aws.amazon.com/tools/#sdk) to access Amazon
 // SQS using your favorite programming language. The SDKs perform tasks such
@@ -28,17 +28,13 @@
 //
 //    * Amazon SQS Product Page (http://aws.amazon.com/sqs/)
 //
-//    * Amazon SQS Developer Guide
+//    * Amazon Simple Queue Service Developer Guide Making API Requests (https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-making-api-requests.html)
+//    Amazon SQS Message Attributes (https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-message-metadata.html#sqs-message-attributes)
+//    Amazon SQS Dead-Letter Queues (https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-dead-letter-queues.html)
 //
-// Making API Requests (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/MakingRequestsArticle.html)
+//    * Amazon SQS in the AWS CLI Command Reference (http://docs.aws.amazon.com/cli/latest/reference/sqs/index.html)
 //
-// Using Amazon SQS Message Attributes (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-message-attributes.html)
-//
-// Using Amazon SQS Dead Letter Queues (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-dead-letter-queues.html)
-//
-//    * Amazon Web Services General Reference
-//
-// Regions and Endpoints (http://docs.aws.amazon.com/general/latest/gr/rande.html#sqs_region)
+//    * Amazon Web Services General Reference Regions and Endpoints (https://docs.aws.amazon.com/general/latest/gr/rande.html#sqs_region)
 //
 // See https://docs.aws.amazon.com/goto/WebAPI/sqs-2012-11-05 for more information on this service.
 //
@@ -47,7 +43,7 @@
 //
 // Using the Client
 //
-// To Amazon Simple Queue Service with the SDK use the New function to create
+// To contact Amazon Simple Queue Service with the SDK use the New function to create
 // a new service client. With that client you can make API requests to the service.
 // These clients are safe to use concurrently.
 //

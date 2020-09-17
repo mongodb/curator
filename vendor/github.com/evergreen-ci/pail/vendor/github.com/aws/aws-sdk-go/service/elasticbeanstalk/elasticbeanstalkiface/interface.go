@@ -68,6 +68,10 @@ type ElasticBeanstalkAPI interface {
 	ApplyEnvironmentManagedActionWithContext(aws.Context, *elasticbeanstalk.ApplyEnvironmentManagedActionInput, ...request.Option) (*elasticbeanstalk.ApplyEnvironmentManagedActionOutput, error)
 	ApplyEnvironmentManagedActionRequest(*elasticbeanstalk.ApplyEnvironmentManagedActionInput) (*request.Request, *elasticbeanstalk.ApplyEnvironmentManagedActionOutput)
 
+	AssociateEnvironmentOperationsRole(*elasticbeanstalk.AssociateEnvironmentOperationsRoleInput) (*elasticbeanstalk.AssociateEnvironmentOperationsRoleOutput, error)
+	AssociateEnvironmentOperationsRoleWithContext(aws.Context, *elasticbeanstalk.AssociateEnvironmentOperationsRoleInput, ...request.Option) (*elasticbeanstalk.AssociateEnvironmentOperationsRoleOutput, error)
+	AssociateEnvironmentOperationsRoleRequest(*elasticbeanstalk.AssociateEnvironmentOperationsRoleInput) (*request.Request, *elasticbeanstalk.AssociateEnvironmentOperationsRoleOutput)
+
 	CheckDNSAvailability(*elasticbeanstalk.CheckDNSAvailabilityInput) (*elasticbeanstalk.CheckDNSAvailabilityOutput, error)
 	CheckDNSAvailabilityWithContext(aws.Context, *elasticbeanstalk.CheckDNSAvailabilityInput, ...request.Option) (*elasticbeanstalk.CheckDNSAvailabilityOutput, error)
 	CheckDNSAvailabilityRequest(*elasticbeanstalk.CheckDNSAvailabilityInput) (*request.Request, *elasticbeanstalk.CheckDNSAvailabilityOutput)
@@ -120,6 +124,10 @@ type ElasticBeanstalkAPI interface {
 	DeletePlatformVersionWithContext(aws.Context, *elasticbeanstalk.DeletePlatformVersionInput, ...request.Option) (*elasticbeanstalk.DeletePlatformVersionOutput, error)
 	DeletePlatformVersionRequest(*elasticbeanstalk.DeletePlatformVersionInput) (*request.Request, *elasticbeanstalk.DeletePlatformVersionOutput)
 
+	DescribeAccountAttributes(*elasticbeanstalk.DescribeAccountAttributesInput) (*elasticbeanstalk.DescribeAccountAttributesOutput, error)
+	DescribeAccountAttributesWithContext(aws.Context, *elasticbeanstalk.DescribeAccountAttributesInput, ...request.Option) (*elasticbeanstalk.DescribeAccountAttributesOutput, error)
+	DescribeAccountAttributesRequest(*elasticbeanstalk.DescribeAccountAttributesInput) (*request.Request, *elasticbeanstalk.DescribeAccountAttributesOutput)
+
 	DescribeApplicationVersions(*elasticbeanstalk.DescribeApplicationVersionsInput) (*elasticbeanstalk.DescribeApplicationVersionsOutput, error)
 	DescribeApplicationVersionsWithContext(aws.Context, *elasticbeanstalk.DescribeApplicationVersionsInput, ...request.Option) (*elasticbeanstalk.DescribeApplicationVersionsOutput, error)
 	DescribeApplicationVersionsRequest(*elasticbeanstalk.DescribeApplicationVersionsInput) (*request.Request, *elasticbeanstalk.DescribeApplicationVersionsOutput)
@@ -143,6 +151,9 @@ type ElasticBeanstalkAPI interface {
 	DescribeEnvironmentManagedActionHistory(*elasticbeanstalk.DescribeEnvironmentManagedActionHistoryInput) (*elasticbeanstalk.DescribeEnvironmentManagedActionHistoryOutput, error)
 	DescribeEnvironmentManagedActionHistoryWithContext(aws.Context, *elasticbeanstalk.DescribeEnvironmentManagedActionHistoryInput, ...request.Option) (*elasticbeanstalk.DescribeEnvironmentManagedActionHistoryOutput, error)
 	DescribeEnvironmentManagedActionHistoryRequest(*elasticbeanstalk.DescribeEnvironmentManagedActionHistoryInput) (*request.Request, *elasticbeanstalk.DescribeEnvironmentManagedActionHistoryOutput)
+
+	DescribeEnvironmentManagedActionHistoryPages(*elasticbeanstalk.DescribeEnvironmentManagedActionHistoryInput, func(*elasticbeanstalk.DescribeEnvironmentManagedActionHistoryOutput, bool) bool) error
+	DescribeEnvironmentManagedActionHistoryPagesWithContext(aws.Context, *elasticbeanstalk.DescribeEnvironmentManagedActionHistoryInput, func(*elasticbeanstalk.DescribeEnvironmentManagedActionHistoryOutput, bool) bool, ...request.Option) error
 
 	DescribeEnvironmentManagedActions(*elasticbeanstalk.DescribeEnvironmentManagedActionsInput) (*elasticbeanstalk.DescribeEnvironmentManagedActionsOutput, error)
 	DescribeEnvironmentManagedActionsWithContext(aws.Context, *elasticbeanstalk.DescribeEnvironmentManagedActionsInput, ...request.Option) (*elasticbeanstalk.DescribeEnvironmentManagedActionsOutput, error)
@@ -171,13 +182,31 @@ type ElasticBeanstalkAPI interface {
 	DescribePlatformVersionWithContext(aws.Context, *elasticbeanstalk.DescribePlatformVersionInput, ...request.Option) (*elasticbeanstalk.DescribePlatformVersionOutput, error)
 	DescribePlatformVersionRequest(*elasticbeanstalk.DescribePlatformVersionInput) (*request.Request, *elasticbeanstalk.DescribePlatformVersionOutput)
 
+	DisassociateEnvironmentOperationsRole(*elasticbeanstalk.DisassociateEnvironmentOperationsRoleInput) (*elasticbeanstalk.DisassociateEnvironmentOperationsRoleOutput, error)
+	DisassociateEnvironmentOperationsRoleWithContext(aws.Context, *elasticbeanstalk.DisassociateEnvironmentOperationsRoleInput, ...request.Option) (*elasticbeanstalk.DisassociateEnvironmentOperationsRoleOutput, error)
+	DisassociateEnvironmentOperationsRoleRequest(*elasticbeanstalk.DisassociateEnvironmentOperationsRoleInput) (*request.Request, *elasticbeanstalk.DisassociateEnvironmentOperationsRoleOutput)
+
 	ListAvailableSolutionStacks(*elasticbeanstalk.ListAvailableSolutionStacksInput) (*elasticbeanstalk.ListAvailableSolutionStacksOutput, error)
 	ListAvailableSolutionStacksWithContext(aws.Context, *elasticbeanstalk.ListAvailableSolutionStacksInput, ...request.Option) (*elasticbeanstalk.ListAvailableSolutionStacksOutput, error)
 	ListAvailableSolutionStacksRequest(*elasticbeanstalk.ListAvailableSolutionStacksInput) (*request.Request, *elasticbeanstalk.ListAvailableSolutionStacksOutput)
 
+	ListPlatformBranches(*elasticbeanstalk.ListPlatformBranchesInput) (*elasticbeanstalk.ListPlatformBranchesOutput, error)
+	ListPlatformBranchesWithContext(aws.Context, *elasticbeanstalk.ListPlatformBranchesInput, ...request.Option) (*elasticbeanstalk.ListPlatformBranchesOutput, error)
+	ListPlatformBranchesRequest(*elasticbeanstalk.ListPlatformBranchesInput) (*request.Request, *elasticbeanstalk.ListPlatformBranchesOutput)
+
+	ListPlatformBranchesPages(*elasticbeanstalk.ListPlatformBranchesInput, func(*elasticbeanstalk.ListPlatformBranchesOutput, bool) bool) error
+	ListPlatformBranchesPagesWithContext(aws.Context, *elasticbeanstalk.ListPlatformBranchesInput, func(*elasticbeanstalk.ListPlatformBranchesOutput, bool) bool, ...request.Option) error
+
 	ListPlatformVersions(*elasticbeanstalk.ListPlatformVersionsInput) (*elasticbeanstalk.ListPlatformVersionsOutput, error)
 	ListPlatformVersionsWithContext(aws.Context, *elasticbeanstalk.ListPlatformVersionsInput, ...request.Option) (*elasticbeanstalk.ListPlatformVersionsOutput, error)
 	ListPlatformVersionsRequest(*elasticbeanstalk.ListPlatformVersionsInput) (*request.Request, *elasticbeanstalk.ListPlatformVersionsOutput)
+
+	ListPlatformVersionsPages(*elasticbeanstalk.ListPlatformVersionsInput, func(*elasticbeanstalk.ListPlatformVersionsOutput, bool) bool) error
+	ListPlatformVersionsPagesWithContext(aws.Context, *elasticbeanstalk.ListPlatformVersionsInput, func(*elasticbeanstalk.ListPlatformVersionsOutput, bool) bool, ...request.Option) error
+
+	ListTagsForResource(*elasticbeanstalk.ListTagsForResourceInput) (*elasticbeanstalk.ListTagsForResourceOutput, error)
+	ListTagsForResourceWithContext(aws.Context, *elasticbeanstalk.ListTagsForResourceInput, ...request.Option) (*elasticbeanstalk.ListTagsForResourceOutput, error)
+	ListTagsForResourceRequest(*elasticbeanstalk.ListTagsForResourceInput) (*request.Request, *elasticbeanstalk.ListTagsForResourceOutput)
 
 	RebuildEnvironment(*elasticbeanstalk.RebuildEnvironmentInput) (*elasticbeanstalk.RebuildEnvironmentOutput, error)
 	RebuildEnvironmentWithContext(aws.Context, *elasticbeanstalk.RebuildEnvironmentInput, ...request.Option) (*elasticbeanstalk.RebuildEnvironmentOutput, error)
@@ -223,9 +252,22 @@ type ElasticBeanstalkAPI interface {
 	UpdateEnvironmentWithContext(aws.Context, *elasticbeanstalk.UpdateEnvironmentInput, ...request.Option) (*elasticbeanstalk.EnvironmentDescription, error)
 	UpdateEnvironmentRequest(*elasticbeanstalk.UpdateEnvironmentInput) (*request.Request, *elasticbeanstalk.EnvironmentDescription)
 
+	UpdateTagsForResource(*elasticbeanstalk.UpdateTagsForResourceInput) (*elasticbeanstalk.UpdateTagsForResourceOutput, error)
+	UpdateTagsForResourceWithContext(aws.Context, *elasticbeanstalk.UpdateTagsForResourceInput, ...request.Option) (*elasticbeanstalk.UpdateTagsForResourceOutput, error)
+	UpdateTagsForResourceRequest(*elasticbeanstalk.UpdateTagsForResourceInput) (*request.Request, *elasticbeanstalk.UpdateTagsForResourceOutput)
+
 	ValidateConfigurationSettings(*elasticbeanstalk.ValidateConfigurationSettingsInput) (*elasticbeanstalk.ValidateConfigurationSettingsOutput, error)
 	ValidateConfigurationSettingsWithContext(aws.Context, *elasticbeanstalk.ValidateConfigurationSettingsInput, ...request.Option) (*elasticbeanstalk.ValidateConfigurationSettingsOutput, error)
 	ValidateConfigurationSettingsRequest(*elasticbeanstalk.ValidateConfigurationSettingsInput) (*request.Request, *elasticbeanstalk.ValidateConfigurationSettingsOutput)
+
+	WaitUntilEnvironmentExists(*elasticbeanstalk.DescribeEnvironmentsInput) error
+	WaitUntilEnvironmentExistsWithContext(aws.Context, *elasticbeanstalk.DescribeEnvironmentsInput, ...request.WaiterOption) error
+
+	WaitUntilEnvironmentTerminated(*elasticbeanstalk.DescribeEnvironmentsInput) error
+	WaitUntilEnvironmentTerminatedWithContext(aws.Context, *elasticbeanstalk.DescribeEnvironmentsInput, ...request.WaiterOption) error
+
+	WaitUntilEnvironmentUpdated(*elasticbeanstalk.DescribeEnvironmentsInput) error
+	WaitUntilEnvironmentUpdatedWithContext(aws.Context, *elasticbeanstalk.DescribeEnvironmentsInput, ...request.WaiterOption) error
 }
 
 var _ ElasticBeanstalkAPI = (*elasticbeanstalk.ElasticBeanstalk)(nil)

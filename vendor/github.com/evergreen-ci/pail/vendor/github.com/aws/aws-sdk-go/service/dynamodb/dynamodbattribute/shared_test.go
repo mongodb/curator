@@ -2,12 +2,12 @@ package dynamodbattribute
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/stretchr/testify/assert"
 )
 
 type testBinarySetStruct struct {
@@ -59,6 +59,8 @@ type testAliasedStruct struct {
 
 	Value13 testAliasedBool
 	Value14 testAliasedBoolSlice
+
+	Value15 map[testAliasedString]string
 }
 
 type testNamedPointer *int
@@ -66,21 +68,19 @@ type testNamedPointer *int
 var testDate, _ = time.Parse(time.RFC3339, "2016-05-03T17:06:26.209072Z")
 
 var sharedTestCases = []struct {
-	in               *dynamodb.AttributeValue
-	actual, expected interface{}
-	err              error
+	in                   *dynamodb.AttributeValue
+	actual, expected     interface{}
+	encoderOpts          func(encoder *Encoder)
+	enableEmptyString    bool
+	enableEmptyByteSlice bool
+	err                  error
 }{
-	{ // Binary slice
+	0: { // Binary slice
 		in:       &dynamodb.AttributeValue{B: []byte{48, 49}},
 		actual:   &[]byte{},
 		expected: []byte{48, 49},
 	},
-	{ // Binary slice
-		in:       &dynamodb.AttributeValue{B: []byte{48, 49}},
-		actual:   &[]byte{},
-		expected: []byte{48, 49},
-	},
-	{ // Binary slice oversized
+	1: { // Binary slice oversized
 		in: &dynamodb.AttributeValue{B: []byte{48, 49}},
 		actual: func() *[]byte {
 			v := make([]byte, 0, 10)
@@ -88,7 +88,7 @@ var sharedTestCases = []struct {
 		}(),
 		expected: []byte{48, 49},
 	},
-	{ // Binary slice pointer
+	2: { // Binary slice pointer
 		in: &dynamodb.AttributeValue{B: []byte{48, 49}},
 		actual: func() **[]byte {
 			v := make([]byte, 0, 10)
@@ -97,33 +97,33 @@ var sharedTestCases = []struct {
 		}(),
 		expected: []byte{48, 49},
 	},
-	{ // Bool
+	3: { // Bool
 		in:       &dynamodb.AttributeValue{BOOL: aws.Bool(true)},
 		actual:   new(bool),
 		expected: true,
 	},
-	{ // List
+	4: { // List
 		in: &dynamodb.AttributeValue{L: []*dynamodb.AttributeValue{
 			{N: aws.String("123")},
 		}},
 		actual:   &[]int{},
 		expected: []int{123},
 	},
-	{ // Map, interface
+	5: { // Map, interface
 		in: &dynamodb.AttributeValue{M: map[string]*dynamodb.AttributeValue{
 			"abc": {N: aws.String("123")},
 		}},
 		actual:   &map[string]int{},
 		expected: map[string]int{"abc": 123},
 	},
-	{ // Map, struct
+	6: { // Map, struct
 		in: &dynamodb.AttributeValue{M: map[string]*dynamodb.AttributeValue{
 			"Abc": {N: aws.String("123")},
 		}},
 		actual:   &struct{ Abc int }{},
 		expected: struct{ Abc int }{Abc: 123},
 	},
-	{ // Map, struct
+	7: { // Map, struct
 		in: &dynamodb.AttributeValue{M: map[string]*dynamodb.AttributeValue{
 			"abc": {N: aws.String("123")},
 		}},
@@ -134,32 +134,32 @@ var sharedTestCases = []struct {
 			Abc int `json:"abc" dynamodbav:"abc"`
 		}{Abc: 123},
 	},
-	{ // Number, int
+	8: { // Number, int
 		in:       &dynamodb.AttributeValue{N: aws.String("123")},
 		actual:   new(int),
 		expected: 123,
 	},
-	{ // Number, Float
+	9: { // Number, Float
 		in:       &dynamodb.AttributeValue{N: aws.String("123.1")},
 		actual:   new(float64),
 		expected: float64(123.1),
 	},
-	{ // Null
+	10: { // Null string
 		in:       &dynamodb.AttributeValue{NULL: aws.Bool(true)},
 		actual:   new(string),
 		expected: "",
 	},
-	{ // Null ptr
+	11: { // Null ptr string
 		in:       &dynamodb.AttributeValue{NULL: aws.Bool(true)},
 		actual:   new(*string),
 		expected: nil,
 	},
-	{ // String
+	12: { // Non-Empty String
 		in:       &dynamodb.AttributeValue{S: aws.String("abc")},
 		actual:   new(string),
 		expected: "abc",
 	},
-	{ // Binary Set
+	13: { // Binary Set
 		in: &dynamodb.AttributeValue{
 			M: map[string]*dynamodb.AttributeValue{
 				"Binarys": {BS: [][]byte{{48, 49}, {50, 51}}},
@@ -168,7 +168,7 @@ var sharedTestCases = []struct {
 		actual:   &testBinarySetStruct{},
 		expected: testBinarySetStruct{Binarys: [][]byte{{48, 49}, {50, 51}}},
 	},
-	{ // Number Set
+	14: { // Number Set
 		in: &dynamodb.AttributeValue{
 			M: map[string]*dynamodb.AttributeValue{
 				"Numbers": {NS: []*string{aws.String("123"), aws.String("321")}},
@@ -177,7 +177,7 @@ var sharedTestCases = []struct {
 		actual:   &testNumberSetStruct{},
 		expected: testNumberSetStruct{Numbers: []int{123, 321}},
 	},
-	{ // String Set
+	15: { // String Set
 		in: &dynamodb.AttributeValue{
 			M: map[string]*dynamodb.AttributeValue{
 				"Strings": {SS: []*string{aws.String("abc"), aws.String("efg")}},
@@ -186,7 +186,7 @@ var sharedTestCases = []struct {
 		actual:   &testStringSetStruct{},
 		expected: testStringSetStruct{Strings: []string{"abc", "efg"}},
 	},
-	{ // Int value as string
+	16: { // Int value as string
 		in: &dynamodb.AttributeValue{
 			M: map[string]*dynamodb.AttributeValue{
 				"Value": {S: aws.String("123")},
@@ -195,7 +195,7 @@ var sharedTestCases = []struct {
 		actual:   &testIntAsStringStruct{},
 		expected: testIntAsStringStruct{Value: 123},
 	},
-	{ // Omitempty
+	17: { // Omitempty
 		in: &dynamodb.AttributeValue{
 			M: map[string]*dynamodb.AttributeValue{
 				"Value3": {N: aws.String("0")},
@@ -204,7 +204,7 @@ var sharedTestCases = []struct {
 		actual:   &testOmitEmptyStruct{},
 		expected: testOmitEmptyStruct{Value: "", Value2: nil, Value3: 0},
 	},
-	{ // aliased type
+	18: { // aliased type
 		in: &dynamodb.AttributeValue{
 			M: map[string]*dynamodb.AttributeValue{
 				"Value":  {S: aws.String("123")},
@@ -257,6 +257,9 @@ var sharedTestCases = []struct {
 					{BOOL: aws.Bool(false)},
 					{BOOL: aws.Bool(true)},
 				}},
+				"Value15": {M: map[string]*dynamodb.AttributeValue{
+					"TestKey": {S: aws.String("TestElement")},
+				}},
 			},
 		},
 		actual: &testAliasedStruct{},
@@ -279,19 +282,22 @@ var sharedTestCases = []struct {
 			Value12: testAliasedStringSlice{"1", "2", "3"},
 			Value13: true,
 			Value14: testAliasedBoolSlice{true, false, true},
+			Value15: map[testAliasedString]string{
+				"TestKey": "TestElement",
+			},
 		},
 	},
-	{
+	19: {
 		in:       &dynamodb.AttributeValue{N: aws.String("123")},
 		actual:   new(testNamedPointer),
 		expected: testNamedPointer(aws.Int(123)),
 	},
-	{ // time.Time
+	20: { // time.Time
 		in:       &dynamodb.AttributeValue{S: aws.String("2016-05-03T17:06:26.209072Z")},
 		actual:   new(time.Time),
 		expected: testDate,
 	},
-	{ // time.Time List
+	21: { // time.Time List
 		in: &dynamodb.AttributeValue{L: []*dynamodb.AttributeValue{
 			{S: aws.String("2016-05-03T17:06:26.209072Z")},
 			{S: aws.String("2016-05-04T17:06:26.209072Z")},
@@ -299,7 +305,7 @@ var sharedTestCases = []struct {
 		actual:   new([]time.Time),
 		expected: []time.Time{testDate, testDate.Add(24 * time.Hour)},
 	},
-	{ // time.Time struct
+	22: { // time.Time struct
 		in: &dynamodb.AttributeValue{M: map[string]*dynamodb.AttributeValue{
 			"abc": {S: aws.String("2016-05-03T17:06:26.209072Z")},
 		}},
@@ -310,7 +316,7 @@ var sharedTestCases = []struct {
 			Abc time.Time `json:"abc" dynamodbav:"abc"`
 		}{Abc: testDate},
 	},
-	{ // time.Time ptr struct
+	23: { // time.Time ptr struct
 		in: &dynamodb.AttributeValue{M: map[string]*dynamodb.AttributeValue{
 			"abc": {S: aws.String("2016-05-03T17:06:26.209072Z")},
 		}},
@@ -320,6 +326,76 @@ var sharedTestCases = []struct {
 		expected: struct {
 			Abc *time.Time `json:"abc" dynamodbav:"abc"`
 		}{Abc: &testDate},
+	},
+	24: { // empty string and NullEmptyString off
+		encoderOpts: func(encoder *Encoder) {
+			encoder.NullEmptyString = false
+		},
+		in:       &dynamodb.AttributeValue{S: aws.String("")},
+		actual:   new(string),
+		expected: "",
+	},
+	25: { // empty ptr string and NullEmptyString off
+		encoderOpts: func(encoder *Encoder) {
+			encoder.NullEmptyString = false
+		},
+		in:       &dynamodb.AttributeValue{S: aws.String("")},
+		actual:   new(*string),
+		expected: "",
+	},
+	26: { // string set with empty string and NullEmptyString off
+		encoderOpts: func(encoder *Encoder) {
+			encoder.NullEmptyString = false
+		},
+		in: &dynamodb.AttributeValue{M: map[string]*dynamodb.AttributeValue{
+			"Value": {SS: []*string{aws.String("one"), aws.String(""), aws.String("three")}},
+		}},
+		actual: &struct {
+			Value []string `dynamodbav:",stringset"`
+		}{},
+		expected: struct {
+			Value []string `dynamodbav:",stringset"`
+		}{
+			Value: []string{"one", "", "three"},
+		},
+	},
+	27: { // empty byte slice and NullEmptyString off
+		encoderOpts: func(encoder *Encoder) {
+			encoder.NullEmptyByteSlice = false
+		},
+		in:       &dynamodb.AttributeValue{B: []byte{}},
+		actual:   &[]byte{},
+		expected: []byte{},
+	},
+	28: { // byte slice set with empty values and NullEmptyString off
+		encoderOpts: func(encoder *Encoder) {
+			encoder.NullEmptyByteSlice = false
+		},
+		in: &dynamodb.AttributeValue{M: map[string]*dynamodb.AttributeValue{"Value": {BS: [][]byte{{0x0}, {}, {0x2}}}}},
+		actual: &struct {
+			Value [][]byte `dynamodbav:",binaryset"`
+		}{},
+		expected: struct {
+			Value [][]byte `dynamodbav:",binaryset"`
+		}{
+			Value: [][]byte{{0x0}, {}, {0x2}},
+		},
+	},
+	29: { // empty byte slice and NullEmptyByteSlice disabled, and omitempty
+		encoderOpts: func(encoder *Encoder) {
+			encoder.NullEmptyByteSlice = false
+		},
+		in: &dynamodb.AttributeValue{
+			NULL: aws.Bool(true),
+		},
+		actual: &struct {
+			Value []byte `dynamodbav:",omitempty"`
+		}{
+			Value: []byte{},
+		},
+		expected: &struct {
+			Value []byte `dynamodbav:",omitempty"`
+		}{},
 	},
 }
 
@@ -373,17 +449,20 @@ var sharedMapTestCases = []struct {
 }
 
 func assertConvertTest(t *testing.T, i int, actual, expected interface{}, err, expectedErr error) {
-	i++
 	if expectedErr != nil {
 		if err != nil {
-			assert.Equal(t, expectedErr, err, "case %d", i)
+			if e, a := expectedErr, err; !strings.Contains(a.Error(), e.Error()) {
+				t.Errorf("case %d expect %v, got %v", i, e, a)
+			}
 		} else {
-			assert.Fail(t, "", "case %d, expected error, %v", i)
+			t.Fatalf("case %d, expected error, %v", i, expectedErr)
 		}
 	} else if err != nil {
-		assert.Fail(t, "", "case %d, expect no error, got %v", i, err)
+		t.Fatalf("case %d, expect no error, got %v", i, err)
 	} else {
-		assert.Equal(t, ptrToValue(expected), ptrToValue(actual), "case %d", i)
+		if e, a := ptrToValue(expected), ptrToValue(actual); !reflect.DeepEqual(e, a) {
+			t.Errorf("case %d, expect %v, got %v", i, e, a)
+		}
 	}
 }
 

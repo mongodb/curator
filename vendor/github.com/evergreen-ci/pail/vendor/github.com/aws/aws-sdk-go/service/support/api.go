@@ -3,17 +3,20 @@
 package support
 
 import (
+	"fmt"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/private/protocol"
 )
 
 const opAddAttachmentsToSet = "AddAttachmentsToSet"
 
 // AddAttachmentsToSetRequest generates a "aws/request.Request" representing the
 // client's request for the AddAttachmentsToSet operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -33,7 +36,7 @@ const opAddAttachmentsToSet = "AddAttachmentsToSet"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/AddAttachmentsToSet
+// See also, https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/AddAttachmentsToSet
 func (c *Support) AddAttachmentsToSetRequest(input *AddAttachmentsToSetInput) (req *request.Request, output *AddAttachmentsToSetOutput) {
 	op := &request.Operation{
 		Name:       opAddAttachmentsToSet,
@@ -52,16 +55,19 @@ func (c *Support) AddAttachmentsToSetRequest(input *AddAttachmentsToSetInput) (r
 
 // AddAttachmentsToSet API operation for AWS Support.
 //
-// Adds one or more attachments to an attachment set. If an attachmentSetId
-// is not specified, a new attachment set is created, and the ID of the set
-// is returned in the response. If an attachmentSetId is specified, the attachments
-// are added to the specified set, if it exists.
+// Adds one or more attachments to an attachment set.
 //
-// An attachment set is a temporary container for attachments that are to be
-// added to a case or case communication. The set is available for one hour
-// after it is created; the expiryTime returned in the response indicates when
-// the set expires. The maximum number of attachments in a set is 3, and the
-// maximum size of any attachment in the set is 5 MB.
+// An attachment set is a temporary container for attachments that you add to
+// a case or case communication. The set is available for 1 hour after it's
+// created. The expiryTime returned in the response is when the set expires.
+//
+//    * You must have a Business or Enterprise support plan to use the AWS Support
+//    API.
+//
+//    * If you call the AWS Support API from an account that does not have a
+//    Business or Enterprise support plan, the SubscriptionRequiredException
+//    error message appears. For information about changing your support plan,
+//    see AWS Support (http://aws.amazon.com/premiumsupport/).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -70,26 +76,26 @@ func (c *Support) AddAttachmentsToSetRequest(input *AddAttachmentsToSetInput) (r
 // See the AWS API reference guide for AWS Support's
 // API operation AddAttachmentsToSet for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServerError "InternalServerError"
+// Returned Error Types:
+//   * InternalServerError
 //   An internal server error occurred.
 //
-//   * ErrCodeAttachmentSetIdNotFound "AttachmentSetIdNotFound"
+//   * AttachmentSetIdNotFound
 //   An attachment set with the specified ID could not be found.
 //
-//   * ErrCodeAttachmentSetExpired "AttachmentSetExpired"
+//   * AttachmentSetExpired
 //   The expiration time of the attachment set has passed. The set expires 1 hour
 //   after it is created.
 //
-//   * ErrCodeAttachmentSetSizeLimitExceeded "AttachmentSetSizeLimitExceeded"
+//   * AttachmentSetSizeLimitExceeded
 //   A limit for the size of an attachment set has been exceeded. The limits are
-//   3 attachments and 5 MB per attachment.
+//   three attachments and 5 MB per attachment.
 //
-//   * ErrCodeAttachmentLimitExceeded "AttachmentLimitExceeded"
+//   * AttachmentLimitExceeded
 //   The limit for the number of attachment sets created in a short period of
 //   time has been exceeded.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/AddAttachmentsToSet
+// See also, https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/AddAttachmentsToSet
 func (c *Support) AddAttachmentsToSet(input *AddAttachmentsToSetInput) (*AddAttachmentsToSetOutput, error) {
 	req, out := c.AddAttachmentsToSetRequest(input)
 	return out, req.Send()
@@ -115,8 +121,8 @@ const opAddCommunicationToCase = "AddCommunicationToCase"
 
 // AddCommunicationToCaseRequest generates a "aws/request.Request" representing the
 // client's request for the AddCommunicationToCase operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -136,7 +142,7 @@ const opAddCommunicationToCase = "AddCommunicationToCase"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/AddCommunicationToCase
+// See also, https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/AddCommunicationToCase
 func (c *Support) AddCommunicationToCaseRequest(input *AddCommunicationToCaseInput) (req *request.Request, output *AddCommunicationToCaseOutput) {
 	op := &request.Operation{
 		Name:       opAddCommunicationToCase,
@@ -155,14 +161,18 @@ func (c *Support) AddCommunicationToCaseRequest(input *AddCommunicationToCaseInp
 
 // AddCommunicationToCase API operation for AWS Support.
 //
-// Adds additional customer communication to an AWS Support case. You use the
-// caseId value to identify the case to add communication to. You can list a
-// set of email addresses to copy on the communication using the ccEmailAddresses
-// value. The communicationBody value contains the text of the communication.
+// Adds additional customer communication to an AWS Support case. Use the caseId
+// parameter to identify the case to which to add communication. You can list
+// a set of email addresses to copy on the communication by using the ccEmailAddresses
+// parameter. The communicationBody value contains the text of the communication.
 //
-// The response indicates the success or failure of the request.
+//    * You must have a Business or Enterprise support plan to use the AWS Support
+//    API.
 //
-// This operation implements a subset of the features of the AWS Support Center.
+//    * If you call the AWS Support API from an account that does not have a
+//    Business or Enterprise support plan, the SubscriptionRequiredException
+//    error message appears. For information about changing your support plan,
+//    see AWS Support (http://aws.amazon.com/premiumsupport/).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -171,21 +181,21 @@ func (c *Support) AddCommunicationToCaseRequest(input *AddCommunicationToCaseInp
 // See the AWS API reference guide for AWS Support's
 // API operation AddCommunicationToCase for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServerError "InternalServerError"
+// Returned Error Types:
+//   * InternalServerError
 //   An internal server error occurred.
 //
-//   * ErrCodeCaseIdNotFound "CaseIdNotFound"
+//   * CaseIdNotFound
 //   The requested caseId could not be located.
 //
-//   * ErrCodeAttachmentSetIdNotFound "AttachmentSetIdNotFound"
+//   * AttachmentSetIdNotFound
 //   An attachment set with the specified ID could not be found.
 //
-//   * ErrCodeAttachmentSetExpired "AttachmentSetExpired"
+//   * AttachmentSetExpired
 //   The expiration time of the attachment set has passed. The set expires 1 hour
 //   after it is created.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/AddCommunicationToCase
+// See also, https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/AddCommunicationToCase
 func (c *Support) AddCommunicationToCase(input *AddCommunicationToCaseInput) (*AddCommunicationToCaseOutput, error) {
 	req, out := c.AddCommunicationToCaseRequest(input)
 	return out, req.Send()
@@ -211,8 +221,8 @@ const opCreateCase = "CreateCase"
 
 // CreateCaseRequest generates a "aws/request.Request" representing the
 // client's request for the CreateCase operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -232,7 +242,7 @@ const opCreateCase = "CreateCase"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/CreateCase
+// See also, https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/CreateCase
 func (c *Support) CreateCaseRequest(input *CreateCaseInput) (req *request.Request, output *CreateCaseOutput) {
 	op := &request.Operation{
 		Name:       opCreateCase,
@@ -251,50 +261,35 @@ func (c *Support) CreateCaseRequest(input *CreateCaseInput) (req *request.Reques
 
 // CreateCase API operation for AWS Support.
 //
-// Creates a new case in the AWS Support Center. This operation is modeled on
-// the behavior of the AWS Support Center Create Case (https://console.aws.amazon.com/support/home#/case/create)
-// page. Its parameters require you to specify the following information:
+// Creates a case in the AWS Support Center. This operation is similar to how
+// you create a case in the AWS Support Center Create Case (https://console.aws.amazon.com/support/home#/case/create)
+// page.
 //
-//    * issueType. The type of issue for the case. You can specify either "customer-service"
-//    or "technical." If you do not indicate a value, the default is "technical."
+// The AWS Support API doesn't support requesting service limit increases. You
+// can submit a service limit increase in the following ways:
 //
-//
-//    * serviceCode. The code for an AWS service. You obtain the serviceCode
-//    by calling DescribeServices.
-//
-//    * categoryCode. The category for the service defined for the serviceCode
-//    value. You also obtain the category code for a service by calling DescribeServices.
-//    Each AWS service defines its own set of category codes.
-//
-//    * severityCode. A value that indicates the urgency of the case, which
-//    in turn determines the response time according to your service level agreement
-//    with AWS Support. You obtain the SeverityCode by calling DescribeSeverityLevels.
-//
-//    * subject. The Subject field on the AWS Support Center Create Case (https://console.aws.amazon.com/support/home#/case/create)
+//    * Submit a request from the AWS Support Center Create Case (https://console.aws.amazon.com/support/home#/case/create)
 //    page.
 //
-//    * communicationBody. The Description field on the AWS Support Center Create
-//    Case (https://console.aws.amazon.com/support/home#/case/create) page.
+//    * Use the Service Quotas RequestServiceQuotaIncrease (https://docs.aws.amazon.com/servicequotas/2019-06-24/apireference/API_RequestServiceQuotaIncrease.html)
+//    operation.
 //
-//    * attachmentSetId. The ID of a set of attachments that has been created
-//    by using AddAttachmentsToSet.
+// A successful CreateCase request returns an AWS Support case number. You can
+// use the DescribeCases operation and specify the case number to get existing
+// AWS Support cases. After you create a case, use the AddCommunicationToCase
+// operation to add additional communication or attachments to an existing case.
 //
-//    * language. The human language in which AWS Support handles the case.
-//    English and Japanese are currently supported.
+// The caseId is separate from the displayId that appears in the AWS Support
+// Center (https://console.aws.amazon.com/support). Use the DescribeCases operation
+// to get the displayId.
 //
-//    * ccEmailAddresses. The AWS Support Center CC field on the Create Case
-//    (https://console.aws.amazon.com/support/home#/case/create) page. You can
-//    list email addresses to be copied on any correspondence about the case.
-//    The account that opens the case is already identified by passing the AWS
-//    Credentials in the HTTP POST method or in a method or function call from
-//    one of the programming languages supported by an AWS SDK (http://aws.amazon.com/tools/).
+//    * You must have a Business or Enterprise support plan to use the AWS Support
+//    API.
 //
-//
-// To add additional communication or attachments to an existing case, use AddCommunicationToCase.
-//
-// A successful CreateCase request returns an AWS Support case number. Case
-// numbers are used by the DescribeCases operation to retrieve existing AWS
-// Support cases.
+//    * If you call the AWS Support API from an account that does not have a
+//    Business or Enterprise support plan, the SubscriptionRequiredException
+//    error message appears. For information about changing your support plan,
+//    see AWS Support (http://aws.amazon.com/premiumsupport/).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -303,21 +298,21 @@ func (c *Support) CreateCaseRequest(input *CreateCaseInput) (req *request.Reques
 // See the AWS API reference guide for AWS Support's
 // API operation CreateCase for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServerError "InternalServerError"
+// Returned Error Types:
+//   * InternalServerError
 //   An internal server error occurred.
 //
-//   * ErrCodeCaseCreationLimitExceeded "CaseCreationLimitExceeded"
+//   * CaseCreationLimitExceeded
 //   The case creation limit for the account has been exceeded.
 //
-//   * ErrCodeAttachmentSetIdNotFound "AttachmentSetIdNotFound"
+//   * AttachmentSetIdNotFound
 //   An attachment set with the specified ID could not be found.
 //
-//   * ErrCodeAttachmentSetExpired "AttachmentSetExpired"
+//   * AttachmentSetExpired
 //   The expiration time of the attachment set has passed. The set expires 1 hour
 //   after it is created.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/CreateCase
+// See also, https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/CreateCase
 func (c *Support) CreateCase(input *CreateCaseInput) (*CreateCaseOutput, error) {
 	req, out := c.CreateCaseRequest(input)
 	return out, req.Send()
@@ -343,8 +338,8 @@ const opDescribeAttachment = "DescribeAttachment"
 
 // DescribeAttachmentRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeAttachment operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -364,7 +359,7 @@ const opDescribeAttachment = "DescribeAttachment"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeAttachment
+// See also, https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeAttachment
 func (c *Support) DescribeAttachmentRequest(input *DescribeAttachmentInput) (req *request.Request, output *DescribeAttachmentOutput) {
 	op := &request.Operation{
 		Name:       opDescribeAttachment,
@@ -383,10 +378,19 @@ func (c *Support) DescribeAttachmentRequest(input *DescribeAttachmentInput) (req
 
 // DescribeAttachment API operation for AWS Support.
 //
-// Returns the attachment that has the specified ID. Attachment IDs are generated
-// by the case management system when you add an attachment to a case or case
-// communication. Attachment IDs are returned in the AttachmentDetails objects
-// that are returned by the DescribeCommunications operation.
+// Returns the attachment that has the specified ID. Attachments can include
+// screenshots, error logs, or other files that describe your issue. Attachment
+// IDs are generated by the case management system when you add an attachment
+// to a case or case communication. Attachment IDs are returned in the AttachmentDetails
+// objects that are returned by the DescribeCommunications operation.
+//
+//    * You must have a Business or Enterprise support plan to use the AWS Support
+//    API.
+//
+//    * If you call the AWS Support API from an account that does not have a
+//    Business or Enterprise support plan, the SubscriptionRequiredException
+//    error message appears. For information about changing your support plan,
+//    see AWS Support (http://aws.amazon.com/premiumsupport/).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -395,18 +399,18 @@ func (c *Support) DescribeAttachmentRequest(input *DescribeAttachmentInput) (req
 // See the AWS API reference guide for AWS Support's
 // API operation DescribeAttachment for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServerError "InternalServerError"
+// Returned Error Types:
+//   * InternalServerError
 //   An internal server error occurred.
 //
-//   * ErrCodeDescribeAttachmentLimitExceeded "DescribeAttachmentLimitExceeded"
+//   * DescribeAttachmentLimitExceeded
 //   The limit for the number of DescribeAttachment requests in a short period
 //   of time has been exceeded.
 //
-//   * ErrCodeAttachmentIdNotFound "AttachmentIdNotFound"
+//   * AttachmentIdNotFound
 //   An attachment with the specified ID could not be found.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeAttachment
+// See also, https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeAttachment
 func (c *Support) DescribeAttachment(input *DescribeAttachmentInput) (*DescribeAttachmentOutput, error) {
 	req, out := c.DescribeAttachmentRequest(input)
 	return out, req.Send()
@@ -432,8 +436,8 @@ const opDescribeCases = "DescribeCases"
 
 // DescribeCasesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeCases operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -453,7 +457,7 @@ const opDescribeCases = "DescribeCases"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeCases
+// See also, https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeCases
 func (c *Support) DescribeCasesRequest(input *DescribeCasesInput) (req *request.Request, output *DescribeCasesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeCases,
@@ -479,20 +483,28 @@ func (c *Support) DescribeCasesRequest(input *DescribeCasesInput) (req *request.
 // DescribeCases API operation for AWS Support.
 //
 // Returns a list of cases that you specify by passing one or more case IDs.
-// In addition, you can filter the cases by date by setting values for the afterTime
-// and beforeTime request parameters. You can set values for the includeResolvedCases
-// and includeCommunications request parameters to control how much information
-// is returned.
-//
-// Case data is available for 12 months after creation. If a case was created
-// more than 12 months ago, a request for data might cause an error.
+// You can use the afterTime and beforeTime parameters to filter the cases by
+// date. You can set values for the includeResolvedCases and includeCommunications
+// parameters to specify how much information to return.
 //
 // The response returns the following in JSON format:
 //
-//    * One or more CaseDetails data types.
+//    * One or more CaseDetails (https://docs.aws.amazon.com/awssupport/latest/APIReference/API_CaseDetails.html)
+//    data types.
 //
 //    * One or more nextToken values, which specify where to paginate the returned
 //    records represented by the CaseDetails objects.
+//
+// Case data is available for 12 months after creation. If a case was created
+// more than 12 months ago, a request might return an error.
+//
+//    * You must have a Business or Enterprise support plan to use the AWS Support
+//    API.
+//
+//    * If you call the AWS Support API from an account that does not have a
+//    Business or Enterprise support plan, the SubscriptionRequiredException
+//    error message appears. For information about changing your support plan,
+//    see AWS Support (http://aws.amazon.com/premiumsupport/).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -501,14 +513,14 @@ func (c *Support) DescribeCasesRequest(input *DescribeCasesInput) (req *request.
 // See the AWS API reference guide for AWS Support's
 // API operation DescribeCases for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServerError "InternalServerError"
+// Returned Error Types:
+//   * InternalServerError
 //   An internal server error occurred.
 //
-//   * ErrCodeCaseIdNotFound "CaseIdNotFound"
+//   * CaseIdNotFound
 //   The requested caseId could not be located.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeCases
+// See also, https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeCases
 func (c *Support) DescribeCases(input *DescribeCasesInput) (*DescribeCasesOutput, error) {
 	req, out := c.DescribeCasesRequest(input)
 	return out, req.Send()
@@ -541,7 +553,7 @@ func (c *Support) DescribeCasesWithContext(ctx aws.Context, input *DescribeCases
 //    // Example iterating over at most 3 pages of a DescribeCases operation.
 //    pageNum := 0
 //    err := client.DescribeCasesPages(params,
-//        func(page *DescribeCasesOutput, lastPage bool) bool {
+//        func(page *support.DescribeCasesOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -573,10 +585,12 @@ func (c *Support) DescribeCasesPagesWithContext(ctx aws.Context, input *Describe
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*DescribeCasesOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*DescribeCasesOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -584,8 +598,8 @@ const opDescribeCommunications = "DescribeCommunications"
 
 // DescribeCommunicationsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeCommunications operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -605,7 +619,7 @@ const opDescribeCommunications = "DescribeCommunications"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeCommunications
+// See also, https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeCommunications
 func (c *Support) DescribeCommunicationsRequest(input *DescribeCommunicationsInput) (req *request.Request, output *DescribeCommunicationsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeCommunications,
@@ -630,16 +644,24 @@ func (c *Support) DescribeCommunicationsRequest(input *DescribeCommunicationsInp
 
 // DescribeCommunications API operation for AWS Support.
 //
-// Returns communications (and attachments) for one or more support cases. You
-// can use the afterTime and beforeTime parameters to filter by date. You can
-// use the caseId parameter to restrict the results to a particular case.
+// Returns communications and attachments for one or more support cases. Use
+// the afterTime and beforeTime parameters to filter by date. You can use the
+// caseId parameter to restrict the results to a specific case.
 //
 // Case data is available for 12 months after creation. If a case was created
 // more than 12 months ago, a request for data might cause an error.
 //
 // You can use the maxResults and nextToken parameters to control the pagination
-// of the result set. Set maxResults to the number of cases you want displayed
+// of the results. Set maxResults to the number of cases that you want to display
 // on each page, and use nextToken to specify the resumption of pagination.
+//
+//    * You must have a Business or Enterprise support plan to use the AWS Support
+//    API.
+//
+//    * If you call the AWS Support API from an account that does not have a
+//    Business or Enterprise support plan, the SubscriptionRequiredException
+//    error message appears. For information about changing your support plan,
+//    see AWS Support (http://aws.amazon.com/premiumsupport/).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -648,14 +670,14 @@ func (c *Support) DescribeCommunicationsRequest(input *DescribeCommunicationsInp
 // See the AWS API reference guide for AWS Support's
 // API operation DescribeCommunications for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServerError "InternalServerError"
+// Returned Error Types:
+//   * InternalServerError
 //   An internal server error occurred.
 //
-//   * ErrCodeCaseIdNotFound "CaseIdNotFound"
+//   * CaseIdNotFound
 //   The requested caseId could not be located.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeCommunications
+// See also, https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeCommunications
 func (c *Support) DescribeCommunications(input *DescribeCommunicationsInput) (*DescribeCommunicationsOutput, error) {
 	req, out := c.DescribeCommunicationsRequest(input)
 	return out, req.Send()
@@ -688,7 +710,7 @@ func (c *Support) DescribeCommunicationsWithContext(ctx aws.Context, input *Desc
 //    // Example iterating over at most 3 pages of a DescribeCommunications operation.
 //    pageNum := 0
 //    err := client.DescribeCommunicationsPages(params,
-//        func(page *DescribeCommunicationsOutput, lastPage bool) bool {
+//        func(page *support.DescribeCommunicationsOutput, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
@@ -720,10 +742,12 @@ func (c *Support) DescribeCommunicationsPagesWithContext(ctx aws.Context, input 
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().(*DescribeCommunicationsOutput), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().(*DescribeCommunicationsOutput), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 
@@ -731,8 +755,8 @@ const opDescribeServices = "DescribeServices"
 
 // DescribeServicesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeServices operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -752,7 +776,7 @@ const opDescribeServices = "DescribeServices"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeServices
+// See also, https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeServices
 func (c *Support) DescribeServicesRequest(input *DescribeServicesInput) (req *request.Request, output *DescribeServicesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeServices,
@@ -772,16 +796,23 @@ func (c *Support) DescribeServicesRequest(input *DescribeServicesInput) (req *re
 // DescribeServices API operation for AWS Support.
 //
 // Returns the current list of AWS services and a list of service categories
-// that applies to each one. You then use service names and categories in your
-// CreateCase requests. Each AWS service has its own set of categories.
+// for each service. You then use service names and categories in your CreateCase
+// requests. Each AWS service has its own set of categories.
 //
-// The service codes and category codes correspond to the values that are displayed
-// in the Service and Category drop-down lists on the AWS Support Center Create
-// Case (https://console.aws.amazon.com/support/home#/case/create) page. The
-// values in those fields, however, do not necessarily match the service codes
-// and categories returned by the DescribeServices request. Always use the service
-// codes and categories obtained programmatically. This practice ensures that
-// you always have the most recent set of service and category codes.
+// The service codes and category codes correspond to the values that appear
+// in the Service and Category lists on the AWS Support Center Create Case (https://console.aws.amazon.com/support/home#/case/create)
+// page. The values in those fields don't necessarily match the service codes
+// and categories returned by the DescribeServices operation. Always use the
+// service codes and categories that the DescribeServices operation returns,
+// so that you have the most recent set of service and category codes.
+//
+//    * You must have a Business or Enterprise support plan to use the AWS Support
+//    API.
+//
+//    * If you call the AWS Support API from an account that does not have a
+//    Business or Enterprise support plan, the SubscriptionRequiredException
+//    error message appears. For information about changing your support plan,
+//    see AWS Support (http://aws.amazon.com/premiumsupport/).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -790,11 +821,11 @@ func (c *Support) DescribeServicesRequest(input *DescribeServicesInput) (req *re
 // See the AWS API reference guide for AWS Support's
 // API operation DescribeServices for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServerError "InternalServerError"
+// Returned Error Types:
+//   * InternalServerError
 //   An internal server error occurred.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeServices
+// See also, https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeServices
 func (c *Support) DescribeServices(input *DescribeServicesInput) (*DescribeServicesOutput, error) {
 	req, out := c.DescribeServicesRequest(input)
 	return out, req.Send()
@@ -820,8 +851,8 @@ const opDescribeSeverityLevels = "DescribeSeverityLevels"
 
 // DescribeSeverityLevelsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeSeverityLevels operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -841,7 +872,7 @@ const opDescribeSeverityLevels = "DescribeSeverityLevels"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeSeverityLevels
+// See also, https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeSeverityLevels
 func (c *Support) DescribeSeverityLevelsRequest(input *DescribeSeverityLevelsInput) (req *request.Request, output *DescribeSeverityLevelsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeSeverityLevels,
@@ -862,7 +893,15 @@ func (c *Support) DescribeSeverityLevelsRequest(input *DescribeSeverityLevelsInp
 //
 // Returns the list of severity levels that you can assign to an AWS Support
 // case. The severity level for a case is also a field in the CaseDetails data
-// type included in any CreateCase request.
+// type that you include for a CreateCase request.
+//
+//    * You must have a Business or Enterprise support plan to use the AWS Support
+//    API.
+//
+//    * If you call the AWS Support API from an account that does not have a
+//    Business or Enterprise support plan, the SubscriptionRequiredException
+//    error message appears. For information about changing your support plan,
+//    see AWS Support (http://aws.amazon.com/premiumsupport/).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -871,11 +910,11 @@ func (c *Support) DescribeSeverityLevelsRequest(input *DescribeSeverityLevelsInp
 // See the AWS API reference guide for AWS Support's
 // API operation DescribeSeverityLevels for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServerError "InternalServerError"
+// Returned Error Types:
+//   * InternalServerError
 //   An internal server error occurred.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeSeverityLevels
+// See also, https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeSeverityLevels
 func (c *Support) DescribeSeverityLevels(input *DescribeSeverityLevelsInput) (*DescribeSeverityLevelsOutput, error) {
 	req, out := c.DescribeSeverityLevelsRequest(input)
 	return out, req.Send()
@@ -901,8 +940,8 @@ const opDescribeTrustedAdvisorCheckRefreshStatuses = "DescribeTrustedAdvisorChec
 
 // DescribeTrustedAdvisorCheckRefreshStatusesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeTrustedAdvisorCheckRefreshStatuses operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -922,7 +961,7 @@ const opDescribeTrustedAdvisorCheckRefreshStatuses = "DescribeTrustedAdvisorChec
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeTrustedAdvisorCheckRefreshStatuses
+// See also, https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeTrustedAdvisorCheckRefreshStatuses
 func (c *Support) DescribeTrustedAdvisorCheckRefreshStatusesRequest(input *DescribeTrustedAdvisorCheckRefreshStatusesInput) (req *request.Request, output *DescribeTrustedAdvisorCheckRefreshStatusesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeTrustedAdvisorCheckRefreshStatuses,
@@ -941,12 +980,22 @@ func (c *Support) DescribeTrustedAdvisorCheckRefreshStatusesRequest(input *Descr
 
 // DescribeTrustedAdvisorCheckRefreshStatuses API operation for AWS Support.
 //
-// Returns the refresh status of the Trusted Advisor checks that have the specified
-// check IDs. Check IDs can be obtained by calling DescribeTrustedAdvisorChecks.
+// Returns the refresh status of the AWS Trusted Advisor checks that have the
+// specified check IDs. You can get the check IDs by calling the DescribeTrustedAdvisorChecks
+// operation.
 //
-// Some checks are refreshed automatically, and their refresh statuses cannot
-// be retrieved by using this operation. Use of the DescribeTrustedAdvisorCheckRefreshStatuses
-// operation for these checks causes an InvalidParameterValue error.
+// Some checks are refreshed automatically, and you can't return their refresh
+// statuses by using the DescribeTrustedAdvisorCheckRefreshStatuses operation.
+// If you call this operation for these checks, you might see an InvalidParameterValue
+// error.
+//
+//    * You must have a Business or Enterprise support plan to use the AWS Support
+//    API.
+//
+//    * If you call the AWS Support API from an account that does not have a
+//    Business or Enterprise support plan, the SubscriptionRequiredException
+//    error message appears. For information about changing your support plan,
+//    see AWS Support (http://aws.amazon.com/premiumsupport/).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -955,11 +1004,11 @@ func (c *Support) DescribeTrustedAdvisorCheckRefreshStatusesRequest(input *Descr
 // See the AWS API reference guide for AWS Support's
 // API operation DescribeTrustedAdvisorCheckRefreshStatuses for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServerError "InternalServerError"
+// Returned Error Types:
+//   * InternalServerError
 //   An internal server error occurred.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeTrustedAdvisorCheckRefreshStatuses
+// See also, https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeTrustedAdvisorCheckRefreshStatuses
 func (c *Support) DescribeTrustedAdvisorCheckRefreshStatuses(input *DescribeTrustedAdvisorCheckRefreshStatusesInput) (*DescribeTrustedAdvisorCheckRefreshStatusesOutput, error) {
 	req, out := c.DescribeTrustedAdvisorCheckRefreshStatusesRequest(input)
 	return out, req.Send()
@@ -985,8 +1034,8 @@ const opDescribeTrustedAdvisorCheckResult = "DescribeTrustedAdvisorCheckResult"
 
 // DescribeTrustedAdvisorCheckResultRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeTrustedAdvisorCheckResult operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1006,7 +1055,7 @@ const opDescribeTrustedAdvisorCheckResult = "DescribeTrustedAdvisorCheckResult"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeTrustedAdvisorCheckResult
+// See also, https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeTrustedAdvisorCheckResult
 func (c *Support) DescribeTrustedAdvisorCheckResultRequest(input *DescribeTrustedAdvisorCheckResultInput) (req *request.Request, output *DescribeTrustedAdvisorCheckResultOutput) {
 	op := &request.Operation{
 		Name:       opDescribeTrustedAdvisorCheckResult,
@@ -1025,8 +1074,9 @@ func (c *Support) DescribeTrustedAdvisorCheckResultRequest(input *DescribeTruste
 
 // DescribeTrustedAdvisorCheckResult API operation for AWS Support.
 //
-// Returns the results of the Trusted Advisor check that has the specified check
-// ID. Check IDs can be obtained by calling DescribeTrustedAdvisorChecks.
+// Returns the results of the AWS Trusted Advisor check that has the specified
+// check ID. You can get the check IDs by calling the DescribeTrustedAdvisorChecks
+// operation.
 //
 // The response contains a TrustedAdvisorCheckResult object, which contains
 // these three objects:
@@ -1039,12 +1089,20 @@ func (c *Support) DescribeTrustedAdvisorCheckResultRequest(input *DescribeTruste
 //
 // In addition, the response contains these fields:
 //
-//    * status. The alert status of the check: "ok" (green), "warning" (yellow),
+//    * status - The alert status of the check: "ok" (green), "warning" (yellow),
 //    "error" (red), or "not_available".
 //
-//    * timestamp. The time of the last refresh of the check.
+//    * timestamp - The time of the last refresh of the check.
 //
-//    * checkId. The unique identifier for the check.
+//    * checkId - The unique identifier for the check.
+//
+//    * You must have a Business or Enterprise support plan to use the AWS Support
+//    API.
+//
+//    * If you call the AWS Support API from an account that does not have a
+//    Business or Enterprise support plan, the SubscriptionRequiredException
+//    error message appears. For information about changing your support plan,
+//    see AWS Support (http://aws.amazon.com/premiumsupport/).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1053,11 +1111,11 @@ func (c *Support) DescribeTrustedAdvisorCheckResultRequest(input *DescribeTruste
 // See the AWS API reference guide for AWS Support's
 // API operation DescribeTrustedAdvisorCheckResult for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServerError "InternalServerError"
+// Returned Error Types:
+//   * InternalServerError
 //   An internal server error occurred.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeTrustedAdvisorCheckResult
+// See also, https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeTrustedAdvisorCheckResult
 func (c *Support) DescribeTrustedAdvisorCheckResult(input *DescribeTrustedAdvisorCheckResultInput) (*DescribeTrustedAdvisorCheckResultOutput, error) {
 	req, out := c.DescribeTrustedAdvisorCheckResultRequest(input)
 	return out, req.Send()
@@ -1083,8 +1141,8 @@ const opDescribeTrustedAdvisorCheckSummaries = "DescribeTrustedAdvisorCheckSumma
 
 // DescribeTrustedAdvisorCheckSummariesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeTrustedAdvisorCheckSummaries operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1104,7 +1162,7 @@ const opDescribeTrustedAdvisorCheckSummaries = "DescribeTrustedAdvisorCheckSumma
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeTrustedAdvisorCheckSummaries
+// See also, https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeTrustedAdvisorCheckSummaries
 func (c *Support) DescribeTrustedAdvisorCheckSummariesRequest(input *DescribeTrustedAdvisorCheckSummariesInput) (req *request.Request, output *DescribeTrustedAdvisorCheckSummariesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeTrustedAdvisorCheckSummaries,
@@ -1123,10 +1181,19 @@ func (c *Support) DescribeTrustedAdvisorCheckSummariesRequest(input *DescribeTru
 
 // DescribeTrustedAdvisorCheckSummaries API operation for AWS Support.
 //
-// Returns the summaries of the results of the Trusted Advisor checks that have
-// the specified check IDs. Check IDs can be obtained by calling DescribeTrustedAdvisorChecks.
+// Returns the results for the AWS Trusted Advisor check summaries for the check
+// IDs that you specified. You can get the check IDs by calling the DescribeTrustedAdvisorChecks
+// operation.
 //
 // The response contains an array of TrustedAdvisorCheckSummary objects.
+//
+//    * You must have a Business or Enterprise support plan to use the AWS Support
+//    API.
+//
+//    * If you call the AWS Support API from an account that does not have a
+//    Business or Enterprise support plan, the SubscriptionRequiredException
+//    error message appears. For information about changing your support plan,
+//    see AWS Support (http://aws.amazon.com/premiumsupport/).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1135,11 +1202,11 @@ func (c *Support) DescribeTrustedAdvisorCheckSummariesRequest(input *DescribeTru
 // See the AWS API reference guide for AWS Support's
 // API operation DescribeTrustedAdvisorCheckSummaries for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServerError "InternalServerError"
+// Returned Error Types:
+//   * InternalServerError
 //   An internal server error occurred.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeTrustedAdvisorCheckSummaries
+// See also, https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeTrustedAdvisorCheckSummaries
 func (c *Support) DescribeTrustedAdvisorCheckSummaries(input *DescribeTrustedAdvisorCheckSummariesInput) (*DescribeTrustedAdvisorCheckSummariesOutput, error) {
 	req, out := c.DescribeTrustedAdvisorCheckSummariesRequest(input)
 	return out, req.Send()
@@ -1165,8 +1232,8 @@ const opDescribeTrustedAdvisorChecks = "DescribeTrustedAdvisorChecks"
 
 // DescribeTrustedAdvisorChecksRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeTrustedAdvisorChecks operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1186,7 +1253,7 @@ const opDescribeTrustedAdvisorChecks = "DescribeTrustedAdvisorChecks"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeTrustedAdvisorChecks
+// See also, https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeTrustedAdvisorChecks
 func (c *Support) DescribeTrustedAdvisorChecksRequest(input *DescribeTrustedAdvisorChecksInput) (req *request.Request, output *DescribeTrustedAdvisorChecksOutput) {
 	op := &request.Operation{
 		Name:       opDescribeTrustedAdvisorChecks,
@@ -1205,10 +1272,19 @@ func (c *Support) DescribeTrustedAdvisorChecksRequest(input *DescribeTrustedAdvi
 
 // DescribeTrustedAdvisorChecks API operation for AWS Support.
 //
-// Returns information about all available Trusted Advisor checks, including
-// name, ID, category, description, and metadata. You must specify a language
-// code; English ("en") and Japanese ("ja") are currently supported. The response
-// contains a TrustedAdvisorCheckDescription for each check.
+// Returns information about all available AWS Trusted Advisor checks, including
+// the name, ID, category, description, and metadata. You must specify a language
+// code. The AWS Support API currently supports English ("en") and Japanese
+// ("ja"). The response contains a TrustedAdvisorCheckDescription object for
+// each check. You must set the AWS Region to us-east-1.
+//
+//    * You must have a Business or Enterprise support plan to use the AWS Support
+//    API.
+//
+//    * If you call the AWS Support API from an account that does not have a
+//    Business or Enterprise support plan, the SubscriptionRequiredException
+//    error message appears. For information about changing your support plan,
+//    see AWS Support (http://aws.amazon.com/premiumsupport/).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1217,11 +1293,11 @@ func (c *Support) DescribeTrustedAdvisorChecksRequest(input *DescribeTrustedAdvi
 // See the AWS API reference guide for AWS Support's
 // API operation DescribeTrustedAdvisorChecks for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServerError "InternalServerError"
+// Returned Error Types:
+//   * InternalServerError
 //   An internal server error occurred.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeTrustedAdvisorChecks
+// See also, https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeTrustedAdvisorChecks
 func (c *Support) DescribeTrustedAdvisorChecks(input *DescribeTrustedAdvisorChecksInput) (*DescribeTrustedAdvisorChecksOutput, error) {
 	req, out := c.DescribeTrustedAdvisorChecksRequest(input)
 	return out, req.Send()
@@ -1247,8 +1323,8 @@ const opRefreshTrustedAdvisorCheck = "RefreshTrustedAdvisorCheck"
 
 // RefreshTrustedAdvisorCheckRequest generates a "aws/request.Request" representing the
 // client's request for the RefreshTrustedAdvisorCheck operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1268,7 +1344,7 @@ const opRefreshTrustedAdvisorCheck = "RefreshTrustedAdvisorCheck"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/RefreshTrustedAdvisorCheck
+// See also, https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/RefreshTrustedAdvisorCheck
 func (c *Support) RefreshTrustedAdvisorCheckRequest(input *RefreshTrustedAdvisorCheckInput) (req *request.Request, output *RefreshTrustedAdvisorCheckOutput) {
 	op := &request.Operation{
 		Name:       opRefreshTrustedAdvisorCheck,
@@ -1287,23 +1363,22 @@ func (c *Support) RefreshTrustedAdvisorCheckRequest(input *RefreshTrustedAdvisor
 
 // RefreshTrustedAdvisorCheck API operation for AWS Support.
 //
-// Requests a refresh of the Trusted Advisor check that has the specified check
-// ID. Check IDs can be obtained by calling DescribeTrustedAdvisorChecks.
+// Refreshes the AWS Trusted Advisor check that you specify using the check
+// ID. You can get the check IDs by calling the DescribeTrustedAdvisorChecks
+// operation.
 //
-// Some checks are refreshed automatically, and they cannot be refreshed by
-// using this operation. Use of the RefreshTrustedAdvisorCheck operation for
-// these checks causes an InvalidParameterValue error.
+// Some checks are refreshed automatically. If you call the RefreshTrustedAdvisorCheck
+// operation to refresh them, you might see the InvalidParameterValue error.
 //
-// The response contains a TrustedAdvisorCheckRefreshStatus object, which contains
-// these fields:
+// The response contains a TrustedAdvisorCheckRefreshStatus object.
 //
-//    * status. The refresh status of the check: "none", "enqueued", "processing",
-//    "success", or "abandoned".
+//    * You must have a Business or Enterprise support plan to use the AWS Support
+//    API.
 //
-//    * millisUntilNextRefreshable. The amount of time, in milliseconds, until
-//    the check is eligible for refresh.
-//
-//    * checkId. The unique identifier for the check.
+//    * If you call the AWS Support API from an account that does not have a
+//    Business or Enterprise support plan, the SubscriptionRequiredException
+//    error message appears. For information about changing your support plan,
+//    see AWS Support (http://aws.amazon.com/premiumsupport/).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1312,11 +1387,11 @@ func (c *Support) RefreshTrustedAdvisorCheckRequest(input *RefreshTrustedAdvisor
 // See the AWS API reference guide for AWS Support's
 // API operation RefreshTrustedAdvisorCheck for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServerError "InternalServerError"
+// Returned Error Types:
+//   * InternalServerError
 //   An internal server error occurred.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/RefreshTrustedAdvisorCheck
+// See also, https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/RefreshTrustedAdvisorCheck
 func (c *Support) RefreshTrustedAdvisorCheck(input *RefreshTrustedAdvisorCheckInput) (*RefreshTrustedAdvisorCheckOutput, error) {
 	req, out := c.RefreshTrustedAdvisorCheckRequest(input)
 	return out, req.Send()
@@ -1342,8 +1417,8 @@ const opResolveCase = "ResolveCase"
 
 // ResolveCaseRequest generates a "aws/request.Request" representing the
 // client's request for the ResolveCase operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1363,7 +1438,7 @@ const opResolveCase = "ResolveCase"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/ResolveCase
+// See also, https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/ResolveCase
 func (c *Support) ResolveCaseRequest(input *ResolveCaseInput) (req *request.Request, output *ResolveCaseOutput) {
 	op := &request.Operation{
 		Name:       opResolveCase,
@@ -1382,8 +1457,16 @@ func (c *Support) ResolveCaseRequest(input *ResolveCaseInput) (req *request.Requ
 
 // ResolveCase API operation for AWS Support.
 //
-// Takes a caseId and returns the initial state of the case along with the state
-// of the case after the call to ResolveCase completed.
+// Resolves a support case. This operation takes a caseId and returns the initial
+// and final state of the case.
+//
+//    * You must have a Business or Enterprise support plan to use the AWS Support
+//    API.
+//
+//    * If you call the AWS Support API from an account that does not have a
+//    Business or Enterprise support plan, the SubscriptionRequiredException
+//    error message appears. For information about changing your support plan,
+//    see AWS Support (http://aws.amazon.com/premiumsupport/).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1392,14 +1475,14 @@ func (c *Support) ResolveCaseRequest(input *ResolveCaseInput) (req *request.Requ
 // See the AWS API reference guide for AWS Support's
 // API operation ResolveCase for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInternalServerError "InternalServerError"
+// Returned Error Types:
+//   * InternalServerError
 //   An internal server error occurred.
 //
-//   * ErrCodeCaseIdNotFound "CaseIdNotFound"
+//   * CaseIdNotFound
 //   The requested caseId could not be located.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/ResolveCase
+// See also, https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/ResolveCase
 func (c *Support) ResolveCase(input *ResolveCaseInput) (*ResolveCaseOutput, error) {
 	req, out := c.ResolveCaseRequest(input)
 	return out, req.Send()
@@ -1421,7 +1504,6 @@ func (c *Support) ResolveCaseWithContext(ctx aws.Context, input *ResolveCaseInpu
 	return out, req.Send()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/AddAttachmentsToSetRequest
 type AddAttachmentsToSetInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1431,8 +1513,13 @@ type AddAttachmentsToSetInput struct {
 	// set, if it exists.
 	AttachmentSetId *string `locationName:"attachmentSetId" type:"string"`
 
-	// One or more attachments to add to the set. The limit is 3 attachments per
-	// set, and the size limit is 5 MB per attachment.
+	// One or more attachments to add to the set. You can add up to three attachments
+	// per set. The size limit is 5 MB per attachment.
+	//
+	// In the Attachment object, use the data parameter to specify the contents
+	// of the attachment file. In the previous request syntax, the value for data
+	// appear as blob, which is represented as a base64-encoded string. The value
+	// for fileName is the name of the attachment, such as troubleshoot-screenshot.png.
 	//
 	// Attachments is a required field
 	Attachments []*Attachment `locationName:"attachments" type:"list" required:"true"`
@@ -1475,7 +1562,6 @@ func (s *AddAttachmentsToSetInput) SetAttachments(v []*Attachment) *AddAttachmen
 
 // The ID and expiry time of the attachment set returned by the AddAttachmentsToSet
 // operation.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/AddAttachmentsToSetResponse
 type AddAttachmentsToSetOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1511,8 +1597,6 @@ func (s *AddAttachmentsToSetOutput) SetExpiryTime(v string) *AddAttachmentsToSet
 	return s
 }
 
-// To be written.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/AddCommunicationToCaseRequest
 type AddCommunicationToCaseInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1585,7 +1669,6 @@ func (s *AddCommunicationToCaseInput) SetCommunicationBody(v string) *AddCommuni
 }
 
 // The result of the AddCommunicationToCase operation.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/AddCommunicationToCaseResponse
 type AddCommunicationToCaseOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1611,7 +1694,6 @@ func (s *AddCommunicationToCaseOutput) SetResult(v bool) *AddCommunicationToCase
 
 // An attachment to a case communication. The attachment consists of the file
 // name and the content of the file.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/Attachment
 type Attachment struct {
 	_ struct{} `type:"structure"`
 
@@ -1648,7 +1730,6 @@ func (s *Attachment) SetFileName(v string) *Attachment {
 
 // The file name and ID of an attachment to a case communication. You can use
 // the ID to retrieve the attachment with the DescribeAttachment operation.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/AttachmentDetails
 type AttachmentDetails struct {
 	_ struct{} `type:"structure"`
 
@@ -1681,8 +1762,357 @@ func (s *AttachmentDetails) SetFileName(v string) *AttachmentDetails {
 	return s
 }
 
+// An attachment with the specified ID could not be found.
+type AttachmentIdNotFound struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	// An attachment with the specified ID could not be found.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s AttachmentIdNotFound) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AttachmentIdNotFound) GoString() string {
+	return s.String()
+}
+
+func newErrorAttachmentIdNotFound(v protocol.ResponseMetadata) error {
+	return &AttachmentIdNotFound{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *AttachmentIdNotFound) Code() string {
+	return "AttachmentIdNotFound"
+}
+
+// Message returns the exception's message.
+func (s *AttachmentIdNotFound) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *AttachmentIdNotFound) OrigErr() error {
+	return nil
+}
+
+func (s *AttachmentIdNotFound) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *AttachmentIdNotFound) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *AttachmentIdNotFound) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// The limit for the number of attachment sets created in a short period of
+// time has been exceeded.
+type AttachmentLimitExceeded struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	// The limit for the number of attachment sets created in a short period of
+	// time has been exceeded.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s AttachmentLimitExceeded) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AttachmentLimitExceeded) GoString() string {
+	return s.String()
+}
+
+func newErrorAttachmentLimitExceeded(v protocol.ResponseMetadata) error {
+	return &AttachmentLimitExceeded{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *AttachmentLimitExceeded) Code() string {
+	return "AttachmentLimitExceeded"
+}
+
+// Message returns the exception's message.
+func (s *AttachmentLimitExceeded) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *AttachmentLimitExceeded) OrigErr() error {
+	return nil
+}
+
+func (s *AttachmentLimitExceeded) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *AttachmentLimitExceeded) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *AttachmentLimitExceeded) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// The expiration time of the attachment set has passed. The set expires 1 hour
+// after it is created.
+type AttachmentSetExpired struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	// The expiration time of the attachment set has passed. The set expires one
+	// hour after it is created.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s AttachmentSetExpired) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AttachmentSetExpired) GoString() string {
+	return s.String()
+}
+
+func newErrorAttachmentSetExpired(v protocol.ResponseMetadata) error {
+	return &AttachmentSetExpired{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *AttachmentSetExpired) Code() string {
+	return "AttachmentSetExpired"
+}
+
+// Message returns the exception's message.
+func (s *AttachmentSetExpired) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *AttachmentSetExpired) OrigErr() error {
+	return nil
+}
+
+func (s *AttachmentSetExpired) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *AttachmentSetExpired) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *AttachmentSetExpired) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// An attachment set with the specified ID could not be found.
+type AttachmentSetIdNotFound struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	// An attachment set with the specified ID could not be found.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s AttachmentSetIdNotFound) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AttachmentSetIdNotFound) GoString() string {
+	return s.String()
+}
+
+func newErrorAttachmentSetIdNotFound(v protocol.ResponseMetadata) error {
+	return &AttachmentSetIdNotFound{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *AttachmentSetIdNotFound) Code() string {
+	return "AttachmentSetIdNotFound"
+}
+
+// Message returns the exception's message.
+func (s *AttachmentSetIdNotFound) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *AttachmentSetIdNotFound) OrigErr() error {
+	return nil
+}
+
+func (s *AttachmentSetIdNotFound) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *AttachmentSetIdNotFound) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *AttachmentSetIdNotFound) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// A limit for the size of an attachment set has been exceeded. The limits are
+// three attachments and 5 MB per attachment.
+type AttachmentSetSizeLimitExceeded struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	// A limit for the size of an attachment set has been exceeded. The limits are
+	// three attachments and 5 MB per attachment.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s AttachmentSetSizeLimitExceeded) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AttachmentSetSizeLimitExceeded) GoString() string {
+	return s.String()
+}
+
+func newErrorAttachmentSetSizeLimitExceeded(v protocol.ResponseMetadata) error {
+	return &AttachmentSetSizeLimitExceeded{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *AttachmentSetSizeLimitExceeded) Code() string {
+	return "AttachmentSetSizeLimitExceeded"
+}
+
+// Message returns the exception's message.
+func (s *AttachmentSetSizeLimitExceeded) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *AttachmentSetSizeLimitExceeded) OrigErr() error {
+	return nil
+}
+
+func (s *AttachmentSetSizeLimitExceeded) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *AttachmentSetSizeLimitExceeded) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *AttachmentSetSizeLimitExceeded) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// The case creation limit for the account has been exceeded.
+type CaseCreationLimitExceeded struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	// An error message that indicates that you have exceeded the number of cases
+	// you can have open.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s CaseCreationLimitExceeded) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CaseCreationLimitExceeded) GoString() string {
+	return s.String()
+}
+
+func newErrorCaseCreationLimitExceeded(v protocol.ResponseMetadata) error {
+	return &CaseCreationLimitExceeded{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *CaseCreationLimitExceeded) Code() string {
+	return "CaseCreationLimitExceeded"
+}
+
+// Message returns the exception's message.
+func (s *CaseCreationLimitExceeded) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *CaseCreationLimitExceeded) OrigErr() error {
+	return nil
+}
+
+func (s *CaseCreationLimitExceeded) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *CaseCreationLimitExceeded) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *CaseCreationLimitExceeded) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 // A JSON-formatted object that contains the metadata for a support case. It
-// is contained the response from a DescribeCases request. CaseDetails contains
+// is contained in the response from a DescribeCases request. CaseDetails contains
 // the following fields:
 //
 //    * caseId. The AWS Support case ID requested or returned in the call. The
@@ -1699,25 +2129,26 @@ func (s *AttachmentDetails) SetFileName(v string) *AttachmentDetails {
 //    Language parameters must be passed explicitly for operations that take
 //    them.
 //
+//    * nextToken. A resumption point for pagination.
+//
 //    * recentCommunications. One or more Communication objects. Fields of these
 //    objects are attachments, body, caseId, submittedBy, and timeCreated.
-//
-//    * nextToken. A resumption point for pagination.
 //
 //    * serviceCode. The identifier for the AWS service that corresponds to
 //    the service code defined in the call to DescribeServices.
 //
 //    * severityCode. The severity code assigned to the case. Contains one of
-//    the values returned by the call to DescribeSeverityLevels.
+//    the values returned by the call to DescribeSeverityLevels. The possible
+//    values are: low, normal, high, urgent, and critical.
 //
-//    * status. The status of the case in the AWS Support Center.
+//    * status. The status of the case in the AWS Support Center. Valid values:
+//    opened pending-customer-action reopened resolved unassigned work-in-progress
 //
 //    * subject. The subject line of the case.
 //
 //    * submittedBy. The email address of the account that submitted the case.
 //
 //    * timeCreated. The time the case was created, in ISO-8601 format.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/CaseDetails
 type CaseDetails struct {
 	_ struct{} `type:"structure"`
 
@@ -1745,13 +2176,28 @@ type CaseDetails struct {
 	// that you can use to retrieve earlier communications.
 	RecentCommunications *RecentCaseCommunications `locationName:"recentCommunications" type:"structure"`
 
-	// The code for the AWS service returned by the call to DescribeServices.
+	// The code for the AWS service. You can get a list of codes and the corresponding
+	// service names by calling DescribeServices.
 	ServiceCode *string `locationName:"serviceCode" type:"string"`
 
 	// The code for the severity level returned by the call to DescribeSeverityLevels.
 	SeverityCode *string `locationName:"severityCode" type:"string"`
 
 	// The status of the case.
+	//
+	// Valid values:
+	//
+	//    * opened
+	//
+	//    * pending-customer-action
+	//
+	//    * reopened
+	//
+	//    * resolved
+	//
+	//    * unassigned
+	//
+	//    * work-in-progress
 	Status *string `locationName:"status" type:"string"`
 
 	// The subject line for the case in the AWS Support Center.
@@ -1760,7 +2206,7 @@ type CaseDetails struct {
 	// The email address of the account that submitted the case.
 	SubmittedBy *string `locationName:"submittedBy" type:"string"`
 
-	// The time that the case was case created in the AWS Support Center.
+	// The time that the case was created in the AWS Support Center.
 	TimeCreated *string `locationName:"timeCreated" type:"string"`
 }
 
@@ -1846,10 +2292,66 @@ func (s *CaseDetails) SetTimeCreated(v string) *CaseDetails {
 	return s
 }
 
+// The requested caseId could not be located.
+type CaseIdNotFound struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	// The requested CaseId could not be located.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s CaseIdNotFound) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CaseIdNotFound) GoString() string {
+	return s.String()
+}
+
+func newErrorCaseIdNotFound(v protocol.ResponseMetadata) error {
+	return &CaseIdNotFound{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *CaseIdNotFound) Code() string {
+	return "CaseIdNotFound"
+}
+
+// Message returns the exception's message.
+func (s *CaseIdNotFound) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *CaseIdNotFound) OrigErr() error {
+	return nil
+}
+
+func (s *CaseIdNotFound) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *CaseIdNotFound) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *CaseIdNotFound) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 // A JSON-formatted name/value pair that represents the category name and category
 // code of the problem, selected from the DescribeServices response for each
 // AWS service.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/Category
 type Category struct {
 	_ struct{} `type:"structure"`
 
@@ -1883,9 +2385,8 @@ func (s *Category) SetName(v string) *Category {
 }
 
 // A communication associated with an AWS Support case. The communication consists
-// of the case ID, the message body, attachment information, the account email
-// address, and the date and time of the communication.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/Communication
+// of the case ID, the message body, attachment information, the submitter of
+// the communication, and the date and time of the communication.
 type Communication struct {
 	_ struct{} `type:"structure"`
 
@@ -1899,7 +2400,11 @@ type Communication struct {
 	// an alphanumeric string formatted as shown in this example: case-12345678910-2013-c4c1d2bf33c5cf47
 	CaseId *string `locationName:"caseId" type:"string"`
 
-	// The email address of the account that submitted the AWS Support case.
+	// The identity of the account that submitted, or responded to, the support
+	// case. Customer entries include the role or IAM user as well as the email
+	// address. For example, "AdminRole (Role) <someone@example.com>. Entries from
+	// the AWS Support team display "Amazon Web Services," and do not show an email
+	// address.
 	SubmittedBy *string `locationName:"submittedBy" type:"string"`
 
 	// The time the communication was created.
@@ -1946,46 +2451,58 @@ func (s *Communication) SetTimeCreated(v string) *Communication {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/CreateCaseRequest
 type CreateCaseInput struct {
 	_ struct{} `type:"structure"`
 
 	// The ID of a set of one or more attachments for the case. Create the set by
-	// using AddAttachmentsToSet.
+	// using the AddAttachmentsToSet operation.
 	AttachmentSetId *string `locationName:"attachmentSetId" type:"string"`
 
-	// The category of problem for the AWS Support case.
+	// The category of problem for the AWS Support case. You also use the DescribeServices
+	// operation to get the category code for a service. Each AWS service defines
+	// its own set of category codes.
 	CategoryCode *string `locationName:"categoryCode" type:"string"`
 
 	// A list of email addresses that AWS Support copies on case correspondence.
+	// AWS Support identifies the account that creates the case when you specify
+	// your AWS credentials in an HTTP POST method or use the AWS SDKs (http://aws.amazon.com/tools/).
 	CcEmailAddresses []*string `locationName:"ccEmailAddresses" type:"list"`
 
-	// The communication body text when you create an AWS Support case by calling
-	// CreateCase.
+	// The communication body text that describes the issue. This text appears in
+	// the Description field on the AWS Support Center Create Case (https://console.aws.amazon.com/support/home#/case/create)
+	// page.
 	//
 	// CommunicationBody is a required field
 	CommunicationBody *string `locationName:"communicationBody" min:"1" type:"string" required:"true"`
 
-	// The type of issue for the case. You can specify either "customer-service"
-	// or "technical." If you do not indicate a value, the default is "technical."
+	// The type of issue for the case. You can specify customer-service or technical.
+	// If you don't specify a value, the default is technical.
 	IssueType *string `locationName:"issueType" type:"string"`
 
-	// The ISO 639-1 code for the language in which AWS provides support. AWS Support
-	// currently supports English ("en") and Japanese ("ja"). Language parameters
-	// must be passed explicitly for operations that take them.
+	// The language in which AWS Support handles the case. You must specify the
+	// ISO 639-1 code for the language parameter if you want support in that language.
+	// Currently, English ("en") and Japanese ("ja") are supported.
 	Language *string `locationName:"language" type:"string"`
 
-	// The code for the AWS service returned by the call to DescribeServices.
+	// The code for the AWS service. You can use the DescribeServices operation
+	// to get the possible serviceCode values.
 	ServiceCode *string `locationName:"serviceCode" type:"string"`
 
-	// The code for the severity level returned by the call to DescribeSeverityLevels.
+	// A value that indicates the urgency of the case. This value determines the
+	// response time according to your service level agreement with AWS Support.
+	// You can use the DescribeSeverityLevels operation to get the possible values
+	// for severityCode.
 	//
-	// The availability of severity levels depends on each customer's support subscription.
-	// In other words, your subscription may not necessarily require the urgent
-	// level of response time.
+	// For more information, see SeverityLevel and Choosing a Severity (https://docs.aws.amazon.com/awssupport/latest/user/getting-started.html#choosing-severity)
+	// in the AWS Support User Guide.
+	//
+	// The availability of severity levels depends on the support plan for the AWS
+	// account.
 	SeverityCode *string `locationName:"severityCode" type:"string"`
 
-	// The title of the AWS Support case.
+	// The title of the AWS Support case. The title appears in the Subject field
+	// on the AWS Support Center Create Case (https://console.aws.amazon.com/support/home#/case/create)
+	// page.
 	//
 	// Subject is a required field
 	Subject *string `locationName:"subject" type:"string" required:"true"`
@@ -2076,12 +2593,11 @@ func (s *CreateCaseInput) SetSubject(v string) *CreateCaseInput {
 
 // The AWS Support case ID returned by a successful completion of the CreateCase
 // operation.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/CreateCaseResponse
 type CreateCaseOutput struct {
 	_ struct{} `type:"structure"`
 
 	// The AWS Support case ID requested or returned in the call. The case ID is
-	// an alphanumeric string formatted as shown in this example: case-12345678910-2013-c4c1d2bf33c5cf47
+	// an alphanumeric string in the following format: case-12345678910-2013-c4c1d2bf33c5cf47
 	CaseId *string `locationName:"caseId" type:"string"`
 }
 
@@ -2101,7 +2617,6 @@ func (s *CreateCaseOutput) SetCaseId(v string) *CreateCaseOutput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeAttachmentRequest
 type DescribeAttachmentInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2141,13 +2656,75 @@ func (s *DescribeAttachmentInput) SetAttachmentId(v string) *DescribeAttachmentI
 	return s
 }
 
+// The limit for the number of DescribeAttachment requests in a short period
+// of time has been exceeded.
+type DescribeAttachmentLimitExceeded struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	// The limit for the number of DescribeAttachment requests in a short period
+	// of time has been exceeded.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeAttachmentLimitExceeded) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeAttachmentLimitExceeded) GoString() string {
+	return s.String()
+}
+
+func newErrorDescribeAttachmentLimitExceeded(v protocol.ResponseMetadata) error {
+	return &DescribeAttachmentLimitExceeded{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *DescribeAttachmentLimitExceeded) Code() string {
+	return "DescribeAttachmentLimitExceeded"
+}
+
+// Message returns the exception's message.
+func (s *DescribeAttachmentLimitExceeded) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *DescribeAttachmentLimitExceeded) OrigErr() error {
+	return nil
+}
+
+func (s *DescribeAttachmentLimitExceeded) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *DescribeAttachmentLimitExceeded) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *DescribeAttachmentLimitExceeded) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 // The content and file name of the attachment returned by the DescribeAttachment
 // operation.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeAttachmentResponse
 type DescribeAttachmentOutput struct {
 	_ struct{} `type:"structure"`
 
-	// The attachment content and file name.
+	// This object includes the attachment content and file name.
+	//
+	// In the previous response syntax, the value for the data parameter appears
+	// as blob, which is represented as a base64-encoded string. The value for fileName
+	// is the name of the attachment, such as troubleshoot-screenshot.png.
 	Attachment *Attachment `locationName:"attachment" type:"structure"`
 }
 
@@ -2167,7 +2744,6 @@ func (s *DescribeAttachmentOutput) SetAttachment(v *Attachment) *DescribeAttachm
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeCasesRequest
 type DescribeCasesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2186,12 +2762,12 @@ type DescribeCasesInput struct {
 	// The ID displayed for a case in the AWS Support Center user interface.
 	DisplayId *string `locationName:"displayId" type:"string"`
 
-	// Specifies whether communications should be included in the DescribeCases
-	// results. The default is true.
+	// Specifies whether to include communications in the DescribeCases response.
+	// By default, communications are incuded.
 	IncludeCommunications *bool `locationName:"includeCommunications" type:"boolean"`
 
-	// Specifies whether resolved support cases should be included in the DescribeCases
-	// results. The default is false.
+	// Specifies whether to include resolved support cases in the DescribeCases
+	// response. By default, resolved cases aren't included.
 	IncludeResolvedCases *bool `locationName:"includeResolvedCases" type:"boolean"`
 
 	// The ISO 639-1 code for the language in which AWS provides support. AWS Support
@@ -2283,9 +2859,9 @@ func (s *DescribeCasesInput) SetNextToken(v string) *DescribeCasesInput {
 	return s
 }
 
-// Returns an array of CaseDetails objects and a nextToken that defines a point
-// for pagination in the result set.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeCasesResponse
+// Returns an array of CaseDetails (https://docs.aws.amazon.com/awssupport/latest/APIReference/API_CaseDetails.html)
+// objects and a nextToken that defines a point for pagination in the result
+// set.
 type DescribeCasesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2318,7 +2894,6 @@ func (s *DescribeCasesOutput) SetNextToken(v string) *DescribeCasesOutput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeCommunicationsRequest
 type DescribeCommunicationsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2400,7 +2975,6 @@ func (s *DescribeCommunicationsInput) SetNextToken(v string) *DescribeCommunicat
 }
 
 // The communications returned by the DescribeCommunications operation.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeCommunicationsResponse
 type DescribeCommunicationsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2433,7 +3007,6 @@ func (s *DescribeCommunicationsOutput) SetNextToken(v string) *DescribeCommunica
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeServicesRequest
 type DescribeServicesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2469,7 +3042,6 @@ func (s *DescribeServicesInput) SetServiceCodeList(v []*string) *DescribeService
 }
 
 // The list of AWS services returned by the DescribeServices operation.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeServicesResponse
 type DescribeServicesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2493,7 +3065,6 @@ func (s *DescribeServicesOutput) SetServices(v []*Service) *DescribeServicesOutp
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeSeverityLevelsRequest
 type DescribeSeverityLevelsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2520,7 +3091,6 @@ func (s *DescribeSeverityLevelsInput) SetLanguage(v string) *DescribeSeverityLev
 }
 
 // The list of severity levels returned by the DescribeSeverityLevels operation.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeSeverityLevelsResponse
 type DescribeSeverityLevelsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2545,13 +3115,13 @@ func (s *DescribeSeverityLevelsOutput) SetSeverityLevels(v []*SeverityLevel) *De
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeTrustedAdvisorCheckRefreshStatusesRequest
 type DescribeTrustedAdvisorCheckRefreshStatusesInput struct {
 	_ struct{} `type:"structure"`
 
-	// The IDs of the Trusted Advisor checks to get the status of. Note: Specifying
-	// the check ID of a check that is automatically refreshed causes an InvalidParameterValue
-	// error.
+	// The IDs of the Trusted Advisor checks to get the status of.
+	//
+	// If you specify the check ID of a check that is automatically refreshed, you
+	// might see an InvalidParameterValue error.
 	//
 	// CheckIds is a required field
 	CheckIds []*string `locationName:"checkIds" type:"list" required:"true"`
@@ -2588,7 +3158,6 @@ func (s *DescribeTrustedAdvisorCheckRefreshStatusesInput) SetCheckIds(v []*strin
 
 // The statuses of the Trusted Advisor checks returned by the DescribeTrustedAdvisorCheckRefreshStatuses
 // operation.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeTrustedAdvisorCheckRefreshStatusesResponse
 type DescribeTrustedAdvisorCheckRefreshStatusesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2614,7 +3183,6 @@ func (s *DescribeTrustedAdvisorCheckRefreshStatusesOutput) SetStatuses(v []*Trus
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeTrustedAdvisorCheckResultRequest
 type DescribeTrustedAdvisorCheckResultInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2666,7 +3234,6 @@ func (s *DescribeTrustedAdvisorCheckResultInput) SetLanguage(v string) *Describe
 
 // The result of the Trusted Advisor check returned by the DescribeTrustedAdvisorCheckResult
 // operation.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeTrustedAdvisorCheckResultResponse
 type DescribeTrustedAdvisorCheckResultOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2690,7 +3257,6 @@ func (s *DescribeTrustedAdvisorCheckResultOutput) SetResult(v *TrustedAdvisorChe
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeTrustedAdvisorCheckSummariesRequest
 type DescribeTrustedAdvisorCheckSummariesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2731,7 +3297,6 @@ func (s *DescribeTrustedAdvisorCheckSummariesInput) SetCheckIds(v []*string) *De
 
 // The summaries of the Trusted Advisor checks returned by the DescribeTrustedAdvisorCheckSummaries
 // operation.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeTrustedAdvisorCheckSummariesResponse
 type DescribeTrustedAdvisorCheckSummariesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2757,7 +3322,6 @@ func (s *DescribeTrustedAdvisorCheckSummariesOutput) SetSummaries(v []*TrustedAd
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeTrustedAdvisorChecksRequest
 type DescribeTrustedAdvisorChecksInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2800,7 +3364,6 @@ func (s *DescribeTrustedAdvisorChecksInput) SetLanguage(v string) *DescribeTrust
 
 // Information about the Trusted Advisor checks returned by the DescribeTrustedAdvisorChecks
 // operation.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/DescribeTrustedAdvisorChecksResponse
 type DescribeTrustedAdvisorChecksOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2826,8 +3389,64 @@ func (s *DescribeTrustedAdvisorChecksOutput) SetChecks(v []*TrustedAdvisorCheckD
 	return s
 }
 
+// An internal server error occurred.
+type InternalServerError struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	// An internal server error occurred.
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s InternalServerError) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InternalServerError) GoString() string {
+	return s.String()
+}
+
+func newErrorInternalServerError(v protocol.ResponseMetadata) error {
+	return &InternalServerError{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *InternalServerError) Code() string {
+	return "InternalServerError"
+}
+
+// Message returns the exception's message.
+func (s *InternalServerError) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *InternalServerError) OrigErr() error {
+	return nil
+}
+
+func (s *InternalServerError) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *InternalServerError) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *InternalServerError) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 // The five most recent communications associated with the case.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/RecentCaseCommunications
 type RecentCaseCommunications struct {
 	_ struct{} `type:"structure"`
 
@@ -2860,7 +3479,6 @@ func (s *RecentCaseCommunications) SetNextToken(v string) *RecentCaseCommunicati
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/RefreshTrustedAdvisorCheckRequest
 type RefreshTrustedAdvisorCheckInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2902,7 +3520,6 @@ func (s *RefreshTrustedAdvisorCheckInput) SetCheckId(v string) *RefreshTrustedAd
 }
 
 // The current refresh status of a Trusted Advisor check.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/RefreshTrustedAdvisorCheckResponse
 type RefreshTrustedAdvisorCheckOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2929,7 +3546,6 @@ func (s *RefreshTrustedAdvisorCheckOutput) SetStatus(v *TrustedAdvisorCheckRefre
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/ResolveCaseRequest
 type ResolveCaseInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2955,7 +3571,6 @@ func (s *ResolveCaseInput) SetCaseId(v string) *ResolveCaseInput {
 }
 
 // The status of the case returned by the ResolveCase operation.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/ResolveCaseResponse
 type ResolveCaseOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2989,7 +3604,6 @@ func (s *ResolveCaseOutput) SetInitialCaseStatus(v string) *ResolveCaseOutput {
 }
 
 // Information about an AWS service returned by the DescribeServices operation.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/Service
 type Service struct {
 	_ struct{} `type:"structure"`
 
@@ -3035,17 +3649,37 @@ func (s *Service) SetName(v string) *Service {
 	return s
 }
 
-// A code and name pair that represent a severity level that can be applied
-// to a support case.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/SeverityLevel
+// A code and name pair that represents the severity level of a support case.
+// The available values depend on the support plan for the account. For more
+// information, see Choosing a severity (https://docs.aws.amazon.com/awssupport/latest/user/case-management.html#choosing-severity)
+// in the AWS Support User Guide.
 type SeverityLevel struct {
 	_ struct{} `type:"structure"`
 
-	// One of four values: "low," "medium," "high," and "urgent". These values correspond
-	// to response times returned to the caller in severityLevel.name.
+	// The code for case severity level.
+	//
+	// Valid values: low | normal | high | urgent | critical
 	Code *string `locationName:"code" type:"string"`
 
 	// The name of the severity level that corresponds to the severity level code.
+	//
+	// The values returned by the API differ from the values that are displayed
+	// in the AWS Support Center. For example, for the code "low", the API name
+	// is "Low", but the name in the Support Center is "General guidance". These
+	// are the Support Center code/name mappings:
+	//
+	//    * low: General guidance
+	//
+	//    * normal: System impaired
+	//
+	//    * high: Production system impaired
+	//
+	//    * urgent: Production system down
+	//
+	//    * critical: Business-critical system down
+	//
+	// For more information, see Choosing a severity (https://docs.aws.amazon.com/awssupport/latest/user/case-management.html#choosing-severity)
+	// in the AWS Support User Guide.
 	Name *string `locationName:"name" type:"string"`
 }
 
@@ -3073,7 +3707,6 @@ func (s *SeverityLevel) SetName(v string) *SeverityLevel {
 
 // The container for summary information that relates to the category of the
 // Trusted Advisor check.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/TrustedAdvisorCategorySpecificSummary
 type TrustedAdvisorCategorySpecificSummary struct {
 	_ struct{} `type:"structure"`
 
@@ -3099,7 +3732,6 @@ func (s *TrustedAdvisorCategorySpecificSummary) SetCostOptimizing(v *TrustedAdvi
 }
 
 // The description and metadata for a Trusted Advisor check.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/TrustedAdvisorCheckDescription
 type TrustedAdvisorCheckDescription struct {
 	_ struct{} `type:"structure"`
 
@@ -3109,7 +3741,7 @@ type TrustedAdvisorCheckDescription struct {
 	Category *string `locationName:"category" type:"string" required:"true"`
 
 	// The description of the Trusted Advisor check, which includes the alert criteria
-	// and recommended actions (contains HTML markup).
+	// and recommended operations (contains HTML markup).
 	//
 	// Description is a required field
 	Description *string `locationName:"description" type:"string" required:"true"`
@@ -3175,7 +3807,6 @@ func (s *TrustedAdvisorCheckDescription) SetName(v string) *TrustedAdvisorCheckD
 }
 
 // The refresh status of a Trusted Advisor check.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/TrustedAdvisorCheckRefreshStatus
 type TrustedAdvisorCheckRefreshStatus struct {
 	_ struct{} `type:"structure"`
 
@@ -3191,7 +3822,18 @@ type TrustedAdvisorCheckRefreshStatus struct {
 	MillisUntilNextRefreshable *int64 `locationName:"millisUntilNextRefreshable" type:"long" required:"true"`
 
 	// The status of the Trusted Advisor check for which a refresh has been requested:
-	// "none", "enqueued", "processing", "success", or "abandoned".
+	//
+	//    * none: The check is not refreshed or the non-success status exceeds the
+	//    timeout
+	//
+	//    * enqueued: The check refresh requests has entered the refresh queue
+	//
+	//    * processing: The check refresh request is picked up by the rule processing
+	//    engine
+	//
+	//    * success: The check is successfully refreshed
+	//
+	//    * abandoned: The check refresh has failed
 	//
 	// Status is a required field
 	Status *string `locationName:"status" type:"string" required:"true"`
@@ -3226,7 +3868,6 @@ func (s *TrustedAdvisorCheckRefreshStatus) SetStatus(v string) *TrustedAdvisorCh
 }
 
 // The results of a Trusted Advisor check returned by DescribeTrustedAdvisorCheckResult.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/TrustedAdvisorCheckResult
 type TrustedAdvisorCheckResult struct {
 	_ struct{} `type:"structure"`
 
@@ -3312,7 +3953,6 @@ func (s *TrustedAdvisorCheckResult) SetTimestamp(v string) *TrustedAdvisorCheckR
 
 // A summary of a Trusted Advisor check result, including the alert status,
 // last refresh, and number of resources examined.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/TrustedAdvisorCheckSummary
 type TrustedAdvisorCheckSummary struct {
 	_ struct{} `type:"structure"`
 
@@ -3394,20 +4034,19 @@ func (s *TrustedAdvisorCheckSummary) SetTimestamp(v string) *TrustedAdvisorCheck
 	return s
 }
 
-// The estimated cost savings that might be realized if the recommended actions
+// The estimated cost savings that might be realized if the recommended operations
 // are taken.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/TrustedAdvisorCostOptimizingSummary
 type TrustedAdvisorCostOptimizingSummary struct {
 	_ struct{} `type:"structure"`
 
-	// The estimated monthly savings that might be realized if the recommended actions
+	// The estimated monthly savings that might be realized if the recommended operations
 	// are taken.
 	//
 	// EstimatedMonthlySavings is a required field
 	EstimatedMonthlySavings *float64 `locationName:"estimatedMonthlySavings" type:"double" required:"true"`
 
 	// The estimated percentage of savings that might be realized if the recommended
-	// actions are taken.
+	// operations are taken.
 	//
 	// EstimatedPercentMonthlySavings is a required field
 	EstimatedPercentMonthlySavings *float64 `locationName:"estimatedPercentMonthlySavings" type:"double" required:"true"`
@@ -3436,7 +4075,6 @@ func (s *TrustedAdvisorCostOptimizingSummary) SetEstimatedPercentMonthlySavings(
 }
 
 // Contains information about a resource identified by a Trusted Advisor check.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/TrustedAdvisorResourceDetail
 type TrustedAdvisorResourceDetail struct {
 	_ struct{} `type:"structure"`
 
@@ -3509,7 +4147,6 @@ func (s *TrustedAdvisorResourceDetail) SetStatus(v string) *TrustedAdvisorResour
 
 // Details about AWS resources that were analyzed in a call to Trusted Advisor
 // DescribeTrustedAdvisorCheckSummaries.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/support-2013-04-15/TrustedAdvisorResourcesSummary
 type TrustedAdvisorResourcesSummary struct {
 	_ struct{} `type:"structure"`
 

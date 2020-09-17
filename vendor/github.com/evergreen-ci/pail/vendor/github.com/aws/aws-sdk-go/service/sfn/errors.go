@@ -2,6 +2,10 @@
 
 package sfn
 
+import (
+	"github.com/aws/aws-sdk-go/private/protocol"
+)
+
 const (
 
 	// ErrCodeActivityDoesNotExist for service response error code
@@ -27,7 +31,9 @@ const (
 	// ErrCodeExecutionAlreadyExists for service response error code
 	// "ExecutionAlreadyExists".
 	//
-	// An execution with the same name already exists.
+	// The execution has the same name as another execution (but a different input).
+	//
+	// Executions with the same name and input are considered idempotent.
 	ErrCodeExecutionAlreadyExists = "ExecutionAlreadyExists"
 
 	// ErrCodeExecutionDoesNotExist for service response error code
@@ -61,6 +67,10 @@ const (
 	// The provided JSON input data is invalid.
 	ErrCodeInvalidExecutionInput = "InvalidExecutionInput"
 
+	// ErrCodeInvalidLoggingConfiguration for service response error code
+	// "InvalidLoggingConfiguration".
+	ErrCodeInvalidLoggingConfiguration = "InvalidLoggingConfiguration"
+
 	// ErrCodeInvalidName for service response error code
 	// "InvalidName".
 	//
@@ -78,6 +88,20 @@ const (
 	//
 	// The provided token is invalid.
 	ErrCodeInvalidToken = "InvalidToken"
+
+	// ErrCodeMissingRequiredParameter for service response error code
+	// "MissingRequiredParameter".
+	//
+	// Request is missing a required parameter. This error occurs if both definition
+	// and roleArn are not specified.
+	ErrCodeMissingRequiredParameter = "MissingRequiredParameter"
+
+	// ErrCodeResourceNotFound for service response error code
+	// "ResourceNotFound".
+	//
+	// Could not find the referenced resource. Only state machine and activity ARNs
+	// are supported.
+	ErrCodeResourceNotFound = "ResourceNotFound"
 
 	// ErrCodeStateMachineAlreadyExists for service response error code
 	// "StateMachineAlreadyExists".
@@ -105,6 +129,10 @@ const (
 	// must be deleted before a new state machine can be created.
 	ErrCodeStateMachineLimitExceeded = "StateMachineLimitExceeded"
 
+	// ErrCodeStateMachineTypeNotSupported for service response error code
+	// "StateMachineTypeNotSupported".
+	ErrCodeStateMachineTypeNotSupported = "StateMachineTypeNotSupported"
+
 	// ErrCodeTaskDoesNotExist for service response error code
 	// "TaskDoesNotExist".
 	ErrCodeTaskDoesNotExist = "TaskDoesNotExist"
@@ -112,4 +140,38 @@ const (
 	// ErrCodeTaskTimedOut for service response error code
 	// "TaskTimedOut".
 	ErrCodeTaskTimedOut = "TaskTimedOut"
+
+	// ErrCodeTooManyTags for service response error code
+	// "TooManyTags".
+	//
+	// You've exceeded the number of tags allowed for a resource. See the Limits
+	// Topic (https://docs.aws.amazon.com/step-functions/latest/dg/limits.html)
+	// in the AWS Step Functions Developer Guide.
+	ErrCodeTooManyTags = "TooManyTags"
 )
+
+var exceptionFromCode = map[string]func(protocol.ResponseMetadata) error{
+	"ActivityDoesNotExist":         newErrorActivityDoesNotExist,
+	"ActivityLimitExceeded":        newErrorActivityLimitExceeded,
+	"ActivityWorkerLimitExceeded":  newErrorActivityWorkerLimitExceeded,
+	"ExecutionAlreadyExists":       newErrorExecutionAlreadyExists,
+	"ExecutionDoesNotExist":        newErrorExecutionDoesNotExist,
+	"ExecutionLimitExceeded":       newErrorExecutionLimitExceeded,
+	"InvalidArn":                   newErrorInvalidArn,
+	"InvalidDefinition":            newErrorInvalidDefinition,
+	"InvalidExecutionInput":        newErrorInvalidExecutionInput,
+	"InvalidLoggingConfiguration":  newErrorInvalidLoggingConfiguration,
+	"InvalidName":                  newErrorInvalidName,
+	"InvalidOutput":                newErrorInvalidOutput,
+	"InvalidToken":                 newErrorInvalidToken,
+	"MissingRequiredParameter":     newErrorMissingRequiredParameter,
+	"ResourceNotFound":             newErrorResourceNotFound,
+	"StateMachineAlreadyExists":    newErrorStateMachineAlreadyExists,
+	"StateMachineDeleting":         newErrorStateMachineDeleting,
+	"StateMachineDoesNotExist":     newErrorStateMachineDoesNotExist,
+	"StateMachineLimitExceeded":    newErrorStateMachineLimitExceeded,
+	"StateMachineTypeNotSupported": newErrorStateMachineTypeNotSupported,
+	"TaskDoesNotExist":             newErrorTaskDoesNotExist,
+	"TaskTimedOut":                 newErrorTaskTimedOut,
+	"TooManyTags":                  newErrorTooManyTags,
+}

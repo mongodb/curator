@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"regexp"
 
+	"github.com/evergreen-ci/utility"
 	"github.com/mongodb/grip"
 	"github.com/mongodb/grip/message"
 	"github.com/pkg/errors"
@@ -139,6 +140,9 @@ func (b *localFileSystem) Reader(_ context.Context, name string) (io.ReadCloser,
 	path := filepath.Join(b.path, b.normalizeKey(name))
 	f, err := os.Open(path)
 	if err != nil {
+		if os.IsNotExist(err) {
+			err = MakeKeyNotFoundError(err)
+		}
 		return nil, errors.Wrapf(err, "problem opening file '%s'", path)
 	}
 
@@ -283,8 +287,11 @@ func (b *localFileSystem) Remove(ctx context.Context, key string) error {
 	}
 
 	path := filepath.Join(b.path, b.normalizeKey(key))
-
-	return errors.Wrapf(os.Remove(path), "problem removing path %s", path)
+	err := os.Remove(path)
+	if os.IsNotExist(err) {
+		err = MakeKeyNotFoundError(err)
+	}
+	return errors.Wrapf(err, "problem removing path %s", path)
 }
 
 func (b *localFileSystem) RemoveMany(ctx context.Context, keys ...string) error {
@@ -371,11 +378,11 @@ func (b *localFileSystem) Push(ctx context.Context, opts SyncOptions) error {
 			continue
 		}
 
-		lsum, err := sha1sum(file)
+		lsum, err := utility.SHA1SumFile(file)
 		if err != nil {
 			return errors.WithStack(err)
 		}
-		rsum, err := sha1sum(target)
+		rsum, err := utility.SHA1SumFile(target)
 		if err != nil {
 			return errors.WithStack(err)
 		}
@@ -436,11 +443,11 @@ func (b *localFileSystem) Pull(ctx context.Context, opts SyncOptions) error {
 			continue
 		}
 
-		lsum, err := sha1sum(filepath.Join(prefix, fn))
+		lsum, err := utility.SHA1SumFile(filepath.Join(prefix, fn))
 		if err != nil {
 			return errors.WithStack(err)
 		}
-		rsum, err := sha1sum(path)
+		rsum, err := utility.SHA1SumFile(path)
 		if err != nil {
 			return errors.WithStack(err)
 		}

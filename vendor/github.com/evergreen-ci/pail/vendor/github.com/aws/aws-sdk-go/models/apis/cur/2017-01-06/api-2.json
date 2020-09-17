@@ -6,6 +6,7 @@
     "jsonVersion":"1.1",
     "protocol":"json",
     "serviceFullName":"AWS Cost and Usage Report Service",
+    "serviceId":"Cost and Usage Report Service",
     "signatureVersion":"v4",
     "signingName":"cur",
     "targetPrefix":"AWSOrigamiServiceGatewayService",
@@ -37,6 +38,19 @@
         {"shape":"InternalErrorException"}
       ]
     },
+    "ModifyReportDefinition":{
+      "name":"ModifyReportDefinition",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"ModifyReportDefinitionRequest"},
+      "output":{"shape":"ModifyReportDefinitionResponse"},
+      "errors":[
+        {"shape":"InternalErrorException"},
+        {"shape":"ValidationException"}
+      ]
+    },
     "PutReportDefinition":{
       "name":"PutReportDefinition",
       "http":{
@@ -57,21 +71,37 @@
     "AWSRegion":{
       "type":"string",
       "enum":[
-        "us-east-1",
-        "us-west-1",
-        "us-west-2",
-        "eu-central-1",
-        "eu-west-1",
+        "af-south-1",
+        "ap-east-1",
+        "ap-south-1",
         "ap-southeast-1",
         "ap-southeast-2",
-        "ap-northeast-1"
+        "ap-northeast-1",
+        "ap-northeast-2",
+        "ap-northeast-3",
+        "ca-central-1",
+        "eu-central-1",
+        "eu-west-1",
+        "eu-west-2",
+        "eu-west-3",
+        "eu-north-1",
+        "eu-south-1",
+        "me-south-1",
+        "sa-east-1",
+        "us-east-1",
+        "us-east-2",
+        "us-west-1",
+        "us-west-2",
+        "cn-north-1",
+        "cn-northwest-1"
       ]
     },
     "AdditionalArtifact":{
       "type":"string",
       "enum":[
         "REDSHIFT",
-        "QUICKSIGHT"
+        "QUICKSIGHT",
+        "ATHENA"
       ]
     },
     "AdditionalArtifactList":{
@@ -82,7 +112,8 @@
       "type":"string",
       "enum":[
         "ZIP",
-        "GZIP"
+        "GZIP",
+        "Parquet"
       ]
     },
     "DeleteReportDefinitionRequest":{
@@ -120,7 +151,11 @@
       "exception":true
     },
     "ErrorMessage":{"type":"string"},
-    "GenericString":{"type":"string"},
+    "GenericString":{
+      "type":"string",
+      "max":256,
+      "pattern":"[A-Za-z0-9_\\.\\-=]*"
+    },
     "InternalErrorException":{
       "type":"structure",
       "members":{
@@ -135,6 +170,22 @@
       "max":5,
       "min":5
     },
+    "ModifyReportDefinitionRequest":{
+      "type":"structure",
+      "required":[
+        "ReportName",
+        "ReportDefinition"
+      ],
+      "members":{
+        "ReportName":{"shape":"ReportName"},
+        "ReportDefinition":{"shape":"ReportDefinition"}
+      }
+    },
+    "ModifyReportDefinitionResponse":{
+      "type":"structure",
+      "members":{
+      }
+    },
     "PutReportDefinitionRequest":{
       "type":"structure",
       "required":["ReportDefinition"],
@@ -146,6 +197,10 @@
       "type":"structure",
       "members":{
       }
+    },
+    "RefreshClosedReports":{
+      "type":"boolean",
+      "box":true
     },
     "ReportDefinition":{
       "type":"structure",
@@ -168,7 +223,9 @@
         "S3Bucket":{"shape":"S3Bucket"},
         "S3Prefix":{"shape":"S3Prefix"},
         "S3Region":{"shape":"AWSRegion"},
-        "AdditionalArtifacts":{"shape":"AdditionalArtifactList"}
+        "AdditionalArtifacts":{"shape":"AdditionalArtifactList"},
+        "RefreshClosedReports":{"shape":"RefreshClosedReports"},
+        "ReportVersioning":{"shape":"ReportVersioning"}
       }
     },
     "ReportDefinitionList":{
@@ -177,7 +234,10 @@
     },
     "ReportFormat":{
       "type":"string",
-      "enum":["textORcsv"]
+      "enum":[
+        "textORcsv",
+        "Parquet"
+      ]
     },
     "ReportLimitReachedException":{
       "type":"structure",
@@ -191,9 +251,17 @@
       "max":256,
       "pattern":"[0-9A-Za-z!\\-_.*\\'()]+"
     },
+    "ReportVersioning":{
+      "type":"string",
+      "enum":[
+        "CREATE_NEW_REPORT",
+        "OVERWRITE_REPORT"
+      ]
+    },
     "S3Bucket":{
       "type":"string",
-      "max":256
+      "max":256,
+      "pattern":"[A-Za-z0-9_\\.\\-]+"
     },
     "S3Prefix":{
       "type":"string",
@@ -212,7 +280,8 @@
       "type":"string",
       "enum":[
         "HOURLY",
-        "DAILY"
+        "DAILY",
+        "MONTHLY"
       ]
     },
     "ValidationException":{

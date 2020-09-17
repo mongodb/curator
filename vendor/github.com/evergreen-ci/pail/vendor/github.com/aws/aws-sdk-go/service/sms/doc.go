@@ -3,8 +3,13 @@
 // Package sms provides the client and types for making API
 // requests to AWS Server Migration Service.
 //
-// Amazon Server Migration Service automates the process of migrating servers
-// to EC2.
+// AWS Server Migration Service (AWS SMS) makes it easier and faster for you
+// to migrate your on-premises workloads to AWS. To learn more about AWS SMS,
+// see the following resources:
+//
+//    * AWS Server Migration Service product page (http://aws.amazon.com/server-migration-service/)
+//
+//    * AWS Server Migration Service User Guide (https://docs.aws.amazon.com/server-migration-service/latest/userguide/)
 //
 // See https://docs.aws.amazon.com/goto/WebAPI/sms-2016-10-24 for more information on this service.
 //
@@ -13,7 +18,7 @@
 //
 // Using the Client
 //
-// To AWS Server Migration Service with the SDK use the New function to create
+// To contact AWS Server Migration Service with the SDK use the New function to create
 // a new service client. With that client you can make API requests to the service.
 // These clients are safe to use concurrently.
 //

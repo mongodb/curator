@@ -9,14 +9,16 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/private/protocol"
+	"github.com/aws/aws-sdk-go/private/protocol/jsonrpc"
 )
 
 const opAssociateConfigurationItemsToApplication = "AssociateConfigurationItemsToApplication"
 
 // AssociateConfigurationItemsToApplicationRequest generates a "aws/request.Request" representing the
 // client's request for the AssociateConfigurationItemsToApplication operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -36,7 +38,7 @@ const opAssociateConfigurationItemsToApplication = "AssociateConfigurationItemsT
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/AssociateConfigurationItemsToApplication
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/AssociateConfigurationItemsToApplication
 func (c *ApplicationDiscoveryService) AssociateConfigurationItemsToApplicationRequest(input *AssociateConfigurationItemsToApplicationInput) (req *request.Request, output *AssociateConfigurationItemsToApplicationOutput) {
 	op := &request.Operation{
 		Name:       opAssociateConfigurationItemsToApplication,
@@ -50,6 +52,7 @@ func (c *ApplicationDiscoveryService) AssociateConfigurationItemsToApplicationRe
 
 	output = &AssociateConfigurationItemsToApplicationOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -64,22 +67,25 @@ func (c *ApplicationDiscoveryService) AssociateConfigurationItemsToApplicationRe
 // See the AWS API reference guide for AWS Application Discovery Service's
 // API operation AssociateConfigurationItemsToApplication for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeAuthorizationErrorException "AuthorizationErrorException"
+// Returned Error Types:
+//   * AuthorizationErrorException
 //   The AWS user account does not have permission to perform the action. Check
 //   the IAM policy associated with this account.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   One or more parameters are not valid. Verify the parameters and try again.
 //
-//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
+//   * InvalidParameterValueException
 //   The value of one or more parameters are either invalid or out of range. Verify
 //   the parameter values and try again.
 //
-//   * ErrCodeServerInternalErrorException "ServerInternalErrorException"
+//   * ServerInternalErrorException
 //   The server experienced an internal error. Try again.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/AssociateConfigurationItemsToApplication
+//   * HomeRegionNotSetException
+//   The home region is not set. Set the home region to continue.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/AssociateConfigurationItemsToApplication
 func (c *ApplicationDiscoveryService) AssociateConfigurationItemsToApplication(input *AssociateConfigurationItemsToApplicationInput) (*AssociateConfigurationItemsToApplicationOutput, error) {
 	req, out := c.AssociateConfigurationItemsToApplicationRequest(input)
 	return out, req.Send()
@@ -101,12 +107,113 @@ func (c *ApplicationDiscoveryService) AssociateConfigurationItemsToApplicationWi
 	return out, req.Send()
 }
 
+const opBatchDeleteImportData = "BatchDeleteImportData"
+
+// BatchDeleteImportDataRequest generates a "aws/request.Request" representing the
+// client's request for the BatchDeleteImportData operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See BatchDeleteImportData for more information on using the BatchDeleteImportData
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the BatchDeleteImportDataRequest method.
+//    req, resp := client.BatchDeleteImportDataRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/BatchDeleteImportData
+func (c *ApplicationDiscoveryService) BatchDeleteImportDataRequest(input *BatchDeleteImportDataInput) (req *request.Request, output *BatchDeleteImportDataOutput) {
+	op := &request.Operation{
+		Name:       opBatchDeleteImportData,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &BatchDeleteImportDataInput{}
+	}
+
+	output = &BatchDeleteImportDataOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// BatchDeleteImportData API operation for AWS Application Discovery Service.
+//
+// Deletes one or more import tasks, each identified by their import ID. Each
+// import task has a number of records that can identify servers or applications.
+//
+// AWS Application Discovery Service has built-in matching logic that will identify
+// when discovered servers match existing entries that you've previously discovered,
+// the information for the already-existing discovered server is updated. When
+// you delete an import task that contains records that were used to match,
+// the information in those matched records that comes from the deleted records
+// will also be deleted.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Application Discovery Service's
+// API operation BatchDeleteImportData for usage and error information.
+//
+// Returned Error Types:
+//   * AuthorizationErrorException
+//   The AWS user account does not have permission to perform the action. Check
+//   the IAM policy associated with this account.
+//
+//   * InvalidParameterException
+//   One or more parameters are not valid. Verify the parameters and try again.
+//
+//   * InvalidParameterValueException
+//   The value of one or more parameters are either invalid or out of range. Verify
+//   the parameter values and try again.
+//
+//   * ServerInternalErrorException
+//   The server experienced an internal error. Try again.
+//
+//   * HomeRegionNotSetException
+//   The home region is not set. Set the home region to continue.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/BatchDeleteImportData
+func (c *ApplicationDiscoveryService) BatchDeleteImportData(input *BatchDeleteImportDataInput) (*BatchDeleteImportDataOutput, error) {
+	req, out := c.BatchDeleteImportDataRequest(input)
+	return out, req.Send()
+}
+
+// BatchDeleteImportDataWithContext is the same as BatchDeleteImportData with the addition of
+// the ability to pass a context and additional request options.
+//
+// See BatchDeleteImportData for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ApplicationDiscoveryService) BatchDeleteImportDataWithContext(ctx aws.Context, input *BatchDeleteImportDataInput, opts ...request.Option) (*BatchDeleteImportDataOutput, error) {
+	req, out := c.BatchDeleteImportDataRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opCreateApplication = "CreateApplication"
 
 // CreateApplicationRequest generates a "aws/request.Request" representing the
 // client's request for the CreateApplication operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -126,7 +233,7 @@ const opCreateApplication = "CreateApplication"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/CreateApplication
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/CreateApplication
 func (c *ApplicationDiscoveryService) CreateApplicationRequest(input *CreateApplicationInput) (req *request.Request, output *CreateApplicationOutput) {
 	op := &request.Operation{
 		Name:       opCreateApplication,
@@ -154,22 +261,25 @@ func (c *ApplicationDiscoveryService) CreateApplicationRequest(input *CreateAppl
 // See the AWS API reference guide for AWS Application Discovery Service's
 // API operation CreateApplication for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeAuthorizationErrorException "AuthorizationErrorException"
+// Returned Error Types:
+//   * AuthorizationErrorException
 //   The AWS user account does not have permission to perform the action. Check
 //   the IAM policy associated with this account.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   One or more parameters are not valid. Verify the parameters and try again.
 //
-//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
+//   * InvalidParameterValueException
 //   The value of one or more parameters are either invalid or out of range. Verify
 //   the parameter values and try again.
 //
-//   * ErrCodeServerInternalErrorException "ServerInternalErrorException"
+//   * ServerInternalErrorException
 //   The server experienced an internal error. Try again.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/CreateApplication
+//   * HomeRegionNotSetException
+//   The home region is not set. Set the home region to continue.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/CreateApplication
 func (c *ApplicationDiscoveryService) CreateApplication(input *CreateApplicationInput) (*CreateApplicationOutput, error) {
 	req, out := c.CreateApplicationRequest(input)
 	return out, req.Send()
@@ -195,8 +305,8 @@ const opCreateTags = "CreateTags"
 
 // CreateTagsRequest generates a "aws/request.Request" representing the
 // client's request for the CreateTags operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -216,7 +326,7 @@ const opCreateTags = "CreateTags"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/CreateTags
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/CreateTags
 func (c *ApplicationDiscoveryService) CreateTagsRequest(input *CreateTagsInput) (req *request.Request, output *CreateTagsOutput) {
 	op := &request.Operation{
 		Name:       opCreateTags,
@@ -230,6 +340,7 @@ func (c *ApplicationDiscoveryService) CreateTagsRequest(input *CreateTagsInput) 
 
 	output = &CreateTagsOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -246,26 +357,29 @@ func (c *ApplicationDiscoveryService) CreateTagsRequest(input *CreateTagsInput) 
 // See the AWS API reference guide for AWS Application Discovery Service's
 // API operation CreateTags for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeAuthorizationErrorException "AuthorizationErrorException"
+// Returned Error Types:
+//   * AuthorizationErrorException
 //   The AWS user account does not have permission to perform the action. Check
 //   the IAM policy associated with this account.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified configuration ID was not located. Verify the configuration
 //   ID and try again.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   One or more parameters are not valid. Verify the parameters and try again.
 //
-//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
+//   * InvalidParameterValueException
 //   The value of one or more parameters are either invalid or out of range. Verify
 //   the parameter values and try again.
 //
-//   * ErrCodeServerInternalErrorException "ServerInternalErrorException"
+//   * ServerInternalErrorException
 //   The server experienced an internal error. Try again.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/CreateTags
+//   * HomeRegionNotSetException
+//   The home region is not set. Set the home region to continue.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/CreateTags
 func (c *ApplicationDiscoveryService) CreateTags(input *CreateTagsInput) (*CreateTagsOutput, error) {
 	req, out := c.CreateTagsRequest(input)
 	return out, req.Send()
@@ -291,8 +405,8 @@ const opDeleteApplications = "DeleteApplications"
 
 // DeleteApplicationsRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteApplications operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -312,7 +426,7 @@ const opDeleteApplications = "DeleteApplications"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DeleteApplications
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DeleteApplications
 func (c *ApplicationDiscoveryService) DeleteApplicationsRequest(input *DeleteApplicationsInput) (req *request.Request, output *DeleteApplicationsOutput) {
 	op := &request.Operation{
 		Name:       opDeleteApplications,
@@ -326,6 +440,7 @@ func (c *ApplicationDiscoveryService) DeleteApplicationsRequest(input *DeleteApp
 
 	output = &DeleteApplicationsOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -341,22 +456,25 @@ func (c *ApplicationDiscoveryService) DeleteApplicationsRequest(input *DeleteApp
 // See the AWS API reference guide for AWS Application Discovery Service's
 // API operation DeleteApplications for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeAuthorizationErrorException "AuthorizationErrorException"
+// Returned Error Types:
+//   * AuthorizationErrorException
 //   The AWS user account does not have permission to perform the action. Check
 //   the IAM policy associated with this account.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   One or more parameters are not valid. Verify the parameters and try again.
 //
-//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
+//   * InvalidParameterValueException
 //   The value of one or more parameters are either invalid or out of range. Verify
 //   the parameter values and try again.
 //
-//   * ErrCodeServerInternalErrorException "ServerInternalErrorException"
+//   * ServerInternalErrorException
 //   The server experienced an internal error. Try again.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DeleteApplications
+//   * HomeRegionNotSetException
+//   The home region is not set. Set the home region to continue.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DeleteApplications
 func (c *ApplicationDiscoveryService) DeleteApplications(input *DeleteApplicationsInput) (*DeleteApplicationsOutput, error) {
 	req, out := c.DeleteApplicationsRequest(input)
 	return out, req.Send()
@@ -382,8 +500,8 @@ const opDeleteTags = "DeleteTags"
 
 // DeleteTagsRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteTags operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -403,7 +521,7 @@ const opDeleteTags = "DeleteTags"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DeleteTags
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DeleteTags
 func (c *ApplicationDiscoveryService) DeleteTagsRequest(input *DeleteTagsInput) (req *request.Request, output *DeleteTagsOutput) {
 	op := &request.Operation{
 		Name:       opDeleteTags,
@@ -417,6 +535,7 @@ func (c *ApplicationDiscoveryService) DeleteTagsRequest(input *DeleteTagsInput) 
 
 	output = &DeleteTagsOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -432,26 +551,29 @@ func (c *ApplicationDiscoveryService) DeleteTagsRequest(input *DeleteTagsInput) 
 // See the AWS API reference guide for AWS Application Discovery Service's
 // API operation DeleteTags for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeAuthorizationErrorException "AuthorizationErrorException"
+// Returned Error Types:
+//   * AuthorizationErrorException
 //   The AWS user account does not have permission to perform the action. Check
 //   the IAM policy associated with this account.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified configuration ID was not located. Verify the configuration
 //   ID and try again.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   One or more parameters are not valid. Verify the parameters and try again.
 //
-//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
+//   * InvalidParameterValueException
 //   The value of one or more parameters are either invalid or out of range. Verify
 //   the parameter values and try again.
 //
-//   * ErrCodeServerInternalErrorException "ServerInternalErrorException"
+//   * ServerInternalErrorException
 //   The server experienced an internal error. Try again.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DeleteTags
+//   * HomeRegionNotSetException
+//   The home region is not set. Set the home region to continue.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DeleteTags
 func (c *ApplicationDiscoveryService) DeleteTags(input *DeleteTagsInput) (*DeleteTagsOutput, error) {
 	req, out := c.DeleteTagsRequest(input)
 	return out, req.Send()
@@ -477,8 +599,8 @@ const opDescribeAgents = "DescribeAgents"
 
 // DescribeAgentsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeAgents operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -498,7 +620,7 @@ const opDescribeAgents = "DescribeAgents"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DescribeAgents
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DescribeAgents
 func (c *ApplicationDiscoveryService) DescribeAgentsRequest(input *DescribeAgentsInput) (req *request.Request, output *DescribeAgentsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeAgents,
@@ -517,8 +639,9 @@ func (c *ApplicationDiscoveryService) DescribeAgentsRequest(input *DescribeAgent
 
 // DescribeAgents API operation for AWS Application Discovery Service.
 //
-// Lists agents or the Connector by ID or lists all agents/Connectors associated
-// with your user account if you did not specify an ID.
+// Lists agents or connectors as specified by ID or other filters. All agents/connectors
+// associated with your user account can be listed if you call DescribeAgents
+// as is without passing any parameters.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -527,22 +650,25 @@ func (c *ApplicationDiscoveryService) DescribeAgentsRequest(input *DescribeAgent
 // See the AWS API reference guide for AWS Application Discovery Service's
 // API operation DescribeAgents for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeAuthorizationErrorException "AuthorizationErrorException"
+// Returned Error Types:
+//   * AuthorizationErrorException
 //   The AWS user account does not have permission to perform the action. Check
 //   the IAM policy associated with this account.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   One or more parameters are not valid. Verify the parameters and try again.
 //
-//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
+//   * InvalidParameterValueException
 //   The value of one or more parameters are either invalid or out of range. Verify
 //   the parameter values and try again.
 //
-//   * ErrCodeServerInternalErrorException "ServerInternalErrorException"
+//   * ServerInternalErrorException
 //   The server experienced an internal error. Try again.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DescribeAgents
+//   * HomeRegionNotSetException
+//   The home region is not set. Set the home region to continue.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DescribeAgents
 func (c *ApplicationDiscoveryService) DescribeAgents(input *DescribeAgentsInput) (*DescribeAgentsOutput, error) {
 	req, out := c.DescribeAgentsRequest(input)
 	return out, req.Send()
@@ -568,8 +694,8 @@ const opDescribeConfigurations = "DescribeConfigurations"
 
 // DescribeConfigurationsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeConfigurations operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -589,7 +715,7 @@ const opDescribeConfigurations = "DescribeConfigurations"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DescribeConfigurations
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DescribeConfigurations
 func (c *ApplicationDiscoveryService) DescribeConfigurationsRequest(input *DescribeConfigurationsInput) (req *request.Request, output *DescribeConfigurationsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeConfigurations,
@@ -608,14 +734,26 @@ func (c *ApplicationDiscoveryService) DescribeConfigurationsRequest(input *Descr
 
 // DescribeConfigurations API operation for AWS Application Discovery Service.
 //
-// Retrieves attributes for a list of configuration item IDs. All of the supplied
-// IDs must be for the same asset type (server, application, process, or connection).
-// Output fields are specific to the asset type selected. For example, the output
-// for a server configuration item includes a list of attributes about the server,
-// such as host name, operating system, and number of network cards.
+// Retrieves attributes for a list of configuration item IDs.
+//
+// All of the supplied IDs must be for the same asset type from one of the following:
+//
+//    * server
+//
+//    * application
+//
+//    * process
+//
+//    * connection
+//
+// Output fields are specific to the asset type specified. For example, the
+// output for a server configuration item includes a list of attributes about
+// the server, such as host name, operating system, number of network cards,
+// etc.
 //
 // For a complete list of outputs for each asset type, see Using the DescribeConfigurations
-// Action (http://docs.aws.amazon.com/application-discovery/latest/APIReference/discovery-api-queries.html#DescribeConfigurations).
+// Action (https://docs.aws.amazon.com/application-discovery/latest/userguide/discovery-api-queries.html#DescribeConfigurations)
+// in the AWS Application Discovery Service User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -624,22 +762,25 @@ func (c *ApplicationDiscoveryService) DescribeConfigurationsRequest(input *Descr
 // See the AWS API reference guide for AWS Application Discovery Service's
 // API operation DescribeConfigurations for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeAuthorizationErrorException "AuthorizationErrorException"
+// Returned Error Types:
+//   * AuthorizationErrorException
 //   The AWS user account does not have permission to perform the action. Check
 //   the IAM policy associated with this account.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   One or more parameters are not valid. Verify the parameters and try again.
 //
-//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
+//   * InvalidParameterValueException
 //   The value of one or more parameters are either invalid or out of range. Verify
 //   the parameter values and try again.
 //
-//   * ErrCodeServerInternalErrorException "ServerInternalErrorException"
+//   * ServerInternalErrorException
 //   The server experienced an internal error. Try again.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DescribeConfigurations
+//   * HomeRegionNotSetException
+//   The home region is not set. Set the home region to continue.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DescribeConfigurations
 func (c *ApplicationDiscoveryService) DescribeConfigurations(input *DescribeConfigurationsInput) (*DescribeConfigurationsOutput, error) {
 	req, out := c.DescribeConfigurationsRequest(input)
 	return out, req.Send()
@@ -661,12 +802,172 @@ func (c *ApplicationDiscoveryService) DescribeConfigurationsWithContext(ctx aws.
 	return out, req.Send()
 }
 
+const opDescribeContinuousExports = "DescribeContinuousExports"
+
+// DescribeContinuousExportsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeContinuousExports operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeContinuousExports for more information on using the DescribeContinuousExports
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DescribeContinuousExportsRequest method.
+//    req, resp := client.DescribeContinuousExportsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DescribeContinuousExports
+func (c *ApplicationDiscoveryService) DescribeContinuousExportsRequest(input *DescribeContinuousExportsInput) (req *request.Request, output *DescribeContinuousExportsOutput) {
+	op := &request.Operation{
+		Name:       opDescribeContinuousExports,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"nextToken"},
+			OutputTokens:    []string{"nextToken"},
+			LimitToken:      "maxResults",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &DescribeContinuousExportsInput{}
+	}
+
+	output = &DescribeContinuousExportsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeContinuousExports API operation for AWS Application Discovery Service.
+//
+// Lists exports as specified by ID. All continuous exports associated with
+// your user account can be listed if you call DescribeContinuousExports as
+// is without passing any parameters.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Application Discovery Service's
+// API operation DescribeContinuousExports for usage and error information.
+//
+// Returned Error Types:
+//   * AuthorizationErrorException
+//   The AWS user account does not have permission to perform the action. Check
+//   the IAM policy associated with this account.
+//
+//   * InvalidParameterException
+//   One or more parameters are not valid. Verify the parameters and try again.
+//
+//   * InvalidParameterValueException
+//   The value of one or more parameters are either invalid or out of range. Verify
+//   the parameter values and try again.
+//
+//   * ServerInternalErrorException
+//   The server experienced an internal error. Try again.
+//
+//   * OperationNotPermittedException
+//   This operation is not permitted.
+//
+//   * ResourceNotFoundException
+//   The specified configuration ID was not located. Verify the configuration
+//   ID and try again.
+//
+//   * HomeRegionNotSetException
+//   The home region is not set. Set the home region to continue.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DescribeContinuousExports
+func (c *ApplicationDiscoveryService) DescribeContinuousExports(input *DescribeContinuousExportsInput) (*DescribeContinuousExportsOutput, error) {
+	req, out := c.DescribeContinuousExportsRequest(input)
+	return out, req.Send()
+}
+
+// DescribeContinuousExportsWithContext is the same as DescribeContinuousExports with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeContinuousExports for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ApplicationDiscoveryService) DescribeContinuousExportsWithContext(ctx aws.Context, input *DescribeContinuousExportsInput, opts ...request.Option) (*DescribeContinuousExportsOutput, error) {
+	req, out := c.DescribeContinuousExportsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+// DescribeContinuousExportsPages iterates over the pages of a DescribeContinuousExports operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeContinuousExports method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeContinuousExports operation.
+//    pageNum := 0
+//    err := client.DescribeContinuousExportsPages(params,
+//        func(page *applicationdiscoveryservice.DescribeContinuousExportsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *ApplicationDiscoveryService) DescribeContinuousExportsPages(input *DescribeContinuousExportsInput, fn func(*DescribeContinuousExportsOutput, bool) bool) error {
+	return c.DescribeContinuousExportsPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// DescribeContinuousExportsPagesWithContext same as DescribeContinuousExportsPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ApplicationDiscoveryService) DescribeContinuousExportsPagesWithContext(ctx aws.Context, input *DescribeContinuousExportsInput, fn func(*DescribeContinuousExportsOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *DescribeContinuousExportsInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.DescribeContinuousExportsRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	for p.Next() {
+		if !fn(p.Page().(*DescribeContinuousExportsOutput), !p.HasNextPage()) {
+			break
+		}
+	}
+
+	return p.Err()
+}
+
 const opDescribeExportConfigurations = "DescribeExportConfigurations"
 
 // DescribeExportConfigurationsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeExportConfigurations operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -686,7 +987,9 @@ const opDescribeExportConfigurations = "DescribeExportConfigurations"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DescribeExportConfigurations
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DescribeExportConfigurations
+//
+// Deprecated: DescribeExportConfigurations has been deprecated
 func (c *ApplicationDiscoveryService) DescribeExportConfigurationsRequest(input *DescribeExportConfigurationsInput) (req *request.Request, output *DescribeExportConfigurationsOutput) {
 	if c.Client.Config.Logger != nil {
 		c.Client.Config.Logger.Log("This operation, DescribeExportConfigurations, has been deprecated")
@@ -708,10 +1011,8 @@ func (c *ApplicationDiscoveryService) DescribeExportConfigurationsRequest(input 
 
 // DescribeExportConfigurations API operation for AWS Application Discovery Service.
 //
-// Deprecated. Use DescribeExportTasks instead.
-//
-// Retrieves the status of a given export process. You can retrieve status from
-// a maximum of 100 processes.
+// DescribeExportConfigurations is deprecated. Use DescribeImportTasks (https://docs.aws.amazon.com/application-discovery/latest/APIReference/API_DescribeExportTasks.html),
+// instead.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -720,26 +1021,31 @@ func (c *ApplicationDiscoveryService) DescribeExportConfigurationsRequest(input 
 // See the AWS API reference guide for AWS Application Discovery Service's
 // API operation DescribeExportConfigurations for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeAuthorizationErrorException "AuthorizationErrorException"
+// Returned Error Types:
+//   * AuthorizationErrorException
 //   The AWS user account does not have permission to perform the action. Check
 //   the IAM policy associated with this account.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified configuration ID was not located. Verify the configuration
 //   ID and try again.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   One or more parameters are not valid. Verify the parameters and try again.
 //
-//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
+//   * InvalidParameterValueException
 //   The value of one or more parameters are either invalid or out of range. Verify
 //   the parameter values and try again.
 //
-//   * ErrCodeServerInternalErrorException "ServerInternalErrorException"
+//   * ServerInternalErrorException
 //   The server experienced an internal error. Try again.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DescribeExportConfigurations
+//   * HomeRegionNotSetException
+//   The home region is not set. Set the home region to continue.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DescribeExportConfigurations
+//
+// Deprecated: DescribeExportConfigurations has been deprecated
 func (c *ApplicationDiscoveryService) DescribeExportConfigurations(input *DescribeExportConfigurationsInput) (*DescribeExportConfigurationsOutput, error) {
 	req, out := c.DescribeExportConfigurationsRequest(input)
 	return out, req.Send()
@@ -754,6 +1060,8 @@ func (c *ApplicationDiscoveryService) DescribeExportConfigurations(input *Descri
 // the context is nil a panic will occur. In the future the SDK may create
 // sub-contexts for http.Requests. See https://golang.org/pkg/context/
 // for more information on using Contexts.
+//
+// Deprecated: DescribeExportConfigurationsWithContext has been deprecated
 func (c *ApplicationDiscoveryService) DescribeExportConfigurationsWithContext(ctx aws.Context, input *DescribeExportConfigurationsInput, opts ...request.Option) (*DescribeExportConfigurationsOutput, error) {
 	req, out := c.DescribeExportConfigurationsRequest(input)
 	req.SetContext(ctx)
@@ -765,8 +1073,8 @@ const opDescribeExportTasks = "DescribeExportTasks"
 
 // DescribeExportTasksRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeExportTasks operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -786,7 +1094,7 @@ const opDescribeExportTasks = "DescribeExportTasks"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DescribeExportTasks
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DescribeExportTasks
 func (c *ApplicationDiscoveryService) DescribeExportTasksRequest(input *DescribeExportTasksInput) (req *request.Request, output *DescribeExportTasksOutput) {
 	op := &request.Operation{
 		Name:       opDescribeExportTasks,
@@ -815,22 +1123,25 @@ func (c *ApplicationDiscoveryService) DescribeExportTasksRequest(input *Describe
 // See the AWS API reference guide for AWS Application Discovery Service's
 // API operation DescribeExportTasks for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeAuthorizationErrorException "AuthorizationErrorException"
+// Returned Error Types:
+//   * AuthorizationErrorException
 //   The AWS user account does not have permission to perform the action. Check
 //   the IAM policy associated with this account.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   One or more parameters are not valid. Verify the parameters and try again.
 //
-//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
+//   * InvalidParameterValueException
 //   The value of one or more parameters are either invalid or out of range. Verify
 //   the parameter values and try again.
 //
-//   * ErrCodeServerInternalErrorException "ServerInternalErrorException"
+//   * ServerInternalErrorException
 //   The server experienced an internal error. Try again.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DescribeExportTasks
+//   * HomeRegionNotSetException
+//   The home region is not set. Set the home region to continue.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DescribeExportTasks
 func (c *ApplicationDiscoveryService) DescribeExportTasks(input *DescribeExportTasksInput) (*DescribeExportTasksOutput, error) {
 	req, out := c.DescribeExportTasksRequest(input)
 	return out, req.Send()
@@ -852,12 +1163,164 @@ func (c *ApplicationDiscoveryService) DescribeExportTasksWithContext(ctx aws.Con
 	return out, req.Send()
 }
 
+const opDescribeImportTasks = "DescribeImportTasks"
+
+// DescribeImportTasksRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeImportTasks operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeImportTasks for more information on using the DescribeImportTasks
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DescribeImportTasksRequest method.
+//    req, resp := client.DescribeImportTasksRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DescribeImportTasks
+func (c *ApplicationDiscoveryService) DescribeImportTasksRequest(input *DescribeImportTasksInput) (req *request.Request, output *DescribeImportTasksOutput) {
+	op := &request.Operation{
+		Name:       opDescribeImportTasks,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"nextToken"},
+			OutputTokens:    []string{"nextToken"},
+			LimitToken:      "maxResults",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &DescribeImportTasksInput{}
+	}
+
+	output = &DescribeImportTasksOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeImportTasks API operation for AWS Application Discovery Service.
+//
+// Returns an array of import tasks for your account, including status information,
+// times, IDs, the Amazon S3 Object URL for the import file, and more.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Application Discovery Service's
+// API operation DescribeImportTasks for usage and error information.
+//
+// Returned Error Types:
+//   * AuthorizationErrorException
+//   The AWS user account does not have permission to perform the action. Check
+//   the IAM policy associated with this account.
+//
+//   * InvalidParameterException
+//   One or more parameters are not valid. Verify the parameters and try again.
+//
+//   * InvalidParameterValueException
+//   The value of one or more parameters are either invalid or out of range. Verify
+//   the parameter values and try again.
+//
+//   * ServerInternalErrorException
+//   The server experienced an internal error. Try again.
+//
+//   * HomeRegionNotSetException
+//   The home region is not set. Set the home region to continue.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DescribeImportTasks
+func (c *ApplicationDiscoveryService) DescribeImportTasks(input *DescribeImportTasksInput) (*DescribeImportTasksOutput, error) {
+	req, out := c.DescribeImportTasksRequest(input)
+	return out, req.Send()
+}
+
+// DescribeImportTasksWithContext is the same as DescribeImportTasks with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeImportTasks for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ApplicationDiscoveryService) DescribeImportTasksWithContext(ctx aws.Context, input *DescribeImportTasksInput, opts ...request.Option) (*DescribeImportTasksOutput, error) {
+	req, out := c.DescribeImportTasksRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+// DescribeImportTasksPages iterates over the pages of a DescribeImportTasks operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See DescribeImportTasks method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a DescribeImportTasks operation.
+//    pageNum := 0
+//    err := client.DescribeImportTasksPages(params,
+//        func(page *applicationdiscoveryservice.DescribeImportTasksOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *ApplicationDiscoveryService) DescribeImportTasksPages(input *DescribeImportTasksInput, fn func(*DescribeImportTasksOutput, bool) bool) error {
+	return c.DescribeImportTasksPagesWithContext(aws.BackgroundContext(), input, fn)
+}
+
+// DescribeImportTasksPagesWithContext same as DescribeImportTasksPages except
+// it takes a Context and allows setting request options on the pages.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ApplicationDiscoveryService) DescribeImportTasksPagesWithContext(ctx aws.Context, input *DescribeImportTasksInput, fn func(*DescribeImportTasksOutput, bool) bool, opts ...request.Option) error {
+	p := request.Pagination{
+		NewRequest: func() (*request.Request, error) {
+			var inCpy *DescribeImportTasksInput
+			if input != nil {
+				tmp := *input
+				inCpy = &tmp
+			}
+			req, _ := c.DescribeImportTasksRequest(inCpy)
+			req.SetContext(ctx)
+			req.ApplyOptions(opts...)
+			return req, nil
+		},
+	}
+
+	for p.Next() {
+		if !fn(p.Page().(*DescribeImportTasksOutput), !p.HasNextPage()) {
+			break
+		}
+	}
+
+	return p.Err()
+}
+
 const opDescribeTags = "DescribeTags"
 
 // DescribeTagsRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeTags operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -877,7 +1340,7 @@ const opDescribeTags = "DescribeTags"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DescribeTags
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DescribeTags
 func (c *ApplicationDiscoveryService) DescribeTagsRequest(input *DescribeTagsInput) (req *request.Request, output *DescribeTagsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeTags,
@@ -896,8 +1359,19 @@ func (c *ApplicationDiscoveryService) DescribeTagsRequest(input *DescribeTagsInp
 
 // DescribeTags API operation for AWS Application Discovery Service.
 //
-// Retrieves a list of configuration items that are tagged with a specific tag.
-// Or retrieves a list of all tags assigned to a specific configuration item.
+// Retrieves a list of configuration items that have tags as specified by the
+// key-value pairs, name and value, passed to the optional parameter filters.
+//
+// There are three valid tag filter names:
+//
+//    * tagKey
+//
+//    * tagValue
+//
+//    * configurationId
+//
+// Also, all configuration items associated with your user account that have
+// tags can be listed if you call DescribeTags as is without passing any parameters.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -906,26 +1380,29 @@ func (c *ApplicationDiscoveryService) DescribeTagsRequest(input *DescribeTagsInp
 // See the AWS API reference guide for AWS Application Discovery Service's
 // API operation DescribeTags for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeAuthorizationErrorException "AuthorizationErrorException"
+// Returned Error Types:
+//   * AuthorizationErrorException
 //   The AWS user account does not have permission to perform the action. Check
 //   the IAM policy associated with this account.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified configuration ID was not located. Verify the configuration
 //   ID and try again.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   One or more parameters are not valid. Verify the parameters and try again.
 //
-//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
+//   * InvalidParameterValueException
 //   The value of one or more parameters are either invalid or out of range. Verify
 //   the parameter values and try again.
 //
-//   * ErrCodeServerInternalErrorException "ServerInternalErrorException"
+//   * ServerInternalErrorException
 //   The server experienced an internal error. Try again.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DescribeTags
+//   * HomeRegionNotSetException
+//   The home region is not set. Set the home region to continue.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DescribeTags
 func (c *ApplicationDiscoveryService) DescribeTags(input *DescribeTagsInput) (*DescribeTagsOutput, error) {
 	req, out := c.DescribeTagsRequest(input)
 	return out, req.Send()
@@ -951,8 +1428,8 @@ const opDisassociateConfigurationItemsFromApplication = "DisassociateConfigurati
 
 // DisassociateConfigurationItemsFromApplicationRequest generates a "aws/request.Request" representing the
 // client's request for the DisassociateConfigurationItemsFromApplication operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -972,7 +1449,7 @@ const opDisassociateConfigurationItemsFromApplication = "DisassociateConfigurati
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DisassociateConfigurationItemsFromApplication
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DisassociateConfigurationItemsFromApplication
 func (c *ApplicationDiscoveryService) DisassociateConfigurationItemsFromApplicationRequest(input *DisassociateConfigurationItemsFromApplicationInput) (req *request.Request, output *DisassociateConfigurationItemsFromApplicationOutput) {
 	op := &request.Operation{
 		Name:       opDisassociateConfigurationItemsFromApplication,
@@ -986,6 +1463,7 @@ func (c *ApplicationDiscoveryService) DisassociateConfigurationItemsFromApplicat
 
 	output = &DisassociateConfigurationItemsFromApplicationOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1000,22 +1478,25 @@ func (c *ApplicationDiscoveryService) DisassociateConfigurationItemsFromApplicat
 // See the AWS API reference guide for AWS Application Discovery Service's
 // API operation DisassociateConfigurationItemsFromApplication for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeAuthorizationErrorException "AuthorizationErrorException"
+// Returned Error Types:
+//   * AuthorizationErrorException
 //   The AWS user account does not have permission to perform the action. Check
 //   the IAM policy associated with this account.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   One or more parameters are not valid. Verify the parameters and try again.
 //
-//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
+//   * InvalidParameterValueException
 //   The value of one or more parameters are either invalid or out of range. Verify
 //   the parameter values and try again.
 //
-//   * ErrCodeServerInternalErrorException "ServerInternalErrorException"
+//   * ServerInternalErrorException
 //   The server experienced an internal error. Try again.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DisassociateConfigurationItemsFromApplication
+//   * HomeRegionNotSetException
+//   The home region is not set. Set the home region to continue.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DisassociateConfigurationItemsFromApplication
 func (c *ApplicationDiscoveryService) DisassociateConfigurationItemsFromApplication(input *DisassociateConfigurationItemsFromApplicationInput) (*DisassociateConfigurationItemsFromApplicationOutput, error) {
 	req, out := c.DisassociateConfigurationItemsFromApplicationRequest(input)
 	return out, req.Send()
@@ -1041,8 +1522,8 @@ const opExportConfigurations = "ExportConfigurations"
 
 // ExportConfigurationsRequest generates a "aws/request.Request" representing the
 // client's request for the ExportConfigurations operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1062,7 +1543,9 @@ const opExportConfigurations = "ExportConfigurations"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/ExportConfigurations
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/ExportConfigurations
+//
+// Deprecated: ExportConfigurations has been deprecated
 func (c *ApplicationDiscoveryService) ExportConfigurationsRequest(input *ExportConfigurationsInput) (req *request.Request, output *ExportConfigurationsOutput) {
 	if c.Client.Config.Logger != nil {
 		c.Client.Config.Logger.Log("This operation, ExportConfigurations, has been deprecated")
@@ -1099,25 +1582,30 @@ func (c *ApplicationDiscoveryService) ExportConfigurationsRequest(input *ExportC
 // See the AWS API reference guide for AWS Application Discovery Service's
 // API operation ExportConfigurations for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeAuthorizationErrorException "AuthorizationErrorException"
+// Returned Error Types:
+//   * AuthorizationErrorException
 //   The AWS user account does not have permission to perform the action. Check
 //   the IAM policy associated with this account.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   One or more parameters are not valid. Verify the parameters and try again.
 //
-//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
+//   * InvalidParameterValueException
 //   The value of one or more parameters are either invalid or out of range. Verify
 //   the parameter values and try again.
 //
-//   * ErrCodeServerInternalErrorException "ServerInternalErrorException"
+//   * ServerInternalErrorException
 //   The server experienced an internal error. Try again.
 //
-//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
+//   * OperationNotPermittedException
 //   This operation is not permitted.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/ExportConfigurations
+//   * HomeRegionNotSetException
+//   The home region is not set. Set the home region to continue.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/ExportConfigurations
+//
+// Deprecated: ExportConfigurations has been deprecated
 func (c *ApplicationDiscoveryService) ExportConfigurations(input *ExportConfigurationsInput) (*ExportConfigurationsOutput, error) {
 	req, out := c.ExportConfigurationsRequest(input)
 	return out, req.Send()
@@ -1132,6 +1620,8 @@ func (c *ApplicationDiscoveryService) ExportConfigurations(input *ExportConfigur
 // the context is nil a panic will occur. In the future the SDK may create
 // sub-contexts for http.Requests. See https://golang.org/pkg/context/
 // for more information on using Contexts.
+//
+// Deprecated: ExportConfigurationsWithContext has been deprecated
 func (c *ApplicationDiscoveryService) ExportConfigurationsWithContext(ctx aws.Context, input *ExportConfigurationsInput, opts ...request.Option) (*ExportConfigurationsOutput, error) {
 	req, out := c.ExportConfigurationsRequest(input)
 	req.SetContext(ctx)
@@ -1143,8 +1633,8 @@ const opGetDiscoverySummary = "GetDiscoverySummary"
 
 // GetDiscoverySummaryRequest generates a "aws/request.Request" representing the
 // client's request for the GetDiscoverySummary operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1164,7 +1654,7 @@ const opGetDiscoverySummary = "GetDiscoverySummary"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/GetDiscoverySummary
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/GetDiscoverySummary
 func (c *ApplicationDiscoveryService) GetDiscoverySummaryRequest(input *GetDiscoverySummaryInput) (req *request.Request, output *GetDiscoverySummaryOutput) {
 	op := &request.Operation{
 		Name:       opGetDiscoverySummary,
@@ -1185,6 +1675,9 @@ func (c *ApplicationDiscoveryService) GetDiscoverySummaryRequest(input *GetDisco
 //
 // Retrieves a short summary of discovered assets.
 //
+// This API operation takes no request parameters and is called as is at the
+// command prompt as shown in the example.
+//
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
 // the error.
@@ -1192,22 +1685,25 @@ func (c *ApplicationDiscoveryService) GetDiscoverySummaryRequest(input *GetDisco
 // See the AWS API reference guide for AWS Application Discovery Service's
 // API operation GetDiscoverySummary for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeAuthorizationErrorException "AuthorizationErrorException"
+// Returned Error Types:
+//   * AuthorizationErrorException
 //   The AWS user account does not have permission to perform the action. Check
 //   the IAM policy associated with this account.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   One or more parameters are not valid. Verify the parameters and try again.
 //
-//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
+//   * InvalidParameterValueException
 //   The value of one or more parameters are either invalid or out of range. Verify
 //   the parameter values and try again.
 //
-//   * ErrCodeServerInternalErrorException "ServerInternalErrorException"
+//   * ServerInternalErrorException
 //   The server experienced an internal error. Try again.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/GetDiscoverySummary
+//   * HomeRegionNotSetException
+//   The home region is not set. Set the home region to continue.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/GetDiscoverySummary
 func (c *ApplicationDiscoveryService) GetDiscoverySummary(input *GetDiscoverySummaryInput) (*GetDiscoverySummaryOutput, error) {
 	req, out := c.GetDiscoverySummaryRequest(input)
 	return out, req.Send()
@@ -1233,8 +1729,8 @@ const opListConfigurations = "ListConfigurations"
 
 // ListConfigurationsRequest generates a "aws/request.Request" representing the
 // client's request for the ListConfigurations operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1254,7 +1750,7 @@ const opListConfigurations = "ListConfigurations"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/ListConfigurations
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/ListConfigurations
 func (c *ApplicationDiscoveryService) ListConfigurationsRequest(input *ListConfigurationsInput) (req *request.Request, output *ListConfigurationsOutput) {
 	op := &request.Operation{
 		Name:       opListConfigurations,
@@ -1273,8 +1769,9 @@ func (c *ApplicationDiscoveryService) ListConfigurationsRequest(input *ListConfi
 
 // ListConfigurations API operation for AWS Application Discovery Service.
 //
-// Retrieves a list of configuration items according to criteria that you specify
-// in a filter. The filter criteria identifies the relationship requirements.
+// Retrieves a list of configuration items as specified by the value passed
+// to the required parameter configurationType. Optional filtering may be applied
+// to refine search results.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1283,26 +1780,29 @@ func (c *ApplicationDiscoveryService) ListConfigurationsRequest(input *ListConfi
 // See the AWS API reference guide for AWS Application Discovery Service's
 // API operation ListConfigurations for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeAuthorizationErrorException "AuthorizationErrorException"
+// Returned Error Types:
+//   * AuthorizationErrorException
 //   The AWS user account does not have permission to perform the action. Check
 //   the IAM policy associated with this account.
 //
-//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   * ResourceNotFoundException
 //   The specified configuration ID was not located. Verify the configuration
 //   ID and try again.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   One or more parameters are not valid. Verify the parameters and try again.
 //
-//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
+//   * InvalidParameterValueException
 //   The value of one or more parameters are either invalid or out of range. Verify
 //   the parameter values and try again.
 //
-//   * ErrCodeServerInternalErrorException "ServerInternalErrorException"
+//   * ServerInternalErrorException
 //   The server experienced an internal error. Try again.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/ListConfigurations
+//   * HomeRegionNotSetException
+//   The home region is not set. Set the home region to continue.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/ListConfigurations
 func (c *ApplicationDiscoveryService) ListConfigurations(input *ListConfigurationsInput) (*ListConfigurationsOutput, error) {
 	req, out := c.ListConfigurationsRequest(input)
 	return out, req.Send()
@@ -1328,8 +1828,8 @@ const opListServerNeighbors = "ListServerNeighbors"
 
 // ListServerNeighborsRequest generates a "aws/request.Request" representing the
 // client's request for the ListServerNeighbors operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1349,7 +1849,7 @@ const opListServerNeighbors = "ListServerNeighbors"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/ListServerNeighbors
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/ListServerNeighbors
 func (c *ApplicationDiscoveryService) ListServerNeighborsRequest(input *ListServerNeighborsInput) (req *request.Request, output *ListServerNeighborsOutput) {
 	op := &request.Operation{
 		Name:       opListServerNeighbors,
@@ -1378,22 +1878,25 @@ func (c *ApplicationDiscoveryService) ListServerNeighborsRequest(input *ListServ
 // See the AWS API reference guide for AWS Application Discovery Service's
 // API operation ListServerNeighbors for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeAuthorizationErrorException "AuthorizationErrorException"
+// Returned Error Types:
+//   * AuthorizationErrorException
 //   The AWS user account does not have permission to perform the action. Check
 //   the IAM policy associated with this account.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   One or more parameters are not valid. Verify the parameters and try again.
 //
-//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
+//   * InvalidParameterValueException
 //   The value of one or more parameters are either invalid or out of range. Verify
 //   the parameter values and try again.
 //
-//   * ErrCodeServerInternalErrorException "ServerInternalErrorException"
+//   * ServerInternalErrorException
 //   The server experienced an internal error. Try again.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/ListServerNeighbors
+//   * HomeRegionNotSetException
+//   The home region is not set. Set the home region to continue.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/ListServerNeighbors
 func (c *ApplicationDiscoveryService) ListServerNeighbors(input *ListServerNeighborsInput) (*ListServerNeighborsOutput, error) {
 	req, out := c.ListServerNeighborsRequest(input)
 	return out, req.Send()
@@ -1415,12 +1918,117 @@ func (c *ApplicationDiscoveryService) ListServerNeighborsWithContext(ctx aws.Con
 	return out, req.Send()
 }
 
+const opStartContinuousExport = "StartContinuousExport"
+
+// StartContinuousExportRequest generates a "aws/request.Request" representing the
+// client's request for the StartContinuousExport operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See StartContinuousExport for more information on using the StartContinuousExport
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the StartContinuousExportRequest method.
+//    req, resp := client.StartContinuousExportRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/StartContinuousExport
+func (c *ApplicationDiscoveryService) StartContinuousExportRequest(input *StartContinuousExportInput) (req *request.Request, output *StartContinuousExportOutput) {
+	op := &request.Operation{
+		Name:       opStartContinuousExport,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &StartContinuousExportInput{}
+	}
+
+	output = &StartContinuousExportOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// StartContinuousExport API operation for AWS Application Discovery Service.
+//
+// Start the continuous flow of agent's discovered data into Amazon Athena.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Application Discovery Service's
+// API operation StartContinuousExport for usage and error information.
+//
+// Returned Error Types:
+//   * ConflictErrorException
+//
+//   * AuthorizationErrorException
+//   The AWS user account does not have permission to perform the action. Check
+//   the IAM policy associated with this account.
+//
+//   * InvalidParameterException
+//   One or more parameters are not valid. Verify the parameters and try again.
+//
+//   * InvalidParameterValueException
+//   The value of one or more parameters are either invalid or out of range. Verify
+//   the parameter values and try again.
+//
+//   * ServerInternalErrorException
+//   The server experienced an internal error. Try again.
+//
+//   * OperationNotPermittedException
+//   This operation is not permitted.
+//
+//   * ResourceInUseException
+//   This issue occurs when the same clientRequestToken is used with the StartImportTask
+//   action, but with different parameters. For example, you use the same request
+//   token but have two different import URLs, you can encounter this issue. If
+//   the import tasks are meant to be different, use a different clientRequestToken,
+//   and try again.
+//
+//   * HomeRegionNotSetException
+//   The home region is not set. Set the home region to continue.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/StartContinuousExport
+func (c *ApplicationDiscoveryService) StartContinuousExport(input *StartContinuousExportInput) (*StartContinuousExportOutput, error) {
+	req, out := c.StartContinuousExportRequest(input)
+	return out, req.Send()
+}
+
+// StartContinuousExportWithContext is the same as StartContinuousExport with the addition of
+// the ability to pass a context and additional request options.
+//
+// See StartContinuousExport for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ApplicationDiscoveryService) StartContinuousExportWithContext(ctx aws.Context, input *StartContinuousExportInput, opts ...request.Option) (*StartContinuousExportOutput, error) {
+	req, out := c.StartContinuousExportRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opStartDataCollectionByAgentIds = "StartDataCollectionByAgentIds"
 
 // StartDataCollectionByAgentIdsRequest generates a "aws/request.Request" representing the
 // client's request for the StartDataCollectionByAgentIds operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1440,7 +2048,7 @@ const opStartDataCollectionByAgentIds = "StartDataCollectionByAgentIds"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/StartDataCollectionByAgentIds
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/StartDataCollectionByAgentIds
 func (c *ApplicationDiscoveryService) StartDataCollectionByAgentIdsRequest(input *StartDataCollectionByAgentIdsInput) (req *request.Request, output *StartDataCollectionByAgentIdsOutput) {
 	op := &request.Operation{
 		Name:       opStartDataCollectionByAgentIds,
@@ -1468,22 +2076,25 @@ func (c *ApplicationDiscoveryService) StartDataCollectionByAgentIdsRequest(input
 // See the AWS API reference guide for AWS Application Discovery Service's
 // API operation StartDataCollectionByAgentIds for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeAuthorizationErrorException "AuthorizationErrorException"
+// Returned Error Types:
+//   * AuthorizationErrorException
 //   The AWS user account does not have permission to perform the action. Check
 //   the IAM policy associated with this account.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   One or more parameters are not valid. Verify the parameters and try again.
 //
-//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
+//   * InvalidParameterValueException
 //   The value of one or more parameters are either invalid or out of range. Verify
 //   the parameter values and try again.
 //
-//   * ErrCodeServerInternalErrorException "ServerInternalErrorException"
+//   * ServerInternalErrorException
 //   The server experienced an internal error. Try again.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/StartDataCollectionByAgentIds
+//   * HomeRegionNotSetException
+//   The home region is not set. Set the home region to continue.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/StartDataCollectionByAgentIds
 func (c *ApplicationDiscoveryService) StartDataCollectionByAgentIds(input *StartDataCollectionByAgentIdsInput) (*StartDataCollectionByAgentIdsOutput, error) {
 	req, out := c.StartDataCollectionByAgentIdsRequest(input)
 	return out, req.Send()
@@ -1509,8 +2120,8 @@ const opStartExportTask = "StartExportTask"
 
 // StartExportTaskRequest generates a "aws/request.Request" representing the
 // client's request for the StartExportTask operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1530,7 +2141,7 @@ const opStartExportTask = "StartExportTask"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/StartExportTask
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/StartExportTask
 func (c *ApplicationDiscoveryService) StartExportTaskRequest(input *StartExportTaskInput) (req *request.Request, output *StartExportTaskOutput) {
 	op := &request.Operation{
 		Name:       opStartExportTask,
@@ -1551,13 +2162,13 @@ func (c *ApplicationDiscoveryService) StartExportTaskRequest(input *StartExportT
 //
 // Begins the export of discovered data to an S3 bucket.
 //
-// If you specify agentId in a filter, the task exports up to 72 hours of detailed
+// If you specify agentIds in a filter, the task exports up to 72 hours of detailed
 // data collected by the identified Application Discovery Agent, including network,
 // process, and performance details. A time range for exported agent data may
 // be set by using startTime and endTime. Export of detailed agent data is limited
 // to five concurrently running exports.
 //
-// If you do not include an agentId filter, summary data is exported that includes
+// If you do not include an agentIds filter, summary data is exported that includes
 // both AWS Agentless Discovery Connector data and summary data from AWS Discovery
 // Agents. Export of summary data is limited to two exports per day.
 //
@@ -1568,25 +2179,28 @@ func (c *ApplicationDiscoveryService) StartExportTaskRequest(input *StartExportT
 // See the AWS API reference guide for AWS Application Discovery Service's
 // API operation StartExportTask for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeAuthorizationErrorException "AuthorizationErrorException"
+// Returned Error Types:
+//   * AuthorizationErrorException
 //   The AWS user account does not have permission to perform the action. Check
 //   the IAM policy associated with this account.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   One or more parameters are not valid. Verify the parameters and try again.
 //
-//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
+//   * InvalidParameterValueException
 //   The value of one or more parameters are either invalid or out of range. Verify
 //   the parameter values and try again.
 //
-//   * ErrCodeServerInternalErrorException "ServerInternalErrorException"
+//   * ServerInternalErrorException
 //   The server experienced an internal error. Try again.
 //
-//   * ErrCodeOperationNotPermittedException "OperationNotPermittedException"
+//   * OperationNotPermittedException
 //   This operation is not permitted.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/StartExportTask
+//   * HomeRegionNotSetException
+//   The home region is not set. Set the home region to continue.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/StartExportTask
 func (c *ApplicationDiscoveryService) StartExportTask(input *StartExportTaskInput) (*StartExportTaskOutput, error) {
 	req, out := c.StartExportTaskRequest(input)
 	return out, req.Send()
@@ -1608,12 +2222,247 @@ func (c *ApplicationDiscoveryService) StartExportTaskWithContext(ctx aws.Context
 	return out, req.Send()
 }
 
+const opStartImportTask = "StartImportTask"
+
+// StartImportTaskRequest generates a "aws/request.Request" representing the
+// client's request for the StartImportTask operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See StartImportTask for more information on using the StartImportTask
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the StartImportTaskRequest method.
+//    req, resp := client.StartImportTaskRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/StartImportTask
+func (c *ApplicationDiscoveryService) StartImportTaskRequest(input *StartImportTaskInput) (req *request.Request, output *StartImportTaskOutput) {
+	op := &request.Operation{
+		Name:       opStartImportTask,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &StartImportTaskInput{}
+	}
+
+	output = &StartImportTaskOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// StartImportTask API operation for AWS Application Discovery Service.
+//
+// Starts an import task, which allows you to import details of your on-premises
+// environment directly into AWS Migration Hub without having to use the Application
+// Discovery Service (ADS) tools such as the Discovery Connector or Discovery
+// Agent. This gives you the option to perform migration assessment and planning
+// directly from your imported data, including the ability to group your devices
+// as applications and track their migration status.
+//
+// To start an import request, do this:
+//
+// Download the specially formatted comma separated value (CSV) import template,
+// which you can find here: https://s3-us-west-2.amazonaws.com/templates-7cffcf56-bd96-4b1c-b45b-a5b42f282e46/import_template.csv
+// (https://s3-us-west-2.amazonaws.com/templates-7cffcf56-bd96-4b1c-b45b-a5b42f282e46/import_template.csv).
+//
+// Fill out the template with your server and application data.
+//
+// Upload your import file to an Amazon S3 bucket, and make a note of it's Object
+// URL. Your import file must be in the CSV format.
+//
+// Use the console or the StartImportTask command with the AWS CLI or one of
+// the AWS SDKs to import the records from your file.
+//
+// For more information, including step-by-step procedures, see Migration Hub
+// Import (https://docs.aws.amazon.com/application-discovery/latest/userguide/discovery-import.html)
+// in the AWS Application Discovery Service User Guide.
+//
+// There are limits to the number of import tasks you can create (and delete)
+// in an AWS account. For more information, see AWS Application Discovery Service
+// Limits (https://docs.aws.amazon.com/application-discovery/latest/userguide/ads_service_limits.html)
+// in the AWS Application Discovery Service User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Application Discovery Service's
+// API operation StartImportTask for usage and error information.
+//
+// Returned Error Types:
+//   * ResourceInUseException
+//   This issue occurs when the same clientRequestToken is used with the StartImportTask
+//   action, but with different parameters. For example, you use the same request
+//   token but have two different import URLs, you can encounter this issue. If
+//   the import tasks are meant to be different, use a different clientRequestToken,
+//   and try again.
+//
+//   * AuthorizationErrorException
+//   The AWS user account does not have permission to perform the action. Check
+//   the IAM policy associated with this account.
+//
+//   * InvalidParameterException
+//   One or more parameters are not valid. Verify the parameters and try again.
+//
+//   * InvalidParameterValueException
+//   The value of one or more parameters are either invalid or out of range. Verify
+//   the parameter values and try again.
+//
+//   * ServerInternalErrorException
+//   The server experienced an internal error. Try again.
+//
+//   * HomeRegionNotSetException
+//   The home region is not set. Set the home region to continue.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/StartImportTask
+func (c *ApplicationDiscoveryService) StartImportTask(input *StartImportTaskInput) (*StartImportTaskOutput, error) {
+	req, out := c.StartImportTaskRequest(input)
+	return out, req.Send()
+}
+
+// StartImportTaskWithContext is the same as StartImportTask with the addition of
+// the ability to pass a context and additional request options.
+//
+// See StartImportTask for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ApplicationDiscoveryService) StartImportTaskWithContext(ctx aws.Context, input *StartImportTaskInput, opts ...request.Option) (*StartImportTaskOutput, error) {
+	req, out := c.StartImportTaskRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opStopContinuousExport = "StopContinuousExport"
+
+// StopContinuousExportRequest generates a "aws/request.Request" representing the
+// client's request for the StopContinuousExport operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See StopContinuousExport for more information on using the StopContinuousExport
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the StopContinuousExportRequest method.
+//    req, resp := client.StopContinuousExportRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/StopContinuousExport
+func (c *ApplicationDiscoveryService) StopContinuousExportRequest(input *StopContinuousExportInput) (req *request.Request, output *StopContinuousExportOutput) {
+	op := &request.Operation{
+		Name:       opStopContinuousExport,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &StopContinuousExportInput{}
+	}
+
+	output = &StopContinuousExportOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// StopContinuousExport API operation for AWS Application Discovery Service.
+//
+// Stop the continuous flow of agent's discovered data into Amazon Athena.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Application Discovery Service's
+// API operation StopContinuousExport for usage and error information.
+//
+// Returned Error Types:
+//   * AuthorizationErrorException
+//   The AWS user account does not have permission to perform the action. Check
+//   the IAM policy associated with this account.
+//
+//   * InvalidParameterException
+//   One or more parameters are not valid. Verify the parameters and try again.
+//
+//   * InvalidParameterValueException
+//   The value of one or more parameters are either invalid or out of range. Verify
+//   the parameter values and try again.
+//
+//   * ServerInternalErrorException
+//   The server experienced an internal error. Try again.
+//
+//   * OperationNotPermittedException
+//   This operation is not permitted.
+//
+//   * ResourceNotFoundException
+//   The specified configuration ID was not located. Verify the configuration
+//   ID and try again.
+//
+//   * ResourceInUseException
+//   This issue occurs when the same clientRequestToken is used with the StartImportTask
+//   action, but with different parameters. For example, you use the same request
+//   token but have two different import URLs, you can encounter this issue. If
+//   the import tasks are meant to be different, use a different clientRequestToken,
+//   and try again.
+//
+//   * HomeRegionNotSetException
+//   The home region is not set. Set the home region to continue.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/StopContinuousExport
+func (c *ApplicationDiscoveryService) StopContinuousExport(input *StopContinuousExportInput) (*StopContinuousExportOutput, error) {
+	req, out := c.StopContinuousExportRequest(input)
+	return out, req.Send()
+}
+
+// StopContinuousExportWithContext is the same as StopContinuousExport with the addition of
+// the ability to pass a context and additional request options.
+//
+// See StopContinuousExport for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *ApplicationDiscoveryService) StopContinuousExportWithContext(ctx aws.Context, input *StopContinuousExportInput, opts ...request.Option) (*StopContinuousExportOutput, error) {
+	req, out := c.StopContinuousExportRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opStopDataCollectionByAgentIds = "StopDataCollectionByAgentIds"
 
 // StopDataCollectionByAgentIdsRequest generates a "aws/request.Request" representing the
 // client's request for the StopDataCollectionByAgentIds operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1633,7 +2482,7 @@ const opStopDataCollectionByAgentIds = "StopDataCollectionByAgentIds"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/StopDataCollectionByAgentIds
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/StopDataCollectionByAgentIds
 func (c *ApplicationDiscoveryService) StopDataCollectionByAgentIdsRequest(input *StopDataCollectionByAgentIdsInput) (req *request.Request, output *StopDataCollectionByAgentIdsOutput) {
 	op := &request.Operation{
 		Name:       opStopDataCollectionByAgentIds,
@@ -1661,22 +2510,25 @@ func (c *ApplicationDiscoveryService) StopDataCollectionByAgentIdsRequest(input 
 // See the AWS API reference guide for AWS Application Discovery Service's
 // API operation StopDataCollectionByAgentIds for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeAuthorizationErrorException "AuthorizationErrorException"
+// Returned Error Types:
+//   * AuthorizationErrorException
 //   The AWS user account does not have permission to perform the action. Check
 //   the IAM policy associated with this account.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   One or more parameters are not valid. Verify the parameters and try again.
 //
-//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
+//   * InvalidParameterValueException
 //   The value of one or more parameters are either invalid or out of range. Verify
 //   the parameter values and try again.
 //
-//   * ErrCodeServerInternalErrorException "ServerInternalErrorException"
+//   * ServerInternalErrorException
 //   The server experienced an internal error. Try again.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/StopDataCollectionByAgentIds
+//   * HomeRegionNotSetException
+//   The home region is not set. Set the home region to continue.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/StopDataCollectionByAgentIds
 func (c *ApplicationDiscoveryService) StopDataCollectionByAgentIds(input *StopDataCollectionByAgentIdsInput) (*StopDataCollectionByAgentIdsOutput, error) {
 	req, out := c.StopDataCollectionByAgentIdsRequest(input)
 	return out, req.Send()
@@ -1702,8 +2554,8 @@ const opUpdateApplication = "UpdateApplication"
 
 // UpdateApplicationRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateApplication operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1723,7 +2575,7 @@ const opUpdateApplication = "UpdateApplication"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/UpdateApplication
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/UpdateApplication
 func (c *ApplicationDiscoveryService) UpdateApplicationRequest(input *UpdateApplicationInput) (req *request.Request, output *UpdateApplicationOutput) {
 	op := &request.Operation{
 		Name:       opUpdateApplication,
@@ -1737,6 +2589,7 @@ func (c *ApplicationDiscoveryService) UpdateApplicationRequest(input *UpdateAppl
 
 	output = &UpdateApplicationOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1751,22 +2604,25 @@ func (c *ApplicationDiscoveryService) UpdateApplicationRequest(input *UpdateAppl
 // See the AWS API reference guide for AWS Application Discovery Service's
 // API operation UpdateApplication for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeAuthorizationErrorException "AuthorizationErrorException"
+// Returned Error Types:
+//   * AuthorizationErrorException
 //   The AWS user account does not have permission to perform the action. Check
 //   the IAM policy associated with this account.
 //
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   * InvalidParameterException
 //   One or more parameters are not valid. Verify the parameters and try again.
 //
-//   * ErrCodeInvalidParameterValueException "InvalidParameterValueException"
+//   * InvalidParameterValueException
 //   The value of one or more parameters are either invalid or out of range. Verify
 //   the parameter values and try again.
 //
-//   * ErrCodeServerInternalErrorException "ServerInternalErrorException"
+//   * ServerInternalErrorException
 //   The server experienced an internal error. Try again.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/UpdateApplication
+//   * HomeRegionNotSetException
+//   The home region is not set. Set the home region to continue.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/UpdateApplication
 func (c *ApplicationDiscoveryService) UpdateApplication(input *UpdateApplicationInput) (*UpdateApplicationOutput, error) {
 	req, out := c.UpdateApplicationRequest(input)
 	return out, req.Send()
@@ -1791,7 +2647,6 @@ func (c *ApplicationDiscoveryService) UpdateApplicationWithContext(ctx aws.Conte
 // Information about agents or connectors that were instructed to start collecting
 // data. Information includes the agent/connector ID, a description of the operation,
 // and whether the agent/connector configuration was updated.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/AgentConfigurationStatus
 type AgentConfigurationStatus struct {
 	_ struct{} `type:"structure"`
 
@@ -1839,7 +2694,6 @@ func (s *AgentConfigurationStatus) SetOperationSucceeded(v bool) *AgentConfigura
 // Information includes agent or connector IDs, IP addresses, media access control
 // (MAC) addresses, agent or connector health, hostname where the agent or connector
 // resides, and agent version for each agent.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/AgentInfo
 type AgentInfo struct {
 	_ struct{} `type:"structure"`
 
@@ -1946,7 +2800,6 @@ func (s *AgentInfo) SetVersion(v string) *AgentInfo {
 }
 
 // Network details about the host where the agent/connector resides.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/AgentNetworkInfo
 type AgentNetworkInfo struct {
 	_ struct{} `type:"structure"`
 
@@ -1979,7 +2832,6 @@ func (s *AgentNetworkInfo) SetMacAddress(v string) *AgentNetworkInfo {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/AssociateConfigurationItemsToApplicationRequest
 type AssociateConfigurationItemsToApplicationInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2032,7 +2884,6 @@ func (s *AssociateConfigurationItemsToApplicationInput) SetConfigurationIds(v []
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/AssociateConfigurationItemsToApplicationResponse
 type AssociateConfigurationItemsToApplicationOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2047,9 +2898,173 @@ func (s AssociateConfigurationItemsToApplicationOutput) GoString() string {
 	return s.String()
 }
 
+// The AWS user account does not have permission to perform the action. Check
+// the IAM policy associated with this account.
+type AuthorizationErrorException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s AuthorizationErrorException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AuthorizationErrorException) GoString() string {
+	return s.String()
+}
+
+func newErrorAuthorizationErrorException(v protocol.ResponseMetadata) error {
+	return &AuthorizationErrorException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *AuthorizationErrorException) Code() string {
+	return "AuthorizationErrorException"
+}
+
+// Message returns the exception's message.
+func (s *AuthorizationErrorException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *AuthorizationErrorException) OrigErr() error {
+	return nil
+}
+
+func (s *AuthorizationErrorException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *AuthorizationErrorException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *AuthorizationErrorException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// Error messages returned for each import task that you deleted as a response
+// for this command.
+type BatchDeleteImportDataError struct {
+	_ struct{} `type:"structure"`
+
+	// The type of error that occurred for a specific import task.
+	ErrorCode *string `locationName:"errorCode" type:"string" enum:"BatchDeleteImportDataErrorCode"`
+
+	// The description of the error that occurred for a specific import task.
+	ErrorDescription *string `locationName:"errorDescription" type:"string"`
+
+	// The unique import ID associated with the error that occurred.
+	ImportTaskId *string `locationName:"importTaskId" type:"string"`
+}
+
+// String returns the string representation
+func (s BatchDeleteImportDataError) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s BatchDeleteImportDataError) GoString() string {
+	return s.String()
+}
+
+// SetErrorCode sets the ErrorCode field's value.
+func (s *BatchDeleteImportDataError) SetErrorCode(v string) *BatchDeleteImportDataError {
+	s.ErrorCode = &v
+	return s
+}
+
+// SetErrorDescription sets the ErrorDescription field's value.
+func (s *BatchDeleteImportDataError) SetErrorDescription(v string) *BatchDeleteImportDataError {
+	s.ErrorDescription = &v
+	return s
+}
+
+// SetImportTaskId sets the ImportTaskId field's value.
+func (s *BatchDeleteImportDataError) SetImportTaskId(v string) *BatchDeleteImportDataError {
+	s.ImportTaskId = &v
+	return s
+}
+
+type BatchDeleteImportDataInput struct {
+	_ struct{} `type:"structure"`
+
+	// The IDs for the import tasks that you want to delete.
+	//
+	// ImportTaskIds is a required field
+	ImportTaskIds []*string `locationName:"importTaskIds" min:"1" type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s BatchDeleteImportDataInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s BatchDeleteImportDataInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *BatchDeleteImportDataInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "BatchDeleteImportDataInput"}
+	if s.ImportTaskIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("ImportTaskIds"))
+	}
+	if s.ImportTaskIds != nil && len(s.ImportTaskIds) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ImportTaskIds", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetImportTaskIds sets the ImportTaskIds field's value.
+func (s *BatchDeleteImportDataInput) SetImportTaskIds(v []*string) *BatchDeleteImportDataInput {
+	s.ImportTaskIds = v
+	return s
+}
+
+type BatchDeleteImportDataOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Error messages returned for each import task that you deleted as a response
+	// for this command.
+	Errors []*BatchDeleteImportDataError `locationName:"errors" type:"list"`
+}
+
+// String returns the string representation
+func (s BatchDeleteImportDataOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s BatchDeleteImportDataOutput) GoString() string {
+	return s.String()
+}
+
+// SetErrors sets the Errors field's value.
+func (s *BatchDeleteImportDataOutput) SetErrors(v []*BatchDeleteImportDataError) *BatchDeleteImportDataOutput {
+	s.Errors = v
+	return s
+}
+
 // Tags for a configuration item. Tags are metadata that help you categorize
 // IT assets.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/ConfigurationTag
 type ConfigurationTag struct {
 	_ struct{} `type:"structure"`
 
@@ -2065,7 +3080,7 @@ type ConfigurationTag struct {
 
 	// The time the configuration tag was created in Coordinated Universal Time
 	// (UTC).
-	TimeOfCreation *time.Time `locationName:"timeOfCreation" type:"timestamp" timestampFormat:"unix"`
+	TimeOfCreation *time.Time `locationName:"timeOfCreation" type:"timestamp"`
 
 	// A value on which to filter. For example key = serverType and value = web
 	// server.
@@ -2112,7 +3127,206 @@ func (s *ConfigurationTag) SetValue(v string) *ConfigurationTag {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/CreateApplicationRequest
+type ConflictErrorException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s ConflictErrorException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ConflictErrorException) GoString() string {
+	return s.String()
+}
+
+func newErrorConflictErrorException(v protocol.ResponseMetadata) error {
+	return &ConflictErrorException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *ConflictErrorException) Code() string {
+	return "ConflictErrorException"
+}
+
+// Message returns the exception's message.
+func (s *ConflictErrorException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *ConflictErrorException) OrigErr() error {
+	return nil
+}
+
+func (s *ConflictErrorException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *ConflictErrorException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *ConflictErrorException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// A list of continuous export descriptions.
+type ContinuousExportDescription struct {
+	_ struct{} `type:"structure"`
+
+	// The type of data collector used to gather this data (currently only offered
+	// for AGENT).
+	DataSource *string `locationName:"dataSource" type:"string" enum:"DataSource"`
+
+	// The unique ID assigned to this export.
+	ExportId *string `locationName:"exportId" type:"string"`
+
+	// The name of the s3 bucket where the export data parquet files are stored.
+	S3Bucket *string `locationName:"s3Bucket" type:"string"`
+
+	// An object which describes how the data is stored.
+	//
+	//    * databaseName - the name of the Glue database used to store the schema.
+	SchemaStorageConfig map[string]*string `locationName:"schemaStorageConfig" type:"map"`
+
+	// The timestamp representing when the continuous export was started.
+	StartTime *time.Time `locationName:"startTime" type:"timestamp"`
+
+	// Describes the status of the export. Can be one of the following values:
+	//
+	//    * START_IN_PROGRESS - setting up resources to start continuous export.
+	//
+	//    * START_FAILED - an error occurred setting up continuous export. To recover,
+	//    call start-continuous-export again.
+	//
+	//    * ACTIVE - data is being exported to the customer bucket.
+	//
+	//    * ERROR - an error occurred during export. To fix the issue, call stop-continuous-export
+	//    and start-continuous-export.
+	//
+	//    * STOP_IN_PROGRESS - stopping the export.
+	//
+	//    * STOP_FAILED - an error occurred stopping the export. To recover, call
+	//    stop-continuous-export again.
+	//
+	//    * INACTIVE - the continuous export has been stopped. Data is no longer
+	//    being exported to the customer bucket.
+	Status *string `locationName:"status" type:"string" enum:"ContinuousExportStatus"`
+
+	// Contains information about any errors that have occurred. This data type
+	// can have the following values:
+	//
+	//    * ACCESS_DENIED - You don’t have permission to start Data Exploration
+	//    in Amazon Athena. Contact your AWS administrator for help. For more information,
+	//    see Setting Up AWS Application Discovery Service (http://docs.aws.amazon.com/application-discovery/latest/userguide/setting-up.html)
+	//    in the Application Discovery Service User Guide.
+	//
+	//    * DELIVERY_STREAM_LIMIT_FAILURE - You reached the limit for Amazon Kinesis
+	//    Data Firehose delivery streams. Reduce the number of streams or request
+	//    a limit increase and try again. For more information, see Kinesis Data
+	//    Streams Limits (http://docs.aws.amazon.com/streams/latest/dev/service-sizes-and-limits.html)
+	//    in the Amazon Kinesis Data Streams Developer Guide.
+	//
+	//    * FIREHOSE_ROLE_MISSING - The Data Exploration feature is in an error
+	//    state because your IAM User is missing the AWSApplicationDiscoveryServiceFirehose
+	//    role. Turn on Data Exploration in Amazon Athena and try again. For more
+	//    information, see Step 3: Provide Application Discovery Service Access
+	//    to Non-Administrator Users by Attaching Policies (http://docs.aws.amazon.com/application-discovery/latest/userguide/setting-up.html#setting-up-user-policy)
+	//    in the Application Discovery Service User Guide.
+	//
+	//    * FIREHOSE_STREAM_DOES_NOT_EXIST - The Data Exploration feature is in
+	//    an error state because your IAM User is missing one or more of the Kinesis
+	//    data delivery streams.
+	//
+	//    * INTERNAL_FAILURE - The Data Exploration feature is in an error state
+	//    because of an internal failure. Try again later. If this problem persists,
+	//    contact AWS Support.
+	//
+	//    * S3_BUCKET_LIMIT_FAILURE - You reached the limit for Amazon S3 buckets.
+	//    Reduce the number of Amazon S3 buckets or request a limit increase and
+	//    try again. For more information, see Bucket Restrictions and Limitations
+	//    (http://docs.aws.amazon.com/AmazonS3/latest/dev/BucketRestrictions.html)
+	//    in the Amazon Simple Storage Service Developer Guide.
+	//
+	//    * S3_NOT_SIGNED_UP - Your account is not signed up for the Amazon S3 service.
+	//    You must sign up before you can use Amazon S3. You can sign up at the
+	//    following URL: https://aws.amazon.com/s3 (https://aws.amazon.com/s3).
+	StatusDetail *string `locationName:"statusDetail" min:"1" type:"string"`
+
+	// The timestamp that represents when this continuous export was stopped.
+	StopTime *time.Time `locationName:"stopTime" type:"timestamp"`
+}
+
+// String returns the string representation
+func (s ContinuousExportDescription) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ContinuousExportDescription) GoString() string {
+	return s.String()
+}
+
+// SetDataSource sets the DataSource field's value.
+func (s *ContinuousExportDescription) SetDataSource(v string) *ContinuousExportDescription {
+	s.DataSource = &v
+	return s
+}
+
+// SetExportId sets the ExportId field's value.
+func (s *ContinuousExportDescription) SetExportId(v string) *ContinuousExportDescription {
+	s.ExportId = &v
+	return s
+}
+
+// SetS3Bucket sets the S3Bucket field's value.
+func (s *ContinuousExportDescription) SetS3Bucket(v string) *ContinuousExportDescription {
+	s.S3Bucket = &v
+	return s
+}
+
+// SetSchemaStorageConfig sets the SchemaStorageConfig field's value.
+func (s *ContinuousExportDescription) SetSchemaStorageConfig(v map[string]*string) *ContinuousExportDescription {
+	s.SchemaStorageConfig = v
+	return s
+}
+
+// SetStartTime sets the StartTime field's value.
+func (s *ContinuousExportDescription) SetStartTime(v time.Time) *ContinuousExportDescription {
+	s.StartTime = &v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *ContinuousExportDescription) SetStatus(v string) *ContinuousExportDescription {
+	s.Status = &v
+	return s
+}
+
+// SetStatusDetail sets the StatusDetail field's value.
+func (s *ContinuousExportDescription) SetStatusDetail(v string) *ContinuousExportDescription {
+	s.StatusDetail = &v
+	return s
+}
+
+// SetStopTime sets the StopTime field's value.
+func (s *ContinuousExportDescription) SetStopTime(v time.Time) *ContinuousExportDescription {
+	s.StopTime = &v
+	return s
+}
+
 type CreateApplicationInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2160,7 +3374,6 @@ func (s *CreateApplicationInput) SetName(v string) *CreateApplicationInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/CreateApplicationResponse
 type CreateApplicationOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2184,7 +3397,6 @@ func (s *CreateApplicationOutput) SetConfigurationId(v string) *CreateApplicatio
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/CreateTagsRequest
 type CreateTagsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2199,7 +3411,7 @@ type CreateTagsInput struct {
 	// {"key": "serverType", "value": "webServer"}
 	//
 	// Tags is a required field
-	Tags []*Tag `locationName:"tags" locationNameList:"item" type:"list" required:"true"`
+	Tags []*Tag `locationName:"tags" type:"list" required:"true"`
 }
 
 // String returns the string representation
@@ -2250,7 +3462,6 @@ func (s *CreateTagsInput) SetTags(v []*Tag) *CreateTagsInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/CreateTagsResponse
 type CreateTagsOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2266,7 +3477,6 @@ func (s CreateTagsOutput) GoString() string {
 }
 
 // Inventory data for installed discovery agents.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/CustomerAgentInfo
 type CustomerAgentInfo struct {
 	_ struct{} `type:"structure"`
 
@@ -2359,7 +3569,6 @@ func (s *CustomerAgentInfo) SetUnknownAgents(v int64) *CustomerAgentInfo {
 }
 
 // Inventory data for installed discovery connectors.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/CustomerConnectorInfo
 type CustomerConnectorInfo struct {
 	_ struct{} `type:"structure"`
 
@@ -2451,7 +3660,6 @@ func (s *CustomerConnectorInfo) SetUnknownConnectors(v int64) *CustomerConnector
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DeleteApplicationsRequest
 type DeleteApplicationsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2490,7 +3698,6 @@ func (s *DeleteApplicationsInput) SetConfigurationIds(v []*string) *DeleteApplic
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DeleteApplicationsResponse
 type DeleteApplicationsOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2505,7 +3712,6 @@ func (s DeleteApplicationsOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DeleteTagsRequest
 type DeleteTagsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2518,7 +3724,7 @@ type DeleteTagsInput struct {
 	// the tags that you want to delete in a key-value format. For example:
 	//
 	// {"key": "serverType", "value": "webServer"}
-	Tags []*Tag `locationName:"tags" locationNameList:"item" type:"list"`
+	Tags []*Tag `locationName:"tags" type:"list"`
 }
 
 // String returns the string representation
@@ -2566,7 +3772,6 @@ func (s *DeleteTagsInput) SetTags(v []*Tag) *DeleteTagsInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DeleteTagsResponse
 type DeleteTagsOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2581,7 +3786,6 @@ func (s DeleteTagsOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DescribeAgentsRequest
 type DescribeAgentsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2661,7 +3865,6 @@ func (s *DescribeAgentsInput) SetNextToken(v string) *DescribeAgentsInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DescribeAgentsResponse
 type DescribeAgentsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2701,7 +3904,6 @@ func (s *DescribeAgentsOutput) SetNextToken(v string) *DescribeAgentsOutput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DescribeConfigurationsRequest
 type DescribeConfigurationsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2740,7 +3942,6 @@ func (s *DescribeConfigurationsInput) SetConfigurationIds(v []*string) *Describe
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DescribeConfigurationsResponse
 type DescribeConfigurationsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2764,20 +3965,104 @@ func (s *DescribeConfigurationsOutput) SetConfigurations(v []map[string]*string)
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DescribeExportConfigurationsRequest
+type DescribeContinuousExportsInput struct {
+	_ struct{} `type:"structure"`
+
+	// The unique IDs assigned to the exports.
+	ExportIds []*string `locationName:"exportIds" type:"list"`
+
+	// A number between 1 and 100 specifying the maximum number of continuous export
+	// descriptions returned.
+	MaxResults *int64 `locationName:"maxResults" min:"1" type:"integer"`
+
+	// The token from the previous call to DescribeExportTasks.
+	NextToken *string `locationName:"nextToken" type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeContinuousExportsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeContinuousExportsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeContinuousExportsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeContinuousExportsInput"}
+	if s.MaxResults != nil && *s.MaxResults < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetExportIds sets the ExportIds field's value.
+func (s *DescribeContinuousExportsInput) SetExportIds(v []*string) *DescribeContinuousExportsInput {
+	s.ExportIds = v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *DescribeContinuousExportsInput) SetMaxResults(v int64) *DescribeContinuousExportsInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeContinuousExportsInput) SetNextToken(v string) *DescribeContinuousExportsInput {
+	s.NextToken = &v
+	return s
+}
+
+type DescribeContinuousExportsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A list of continuous export descriptions.
+	Descriptions []*ContinuousExportDescription `locationName:"descriptions" type:"list"`
+
+	// The token from the previous call to DescribeExportTasks.
+	NextToken *string `locationName:"nextToken" type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeContinuousExportsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeContinuousExportsOutput) GoString() string {
+	return s.String()
+}
+
+// SetDescriptions sets the Descriptions field's value.
+func (s *DescribeContinuousExportsOutput) SetDescriptions(v []*ContinuousExportDescription) *DescribeContinuousExportsOutput {
+	s.Descriptions = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeContinuousExportsOutput) SetNextToken(v string) *DescribeContinuousExportsOutput {
+	s.NextToken = &v
+	return s
+}
+
 type DescribeExportConfigurationsInput struct {
 	_ struct{} `type:"structure"`
 
-	// A unique identifier that you can use to query the export status.
+	// A list of continuous export IDs to search for.
 	ExportIds []*string `locationName:"exportIds" type:"list"`
 
-	// The maximum number of results that you want to display as a part of the query.
+	// A number between 1 and 100 specifying the maximum number of continuous export
+	// descriptions returned.
 	MaxResults *int64 `locationName:"maxResults" type:"integer"`
 
-	// A token to get the next set of results. For example, if you specify 100 IDs
-	// for DescribeExportConfigurationsRequest$exportIds but set DescribeExportConfigurationsRequest$maxResults
-	// to 10, you get results in a set of 10. Use the token in the query to get
-	// the next set of 10.
+	// The token from the previous call to describe-export-tasks.
 	NextToken *string `locationName:"nextToken" type:"string"`
 }
 
@@ -2809,18 +4094,12 @@ func (s *DescribeExportConfigurationsInput) SetNextToken(v string) *DescribeExpo
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DescribeExportConfigurationsResponse
 type DescribeExportConfigurationsOutput struct {
 	_ struct{} `type:"structure"`
 
-	// Returns export details. When the status is complete, the response includes
-	// a URL for an Amazon S3 bucket where you can view the data in a CSV file.
 	ExportsInfo []*ExportInfo `locationName:"exportsInfo" type:"list"`
 
-	// A token to get the next set of results. For example, if you specify 100 IDs
-	// for DescribeExportConfigurationsRequest$exportIds but set DescribeExportConfigurationsRequest$maxResults
-	// to 10, you get results in a set of 10. Use the token in the query to get
-	// the next set of 10.
+	// The token from the previous call to describe-export-tasks.
 	NextToken *string `locationName:"nextToken" type:"string"`
 }
 
@@ -2846,7 +4125,6 @@ func (s *DescribeExportConfigurationsOutput) SetNextToken(v string) *DescribeExp
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DescribeExportTasksRequest
 type DescribeExportTasksInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2925,7 +4203,6 @@ func (s *DescribeExportTasksInput) SetNextToken(v string) *DescribeExportTasksIn
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DescribeExportTasksResponse
 type DescribeExportTasksOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2963,7 +4240,106 @@ func (s *DescribeExportTasksOutput) SetNextToken(v string) *DescribeExportTasksO
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DescribeTagsRequest
+type DescribeImportTasksInput struct {
+	_ struct{} `type:"structure"`
+
+	// An array of name-value pairs that you provide to filter the results for the
+	// DescribeImportTask request to a specific subset of results. Currently, wildcard
+	// values aren't supported for filters.
+	Filters []*ImportTaskFilter `locationName:"filters" type:"list"`
+
+	// The maximum number of results that you want this request to return, up to
+	// 100.
+	MaxResults *int64 `locationName:"maxResults" min:"1" type:"integer"`
+
+	// The token to request a specific page of results.
+	NextToken *string `locationName:"nextToken" type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeImportTasksInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeImportTasksInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeImportTasksInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeImportTasksInput"}
+	if s.MaxResults != nil && *s.MaxResults < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
+	}
+	if s.Filters != nil {
+		for i, v := range s.Filters {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Filters", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetFilters sets the Filters field's value.
+func (s *DescribeImportTasksInput) SetFilters(v []*ImportTaskFilter) *DescribeImportTasksInput {
+	s.Filters = v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *DescribeImportTasksInput) SetMaxResults(v int64) *DescribeImportTasksInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeImportTasksInput) SetNextToken(v string) *DescribeImportTasksInput {
+	s.NextToken = &v
+	return s
+}
+
+type DescribeImportTasksOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The token to request the next page of results.
+	NextToken *string `locationName:"nextToken" type:"string"`
+
+	// A returned array of import tasks that match any applied filters, up to the
+	// specified number of maximum results.
+	Tasks []*ImportTask `locationName:"tasks" type:"list"`
+}
+
+// String returns the string representation
+func (s DescribeImportTasksOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeImportTasksOutput) GoString() string {
+	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeImportTasksOutput) SetNextToken(v string) *DescribeImportTasksOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetTasks sets the Tasks field's value.
+func (s *DescribeImportTasksOutput) SetTasks(v []*ImportTask) *DescribeImportTasksOutput {
+	s.Tasks = v
+	return s
+}
+
 type DescribeTagsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3028,7 +4404,6 @@ func (s *DescribeTagsInput) SetNextToken(v string) *DescribeTagsInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DescribeTagsResponse
 type DescribeTagsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3037,7 +4412,7 @@ type DescribeTagsOutput struct {
 
 	// Depending on the input, this is a list of configuration items tagged with
 	// a specific tag, or a list of tags for a specific configuration item.
-	Tags []*ConfigurationTag `locationName:"tags" locationNameList:"item" type:"list"`
+	Tags []*ConfigurationTag `locationName:"tags" type:"list"`
 }
 
 // String returns the string representation
@@ -3062,7 +4437,6 @@ func (s *DescribeTagsOutput) SetTags(v []*ConfigurationTag) *DescribeTagsOutput 
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DisassociateConfigurationItemsFromApplicationRequest
 type DisassociateConfigurationItemsFromApplicationInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3115,7 +4489,6 @@ func (s *DisassociateConfigurationItemsFromApplicationInput) SetConfigurationIds
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/DisassociateConfigurationItemsFromApplicationResponse
 type DisassociateConfigurationItemsFromApplicationOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3130,7 +4503,6 @@ func (s DisassociateConfigurationItemsFromApplicationOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/ExportConfigurationsInput
 type ExportConfigurationsInput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3145,7 +4517,6 @@ func (s ExportConfigurationsInput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/ExportConfigurationsResponse
 type ExportConfigurationsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3172,7 +4543,6 @@ func (s *ExportConfigurationsOutput) SetExportId(v string) *ExportConfigurations
 // Used to select which agent's data is to be exported. A single agent ID may
 // be selected for export using the StartExportTask (http://docs.aws.amazon.com/application-discovery/latest/APIReference/API_StartExportTask.html)
 // action.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/ExportFilter
 type ExportFilter struct {
 	_ struct{} `type:"structure"`
 
@@ -3191,7 +4561,7 @@ type ExportFilter struct {
 	// action. Typically an ADS agentId is in the form o-0123456789abcdef0.
 	//
 	// Values is a required field
-	Values []*string `locationName:"values" locationNameList:"item" type:"list" required:"true"`
+	Values []*string `locationName:"values" type:"list" required:"true"`
 }
 
 // String returns the string representation
@@ -3243,7 +4613,6 @@ func (s *ExportFilter) SetValues(v []*string) *ExportFilter {
 
 // Information regarding the export status of discovered data. The value is
 // an array of objects.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/ExportInfo
 type ExportInfo struct {
 	_ struct{} `type:"structure"`
 
@@ -3259,7 +4628,7 @@ type ExportInfo struct {
 	// The time that the data export was initiated.
 	//
 	// ExportRequestTime is a required field
-	ExportRequestTime *time.Time `locationName:"exportRequestTime" type:"timestamp" timestampFormat:"unix" required:"true"`
+	ExportRequestTime *time.Time `locationName:"exportRequestTime" type:"timestamp" required:"true"`
 
 	// The status of the data export job.
 	//
@@ -3274,11 +4643,11 @@ type ExportInfo struct {
 
 	// The endTime used in the StartExportTask request. If no endTime was requested,
 	// this result does not appear in ExportInfo.
-	RequestedEndTime *time.Time `locationName:"requestedEndTime" type:"timestamp" timestampFormat:"unix"`
+	RequestedEndTime *time.Time `locationName:"requestedEndTime" type:"timestamp"`
 
 	// The value of startTime parameter in the StartExportTask request. If no startTime
 	// was requested, this result does not appear in ExportInfo.
-	RequestedStartTime *time.Time `locationName:"requestedStartTime" type:"timestamp" timestampFormat:"unix"`
+	RequestedStartTime *time.Time `locationName:"requestedStartTime" type:"timestamp"`
 
 	// A status message provided for API callers.
 	//
@@ -3347,8 +4716,8 @@ func (s *ExportInfo) SetStatusMessage(v string) *ExportInfo {
 // A filter that can use conditional operators.
 //
 // For more information about filters, see Querying Discovered Configuration
-// Items (http://docs.aws.amazon.com/application-discovery/latest/APIReference/discovery-api-queries.html).
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/Filter
+// Items (https://docs.aws.amazon.com/application-discovery/latest/userguide/discovery-api-queries.html)
+// in the AWS Application Discovery Service User Guide.
 type Filter struct {
 	_ struct{} `type:"structure"`
 
@@ -3371,7 +4740,7 @@ type Filter struct {
 	// filter name, you could specify Ubuntu for the value.
 	//
 	// Values is a required field
-	Values []*string `locationName:"values" locationNameList:"item" type:"list" required:"true"`
+	Values []*string `locationName:"values" type:"list" required:"true"`
 }
 
 // String returns the string representation
@@ -3421,7 +4790,6 @@ func (s *Filter) SetValues(v []*string) *Filter {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/GetDiscoverySummaryRequest
 type GetDiscoverySummaryInput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3436,7 +4804,6 @@ func (s GetDiscoverySummaryInput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/GetDiscoverySummaryResponse
 type GetDiscoverySummaryOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3505,7 +4872,386 @@ func (s *GetDiscoverySummaryOutput) SetServersMappedtoTags(v int64) *GetDiscover
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/ListConfigurationsRequest
+// The home region is not set. Set the home region to continue.
+type HomeRegionNotSetException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s HomeRegionNotSetException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s HomeRegionNotSetException) GoString() string {
+	return s.String()
+}
+
+func newErrorHomeRegionNotSetException(v protocol.ResponseMetadata) error {
+	return &HomeRegionNotSetException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *HomeRegionNotSetException) Code() string {
+	return "HomeRegionNotSetException"
+}
+
+// Message returns the exception's message.
+func (s *HomeRegionNotSetException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *HomeRegionNotSetException) OrigErr() error {
+	return nil
+}
+
+func (s *HomeRegionNotSetException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *HomeRegionNotSetException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *HomeRegionNotSetException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// An array of information related to the import task request that includes
+// status information, times, IDs, the Amazon S3 Object URL for the import file,
+// and more.
+type ImportTask struct {
+	_ struct{} `type:"structure"`
+
+	// The total number of application records in the import file that failed to
+	// be imported.
+	ApplicationImportFailure *int64 `locationName:"applicationImportFailure" type:"integer"`
+
+	// The total number of application records in the import file that were successfully
+	// imported.
+	ApplicationImportSuccess *int64 `locationName:"applicationImportSuccess" type:"integer"`
+
+	// A unique token used to prevent the same import request from occurring more
+	// than once. If you didn't provide a token, a token was automatically generated
+	// when the import task request was sent.
+	ClientRequestToken *string `locationName:"clientRequestToken" min:"1" type:"string"`
+
+	// A link to a compressed archive folder (in the ZIP format) that contains an
+	// error log and a file of failed records. You can use these two files to quickly
+	// identify records that failed, why they failed, and correct those records.
+	// Afterward, you can upload the corrected file to your Amazon S3 bucket and
+	// create another import task request.
+	//
+	// This field also includes authorization information so you can confirm the
+	// authenticity of the compressed archive before you download it.
+	//
+	// If some records failed to be imported we recommend that you correct the records
+	// in the failed entries file and then imports that failed entries file. This
+	// prevents you from having to correct and update the larger original file and
+	// attempt importing it again.
+	ErrorsAndFailedEntriesZip *string `locationName:"errorsAndFailedEntriesZip" type:"string"`
+
+	// The time that the import task request finished, presented in the Unix time
+	// stamp format.
+	ImportCompletionTime *time.Time `locationName:"importCompletionTime" type:"timestamp"`
+
+	// The time that the import task request was deleted, presented in the Unix
+	// time stamp format.
+	ImportDeletedTime *time.Time `locationName:"importDeletedTime" type:"timestamp"`
+
+	// The time that the import task request was made, presented in the Unix time
+	// stamp format.
+	ImportRequestTime *time.Time `locationName:"importRequestTime" type:"timestamp"`
+
+	// The unique ID for a specific import task. These IDs aren't globally unique,
+	// but they are unique within an AWS account.
+	ImportTaskId *string `locationName:"importTaskId" type:"string"`
+
+	// The URL for your import file that you've uploaded to Amazon S3.
+	ImportUrl *string `locationName:"importUrl" min:"1" type:"string"`
+
+	// A descriptive name for an import task. You can use this name to filter future
+	// requests related to this import task, such as identifying applications and
+	// servers that were included in this import task. We recommend that you use
+	// a meaningful name for each import task.
+	Name *string `locationName:"name" min:"1" type:"string"`
+
+	// The total number of server records in the import file that failed to be imported.
+	ServerImportFailure *int64 `locationName:"serverImportFailure" type:"integer"`
+
+	// The total number of server records in the import file that were successfully
+	// imported.
+	ServerImportSuccess *int64 `locationName:"serverImportSuccess" type:"integer"`
+
+	// The status of the import task. An import can have the status of IMPORT_COMPLETE
+	// and still have some records fail to import from the overall request. More
+	// information can be found in the downloadable archive defined in the errorsAndFailedEntriesZip
+	// field, or in the Migration Hub management console.
+	Status *string `locationName:"status" type:"string" enum:"ImportStatus"`
+}
+
+// String returns the string representation
+func (s ImportTask) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ImportTask) GoString() string {
+	return s.String()
+}
+
+// SetApplicationImportFailure sets the ApplicationImportFailure field's value.
+func (s *ImportTask) SetApplicationImportFailure(v int64) *ImportTask {
+	s.ApplicationImportFailure = &v
+	return s
+}
+
+// SetApplicationImportSuccess sets the ApplicationImportSuccess field's value.
+func (s *ImportTask) SetApplicationImportSuccess(v int64) *ImportTask {
+	s.ApplicationImportSuccess = &v
+	return s
+}
+
+// SetClientRequestToken sets the ClientRequestToken field's value.
+func (s *ImportTask) SetClientRequestToken(v string) *ImportTask {
+	s.ClientRequestToken = &v
+	return s
+}
+
+// SetErrorsAndFailedEntriesZip sets the ErrorsAndFailedEntriesZip field's value.
+func (s *ImportTask) SetErrorsAndFailedEntriesZip(v string) *ImportTask {
+	s.ErrorsAndFailedEntriesZip = &v
+	return s
+}
+
+// SetImportCompletionTime sets the ImportCompletionTime field's value.
+func (s *ImportTask) SetImportCompletionTime(v time.Time) *ImportTask {
+	s.ImportCompletionTime = &v
+	return s
+}
+
+// SetImportDeletedTime sets the ImportDeletedTime field's value.
+func (s *ImportTask) SetImportDeletedTime(v time.Time) *ImportTask {
+	s.ImportDeletedTime = &v
+	return s
+}
+
+// SetImportRequestTime sets the ImportRequestTime field's value.
+func (s *ImportTask) SetImportRequestTime(v time.Time) *ImportTask {
+	s.ImportRequestTime = &v
+	return s
+}
+
+// SetImportTaskId sets the ImportTaskId field's value.
+func (s *ImportTask) SetImportTaskId(v string) *ImportTask {
+	s.ImportTaskId = &v
+	return s
+}
+
+// SetImportUrl sets the ImportUrl field's value.
+func (s *ImportTask) SetImportUrl(v string) *ImportTask {
+	s.ImportUrl = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *ImportTask) SetName(v string) *ImportTask {
+	s.Name = &v
+	return s
+}
+
+// SetServerImportFailure sets the ServerImportFailure field's value.
+func (s *ImportTask) SetServerImportFailure(v int64) *ImportTask {
+	s.ServerImportFailure = &v
+	return s
+}
+
+// SetServerImportSuccess sets the ServerImportSuccess field's value.
+func (s *ImportTask) SetServerImportSuccess(v int64) *ImportTask {
+	s.ServerImportSuccess = &v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *ImportTask) SetStatus(v string) *ImportTask {
+	s.Status = &v
+	return s
+}
+
+// A name-values pair of elements you can use to filter the results when querying
+// your import tasks. Currently, wildcards are not supported for filters.
+//
+// When filtering by import status, all other filter values are ignored.
+type ImportTaskFilter struct {
+	_ struct{} `type:"structure"`
+
+	// The name, status, or import task ID for a specific import task.
+	Name *string `locationName:"name" type:"string" enum:"ImportTaskFilterName"`
+
+	// An array of strings that you can provide to match against a specific name,
+	// status, or import task ID to filter the results for your import task queries.
+	Values []*string `locationName:"values" min:"1" type:"list"`
+}
+
+// String returns the string representation
+func (s ImportTaskFilter) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ImportTaskFilter) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ImportTaskFilter) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ImportTaskFilter"}
+	if s.Values != nil && len(s.Values) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Values", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetName sets the Name field's value.
+func (s *ImportTaskFilter) SetName(v string) *ImportTaskFilter {
+	s.Name = &v
+	return s
+}
+
+// SetValues sets the Values field's value.
+func (s *ImportTaskFilter) SetValues(v []*string) *ImportTaskFilter {
+	s.Values = v
+	return s
+}
+
+// One or more parameters are not valid. Verify the parameters and try again.
+type InvalidParameterException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidParameterException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidParameterException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidParameterException(v protocol.ResponseMetadata) error {
+	return &InvalidParameterException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *InvalidParameterException) Code() string {
+	return "InvalidParameterException"
+}
+
+// Message returns the exception's message.
+func (s *InvalidParameterException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *InvalidParameterException) OrigErr() error {
+	return nil
+}
+
+func (s *InvalidParameterException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *InvalidParameterException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *InvalidParameterException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// The value of one or more parameters are either invalid or out of range. Verify
+// the parameter values and try again.
+type InvalidParameterValueException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidParameterValueException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidParameterValueException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidParameterValueException(v protocol.ResponseMetadata) error {
+	return &InvalidParameterValueException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *InvalidParameterValueException) Code() string {
+	return "InvalidParameterValueException"
+}
+
+// Message returns the exception's message.
+func (s *InvalidParameterValueException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *InvalidParameterValueException) OrigErr() error {
+	return nil
+}
+
+func (s *InvalidParameterValueException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *InvalidParameterValueException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *InvalidParameterValueException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 type ListConfigurationsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3520,7 +5266,8 @@ type ListConfigurationsInput struct {
 	// {"key": "serverType", "value": "webServer"}
 	//
 	// For a complete list of filter options and guidance about using them with
-	// this action, see Querying Discovered Configuration Items (http://docs.aws.amazon.com/application-discovery/latest/APIReference/discovery-api-queries.html#ListConfigurations).
+	// this action, see Using the ListConfigurations Action (https://docs.aws.amazon.com/application-discovery/latest/userguide/discovery-api-queries.html#ListConfigurations)
+	// in the AWS Application Discovery Service User Guide.
 	Filters []*Filter `locationName:"filters" type:"list"`
 
 	// The total number of items to return. The maximum value is 100.
@@ -3534,7 +5281,8 @@ type ListConfigurationsInput struct {
 
 	// Certain filter criteria return output that can be sorted in ascending or
 	// descending order. For a list of output characteristics for each filter, see
-	// Using the ListConfigurations Action (http://docs.aws.amazon.com/application-discovery/latest/APIReference/discovery-api-queries.html#ListConfigurations).
+	// Using the ListConfigurations Action (https://docs.aws.amazon.com/application-discovery/latest/userguide/discovery-api-queries.html#ListConfigurations)
+	// in the AWS Application Discovery Service User Guide.
 	OrderBy []*OrderByElement `locationName:"orderBy" type:"list"`
 }
 
@@ -3611,7 +5359,6 @@ func (s *ListConfigurationsInput) SetOrderBy(v []*OrderByElement) *ListConfigura
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/ListConfigurationsResponse
 type ListConfigurationsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3648,7 +5395,6 @@ func (s *ListConfigurationsOutput) SetNextToken(v string) *ListConfigurationsOut
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/ListServerNeighborsRequest
 type ListServerNeighborsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3728,7 +5474,6 @@ func (s *ListServerNeighborsInput) SetPortInformationNeeded(v bool) *ListServerN
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/ListServerNeighborsResponse
 type ListServerNeighborsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3776,7 +5521,6 @@ func (s *ListServerNeighborsOutput) SetNextToken(v string) *ListServerNeighborsO
 }
 
 // Details about neighboring servers.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/NeighborConnectionDetail
 type NeighborConnectionDetail struct {
 	_ struct{} `type:"structure"`
 
@@ -3842,8 +5586,63 @@ func (s *NeighborConnectionDetail) SetTransportProtocol(v string) *NeighborConne
 	return s
 }
 
+// This operation is not permitted.
+type OperationNotPermittedException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s OperationNotPermittedException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s OperationNotPermittedException) GoString() string {
+	return s.String()
+}
+
+func newErrorOperationNotPermittedException(v protocol.ResponseMetadata) error {
+	return &OperationNotPermittedException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *OperationNotPermittedException) Code() string {
+	return "OperationNotPermittedException"
+}
+
+// Message returns the exception's message.
+func (s *OperationNotPermittedException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *OperationNotPermittedException) OrigErr() error {
+	return nil
+}
+
+func (s *OperationNotPermittedException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *OperationNotPermittedException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *OperationNotPermittedException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 // A field and direction for ordered output.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/OrderByElement
 type OrderByElement struct {
 	_ struct{} `type:"structure"`
 
@@ -3853,7 +5652,7 @@ type OrderByElement struct {
 	FieldName *string `locationName:"fieldName" type:"string" required:"true"`
 
 	// Ordering direction.
-	SortOrder *string `locationName:"sortOrder" type:"string" enum:"orderString"`
+	SortOrder *string `locationName:"sortOrder" type:"string" enum:"OrderString"`
 }
 
 // String returns the string representation
@@ -3891,7 +5690,255 @@ func (s *OrderByElement) SetSortOrder(v string) *OrderByElement {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/StartDataCollectionByAgentIdsRequest
+// This issue occurs when the same clientRequestToken is used with the StartImportTask
+// action, but with different parameters. For example, you use the same request
+// token but have two different import URLs, you can encounter this issue. If
+// the import tasks are meant to be different, use a different clientRequestToken,
+// and try again.
+type ResourceInUseException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s ResourceInUseException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ResourceInUseException) GoString() string {
+	return s.String()
+}
+
+func newErrorResourceInUseException(v protocol.ResponseMetadata) error {
+	return &ResourceInUseException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *ResourceInUseException) Code() string {
+	return "ResourceInUseException"
+}
+
+// Message returns the exception's message.
+func (s *ResourceInUseException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *ResourceInUseException) OrigErr() error {
+	return nil
+}
+
+func (s *ResourceInUseException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *ResourceInUseException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *ResourceInUseException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// The specified configuration ID was not located. Verify the configuration
+// ID and try again.
+type ResourceNotFoundException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s ResourceNotFoundException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ResourceNotFoundException) GoString() string {
+	return s.String()
+}
+
+func newErrorResourceNotFoundException(v protocol.ResponseMetadata) error {
+	return &ResourceNotFoundException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *ResourceNotFoundException) Code() string {
+	return "ResourceNotFoundException"
+}
+
+// Message returns the exception's message.
+func (s *ResourceNotFoundException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *ResourceNotFoundException) OrigErr() error {
+	return nil
+}
+
+func (s *ResourceNotFoundException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *ResourceNotFoundException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *ResourceNotFoundException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// The server experienced an internal error. Try again.
+type ServerInternalErrorException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s ServerInternalErrorException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ServerInternalErrorException) GoString() string {
+	return s.String()
+}
+
+func newErrorServerInternalErrorException(v protocol.ResponseMetadata) error {
+	return &ServerInternalErrorException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *ServerInternalErrorException) Code() string {
+	return "ServerInternalErrorException"
+}
+
+// Message returns the exception's message.
+func (s *ServerInternalErrorException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *ServerInternalErrorException) OrigErr() error {
+	return nil
+}
+
+func (s *ServerInternalErrorException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *ServerInternalErrorException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *ServerInternalErrorException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+type StartContinuousExportInput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s StartContinuousExportInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StartContinuousExportInput) GoString() string {
+	return s.String()
+}
+
+type StartContinuousExportOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The type of data collector used to gather this data (currently only offered
+	// for AGENT).
+	DataSource *string `locationName:"dataSource" type:"string" enum:"DataSource"`
+
+	// The unique ID assigned to this export.
+	ExportId *string `locationName:"exportId" type:"string"`
+
+	// The name of the s3 bucket where the export data parquet files are stored.
+	S3Bucket *string `locationName:"s3Bucket" type:"string"`
+
+	// A dictionary which describes how the data is stored.
+	//
+	//    * databaseName - the name of the Glue database used to store the schema.
+	SchemaStorageConfig map[string]*string `locationName:"schemaStorageConfig" type:"map"`
+
+	// The timestamp representing when the continuous export was started.
+	StartTime *time.Time `locationName:"startTime" type:"timestamp"`
+}
+
+// String returns the string representation
+func (s StartContinuousExportOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StartContinuousExportOutput) GoString() string {
+	return s.String()
+}
+
+// SetDataSource sets the DataSource field's value.
+func (s *StartContinuousExportOutput) SetDataSource(v string) *StartContinuousExportOutput {
+	s.DataSource = &v
+	return s
+}
+
+// SetExportId sets the ExportId field's value.
+func (s *StartContinuousExportOutput) SetExportId(v string) *StartContinuousExportOutput {
+	s.ExportId = &v
+	return s
+}
+
+// SetS3Bucket sets the S3Bucket field's value.
+func (s *StartContinuousExportOutput) SetS3Bucket(v string) *StartContinuousExportOutput {
+	s.S3Bucket = &v
+	return s
+}
+
+// SetSchemaStorageConfig sets the SchemaStorageConfig field's value.
+func (s *StartContinuousExportOutput) SetSchemaStorageConfig(v map[string]*string) *StartContinuousExportOutput {
+	s.SchemaStorageConfig = v
+	return s
+}
+
+// SetStartTime sets the StartTime field's value.
+func (s *StartContinuousExportOutput) SetStartTime(v time.Time) *StartContinuousExportOutput {
+	s.StartTime = &v
+	return s
+}
+
 type StartDataCollectionByAgentIdsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3936,7 +5983,6 @@ func (s *StartDataCollectionByAgentIdsInput) SetAgentIds(v []*string) *StartData
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/StartDataCollectionByAgentIdsResponse
 type StartDataCollectionByAgentIdsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3962,16 +6008,16 @@ func (s *StartDataCollectionByAgentIdsOutput) SetAgentsConfigurationStatus(v []*
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/StartExportTaskRequest
 type StartExportTaskInput struct {
 	_ struct{} `type:"structure"`
 
 	// The end timestamp for exported data from the single Application Discovery
 	// Agent selected in the filters. If no value is specified, exported data includes
 	// the most recent data collected by the agent.
-	EndTime *time.Time `locationName:"endTime" type:"timestamp" timestampFormat:"unix"`
+	EndTime *time.Time `locationName:"endTime" type:"timestamp"`
 
-	// The file format for the returned export data. Default value is CSV.
+	// The file format for the returned export data. Default value is CSV. Note:
+	// The GRAPHML option has been deprecated.
 	ExportDataFormat []*string `locationName:"exportDataFormat" type:"list"`
 
 	// If a filter is present, it selects the single agentId of the Application
@@ -3984,7 +6030,7 @@ type StartExportTaskInput struct {
 	// The start timestamp for exported data from the single Application Discovery
 	// Agent selected in the filters. If no value is specified, data is exported
 	// starting from the first data collected by the agent.
-	StartTime *time.Time `locationName:"startTime" type:"timestamp" timestampFormat:"unix"`
+	StartTime *time.Time `locationName:"startTime" type:"timestamp"`
 }
 
 // String returns the string representation
@@ -4041,7 +6087,6 @@ func (s *StartExportTaskInput) SetStartTime(v time.Time) *StartExportTaskInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/StartExportTaskResponse
 type StartExportTaskOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4065,7 +6110,183 @@ func (s *StartExportTaskOutput) SetExportId(v string) *StartExportTaskOutput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/StopDataCollectionByAgentIdsRequest
+type StartImportTaskInput struct {
+	_ struct{} `type:"structure"`
+
+	// Optional. A unique token that you can provide to prevent the same import
+	// request from occurring more than once. If you don't provide a token, a token
+	// is automatically generated.
+	//
+	// Sending more than one StartImportTask request with the same client request
+	// token will return information about the original import task with that client
+	// request token.
+	ClientRequestToken *string `locationName:"clientRequestToken" min:"1" type:"string" idempotencyToken:"true"`
+
+	// The URL for your import file that you've uploaded to Amazon S3.
+	//
+	// If you're using the AWS CLI, this URL is structured as follows: s3://BucketName/ImportFileName.CSV
+	//
+	// ImportUrl is a required field
+	ImportUrl *string `locationName:"importUrl" min:"1" type:"string" required:"true"`
+
+	// A descriptive name for this request. You can use this name to filter future
+	// requests related to this import task, such as identifying applications and
+	// servers that were included in this import task. We recommend that you use
+	// a meaningful name for each import task.
+	//
+	// Name is a required field
+	Name *string `locationName:"name" min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s StartImportTaskInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StartImportTaskInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *StartImportTaskInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "StartImportTaskInput"}
+	if s.ClientRequestToken != nil && len(*s.ClientRequestToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ClientRequestToken", 1))
+	}
+	if s.ImportUrl == nil {
+		invalidParams.Add(request.NewErrParamRequired("ImportUrl"))
+	}
+	if s.ImportUrl != nil && len(*s.ImportUrl) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ImportUrl", 1))
+	}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetClientRequestToken sets the ClientRequestToken field's value.
+func (s *StartImportTaskInput) SetClientRequestToken(v string) *StartImportTaskInput {
+	s.ClientRequestToken = &v
+	return s
+}
+
+// SetImportUrl sets the ImportUrl field's value.
+func (s *StartImportTaskInput) SetImportUrl(v string) *StartImportTaskInput {
+	s.ImportUrl = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *StartImportTaskInput) SetName(v string) *StartImportTaskInput {
+	s.Name = &v
+	return s
+}
+
+type StartImportTaskOutput struct {
+	_ struct{} `type:"structure"`
+
+	// An array of information related to the import task request including status
+	// information, times, IDs, the Amazon S3 Object URL for the import file, and
+	// more.
+	Task *ImportTask `locationName:"task" type:"structure"`
+}
+
+// String returns the string representation
+func (s StartImportTaskOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StartImportTaskOutput) GoString() string {
+	return s.String()
+}
+
+// SetTask sets the Task field's value.
+func (s *StartImportTaskOutput) SetTask(v *ImportTask) *StartImportTaskOutput {
+	s.Task = v
+	return s
+}
+
+type StopContinuousExportInput struct {
+	_ struct{} `type:"structure"`
+
+	// The unique ID assigned to this export.
+	//
+	// ExportId is a required field
+	ExportId *string `locationName:"exportId" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s StopContinuousExportInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StopContinuousExportInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *StopContinuousExportInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "StopContinuousExportInput"}
+	if s.ExportId == nil {
+		invalidParams.Add(request.NewErrParamRequired("ExportId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetExportId sets the ExportId field's value.
+func (s *StopContinuousExportInput) SetExportId(v string) *StopContinuousExportInput {
+	s.ExportId = &v
+	return s
+}
+
+type StopContinuousExportOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Timestamp that represents when this continuous export started collecting
+	// data.
+	StartTime *time.Time `locationName:"startTime" type:"timestamp"`
+
+	// Timestamp that represents when this continuous export was stopped.
+	StopTime *time.Time `locationName:"stopTime" type:"timestamp"`
+}
+
+// String returns the string representation
+func (s StopContinuousExportOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StopContinuousExportOutput) GoString() string {
+	return s.String()
+}
+
+// SetStartTime sets the StartTime field's value.
+func (s *StopContinuousExportOutput) SetStartTime(v time.Time) *StopContinuousExportOutput {
+	s.StartTime = &v
+	return s
+}
+
+// SetStopTime sets the StopTime field's value.
+func (s *StopContinuousExportOutput) SetStopTime(v time.Time) *StopContinuousExportOutput {
+	s.StopTime = &v
+	return s
+}
+
 type StopDataCollectionByAgentIdsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4104,7 +6325,6 @@ func (s *StopDataCollectionByAgentIdsInput) SetAgentIds(v []*string) *StopDataCo
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/StopDataCollectionByAgentIdsResponse
 type StopDataCollectionByAgentIdsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4131,7 +6351,6 @@ func (s *StopDataCollectionByAgentIdsOutput) SetAgentsConfigurationStatus(v []*A
 }
 
 // Metadata that help you categorize IT assets.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/Tag
 type Tag struct {
 	_ struct{} `type:"structure"`
 
@@ -4185,7 +6404,6 @@ func (s *Tag) SetValue(v string) *Tag {
 }
 
 // The tag filter. Valid names are: tagKey, tagValue, configurationId.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/TagFilter
 type TagFilter struct {
 	_ struct{} `type:"structure"`
 
@@ -4197,7 +6415,7 @@ type TagFilter struct {
 	// Values for the tag filter.
 	//
 	// Values is a required field
-	Values []*string `locationName:"values" locationNameList:"item" type:"list" required:"true"`
+	Values []*string `locationName:"values" type:"list" required:"true"`
 }
 
 // String returns the string representation
@@ -4238,7 +6456,6 @@ func (s *TagFilter) SetValues(v []*string) *TagFilter {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/UpdateApplicationRequest
 type UpdateApplicationInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4295,7 +6512,6 @@ func (s *UpdateApplicationInput) SetName(v string) *UpdateApplicationInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/discovery-2015-11-01/UpdateApplicationResponse
 type UpdateApplicationOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -4330,6 +6546,38 @@ const (
 	AgentStatusShutdown = "SHUTDOWN"
 )
 
+// AgentStatus_Values returns all elements of the AgentStatus enum
+func AgentStatus_Values() []string {
+	return []string{
+		AgentStatusHealthy,
+		AgentStatusUnhealthy,
+		AgentStatusRunning,
+		AgentStatusUnknown,
+		AgentStatusBlacklisted,
+		AgentStatusShutdown,
+	}
+}
+
+const (
+	// BatchDeleteImportDataErrorCodeNotFound is a BatchDeleteImportDataErrorCode enum value
+	BatchDeleteImportDataErrorCodeNotFound = "NOT_FOUND"
+
+	// BatchDeleteImportDataErrorCodeInternalServerError is a BatchDeleteImportDataErrorCode enum value
+	BatchDeleteImportDataErrorCodeInternalServerError = "INTERNAL_SERVER_ERROR"
+
+	// BatchDeleteImportDataErrorCodeOverLimit is a BatchDeleteImportDataErrorCode enum value
+	BatchDeleteImportDataErrorCodeOverLimit = "OVER_LIMIT"
+)
+
+// BatchDeleteImportDataErrorCode_Values returns all elements of the BatchDeleteImportDataErrorCode enum
+func BatchDeleteImportDataErrorCode_Values() []string {
+	return []string{
+		BatchDeleteImportDataErrorCodeNotFound,
+		BatchDeleteImportDataErrorCodeInternalServerError,
+		BatchDeleteImportDataErrorCodeOverLimit,
+	}
+}
+
 const (
 	// ConfigurationItemTypeServer is a ConfigurationItemType enum value
 	ConfigurationItemTypeServer = "SERVER"
@@ -4344,6 +6592,64 @@ const (
 	ConfigurationItemTypeApplication = "APPLICATION"
 )
 
+// ConfigurationItemType_Values returns all elements of the ConfigurationItemType enum
+func ConfigurationItemType_Values() []string {
+	return []string{
+		ConfigurationItemTypeServer,
+		ConfigurationItemTypeProcess,
+		ConfigurationItemTypeConnection,
+		ConfigurationItemTypeApplication,
+	}
+}
+
+const (
+	// ContinuousExportStatusStartInProgress is a ContinuousExportStatus enum value
+	ContinuousExportStatusStartInProgress = "START_IN_PROGRESS"
+
+	// ContinuousExportStatusStartFailed is a ContinuousExportStatus enum value
+	ContinuousExportStatusStartFailed = "START_FAILED"
+
+	// ContinuousExportStatusActive is a ContinuousExportStatus enum value
+	ContinuousExportStatusActive = "ACTIVE"
+
+	// ContinuousExportStatusError is a ContinuousExportStatus enum value
+	ContinuousExportStatusError = "ERROR"
+
+	// ContinuousExportStatusStopInProgress is a ContinuousExportStatus enum value
+	ContinuousExportStatusStopInProgress = "STOP_IN_PROGRESS"
+
+	// ContinuousExportStatusStopFailed is a ContinuousExportStatus enum value
+	ContinuousExportStatusStopFailed = "STOP_FAILED"
+
+	// ContinuousExportStatusInactive is a ContinuousExportStatus enum value
+	ContinuousExportStatusInactive = "INACTIVE"
+)
+
+// ContinuousExportStatus_Values returns all elements of the ContinuousExportStatus enum
+func ContinuousExportStatus_Values() []string {
+	return []string{
+		ContinuousExportStatusStartInProgress,
+		ContinuousExportStatusStartFailed,
+		ContinuousExportStatusActive,
+		ContinuousExportStatusError,
+		ContinuousExportStatusStopInProgress,
+		ContinuousExportStatusStopFailed,
+		ContinuousExportStatusInactive,
+	}
+}
+
+const (
+	// DataSourceAgent is a DataSource enum value
+	DataSourceAgent = "AGENT"
+)
+
+// DataSource_Values returns all elements of the DataSource enum
+func DataSource_Values() []string {
+	return []string{
+		DataSourceAgent,
+	}
+}
+
 const (
 	// ExportDataFormatCsv is a ExportDataFormat enum value
 	ExportDataFormatCsv = "CSV"
@@ -4351,6 +6657,14 @@ const (
 	// ExportDataFormatGraphml is a ExportDataFormat enum value
 	ExportDataFormatGraphml = "GRAPHML"
 )
+
+// ExportDataFormat_Values returns all elements of the ExportDataFormat enum
+func ExportDataFormat_Values() []string {
+	return []string{
+		ExportDataFormatCsv,
+		ExportDataFormatGraphml,
+	}
+}
 
 const (
 	// ExportStatusFailed is a ExportStatus enum value
@@ -4363,10 +6677,99 @@ const (
 	ExportStatusInProgress = "IN_PROGRESS"
 )
 
+// ExportStatus_Values returns all elements of the ExportStatus enum
+func ExportStatus_Values() []string {
+	return []string{
+		ExportStatusFailed,
+		ExportStatusSucceeded,
+		ExportStatusInProgress,
+	}
+}
+
 const (
-	// OrderStringAsc is a orderString enum value
+	// ImportStatusImportInProgress is a ImportStatus enum value
+	ImportStatusImportInProgress = "IMPORT_IN_PROGRESS"
+
+	// ImportStatusImportComplete is a ImportStatus enum value
+	ImportStatusImportComplete = "IMPORT_COMPLETE"
+
+	// ImportStatusImportCompleteWithErrors is a ImportStatus enum value
+	ImportStatusImportCompleteWithErrors = "IMPORT_COMPLETE_WITH_ERRORS"
+
+	// ImportStatusImportFailed is a ImportStatus enum value
+	ImportStatusImportFailed = "IMPORT_FAILED"
+
+	// ImportStatusImportFailedServerLimitExceeded is a ImportStatus enum value
+	ImportStatusImportFailedServerLimitExceeded = "IMPORT_FAILED_SERVER_LIMIT_EXCEEDED"
+
+	// ImportStatusImportFailedRecordLimitExceeded is a ImportStatus enum value
+	ImportStatusImportFailedRecordLimitExceeded = "IMPORT_FAILED_RECORD_LIMIT_EXCEEDED"
+
+	// ImportStatusDeleteInProgress is a ImportStatus enum value
+	ImportStatusDeleteInProgress = "DELETE_IN_PROGRESS"
+
+	// ImportStatusDeleteComplete is a ImportStatus enum value
+	ImportStatusDeleteComplete = "DELETE_COMPLETE"
+
+	// ImportStatusDeleteFailed is a ImportStatus enum value
+	ImportStatusDeleteFailed = "DELETE_FAILED"
+
+	// ImportStatusDeleteFailedLimitExceeded is a ImportStatus enum value
+	ImportStatusDeleteFailedLimitExceeded = "DELETE_FAILED_LIMIT_EXCEEDED"
+
+	// ImportStatusInternalError is a ImportStatus enum value
+	ImportStatusInternalError = "INTERNAL_ERROR"
+)
+
+// ImportStatus_Values returns all elements of the ImportStatus enum
+func ImportStatus_Values() []string {
+	return []string{
+		ImportStatusImportInProgress,
+		ImportStatusImportComplete,
+		ImportStatusImportCompleteWithErrors,
+		ImportStatusImportFailed,
+		ImportStatusImportFailedServerLimitExceeded,
+		ImportStatusImportFailedRecordLimitExceeded,
+		ImportStatusDeleteInProgress,
+		ImportStatusDeleteComplete,
+		ImportStatusDeleteFailed,
+		ImportStatusDeleteFailedLimitExceeded,
+		ImportStatusInternalError,
+	}
+}
+
+const (
+	// ImportTaskFilterNameImportTaskId is a ImportTaskFilterName enum value
+	ImportTaskFilterNameImportTaskId = "IMPORT_TASK_ID"
+
+	// ImportTaskFilterNameStatus is a ImportTaskFilterName enum value
+	ImportTaskFilterNameStatus = "STATUS"
+
+	// ImportTaskFilterNameName is a ImportTaskFilterName enum value
+	ImportTaskFilterNameName = "NAME"
+)
+
+// ImportTaskFilterName_Values returns all elements of the ImportTaskFilterName enum
+func ImportTaskFilterName_Values() []string {
+	return []string{
+		ImportTaskFilterNameImportTaskId,
+		ImportTaskFilterNameStatus,
+		ImportTaskFilterNameName,
+	}
+}
+
+const (
+	// OrderStringAsc is a OrderString enum value
 	OrderStringAsc = "ASC"
 
-	// OrderStringDesc is a orderString enum value
+	// OrderStringDesc is a OrderString enum value
 	OrderStringDesc = "DESC"
 )
+
+// OrderString_Values returns all elements of the OrderString enum
+func OrderString_Values() []string {
+	return []string{
+		OrderStringAsc,
+		OrderStringDesc,
+	}
+}

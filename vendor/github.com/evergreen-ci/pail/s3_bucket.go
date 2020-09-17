@@ -1,6 +1,7 @@
 package pail
 
 import (
+	"archive/tar"
 	"compress/gzip"
 	"context"
 	"io"
@@ -15,6 +16,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/evergreen-ci/utility"
 	"github.com/mongodb/grip"
 	"github.com/mongodb/grip/message"
 	"github.com/pkg/errors"
@@ -81,7 +83,7 @@ type S3Options struct {
 	// operations that modify the bucket.
 	DryRun bool
 	// DeleteOnSync will delete all objects from the target that do not
-	// exist in the source after the completion of a sync operation
+	// exist in the destination after the completion of a sync operation
 	// (Push/Pull).
 	DeleteOnSync bool
 	// DeleteOnPush will delete all objects from the target that do not
@@ -164,18 +166,7 @@ func newS3BucketBase(client *http.Client, options S3Options) (*s3Bucket, error) 
 		MaxRetries: aws.Int(options.MaxRetries),
 	}
 
-	if options.SharedCredentialsProfile != "" {
-		prev := os.Getenv("AWS_PROFILE")
-		if err := os.Setenv("AWS_PROFILE", options.SharedCredentialsProfile); err != nil {
-			return nil, errors.Wrap(err, "problem setting AWS_PROFILE env var")
-		}
-		defer func() {
-			if err := os.Setenv("AWS_PROFILE", prev); err != nil {
-				grip.Error(errors.Wrap(err, "problem setting back AWS_PROFILE env var"))
-			}
-		}()
-	}
-	if options.SharedCredentialsFilepath != "" {
+	if options.SharedCredentialsFilepath != "" || options.SharedCredentialsProfile != "" {
 		sharedCredentials := credentials.NewSharedCredentials(options.SharedCredentialsFilepath, options.SharedCredentialsProfile)
 		_, err := sharedCredentials.Get()
 		if err != nil {
@@ -301,7 +292,7 @@ type largeWriteCloser struct {
 	dryRun         bool
 	verbose        bool
 	partNumber     int64
-	maxSize        int
+	minSize        int
 	svc            *s3.S3
 	ctx            context.Context
 	buffer         []byte
@@ -464,13 +455,13 @@ func (w *largeWriteCloser) Write(p []byte) (int, error) {
 	if w.isClosed {
 		return 0, errors.New("writer already closed")
 	}
-	if len(w.buffer)+len(p) > w.maxSize {
+	w.buffer = append(w.buffer, p...)
+	if len(w.buffer) > w.minSize {
 		err := w.flush()
 		if err != nil {
 			return 0, err
 		}
 	}
-	w.buffer = append(w.buffer, p...)
 	return len(p), nil
 }
 
@@ -586,7 +577,7 @@ func (s *s3BucketLarge) Writer(ctx context.Context, key string) (io.WriteCloser,
 	})
 
 	writer := &largeWriteCloser{
-		maxSize:     s.minPartSize,
+		minSize:     s.minPartSize,
 		name:        s.name,
 		svc:         s.svc,
 		ctx:         ctx,
@@ -622,6 +613,9 @@ func (s *s3Bucket) Reader(ctx context.Context, key string) (io.ReadCloser, error
 
 	result, err := s.svc.GetObjectWithContext(ctx, input)
 	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == s3.ErrCodeNoSuchKey {
+			err = MakeKeyNotFoundError(err)
+		}
 		return nil, err
 	}
 	return result.Body, nil
@@ -679,7 +673,7 @@ func (s *s3Bucket) Get(ctx context.Context, key string) (io.ReadCloser, error) {
 }
 
 func (s *s3Bucket) s3WithUploadChecksumHelper(ctx context.Context, target, file string) (bool, error) {
-	localmd5, err := md5sum(file)
+	localmd5, err := utility.MD5SumFile(file)
 	if err != nil {
 		return false, errors.Wrapf(err, "problem checksumming '%s'", file)
 	}
@@ -764,7 +758,7 @@ func doDownload(ctx context.Context, b Bucket, key, path string) error {
 }
 
 func s3DownloadWithChecksum(ctx context.Context, b Bucket, item BucketItem, local string) error {
-	localmd5, err := md5sum(local)
+	localmd5, err := utility.MD5SumFile(local)
 	if os.IsNotExist(errors.Cause(err)) {
 		if err = doDownload(ctx, b, item.Name(), local); err != nil {
 			return errors.WithStack(err)
@@ -1175,4 +1169,134 @@ func (iter *s3BucketIterator) Next(ctx context.Context) bool {
 		b:      iter.b,
 	}
 	return true
+}
+
+type s3ArchiveBucket struct {
+	*s3BucketLarge
+}
+
+// NewS3ArchiveBucket returns a SyncBucket implementation backed by S3 that
+// supports syncing the local file system as a single archive file in S3 rather
+// than creating an individual object for each file. This SyncBucket is not
+// compatible with regular Bucket implementations.
+func NewS3ArchiveBucket(options S3Options) (SyncBucket, error) {
+	bucket, err := NewS3MultiPartBucket(options)
+	if err != nil {
+		return nil, err
+	}
+	return newS3ArchiveBucketWithMultiPart(bucket, options)
+}
+
+// NewS3ArchiveBucketWithHTTPClient is the same as NewS3ArchiveBucket but allows
+// the user to specify an existing HTTP client connection.
+func NewS3ArchiveBucketWithHTTPClient(client *http.Client, options S3Options) (SyncBucket, error) {
+	bucket, err := NewS3MultiPartBucketWithHTTPClient(client, options)
+	if err != nil {
+		return nil, err
+	}
+	return newS3ArchiveBucketWithMultiPart(bucket, options)
+}
+
+func newS3ArchiveBucketWithMultiPart(bucket Bucket, options S3Options) (*s3ArchiveBucket, error) {
+	largeBucket, ok := bucket.(*s3BucketLarge)
+	if !ok {
+		return nil, errors.New("bucket is not a large multipart bucket")
+	}
+	return &s3ArchiveBucket{s3BucketLarge: largeBucket}, nil
+}
+
+const syncArchiveName = "archive.tar"
+
+// Push pushes the contents from opts.Local to the archive prefixed by
+// opts.Remote. This operation automatically performs DeleteOnSync in the remote
+// regardless of the bucket setting. UseSingleFileChecksums is ignored if it is
+// set on the bucket.
+func (s *s3ArchiveBucket) Push(ctx context.Context, opts SyncOptions) error {
+	grip.DebugWhen(s.verbose, message.Fields{
+		"type":          "s3",
+		"dry_run":       s.dryRun,
+		"operation":     "push",
+		"bucket":        s.name,
+		"bucket_prefix": s.prefix,
+		"remote":        opts.Remote,
+		"local":         opts.Local,
+		"exclude":       opts.Exclude,
+	})
+
+	var re *regexp.Regexp
+	var err error
+	if opts.Exclude != "" {
+		re, err = regexp.Compile(opts.Exclude)
+		if err != nil {
+			return errors.Wrap(err, "problem compiling exclude regex")
+		}
+	}
+
+	files, err := walkLocalTree(ctx, opts.Local)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	target := consistentJoin(opts.Remote, syncArchiveName)
+
+	s3Writer, err := s.Writer(ctx, target)
+	if err != nil {
+		return errors.Wrap(err, "creating writer")
+	}
+	defer s3Writer.Close()
+
+	tarWriter := tar.NewWriter(s3Writer)
+	defer tarWriter.Close()
+
+	for _, fn := range files {
+		if re != nil && re.MatchString(fn) {
+			continue
+		}
+
+		file := filepath.Join(opts.Local, fn)
+		// We can't compare the checksum without processing all the local
+		// matched files as a tar stream, so just upload it unconditionally.
+		if err := tarFile(tarWriter, opts.Local, fn); err != nil {
+			return errors.Wrap(err, file)
+		}
+	}
+
+	return nil
+}
+
+// Push pulls the contents from the archive prefixed by opts.Remote to
+// opts.Local. UseSingleFileChecksums is ignored if it is set on the bucket.
+func (s *s3ArchiveBucket) Pull(ctx context.Context, opts SyncOptions) error {
+	grip.DebugWhen(s.verbose, message.Fields{
+		"type":          "s3",
+		"operation":     "pull",
+		"bucket":        s.name,
+		"bucket_prefix": s.prefix,
+		"remote":        opts.Remote,
+		"local":         opts.Local,
+		"exclude":       opts.Exclude,
+	})
+
+	var re *regexp.Regexp
+	var err error
+	if opts.Exclude != "" {
+		re, err = regexp.Compile(opts.Exclude)
+		if err != nil {
+			return errors.Wrap(err, "problem compiling exclude regex")
+		}
+	}
+
+	target := consistentJoin(opts.Remote, syncArchiveName)
+	reader, err := s.Get(ctx, target)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	defer reader.Close()
+
+	tarReader := tar.NewReader(reader)
+	if err := untar(tarReader, opts.Local, re); err != nil {
+		return errors.Wrapf(err, "unarchiving from remote to %s", opts.Local)
+	}
+
+	return nil
 }

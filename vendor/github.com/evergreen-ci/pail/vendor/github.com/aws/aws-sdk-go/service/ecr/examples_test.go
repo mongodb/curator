@@ -121,10 +121,16 @@ func ExampleECR_CreateRepository_shared00() {
 				fmt.Println(ecr.ErrCodeServerException, aerr.Error())
 			case ecr.ErrCodeInvalidParameterException:
 				fmt.Println(ecr.ErrCodeInvalidParameterException, aerr.Error())
+			case ecr.ErrCodeInvalidTagParameterException:
+				fmt.Println(ecr.ErrCodeInvalidTagParameterException, aerr.Error())
+			case ecr.ErrCodeTooManyTagsException:
+				fmt.Println(ecr.ErrCodeTooManyTagsException, aerr.Error())
 			case ecr.ErrCodeRepositoryAlreadyExistsException:
 				fmt.Println(ecr.ErrCodeRepositoryAlreadyExistsException, aerr.Error())
 			case ecr.ErrCodeLimitExceededException:
 				fmt.Println(ecr.ErrCodeLimitExceededException, aerr.Error())
+			case ecr.ErrCodeKmsException:
+				fmt.Println(ecr.ErrCodeKmsException, aerr.Error())
 			default:
 				fmt.Println(aerr.Error())
 			}
@@ -162,6 +168,8 @@ func ExampleECR_DeleteRepository_shared00() {
 				fmt.Println(ecr.ErrCodeRepositoryNotFoundException, aerr.Error())
 			case ecr.ErrCodeRepositoryNotEmptyException:
 				fmt.Println(ecr.ErrCodeRepositoryNotEmptyException, aerr.Error())
+			case ecr.ErrCodeKmsException:
+				fmt.Println(ecr.ErrCodeKmsException, aerr.Error())
 			default:
 				fmt.Println(aerr.Error())
 			}

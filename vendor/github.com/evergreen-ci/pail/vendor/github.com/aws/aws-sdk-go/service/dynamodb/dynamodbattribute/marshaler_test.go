@@ -493,6 +493,53 @@ func Test_New_UnmarshalListError(t *testing.T) {
 	}
 }
 
+// see github issue #1594
+func TestDecodeArrayType(t *testing.T) {
+	cases := []struct {
+		to, from interface{}
+	}{
+		{
+			&[2]int{1, 2},
+			&[2]int{},
+		},
+		{
+			&[2]int64{1, 2},
+			&[2]int64{},
+		},
+		{
+			&[2]byte{1, 2},
+			&[2]byte{},
+		},
+		{
+			&[2]bool{true, false},
+			&[2]bool{},
+		},
+		{
+			&[2]string{"1", "2"},
+			&[2]string{},
+		},
+		{
+			&[2][]string{{"1", "2"}},
+			&[2][]string{},
+		},
+	}
+
+	for _, c := range cases {
+		marshaled, err := Marshal(c.to)
+		if err != nil {
+			t.Errorf("expected no error, but received %v", err)
+		}
+
+		if err = Unmarshal(marshaled, c.from); err != nil {
+			t.Errorf("expected no error, but received %v", err)
+		}
+
+		if !reflect.DeepEqual(c.to, c.from) {
+			t.Errorf("expected %v, but received %v", c.to, c.from)
+		}
+	}
+}
+
 func compareObjects(t *testing.T, expected interface{}, actual interface{}) {
 	if !reflect.DeepEqual(expected, actual) {
 		ev := reflect.ValueOf(expected)
@@ -507,8 +554,10 @@ func compareObjects(t *testing.T, expected interface{}, actual interface{}) {
 	}
 }
 
-func BenchmarkMarshal(b *testing.B) {
-	d := simpleMarshalStruct{
+func BenchmarkMarshalOneMember(b *testing.B) {
+	fieldCache = fieldCacher{}
+
+	simple := simpleMarshalStruct{
 		String:  "abc",
 		Int:     123,
 		Uint:    123,
@@ -517,10 +566,168 @@ func BenchmarkMarshal(b *testing.B) {
 		Bool:    true,
 		Null:    nil,
 	}
-	for i := 0; i < b.N; i++ {
-		_, err := Marshal(d)
-		if err != nil {
-			b.Fatal("unexpected error", err)
-		}
+
+	type MyCompositeStruct struct {
+		A simpleMarshalStruct `dynamodbav:"a"`
 	}
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			if _, err := Marshal(MyCompositeStruct{
+				A: simple,
+			}); err != nil {
+				b.Error("unexpected error:", err)
+			}
+		}
+	})
+}
+
+func BenchmarkMarshalTwoMembers(b *testing.B) {
+	fieldCache = fieldCacher{}
+
+	simple := simpleMarshalStruct{
+		String:  "abc",
+		Int:     123,
+		Uint:    123,
+		Float32: 123.321,
+		Float64: 123.321,
+		Bool:    true,
+		Null:    nil,
+	}
+
+	type MyCompositeStruct struct {
+		A simpleMarshalStruct `dynamodbav:"a"`
+		B simpleMarshalStruct `dynamodbav:"b"`
+	}
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			if _, err := Marshal(MyCompositeStruct{
+				A: simple,
+				B: simple,
+			}); err != nil {
+				b.Error("unexpected error:", err)
+			}
+		}
+	})
+}
+
+func BenchmarkUnmarshalOneMember(b *testing.B) {
+	fieldCache = fieldCacher{}
+
+	myStructAVMap, _ := Marshal(simpleMarshalStruct{
+		String:  "abc",
+		Int:     123,
+		Uint:    123,
+		Float32: 123.321,
+		Float64: 123.321,
+		Bool:    true,
+		Null:    nil,
+	})
+
+	type MyCompositeStructOne struct {
+		A simpleMarshalStruct `dynamodbav:"a"`
+	}
+	var out MyCompositeStructOne
+	avMap := map[string]*dynamodb.AttributeValue{
+		"a": myStructAVMap,
+	}
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			if err := Unmarshal(&dynamodb.AttributeValue{M: avMap}, &out); err != nil {
+				b.Error("unexpected error:", err)
+			}
+		}
+	})
+}
+
+func BenchmarkUnmarshalTwoMembers(b *testing.B) {
+	fieldCache = fieldCacher{}
+
+	myStructAVMap, _ := Marshal(simpleMarshalStruct{
+		String:  "abc",
+		Int:     123,
+		Uint:    123,
+		Float32: 123.321,
+		Float64: 123.321,
+		Bool:    true,
+		Null:    nil,
+	})
+
+	type MyCompositeStructTwo struct {
+		A simpleMarshalStruct `dynamodbav:"a"`
+		B simpleMarshalStruct `dynamodbav:"b"`
+	}
+	var out MyCompositeStructTwo
+	avMap := map[string]*dynamodb.AttributeValue{
+		"a": myStructAVMap,
+		"b": myStructAVMap,
+	}
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			if err := Unmarshal(&dynamodb.AttributeValue{M: avMap}, &out); err != nil {
+				b.Error("unexpected error:", err)
+			}
+		}
+	})
+}
+
+func Test_Encode_YAML_TagKey(t *testing.T) {
+	input := struct {
+		String      string         `yaml:"string"`
+		EmptyString string         `yaml:"empty"`
+		OmitString  string         `yaml:"omitted,omitempty"`
+		Ignored     string         `yaml:"-"`
+		Byte        []byte         `yaml:"byte"`
+		Float32     float32        `yaml:"float32"`
+		Float64     float64        `yaml:"float64"`
+		Int         int            `yaml:"int"`
+		Uint        uint           `yaml:"uint"`
+		Slice       []string       `yaml:"slice"`
+		Map         map[string]int `yaml:"map"`
+		NoTag       string
+	}{
+		String:  "String",
+		Ignored: "Ignored",
+		Slice:   []string{"one", "two"},
+		Map: map[string]int{
+			"one": 1,
+			"two": 2,
+		},
+		NoTag: "NoTag",
+	}
+
+	expected := &dynamodb.AttributeValue{
+		M: map[string]*dynamodb.AttributeValue{
+			"string":  {S: aws.String("String")},
+			"empty":   {NULL: &trueValue},
+			"byte":    {NULL: &trueValue},
+			"float32": {N: aws.String("0")},
+			"float64": {N: aws.String("0")},
+			"int":     {N: aws.String("0")},
+			"uint":    {N: aws.String("0")},
+			"slice": {
+				L: []*dynamodb.AttributeValue{
+					{S: aws.String("one")},
+					{S: aws.String("two")},
+				},
+			},
+			"map": {
+				M: map[string]*dynamodb.AttributeValue{
+					"one": {N: aws.String("1")},
+					"two": {N: aws.String("2")},
+				},
+			},
+			"NoTag": {S: aws.String("NoTag")},
+		},
+	}
+
+	enc := NewEncoder(func(e *Encoder) {
+		e.TagKey = "yaml"
+	})
+
+	actual, err := enc.Encode(input)
+	if err != nil {
+		t.Errorf("Encode with input %#v retured error `%s`, expected nil", input, err)
+	}
+
+	compareObjects(t, expected, actual)
 }

@@ -5,8 +5,10 @@
     "endpointPrefix":"kinesis",
     "jsonVersion":"1.1",
     "protocol":"json",
+    "protocolSettings":{"h2":"eventstream"},
     "serviceAbbreviation":"Kinesis",
     "serviceFullName":"Amazon Kinesis",
+    "serviceId":"Kinesis",
     "signatureVersion":"v4",
     "targetPrefix":"Kinesis_20131202",
     "uid":"kinesis-2013-12-02"
@@ -49,6 +51,7 @@
       "errors":[
         {"shape":"ResourceInUseException"},
         {"shape":"ResourceNotFoundException"},
+        {"shape":"LimitExceededException"},
         {"shape":"InvalidArgumentException"}
       ]
     },
@@ -61,7 +64,21 @@
       "input":{"shape":"DeleteStreamInput"},
       "errors":[
         {"shape":"ResourceNotFoundException"},
-        {"shape":"LimitExceededException"}
+        {"shape":"LimitExceededException"},
+        {"shape":"ResourceInUseException"}
+      ]
+    },
+    "DeregisterStreamConsumer":{
+      "name":"DeregisterStreamConsumer",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DeregisterStreamConsumerInput"},
+      "errors":[
+        {"shape":"LimitExceededException"},
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"InvalidArgumentException"}
       ]
     },
     "DescribeLimits":{
@@ -84,6 +101,33 @@
       },
       "input":{"shape":"DescribeStreamInput"},
       "output":{"shape":"DescribeStreamOutput"},
+      "errors":[
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"LimitExceededException"}
+      ]
+    },
+    "DescribeStreamConsumer":{
+      "name":"DescribeStreamConsumer",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeStreamConsumerInput"},
+      "output":{"shape":"DescribeStreamConsumerOutput"},
+      "errors":[
+        {"shape":"LimitExceededException"},
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"InvalidArgumentException"}
+      ]
+    },
+    "DescribeStreamSummary":{
+      "name":"DescribeStreamSummary",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeStreamSummaryInput"},
+      "output":{"shape":"DescribeStreamSummaryOutput"},
       "errors":[
         {"shape":"ResourceNotFoundException"},
         {"shape":"LimitExceededException"}
@@ -164,7 +208,40 @@
       "errors":[
         {"shape":"ResourceInUseException"},
         {"shape":"ResourceNotFoundException"},
+        {"shape":"LimitExceededException"},
         {"shape":"InvalidArgumentException"}
+      ]
+    },
+    "ListShards":{
+      "name":"ListShards",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"ListShardsInput"},
+      "output":{"shape":"ListShardsOutput"},
+      "errors":[
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"InvalidArgumentException"},
+        {"shape":"LimitExceededException"},
+        {"shape":"ExpiredNextTokenException"},
+        {"shape":"ResourceInUseException"}
+      ]
+    },
+    "ListStreamConsumers":{
+      "name":"ListStreamConsumers",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"ListStreamConsumersInput"},
+      "output":{"shape":"ListStreamConsumersOutput"},
+      "errors":[
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"InvalidArgumentException"},
+        {"shape":"LimitExceededException"},
+        {"shape":"ExpiredNextTokenException"},
+        {"shape":"ResourceInUseException"}
       ]
     },
     "ListStreams":{
@@ -247,6 +324,21 @@
         {"shape":"KMSThrottlingException"}
       ]
     },
+    "RegisterStreamConsumer":{
+      "name":"RegisterStreamConsumer",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"RegisterStreamConsumerInput"},
+      "output":{"shape":"RegisterStreamConsumerOutput"},
+      "errors":[
+        {"shape":"InvalidArgumentException"},
+        {"shape":"LimitExceededException"},
+        {"shape":"ResourceInUseException"},
+        {"shape":"ResourceNotFoundException"}
+      ]
+    },
     "RemoveTagsFromStream":{
       "name":"RemoveTagsFromStream",
       "http":{
@@ -309,6 +401,21 @@
         {"shape":"ResourceNotFoundException"}
       ]
     },
+    "SubscribeToShard":{
+      "name":"SubscribeToShard",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"SubscribeToShardInput"},
+      "output":{"shape":"SubscribeToShardOutput"},
+      "errors":[
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"InvalidArgumentException"},
+        {"shape":"ResourceInUseException"},
+        {"shape":"LimitExceededException"}
+      ]
+    },
     "UpdateShardCount":{
       "name":"UpdateShardCount",
       "http":{
@@ -338,6 +445,84 @@
       }
     },
     "BooleanObject":{"type":"boolean"},
+    "ChildShard":{
+      "type":"structure",
+      "required":[
+        "ShardId",
+        "ParentShards",
+        "HashKeyRange"
+      ],
+      "members":{
+        "ShardId":{"shape":"ShardId"},
+        "ParentShards":{"shape":"ShardIdList"},
+        "HashKeyRange":{"shape":"HashKeyRange"}
+      }
+    },
+    "ChildShardList":{
+      "type":"list",
+      "member":{"shape":"ChildShard"}
+    },
+    "Consumer":{
+      "type":"structure",
+      "required":[
+        "ConsumerName",
+        "ConsumerARN",
+        "ConsumerStatus",
+        "ConsumerCreationTimestamp"
+      ],
+      "members":{
+        "ConsumerName":{"shape":"ConsumerName"},
+        "ConsumerARN":{"shape":"ConsumerARN"},
+        "ConsumerStatus":{"shape":"ConsumerStatus"},
+        "ConsumerCreationTimestamp":{"shape":"Timestamp"}
+      }
+    },
+    "ConsumerARN":{
+      "type":"string",
+      "max":2048,
+      "min":1,
+      "pattern":"^(arn):aws.*:kinesis:.*:\\d{12}:.*stream\\/[a-zA-Z0-9_.-]+\\/consumer\\/[a-zA-Z0-9_.-]+:[0-9]+"
+    },
+    "ConsumerCountObject":{
+      "type":"integer",
+      "max":1000000,
+      "min":0
+    },
+    "ConsumerDescription":{
+      "type":"structure",
+      "required":[
+        "ConsumerName",
+        "ConsumerARN",
+        "ConsumerStatus",
+        "ConsumerCreationTimestamp",
+        "StreamARN"
+      ],
+      "members":{
+        "ConsumerName":{"shape":"ConsumerName"},
+        "ConsumerARN":{"shape":"ConsumerARN"},
+        "ConsumerStatus":{"shape":"ConsumerStatus"},
+        "ConsumerCreationTimestamp":{"shape":"Timestamp"},
+        "StreamARN":{"shape":"StreamARN"}
+      }
+    },
+    "ConsumerList":{
+      "type":"list",
+      "member":{"shape":"Consumer"}
+    },
+    "ConsumerName":{
+      "type":"string",
+      "max":128,
+      "min":1,
+      "pattern":"[a-zA-Z0-9_.-]+"
+    },
+    "ConsumerStatus":{
+      "type":"string",
+      "enum":[
+        "CREATING",
+        "DELETING",
+        "ACTIVE"
+      ]
+    },
     "CreateStreamInput":{
       "type":"structure",
       "required":[
@@ -362,14 +547,23 @@
       ],
       "members":{
         "StreamName":{"shape":"StreamName"},
-        "RetentionPeriodHours":{"shape":"PositiveIntegerObject"}
+        "RetentionPeriodHours":{"shape":"RetentionPeriodHours"}
       }
     },
     "DeleteStreamInput":{
       "type":"structure",
       "required":["StreamName"],
       "members":{
-        "StreamName":{"shape":"StreamName"}
+        "StreamName":{"shape":"StreamName"},
+        "EnforceConsumerDeletion":{"shape":"BooleanObject"}
+      }
+    },
+    "DeregisterStreamConsumerInput":{
+      "type":"structure",
+      "members":{
+        "StreamARN":{"shape":"StreamARN"},
+        "ConsumerName":{"shape":"ConsumerName"},
+        "ConsumerARN":{"shape":"ConsumerARN"}
       }
     },
     "DescribeLimitsInput":{
@@ -386,6 +580,21 @@
       "members":{
         "ShardLimit":{"shape":"ShardCountObject"},
         "OpenShardCount":{"shape":"ShardCountObject"}
+      }
+    },
+    "DescribeStreamConsumerInput":{
+      "type":"structure",
+      "members":{
+        "StreamARN":{"shape":"StreamARN"},
+        "ConsumerName":{"shape":"ConsumerName"},
+        "ConsumerARN":{"shape":"ConsumerARN"}
+      }
+    },
+    "DescribeStreamConsumerOutput":{
+      "type":"structure",
+      "required":["ConsumerDescription"],
+      "members":{
+        "ConsumerDescription":{"shape":"ConsumerDescription"}
       }
     },
     "DescribeStreamInput":{
@@ -407,6 +616,20 @@
       "required":["StreamDescription"],
       "members":{
         "StreamDescription":{"shape":"StreamDescription"}
+      }
+    },
+    "DescribeStreamSummaryInput":{
+      "type":"structure",
+      "required":["StreamName"],
+      "members":{
+        "StreamName":{"shape":"StreamName"}
+      }
+    },
+    "DescribeStreamSummaryOutput":{
+      "type":"structure",
+      "required":["StreamDescriptionSummary"],
+      "members":{
+        "StreamDescriptionSummary":{"shape":"StreamDescriptionSummary"}
       }
     },
     "DisableEnhancedMonitoringInput":{
@@ -465,6 +688,13 @@
       },
       "exception":true
     },
+    "ExpiredNextTokenException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"ErrorMessage"}
+      },
+      "exception":true
+    },
     "GetRecordsInput":{
       "type":"structure",
       "required":["ShardIterator"],
@@ -484,7 +714,8 @@
       "members":{
         "Records":{"shape":"RecordList"},
         "NextShardIterator":{"shape":"ShardIterator"},
-        "MillisBehindLatest":{"shape":"MillisBehindLatest"}
+        "MillisBehindLatest":{"shape":"MillisBehindLatest"},
+        "ChildShards":{"shape":"ChildShardList"}
       }
     },
     "GetShardIteratorInput":{
@@ -531,8 +762,16 @@
       ],
       "members":{
         "StreamName":{"shape":"StreamName"},
-        "RetentionPeriodHours":{"shape":"PositiveIntegerObject"}
+        "RetentionPeriodHours":{"shape":"RetentionPeriodHours"}
       }
+    },
+    "InternalFailureException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"ErrorMessage"}
+      },
+      "exception":true,
+      "fault":true
     },
     "InvalidArgumentException":{
       "type":"structure",
@@ -595,6 +834,51 @@
       },
       "exception":true
     },
+    "ListShardsInput":{
+      "type":"structure",
+      "members":{
+        "StreamName":{"shape":"StreamName"},
+        "NextToken":{"shape":"NextToken"},
+        "ExclusiveStartShardId":{"shape":"ShardId"},
+        "MaxResults":{"shape":"ListShardsInputLimit"},
+        "StreamCreationTimestamp":{"shape":"Timestamp"},
+        "ShardFilter":{"shape":"ShardFilter"}
+      }
+    },
+    "ListShardsInputLimit":{
+      "type":"integer",
+      "max":10000,
+      "min":1
+    },
+    "ListShardsOutput":{
+      "type":"structure",
+      "members":{
+        "Shards":{"shape":"ShardList"},
+        "NextToken":{"shape":"NextToken"}
+      }
+    },
+    "ListStreamConsumersInput":{
+      "type":"structure",
+      "required":["StreamARN"],
+      "members":{
+        "StreamARN":{"shape":"StreamARN"},
+        "NextToken":{"shape":"NextToken"},
+        "MaxResults":{"shape":"ListStreamConsumersInputLimit"},
+        "StreamCreationTimestamp":{"shape":"Timestamp"}
+      }
+    },
+    "ListStreamConsumersInputLimit":{
+      "type":"integer",
+      "max":10000,
+      "min":1
+    },
+    "ListStreamConsumersOutput":{
+      "type":"structure",
+      "members":{
+        "Consumers":{"shape":"ConsumerList"},
+        "NextToken":{"shape":"NextToken"}
+      }
+    },
     "ListStreamsInput":{
       "type":"structure",
       "members":{
@@ -629,7 +913,7 @@
     },
     "ListTagsForStreamInputLimit":{
       "type":"integer",
-      "max":10,
+      "max":50,
       "min":1
     },
     "ListTagsForStreamOutput":{
@@ -679,6 +963,11 @@
       "type":"long",
       "min":0
     },
+    "NextToken":{
+      "type":"string",
+      "max":1048576,
+      "min":1
+    },
     "PartitionKey":{
       "type":"string",
       "max":256,
@@ -686,7 +975,6 @@
     },
     "PositiveIntegerObject":{
       "type":"integer",
-      "max":100000,
       "min":1
     },
     "ProvisionedThroughputExceededException":{
@@ -795,6 +1083,24 @@
       "type":"list",
       "member":{"shape":"Record"}
     },
+    "RegisterStreamConsumerInput":{
+      "type":"structure",
+      "required":[
+        "StreamARN",
+        "ConsumerName"
+      ],
+      "members":{
+        "StreamARN":{"shape":"StreamARN"},
+        "ConsumerName":{"shape":"ConsumerName"}
+      }
+    },
+    "RegisterStreamConsumerOutput":{
+      "type":"structure",
+      "required":["Consumer"],
+      "members":{
+        "Consumer":{"shape":"Consumer"}
+      }
+    },
     "RemoveTagsFromStreamInput":{
       "type":"structure",
       "required":[
@@ -820,6 +1126,7 @@
       },
       "exception":true
     },
+    "RetentionPeriodHours":{"type":"integer"},
     "ScalingType":{
       "type":"string",
       "enum":["UNIFORM_SCALING"]
@@ -856,11 +1163,35 @@
       "max":1000000,
       "min":0
     },
+    "ShardFilter":{
+      "type":"structure",
+      "required":["Type"],
+      "members":{
+        "Type":{"shape":"ShardFilterType"},
+        "ShardId":{"shape":"ShardId"},
+        "Timestamp":{"shape":"Timestamp"}
+      }
+    },
+    "ShardFilterType":{
+      "type":"string",
+      "enum":[
+        "AFTER_SHARD_ID",
+        "AT_TRIM_HORIZON",
+        "FROM_TRIM_HORIZON",
+        "AT_LATEST",
+        "AT_TIMESTAMP",
+        "FROM_TIMESTAMP"
+      ]
+    },
     "ShardId":{
       "type":"string",
       "max":128,
       "min":1,
       "pattern":"[a-zA-Z0-9_.-]+"
+    },
+    "ShardIdList":{
+      "type":"list",
+      "member":{"shape":"ShardId"}
     },
     "ShardIterator":{
       "type":"string",
@@ -907,6 +1238,15 @@
         "KeyId":{"shape":"KeyId"}
       }
     },
+    "StartingPosition":{
+      "type":"structure",
+      "required":["Type"],
+      "members":{
+        "Type":{"shape":"ShardIteratorType"},
+        "SequenceNumber":{"shape":"SequenceNumber"},
+        "Timestamp":{"shape":"Timestamp"}
+      }
+    },
     "StopStreamEncryptionInput":{
       "type":"structure",
       "required":[
@@ -920,7 +1260,12 @@
         "KeyId":{"shape":"KeyId"}
       }
     },
-    "StreamARN":{"type":"string"},
+    "StreamARN":{
+      "type":"string",
+      "max":2048,
+      "min":1,
+      "pattern":"arn:aws.*:kinesis:.*:\\d{12}:stream/.+"
+    },
     "StreamDescription":{
       "type":"structure",
       "required":[
@@ -939,11 +1284,35 @@
         "StreamStatus":{"shape":"StreamStatus"},
         "Shards":{"shape":"ShardList"},
         "HasMoreShards":{"shape":"BooleanObject"},
-        "RetentionPeriodHours":{"shape":"PositiveIntegerObject"},
+        "RetentionPeriodHours":{"shape":"RetentionPeriodHours"},
         "StreamCreationTimestamp":{"shape":"Timestamp"},
         "EnhancedMonitoring":{"shape":"EnhancedMonitoringList"},
         "EncryptionType":{"shape":"EncryptionType"},
         "KeyId":{"shape":"KeyId"}
+      }
+    },
+    "StreamDescriptionSummary":{
+      "type":"structure",
+      "required":[
+        "StreamName",
+        "StreamARN",
+        "StreamStatus",
+        "RetentionPeriodHours",
+        "StreamCreationTimestamp",
+        "EnhancedMonitoring",
+        "OpenShardCount"
+      ],
+      "members":{
+        "StreamName":{"shape":"StreamName"},
+        "StreamARN":{"shape":"StreamARN"},
+        "StreamStatus":{"shape":"StreamStatus"},
+        "RetentionPeriodHours":{"shape":"RetentionPeriodHours"},
+        "StreamCreationTimestamp":{"shape":"Timestamp"},
+        "EnhancedMonitoring":{"shape":"EnhancedMonitoringList"},
+        "EncryptionType":{"shape":"EncryptionType"},
+        "KeyId":{"shape":"KeyId"},
+        "OpenShardCount":{"shape":"ShardCountObject"},
+        "ConsumerCount":{"shape":"ConsumerCountObject"}
       }
     },
     "StreamName":{
@@ -965,6 +1334,58 @@
         "UPDATING"
       ]
     },
+    "SubscribeToShardEvent":{
+      "type":"structure",
+      "required":[
+        "Records",
+        "ContinuationSequenceNumber",
+        "MillisBehindLatest"
+      ],
+      "members":{
+        "Records":{"shape":"RecordList"},
+        "ContinuationSequenceNumber":{"shape":"SequenceNumber"},
+        "MillisBehindLatest":{"shape":"MillisBehindLatest"},
+        "ChildShards":{"shape":"ChildShardList"}
+      },
+      "event":true
+    },
+    "SubscribeToShardEventStream":{
+      "type":"structure",
+      "required":["SubscribeToShardEvent"],
+      "members":{
+        "SubscribeToShardEvent":{"shape":"SubscribeToShardEvent"},
+        "ResourceNotFoundException":{"shape":"ResourceNotFoundException"},
+        "ResourceInUseException":{"shape":"ResourceInUseException"},
+        "KMSDisabledException":{"shape":"KMSDisabledException"},
+        "KMSInvalidStateException":{"shape":"KMSInvalidStateException"},
+        "KMSAccessDeniedException":{"shape":"KMSAccessDeniedException"},
+        "KMSNotFoundException":{"shape":"KMSNotFoundException"},
+        "KMSOptInRequired":{"shape":"KMSOptInRequired"},
+        "KMSThrottlingException":{"shape":"KMSThrottlingException"},
+        "InternalFailureException":{"shape":"InternalFailureException"}
+      },
+      "eventstream":true
+    },
+    "SubscribeToShardInput":{
+      "type":"structure",
+      "required":[
+        "ConsumerARN",
+        "ShardId",
+        "StartingPosition"
+      ],
+      "members":{
+        "ConsumerARN":{"shape":"ConsumerARN"},
+        "ShardId":{"shape":"ShardId"},
+        "StartingPosition":{"shape":"StartingPosition"}
+      }
+    },
+    "SubscribeToShardOutput":{
+      "type":"structure",
+      "required":["EventStream"],
+      "members":{
+        "EventStream":{"shape":"SubscribeToShardEventStream"}
+      }
+    },
     "Tag":{
       "type":"structure",
       "required":["Key"],
@@ -981,19 +1402,20 @@
     "TagKeyList":{
       "type":"list",
       "member":{"shape":"TagKey"},
-      "max":10,
+      "max":50,
       "min":1
     },
     "TagList":{
       "type":"list",
       "member":{"shape":"Tag"},
+      "max":200,
       "min":0
     },
     "TagMap":{
       "type":"map",
       "key":{"shape":"TagKey"},
       "value":{"shape":"TagValue"},
-      "max":10,
+      "max":200,
       "min":1
     },
     "TagValue":{

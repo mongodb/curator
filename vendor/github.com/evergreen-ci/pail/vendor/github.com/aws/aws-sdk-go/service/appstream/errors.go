@@ -2,6 +2,10 @@
 
 package appstream
 
+import (
+	"github.com/aws/aws-sdk-go/private/protocol"
+)
+
 const (
 
 	// ErrCodeConcurrentModificationException for service response error code
@@ -15,6 +19,13 @@ const (
 	//
 	// The image does not support storage connectors.
 	ErrCodeIncompatibleImageException = "IncompatibleImageException"
+
+	// ErrCodeInvalidAccountStatusException for service response error code
+	// "InvalidAccountStatusException".
+	//
+	// The resource cannot be created because your AWS account is suspended. For
+	// assistance, contact AWS Support.
+	ErrCodeInvalidAccountStatusException = "InvalidAccountStatusException"
 
 	// ErrCodeInvalidParameterCombinationException for service response error code
 	// "InvalidParameterCombinationException".
@@ -40,6 +51,14 @@ const (
 	// The attempted operation is not permitted.
 	ErrCodeOperationNotPermittedException = "OperationNotPermittedException"
 
+	// ErrCodeRequestLimitExceededException for service response error code
+	// "RequestLimitExceededException".
+	//
+	// AppStream 2.0 can’t process the request right now because the Describe
+	// calls from your AWS account are being throttled by Amazon EC2. Try again
+	// later.
+	ErrCodeRequestLimitExceededException = "RequestLimitExceededException"
+
 	// ErrCodeResourceAlreadyExistsException for service response error code
 	// "ResourceAlreadyExistsException".
 	//
@@ -64,3 +83,18 @@ const (
 	// The specified resource was not found.
 	ErrCodeResourceNotFoundException = "ResourceNotFoundException"
 )
+
+var exceptionFromCode = map[string]func(protocol.ResponseMetadata) error{
+	"ConcurrentModificationException":      newErrorConcurrentModificationException,
+	"IncompatibleImageException":           newErrorIncompatibleImageException,
+	"InvalidAccountStatusException":        newErrorInvalidAccountStatusException,
+	"InvalidParameterCombinationException": newErrorInvalidParameterCombinationException,
+	"InvalidRoleException":                 newErrorInvalidRoleException,
+	"LimitExceededException":               newErrorLimitExceededException,
+	"OperationNotPermittedException":       newErrorOperationNotPermittedException,
+	"RequestLimitExceededException":        newErrorRequestLimitExceededException,
+	"ResourceAlreadyExistsException":       newErrorResourceAlreadyExistsException,
+	"ResourceInUseException":               newErrorResourceInUseException,
+	"ResourceNotAvailableException":        newErrorResourceNotAvailableException,
+	"ResourceNotFoundException":            newErrorResourceNotFoundException,
+}

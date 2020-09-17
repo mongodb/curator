@@ -128,17 +128,13 @@ func ExampleS3_CopyObject_shared00() {
 	fmt.Println(result)
 }
 
-// To create a bucket in a specific region
+// To create a bucket
 //
-// The following example creates a bucket. The request specifies an AWS region where
-// to create the bucket.
+// The following example creates a bucket.
 func ExampleS3_CreateBucket_shared00() {
 	svc := s3.New(session.New())
 	input := &s3.CreateBucketInput{
 		Bucket: aws.String("examplebucket"),
-		CreateBucketConfiguration: &s3.CreateBucketConfiguration{
-			LocationConstraint: aws.String("eu-west-1"),
-		},
 	}
 
 	result, err := svc.CreateBucket(input)
@@ -163,13 +159,17 @@ func ExampleS3_CreateBucket_shared00() {
 	fmt.Println(result)
 }
 
-// To create a bucket
+// To create a bucket in a specific region
 //
-// The following example creates a bucket.
+// The following example creates a bucket. The request specifies an AWS region where
+// to create the bucket.
 func ExampleS3_CreateBucket_shared01() {
 	svc := s3.New(session.New())
 	input := &s3.CreateBucketInput{
 		Bucket: aws.String("examplebucket"),
+		CreateBucketConfiguration: &s3.CreateBucketConfiguration{
+			LocationConstraint: aws.String("eu-west-1"),
+		},
 	}
 
 	result, err := svc.CreateBucket(input)
@@ -467,11 +467,41 @@ func ExampleS3_DeleteObject_shared01() {
 	fmt.Println(result)
 }
 
+// To remove tag set from an object
+//
+// The following example removes tag set associated with the specified object. If the
+// bucket is versioning enabled, the operation removes tag set from the latest object
+// version.
+func ExampleS3_DeleteObjectTagging_shared00() {
+	svc := s3.New(session.New())
+	input := &s3.DeleteObjectTaggingInput{
+		Bucket: aws.String("examplebucket"),
+		Key:    aws.String("HappyFace.jpg"),
+	}
+
+	result, err := svc.DeleteObjectTagging(input)
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			default:
+				fmt.Println(aerr.Error())
+			}
+		} else {
+			// Print the error, cast err to awserr.Error to get the Code and
+			// Message from an error.
+			fmt.Println(err.Error())
+		}
+		return
+	}
+
+	fmt.Println(result)
+}
+
 // To remove tag set from an object version
 //
 // The following example removes tag set associated with the specified object version.
 // The request specifies both the object key and object version.
-func ExampleS3_DeleteObjectTagging_shared00() {
+func ExampleS3_DeleteObjectTagging_shared01() {
 	svc := s3.New(session.New())
 	input := &s3.DeleteObjectTaggingInput{
 		Bucket:    aws.String("examplebucket"),
@@ -497,41 +527,11 @@ func ExampleS3_DeleteObjectTagging_shared00() {
 	fmt.Println(result)
 }
 
-// To remove tag set from an object
+// To delete multiple objects from a versioned bucket
 //
-// The following example removes tag set associated with the specified object. If the
-// bucket is versioning enabled, the operation removes tag set from the latest object
-// version.
-func ExampleS3_DeleteObjectTagging_shared01() {
-	svc := s3.New(session.New())
-	input := &s3.DeleteObjectTaggingInput{
-		Bucket: aws.String("examplebucket"),
-		Key:    aws.String("HappyFace.jpg"),
-	}
-
-	result, err := svc.DeleteObjectTagging(input)
-	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			default:
-				fmt.Println(aerr.Error())
-			}
-		} else {
-			// Print the error, cast err to awserr.Error to get the Code and
-			// Message from an error.
-			fmt.Println(err.Error())
-		}
-		return
-	}
-
-	fmt.Println(result)
-}
-
-// To delete multiple object versions from a versioned bucket
-//
-// The following example deletes objects from a bucket. The request specifies object
-// versions. S3 deletes specific object versions and returns the key and versions of
-// deleted objects in the response.
+// The following example deletes objects from a bucket. The bucket is versioned, and
+// the request does not specify the object version to delete. In this case, all versions
+// remain in the bucket and S3 adds a delete marker.
 func ExampleS3_DeleteObjects_shared00() {
 	svc := s3.New(session.New())
 	input := &s3.DeleteObjectsInput{
@@ -539,12 +539,10 @@ func ExampleS3_DeleteObjects_shared00() {
 		Delete: &s3.Delete{
 			Objects: []*s3.ObjectIdentifier{
 				{
-					Key:       aws.String("HappyFace.jpg"),
-					VersionId: aws.String("2LWg7lQLnY41.maGB5Z6SWW.dcq0vx7b"),
+					Key: aws.String("objectkey1"),
 				},
 				{
-					Key:       aws.String("HappyFace.jpg"),
-					VersionId: aws.String("yoz3HB.ZhCS_tKVEmIOr7qYyyAaZSKVd"),
+					Key: aws.String("objectkey2"),
 				},
 			},
 			Quiet: aws.Bool(false),
@@ -569,11 +567,11 @@ func ExampleS3_DeleteObjects_shared00() {
 	fmt.Println(result)
 }
 
-// To delete multiple objects from a versioned bucket
+// To delete multiple object versions from a versioned bucket
 //
-// The following example deletes objects from a bucket. The bucket is versioned, and
-// the request does not specify the object version to delete. In this case, all versions
-// remain in the bucket and S3 adds a delete marker.
+// The following example deletes objects from a bucket. The request specifies object
+// versions. S3 deletes specific object versions and returns the key and versions of
+// deleted objects in the response.
 func ExampleS3_DeleteObjects_shared01() {
 	svc := s3.New(session.New())
 	input := &s3.DeleteObjectsInput{
@@ -581,10 +579,12 @@ func ExampleS3_DeleteObjects_shared01() {
 		Delete: &s3.Delete{
 			Objects: []*s3.ObjectIdentifier{
 				{
-					Key: aws.String("objectkey1"),
+					Key:       aws.String("HappyFace.jpg"),
+					VersionId: aws.String("2LWg7lQLnY41.maGB5Z6SWW.dcq0vx7b"),
 				},
 				{
-					Key: aws.String("objectkey2"),
+					Key:       aws.String("HappyFace.jpg"),
+					VersionId: aws.String("yoz3HB.ZhCS_tKVEmIOr7qYyyAaZSKVd"),
 				},
 			},
 			Quiet: aws.Bool(false),
@@ -1026,14 +1026,16 @@ func ExampleS3_GetObjectAcl_shared00() {
 	fmt.Println(result)
 }
 
-// To retrieve tag set of an object
+// To retrieve tag set of a specific object version
 //
-// The following example retrieves tag set of an object.
+// The following example retrieves tag set of an object. The request specifies object
+// version.
 func ExampleS3_GetObjectTagging_shared00() {
 	svc := s3.New(session.New())
 	input := &s3.GetObjectTaggingInput{
-		Bucket: aws.String("examplebucket"),
-		Key:    aws.String("HappyFace.jpg"),
+		Bucket:    aws.String("examplebucket"),
+		Key:       aws.String("exampleobject"),
+		VersionId: aws.String("ydlaNkwWm0SfKJR.T1b1fIdPRbldTYRI"),
 	}
 
 	result, err := svc.GetObjectTagging(input)
@@ -1054,16 +1056,14 @@ func ExampleS3_GetObjectTagging_shared00() {
 	fmt.Println(result)
 }
 
-// To retrieve tag set of a specific object version
+// To retrieve tag set of an object
 //
-// The following example retrieves tag set of an object. The request specifies object
-// version.
+// The following example retrieves tag set of an object.
 func ExampleS3_GetObjectTagging_shared01() {
 	svc := s3.New(session.New())
 	input := &s3.GetObjectTaggingInput{
-		Bucket:    aws.String("examplebucket"),
-		Key:       aws.String("exampleobject"),
-		VersionId: aws.String("ydlaNkwWm0SfKJR.T1b1fIdPRbldTYRI"),
+		Bucket: aws.String("examplebucket"),
+		Key:    aws.String("HappyFace.jpg"),
 	}
 
 	result, err := svc.GetObjectTagging(input)
@@ -1197,13 +1197,17 @@ func ExampleS3_ListBuckets_shared00() {
 	fmt.Println(result)
 }
 
-// To list in-progress multipart uploads on a bucket
+// List next set of multipart uploads when previous result is truncated
 //
-// The following example lists in-progress multipart uploads on a specific bucket.
+// The following example specifies the upload-id-marker and key-marker from previous
+// truncated response to retrieve next setup of multipart uploads.
 func ExampleS3_ListMultipartUploads_shared00() {
 	svc := s3.New(session.New())
 	input := &s3.ListMultipartUploadsInput{
-		Bucket: aws.String("examplebucket"),
+		Bucket:         aws.String("examplebucket"),
+		KeyMarker:      aws.String("nextkeyfrompreviousresponse"),
+		MaxUploads:     aws.Int64(2),
+		UploadIdMarker: aws.String("valuefrompreviousresponse"),
 	}
 
 	result, err := svc.ListMultipartUploads(input)
@@ -1224,17 +1228,13 @@ func ExampleS3_ListMultipartUploads_shared00() {
 	fmt.Println(result)
 }
 
-// List next set of multipart uploads when previous result is truncated
+// To list in-progress multipart uploads on a bucket
 //
-// The following example specifies the upload-id-marker and key-marker from previous
-// truncated response to retrieve next setup of multipart uploads.
+// The following example lists in-progress multipart uploads on a specific bucket.
 func ExampleS3_ListMultipartUploads_shared01() {
 	svc := s3.New(session.New())
 	input := &s3.ListMultipartUploadsInput{
-		Bucket:         aws.String("examplebucket"),
-		KeyMarker:      aws.String("nextkeyfrompreviousresponse"),
-		MaxUploads:     aws.Int64(2),
-		UploadIdMarker: aws.String("valuefrompreviousresponse"),
+		Bucket: aws.String("examplebucket"),
 	}
 
 	result, err := svc.ListMultipartUploads(input)
@@ -1480,6 +1480,12 @@ func ExampleS3_PutBucketLifecycleConfiguration_shared00() {
 		LifecycleConfiguration: &s3.BucketLifecycleConfiguration{
 			Rules: []*s3.LifecycleRule{
 				{
+					Expiration: &s3.LifecycleExpiration{
+						Days: aws.Int64(3650),
+					},
+					Filter: &s3.LifecycleRuleFilter{
+						Prefix: aws.String("documents/"),
+					},
 					ID:     aws.String("TestOnly"),
 					Status: aws.String("Enabled"),
 					Transitions: []*s3.Transition{
@@ -1525,6 +1531,10 @@ func ExampleS3_PutBucketLogging_shared00() {
 				TargetBucket: aws.String("targetbucket"),
 				TargetGrants: []*s3.TargetGrant{
 					{
+						Grantee: &s3.Grantee{
+							Type: aws.String("Group"),
+							URI:  aws.String("http://acs.amazonaws.com/groups/global/AllUsers"),
+						},
 						Permission: aws.String("READ"),
 					},
 				},
@@ -1628,6 +1638,10 @@ func ExampleS3_PutBucketReplication_shared00() {
 			Role: aws.String("arn:aws:iam::123456789012:role/examplerole"),
 			Rules: []*s3.ReplicationRule{
 				{
+					Destination: &s3.Destination{
+						Bucket:       aws.String("arn:aws:s3:::destinationbucket"),
+						StorageClass: aws.String("STANDARD"),
+					},
 					Prefix: aws.String(""),
 					Status: aws.String("Enabled"),
 				},
@@ -1790,45 +1804,12 @@ func ExampleS3_PutBucketWebsite_shared00() {
 	fmt.Println(result)
 }
 
-// To upload an object and specify server-side encryption and object tags
-//
-// The following example uploads and object. The request specifies the optional server-side
-// encryption option. The request also specifies optional object tags. If the bucket
-// is versioning enabled, S3 returns version ID in response.
-func ExampleS3_PutObject_shared00() {
-	svc := s3.New(session.New())
-	input := &s3.PutObjectInput{
-		Body:                 aws.ReadSeekCloser(strings.NewReader("filetoupload")),
-		Bucket:               aws.String("examplebucket"),
-		Key:                  aws.String("exampleobject"),
-		ServerSideEncryption: aws.String("AES256"),
-		Tagging:              aws.String("key1=value1&key2=value2"),
-	}
-
-	result, err := svc.PutObject(input)
-	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			default:
-				fmt.Println(aerr.Error())
-			}
-		} else {
-			// Print the error, cast err to awserr.Error to get the Code and
-			// Message from an error.
-			fmt.Println(err.Error())
-		}
-		return
-	}
-
-	fmt.Println(result)
-}
-
 // To upload an object and specify canned ACL.
 //
 // The following example uploads and object. The request specifies optional canned ACL
 // (access control list) to all READ access to authenticated users. If the bucket is
 // versioning enabled, S3 returns version ID in response.
-func ExampleS3_PutObject_shared01() {
+func ExampleS3_PutObject_shared00() {
 	svc := s3.New(session.New())
 	input := &s3.PutObjectInput{
 		ACL:    aws.String("authenticated-read"),
@@ -1860,7 +1841,7 @@ func ExampleS3_PutObject_shared01() {
 // The following example uploads an object to a versioning-enabled bucket. The source
 // file is specified using Windows file syntax. S3 returns VersionId of the newly created
 // object.
-func ExampleS3_PutObject_shared02() {
+func ExampleS3_PutObject_shared01() {
 	svc := s3.New(session.New())
 	input := &s3.PutObjectInput{
 		Body:   aws.ReadSeekCloser(strings.NewReader("HappyFace.jpg")),
@@ -1890,7 +1871,7 @@ func ExampleS3_PutObject_shared02() {
 //
 // The following example creates an object. If the bucket is versioning enabled, S3
 // returns version ID in response.
-func ExampleS3_PutObject_shared03() {
+func ExampleS3_PutObject_shared02() {
 	svc := s3.New(session.New())
 	input := &s3.PutObjectInput{
 		Body:   aws.ReadSeekCloser(strings.NewReader("filetoupload")),
@@ -1920,13 +1901,45 @@ func ExampleS3_PutObject_shared03() {
 //
 // The following example uploads an object. The request specifies optional object tags.
 // The bucket is versioned, therefore S3 returns version ID of the newly created object.
-func ExampleS3_PutObject_shared04() {
+func ExampleS3_PutObject_shared03() {
 	svc := s3.New(session.New())
 	input := &s3.PutObjectInput{
 		Body:    aws.ReadSeekCloser(strings.NewReader("c:\\HappyFace.jpg")),
 		Bucket:  aws.String("examplebucket"),
 		Key:     aws.String("HappyFace.jpg"),
 		Tagging: aws.String("key1=value1&key2=value2"),
+	}
+
+	result, err := svc.PutObject(input)
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			default:
+				fmt.Println(aerr.Error())
+			}
+		} else {
+			// Print the error, cast err to awserr.Error to get the Code and
+			// Message from an error.
+			fmt.Println(err.Error())
+		}
+		return
+	}
+
+	fmt.Println(result)
+}
+
+// To upload an object (specify optional headers)
+//
+// The following example uploads an object. The request specifies optional request headers
+// to directs S3 to use specific storage class and use server-side encryption.
+func ExampleS3_PutObject_shared04() {
+	svc := s3.New(session.New())
+	input := &s3.PutObjectInput{
+		Body:                 aws.ReadSeekCloser(strings.NewReader("HappyFace.jpg")),
+		Bucket:               aws.String("examplebucket"),
+		Key:                  aws.String("HappyFace.jpg"),
+		ServerSideEncryption: aws.String("AES256"),
+		StorageClass:         aws.String("STANDARD_IA"),
 	}
 
 	result, err := svc.PutObject(input)
@@ -1981,18 +1994,19 @@ func ExampleS3_PutObject_shared05() {
 	fmt.Println(result)
 }
 
-// To upload an object (specify optional headers)
+// To upload an object and specify server-side encryption and object tags
 //
-// The following example uploads an object. The request specifies optional request headers
-// to directs S3 to use specific storage class and use server-side encryption.
+// The following example uploads and object. The request specifies the optional server-side
+// encryption option. The request also specifies optional object tags. If the bucket
+// is versioning enabled, S3 returns version ID in response.
 func ExampleS3_PutObject_shared06() {
 	svc := s3.New(session.New())
 	input := &s3.PutObjectInput{
-		Body:                 aws.ReadSeekCloser(strings.NewReader("HappyFace.jpg")),
+		Body:                 aws.ReadSeekCloser(strings.NewReader("filetoupload")),
 		Bucket:               aws.String("examplebucket"),
-		Key:                  aws.String("HappyFace.jpg"),
+		Key:                  aws.String("exampleobject"),
 		ServerSideEncryption: aws.String("AES256"),
-		StorageClass:         aws.String("STANDARD_IA"),
+		Tagging:              aws.String("key1=value1&key2=value2"),
 	}
 
 	result, err := svc.PutObject(input)
@@ -2157,19 +2171,18 @@ func ExampleS3_UploadPart_shared00() {
 	fmt.Println(result)
 }
 
-// To upload a part by copying byte range from an existing object as data source
+// To upload a part by copying data from an existing object as data source
 //
-// The following example uploads a part of a multipart upload by copying a specified
-// byte range from an existing object as data source.
+// The following example uploads a part of a multipart upload by copying data from an
+// existing object as data source.
 func ExampleS3_UploadPartCopy_shared00() {
 	svc := s3.New(session.New())
 	input := &s3.UploadPartCopyInput{
-		Bucket:          aws.String("examplebucket"),
-		CopySource:      aws.String("/bucketname/sourceobjectkey"),
-		CopySourceRange: aws.String("bytes=1-100000"),
-		Key:             aws.String("examplelargeobject"),
-		PartNumber:      aws.Int64(2),
-		UploadId:        aws.String("exampleuoh_10OhKhT7YukE9bjzTPRiuaCotmZM_pFngJFir9OZNrSr5cWa3cq3LZSUsfjI4FI7PkP91We7Nrw--"),
+		Bucket:     aws.String("examplebucket"),
+		CopySource: aws.String("/bucketname/sourceobjectkey"),
+		Key:        aws.String("examplelargeobject"),
+		PartNumber: aws.Int64(1),
+		UploadId:   aws.String("exampleuoh_10OhKhT7YukE9bjzTPRiuaCotmZM_pFngJFir9OZNrSr5cWa3cq3LZSUsfjI4FI7PkP91We7Nrw--"),
 	}
 
 	result, err := svc.UploadPartCopy(input)
@@ -2190,18 +2203,19 @@ func ExampleS3_UploadPartCopy_shared00() {
 	fmt.Println(result)
 }
 
-// To upload a part by copying data from an existing object as data source
+// To upload a part by copying byte range from an existing object as data source
 //
-// The following example uploads a part of a multipart upload by copying data from an
-// existing object as data source.
+// The following example uploads a part of a multipart upload by copying a specified
+// byte range from an existing object as data source.
 func ExampleS3_UploadPartCopy_shared01() {
 	svc := s3.New(session.New())
 	input := &s3.UploadPartCopyInput{
-		Bucket:     aws.String("examplebucket"),
-		CopySource: aws.String("bucketname/sourceobjectkey"),
-		Key:        aws.String("examplelargeobject"),
-		PartNumber: aws.Int64(1),
-		UploadId:   aws.String("exampleuoh_10OhKhT7YukE9bjzTPRiuaCotmZM_pFngJFir9OZNrSr5cWa3cq3LZSUsfjI4FI7PkP91We7Nrw--"),
+		Bucket:          aws.String("examplebucket"),
+		CopySource:      aws.String("/bucketname/sourceobjectkey"),
+		CopySourceRange: aws.String("bytes=1-100000"),
+		Key:             aws.String("examplelargeobject"),
+		PartNumber:      aws.Int64(2),
+		UploadId:        aws.String("exampleuoh_10OhKhT7YukE9bjzTPRiuaCotmZM_pFngJFir9OZNrSr5cWa3cq3LZSUsfjI4FI7PkP91We7Nrw--"),
 	}
 
 	result, err := svc.UploadPartCopy(input)

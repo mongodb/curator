@@ -64,6 +64,10 @@ type DeviceFarmAPI interface {
 	CreateDevicePoolWithContext(aws.Context, *devicefarm.CreateDevicePoolInput, ...request.Option) (*devicefarm.CreateDevicePoolOutput, error)
 	CreateDevicePoolRequest(*devicefarm.CreateDevicePoolInput) (*request.Request, *devicefarm.CreateDevicePoolOutput)
 
+	CreateInstanceProfile(*devicefarm.CreateInstanceProfileInput) (*devicefarm.CreateInstanceProfileOutput, error)
+	CreateInstanceProfileWithContext(aws.Context, *devicefarm.CreateInstanceProfileInput, ...request.Option) (*devicefarm.CreateInstanceProfileOutput, error)
+	CreateInstanceProfileRequest(*devicefarm.CreateInstanceProfileInput) (*request.Request, *devicefarm.CreateInstanceProfileOutput)
+
 	CreateNetworkProfile(*devicefarm.CreateNetworkProfileInput) (*devicefarm.CreateNetworkProfileOutput, error)
 	CreateNetworkProfileWithContext(aws.Context, *devicefarm.CreateNetworkProfileInput, ...request.Option) (*devicefarm.CreateNetworkProfileOutput, error)
 	CreateNetworkProfileRequest(*devicefarm.CreateNetworkProfileInput) (*request.Request, *devicefarm.CreateNetworkProfileOutput)
@@ -76,13 +80,29 @@ type DeviceFarmAPI interface {
 	CreateRemoteAccessSessionWithContext(aws.Context, *devicefarm.CreateRemoteAccessSessionInput, ...request.Option) (*devicefarm.CreateRemoteAccessSessionOutput, error)
 	CreateRemoteAccessSessionRequest(*devicefarm.CreateRemoteAccessSessionInput) (*request.Request, *devicefarm.CreateRemoteAccessSessionOutput)
 
+	CreateTestGridProject(*devicefarm.CreateTestGridProjectInput) (*devicefarm.CreateTestGridProjectOutput, error)
+	CreateTestGridProjectWithContext(aws.Context, *devicefarm.CreateTestGridProjectInput, ...request.Option) (*devicefarm.CreateTestGridProjectOutput, error)
+	CreateTestGridProjectRequest(*devicefarm.CreateTestGridProjectInput) (*request.Request, *devicefarm.CreateTestGridProjectOutput)
+
+	CreateTestGridUrl(*devicefarm.CreateTestGridUrlInput) (*devicefarm.CreateTestGridUrlOutput, error)
+	CreateTestGridUrlWithContext(aws.Context, *devicefarm.CreateTestGridUrlInput, ...request.Option) (*devicefarm.CreateTestGridUrlOutput, error)
+	CreateTestGridUrlRequest(*devicefarm.CreateTestGridUrlInput) (*request.Request, *devicefarm.CreateTestGridUrlOutput)
+
 	CreateUpload(*devicefarm.CreateUploadInput) (*devicefarm.CreateUploadOutput, error)
 	CreateUploadWithContext(aws.Context, *devicefarm.CreateUploadInput, ...request.Option) (*devicefarm.CreateUploadOutput, error)
 	CreateUploadRequest(*devicefarm.CreateUploadInput) (*request.Request, *devicefarm.CreateUploadOutput)
 
+	CreateVPCEConfiguration(*devicefarm.CreateVPCEConfigurationInput) (*devicefarm.CreateVPCEConfigurationOutput, error)
+	CreateVPCEConfigurationWithContext(aws.Context, *devicefarm.CreateVPCEConfigurationInput, ...request.Option) (*devicefarm.CreateVPCEConfigurationOutput, error)
+	CreateVPCEConfigurationRequest(*devicefarm.CreateVPCEConfigurationInput) (*request.Request, *devicefarm.CreateVPCEConfigurationOutput)
+
 	DeleteDevicePool(*devicefarm.DeleteDevicePoolInput) (*devicefarm.DeleteDevicePoolOutput, error)
 	DeleteDevicePoolWithContext(aws.Context, *devicefarm.DeleteDevicePoolInput, ...request.Option) (*devicefarm.DeleteDevicePoolOutput, error)
 	DeleteDevicePoolRequest(*devicefarm.DeleteDevicePoolInput) (*request.Request, *devicefarm.DeleteDevicePoolOutput)
+
+	DeleteInstanceProfile(*devicefarm.DeleteInstanceProfileInput) (*devicefarm.DeleteInstanceProfileOutput, error)
+	DeleteInstanceProfileWithContext(aws.Context, *devicefarm.DeleteInstanceProfileInput, ...request.Option) (*devicefarm.DeleteInstanceProfileOutput, error)
+	DeleteInstanceProfileRequest(*devicefarm.DeleteInstanceProfileInput) (*request.Request, *devicefarm.DeleteInstanceProfileOutput)
 
 	DeleteNetworkProfile(*devicefarm.DeleteNetworkProfileInput) (*devicefarm.DeleteNetworkProfileOutput, error)
 	DeleteNetworkProfileWithContext(aws.Context, *devicefarm.DeleteNetworkProfileInput, ...request.Option) (*devicefarm.DeleteNetworkProfileOutput, error)
@@ -100,9 +120,17 @@ type DeviceFarmAPI interface {
 	DeleteRunWithContext(aws.Context, *devicefarm.DeleteRunInput, ...request.Option) (*devicefarm.DeleteRunOutput, error)
 	DeleteRunRequest(*devicefarm.DeleteRunInput) (*request.Request, *devicefarm.DeleteRunOutput)
 
+	DeleteTestGridProject(*devicefarm.DeleteTestGridProjectInput) (*devicefarm.DeleteTestGridProjectOutput, error)
+	DeleteTestGridProjectWithContext(aws.Context, *devicefarm.DeleteTestGridProjectInput, ...request.Option) (*devicefarm.DeleteTestGridProjectOutput, error)
+	DeleteTestGridProjectRequest(*devicefarm.DeleteTestGridProjectInput) (*request.Request, *devicefarm.DeleteTestGridProjectOutput)
+
 	DeleteUpload(*devicefarm.DeleteUploadInput) (*devicefarm.DeleteUploadOutput, error)
 	DeleteUploadWithContext(aws.Context, *devicefarm.DeleteUploadInput, ...request.Option) (*devicefarm.DeleteUploadOutput, error)
 	DeleteUploadRequest(*devicefarm.DeleteUploadInput) (*request.Request, *devicefarm.DeleteUploadOutput)
+
+	DeleteVPCEConfiguration(*devicefarm.DeleteVPCEConfigurationInput) (*devicefarm.DeleteVPCEConfigurationOutput, error)
+	DeleteVPCEConfigurationWithContext(aws.Context, *devicefarm.DeleteVPCEConfigurationInput, ...request.Option) (*devicefarm.DeleteVPCEConfigurationOutput, error)
+	DeleteVPCEConfigurationRequest(*devicefarm.DeleteVPCEConfigurationInput) (*request.Request, *devicefarm.DeleteVPCEConfigurationOutput)
 
 	GetAccountSettings(*devicefarm.GetAccountSettingsInput) (*devicefarm.GetAccountSettingsOutput, error)
 	GetAccountSettingsWithContext(aws.Context, *devicefarm.GetAccountSettingsInput, ...request.Option) (*devicefarm.GetAccountSettingsOutput, error)
@@ -112,6 +140,10 @@ type DeviceFarmAPI interface {
 	GetDeviceWithContext(aws.Context, *devicefarm.GetDeviceInput, ...request.Option) (*devicefarm.GetDeviceOutput, error)
 	GetDeviceRequest(*devicefarm.GetDeviceInput) (*request.Request, *devicefarm.GetDeviceOutput)
 
+	GetDeviceInstance(*devicefarm.GetDeviceInstanceInput) (*devicefarm.GetDeviceInstanceOutput, error)
+	GetDeviceInstanceWithContext(aws.Context, *devicefarm.GetDeviceInstanceInput, ...request.Option) (*devicefarm.GetDeviceInstanceOutput, error)
+	GetDeviceInstanceRequest(*devicefarm.GetDeviceInstanceInput) (*request.Request, *devicefarm.GetDeviceInstanceOutput)
+
 	GetDevicePool(*devicefarm.GetDevicePoolInput) (*devicefarm.GetDevicePoolOutput, error)
 	GetDevicePoolWithContext(aws.Context, *devicefarm.GetDevicePoolInput, ...request.Option) (*devicefarm.GetDevicePoolOutput, error)
 	GetDevicePoolRequest(*devicefarm.GetDevicePoolInput) (*request.Request, *devicefarm.GetDevicePoolOutput)
@@ -119,6 +151,10 @@ type DeviceFarmAPI interface {
 	GetDevicePoolCompatibility(*devicefarm.GetDevicePoolCompatibilityInput) (*devicefarm.GetDevicePoolCompatibilityOutput, error)
 	GetDevicePoolCompatibilityWithContext(aws.Context, *devicefarm.GetDevicePoolCompatibilityInput, ...request.Option) (*devicefarm.GetDevicePoolCompatibilityOutput, error)
 	GetDevicePoolCompatibilityRequest(*devicefarm.GetDevicePoolCompatibilityInput) (*request.Request, *devicefarm.GetDevicePoolCompatibilityOutput)
+
+	GetInstanceProfile(*devicefarm.GetInstanceProfileInput) (*devicefarm.GetInstanceProfileOutput, error)
+	GetInstanceProfileWithContext(aws.Context, *devicefarm.GetInstanceProfileInput, ...request.Option) (*devicefarm.GetInstanceProfileOutput, error)
+	GetInstanceProfileRequest(*devicefarm.GetInstanceProfileInput) (*request.Request, *devicefarm.GetInstanceProfileOutput)
 
 	GetJob(*devicefarm.GetJobInput) (*devicefarm.GetJobOutput, error)
 	GetJobWithContext(aws.Context, *devicefarm.GetJobInput, ...request.Option) (*devicefarm.GetJobOutput, error)
@@ -155,9 +191,21 @@ type DeviceFarmAPI interface {
 	GetTestWithContext(aws.Context, *devicefarm.GetTestInput, ...request.Option) (*devicefarm.GetTestOutput, error)
 	GetTestRequest(*devicefarm.GetTestInput) (*request.Request, *devicefarm.GetTestOutput)
 
+	GetTestGridProject(*devicefarm.GetTestGridProjectInput) (*devicefarm.GetTestGridProjectOutput, error)
+	GetTestGridProjectWithContext(aws.Context, *devicefarm.GetTestGridProjectInput, ...request.Option) (*devicefarm.GetTestGridProjectOutput, error)
+	GetTestGridProjectRequest(*devicefarm.GetTestGridProjectInput) (*request.Request, *devicefarm.GetTestGridProjectOutput)
+
+	GetTestGridSession(*devicefarm.GetTestGridSessionInput) (*devicefarm.GetTestGridSessionOutput, error)
+	GetTestGridSessionWithContext(aws.Context, *devicefarm.GetTestGridSessionInput, ...request.Option) (*devicefarm.GetTestGridSessionOutput, error)
+	GetTestGridSessionRequest(*devicefarm.GetTestGridSessionInput) (*request.Request, *devicefarm.GetTestGridSessionOutput)
+
 	GetUpload(*devicefarm.GetUploadInput) (*devicefarm.GetUploadOutput, error)
 	GetUploadWithContext(aws.Context, *devicefarm.GetUploadInput, ...request.Option) (*devicefarm.GetUploadOutput, error)
 	GetUploadRequest(*devicefarm.GetUploadInput) (*request.Request, *devicefarm.GetUploadOutput)
+
+	GetVPCEConfiguration(*devicefarm.GetVPCEConfigurationInput) (*devicefarm.GetVPCEConfigurationOutput, error)
+	GetVPCEConfigurationWithContext(aws.Context, *devicefarm.GetVPCEConfigurationInput, ...request.Option) (*devicefarm.GetVPCEConfigurationOutput, error)
+	GetVPCEConfigurationRequest(*devicefarm.GetVPCEConfigurationInput) (*request.Request, *devicefarm.GetVPCEConfigurationOutput)
 
 	InstallToRemoteAccessSession(*devicefarm.InstallToRemoteAccessSessionInput) (*devicefarm.InstallToRemoteAccessSessionOutput, error)
 	InstallToRemoteAccessSessionWithContext(aws.Context, *devicefarm.InstallToRemoteAccessSessionInput, ...request.Option) (*devicefarm.InstallToRemoteAccessSessionOutput, error)
@@ -169,6 +217,10 @@ type DeviceFarmAPI interface {
 
 	ListArtifactsPages(*devicefarm.ListArtifactsInput, func(*devicefarm.ListArtifactsOutput, bool) bool) error
 	ListArtifactsPagesWithContext(aws.Context, *devicefarm.ListArtifactsInput, func(*devicefarm.ListArtifactsOutput, bool) bool, ...request.Option) error
+
+	ListDeviceInstances(*devicefarm.ListDeviceInstancesInput) (*devicefarm.ListDeviceInstancesOutput, error)
+	ListDeviceInstancesWithContext(aws.Context, *devicefarm.ListDeviceInstancesInput, ...request.Option) (*devicefarm.ListDeviceInstancesOutput, error)
+	ListDeviceInstancesRequest(*devicefarm.ListDeviceInstancesInput) (*request.Request, *devicefarm.ListDeviceInstancesOutput)
 
 	ListDevicePools(*devicefarm.ListDevicePoolsInput) (*devicefarm.ListDevicePoolsOutput, error)
 	ListDevicePoolsWithContext(aws.Context, *devicefarm.ListDevicePoolsInput, ...request.Option) (*devicefarm.ListDevicePoolsOutput, error)
@@ -183,6 +235,10 @@ type DeviceFarmAPI interface {
 
 	ListDevicesPages(*devicefarm.ListDevicesInput, func(*devicefarm.ListDevicesOutput, bool) bool) error
 	ListDevicesPagesWithContext(aws.Context, *devicefarm.ListDevicesInput, func(*devicefarm.ListDevicesOutput, bool) bool, ...request.Option) error
+
+	ListInstanceProfiles(*devicefarm.ListInstanceProfilesInput) (*devicefarm.ListInstanceProfilesOutput, error)
+	ListInstanceProfilesWithContext(aws.Context, *devicefarm.ListInstanceProfilesInput, ...request.Option) (*devicefarm.ListInstanceProfilesOutput, error)
+	ListInstanceProfilesRequest(*devicefarm.ListInstanceProfilesInput) (*request.Request, *devicefarm.ListInstanceProfilesOutput)
 
 	ListJobs(*devicefarm.ListJobsInput) (*devicefarm.ListJobsOutput, error)
 	ListJobsWithContext(aws.Context, *devicefarm.ListJobsInput, ...request.Option) (*devicefarm.ListJobsOutput, error)
@@ -245,6 +301,38 @@ type DeviceFarmAPI interface {
 	ListSuitesPages(*devicefarm.ListSuitesInput, func(*devicefarm.ListSuitesOutput, bool) bool) error
 	ListSuitesPagesWithContext(aws.Context, *devicefarm.ListSuitesInput, func(*devicefarm.ListSuitesOutput, bool) bool, ...request.Option) error
 
+	ListTagsForResource(*devicefarm.ListTagsForResourceInput) (*devicefarm.ListTagsForResourceOutput, error)
+	ListTagsForResourceWithContext(aws.Context, *devicefarm.ListTagsForResourceInput, ...request.Option) (*devicefarm.ListTagsForResourceOutput, error)
+	ListTagsForResourceRequest(*devicefarm.ListTagsForResourceInput) (*request.Request, *devicefarm.ListTagsForResourceOutput)
+
+	ListTestGridProjects(*devicefarm.ListTestGridProjectsInput) (*devicefarm.ListTestGridProjectsOutput, error)
+	ListTestGridProjectsWithContext(aws.Context, *devicefarm.ListTestGridProjectsInput, ...request.Option) (*devicefarm.ListTestGridProjectsOutput, error)
+	ListTestGridProjectsRequest(*devicefarm.ListTestGridProjectsInput) (*request.Request, *devicefarm.ListTestGridProjectsOutput)
+
+	ListTestGridProjectsPages(*devicefarm.ListTestGridProjectsInput, func(*devicefarm.ListTestGridProjectsOutput, bool) bool) error
+	ListTestGridProjectsPagesWithContext(aws.Context, *devicefarm.ListTestGridProjectsInput, func(*devicefarm.ListTestGridProjectsOutput, bool) bool, ...request.Option) error
+
+	ListTestGridSessionActions(*devicefarm.ListTestGridSessionActionsInput) (*devicefarm.ListTestGridSessionActionsOutput, error)
+	ListTestGridSessionActionsWithContext(aws.Context, *devicefarm.ListTestGridSessionActionsInput, ...request.Option) (*devicefarm.ListTestGridSessionActionsOutput, error)
+	ListTestGridSessionActionsRequest(*devicefarm.ListTestGridSessionActionsInput) (*request.Request, *devicefarm.ListTestGridSessionActionsOutput)
+
+	ListTestGridSessionActionsPages(*devicefarm.ListTestGridSessionActionsInput, func(*devicefarm.ListTestGridSessionActionsOutput, bool) bool) error
+	ListTestGridSessionActionsPagesWithContext(aws.Context, *devicefarm.ListTestGridSessionActionsInput, func(*devicefarm.ListTestGridSessionActionsOutput, bool) bool, ...request.Option) error
+
+	ListTestGridSessionArtifacts(*devicefarm.ListTestGridSessionArtifactsInput) (*devicefarm.ListTestGridSessionArtifactsOutput, error)
+	ListTestGridSessionArtifactsWithContext(aws.Context, *devicefarm.ListTestGridSessionArtifactsInput, ...request.Option) (*devicefarm.ListTestGridSessionArtifactsOutput, error)
+	ListTestGridSessionArtifactsRequest(*devicefarm.ListTestGridSessionArtifactsInput) (*request.Request, *devicefarm.ListTestGridSessionArtifactsOutput)
+
+	ListTestGridSessionArtifactsPages(*devicefarm.ListTestGridSessionArtifactsInput, func(*devicefarm.ListTestGridSessionArtifactsOutput, bool) bool) error
+	ListTestGridSessionArtifactsPagesWithContext(aws.Context, *devicefarm.ListTestGridSessionArtifactsInput, func(*devicefarm.ListTestGridSessionArtifactsOutput, bool) bool, ...request.Option) error
+
+	ListTestGridSessions(*devicefarm.ListTestGridSessionsInput) (*devicefarm.ListTestGridSessionsOutput, error)
+	ListTestGridSessionsWithContext(aws.Context, *devicefarm.ListTestGridSessionsInput, ...request.Option) (*devicefarm.ListTestGridSessionsOutput, error)
+	ListTestGridSessionsRequest(*devicefarm.ListTestGridSessionsInput) (*request.Request, *devicefarm.ListTestGridSessionsOutput)
+
+	ListTestGridSessionsPages(*devicefarm.ListTestGridSessionsInput, func(*devicefarm.ListTestGridSessionsOutput, bool) bool) error
+	ListTestGridSessionsPagesWithContext(aws.Context, *devicefarm.ListTestGridSessionsInput, func(*devicefarm.ListTestGridSessionsOutput, bool) bool, ...request.Option) error
+
 	ListTests(*devicefarm.ListTestsInput) (*devicefarm.ListTestsOutput, error)
 	ListTestsWithContext(aws.Context, *devicefarm.ListTestsInput, ...request.Option) (*devicefarm.ListTestsOutput, error)
 	ListTestsRequest(*devicefarm.ListTestsInput) (*request.Request, *devicefarm.ListTestsOutput)
@@ -266,6 +354,10 @@ type DeviceFarmAPI interface {
 	ListUploadsPages(*devicefarm.ListUploadsInput, func(*devicefarm.ListUploadsOutput, bool) bool) error
 	ListUploadsPagesWithContext(aws.Context, *devicefarm.ListUploadsInput, func(*devicefarm.ListUploadsOutput, bool) bool, ...request.Option) error
 
+	ListVPCEConfigurations(*devicefarm.ListVPCEConfigurationsInput) (*devicefarm.ListVPCEConfigurationsOutput, error)
+	ListVPCEConfigurationsWithContext(aws.Context, *devicefarm.ListVPCEConfigurationsInput, ...request.Option) (*devicefarm.ListVPCEConfigurationsOutput, error)
+	ListVPCEConfigurationsRequest(*devicefarm.ListVPCEConfigurationsInput) (*request.Request, *devicefarm.ListVPCEConfigurationsOutput)
+
 	PurchaseOffering(*devicefarm.PurchaseOfferingInput) (*devicefarm.PurchaseOfferingOutput, error)
 	PurchaseOfferingWithContext(aws.Context, *devicefarm.PurchaseOfferingInput, ...request.Option) (*devicefarm.PurchaseOfferingOutput, error)
 	PurchaseOfferingRequest(*devicefarm.PurchaseOfferingInput) (*request.Request, *devicefarm.PurchaseOfferingOutput)
@@ -278,6 +370,10 @@ type DeviceFarmAPI interface {
 	ScheduleRunWithContext(aws.Context, *devicefarm.ScheduleRunInput, ...request.Option) (*devicefarm.ScheduleRunOutput, error)
 	ScheduleRunRequest(*devicefarm.ScheduleRunInput) (*request.Request, *devicefarm.ScheduleRunOutput)
 
+	StopJob(*devicefarm.StopJobInput) (*devicefarm.StopJobOutput, error)
+	StopJobWithContext(aws.Context, *devicefarm.StopJobInput, ...request.Option) (*devicefarm.StopJobOutput, error)
+	StopJobRequest(*devicefarm.StopJobInput) (*request.Request, *devicefarm.StopJobOutput)
+
 	StopRemoteAccessSession(*devicefarm.StopRemoteAccessSessionInput) (*devicefarm.StopRemoteAccessSessionOutput, error)
 	StopRemoteAccessSessionWithContext(aws.Context, *devicefarm.StopRemoteAccessSessionInput, ...request.Option) (*devicefarm.StopRemoteAccessSessionOutput, error)
 	StopRemoteAccessSessionRequest(*devicefarm.StopRemoteAccessSessionInput) (*request.Request, *devicefarm.StopRemoteAccessSessionOutput)
@@ -286,9 +382,25 @@ type DeviceFarmAPI interface {
 	StopRunWithContext(aws.Context, *devicefarm.StopRunInput, ...request.Option) (*devicefarm.StopRunOutput, error)
 	StopRunRequest(*devicefarm.StopRunInput) (*request.Request, *devicefarm.StopRunOutput)
 
+	TagResource(*devicefarm.TagResourceInput) (*devicefarm.TagResourceOutput, error)
+	TagResourceWithContext(aws.Context, *devicefarm.TagResourceInput, ...request.Option) (*devicefarm.TagResourceOutput, error)
+	TagResourceRequest(*devicefarm.TagResourceInput) (*request.Request, *devicefarm.TagResourceOutput)
+
+	UntagResource(*devicefarm.UntagResourceInput) (*devicefarm.UntagResourceOutput, error)
+	UntagResourceWithContext(aws.Context, *devicefarm.UntagResourceInput, ...request.Option) (*devicefarm.UntagResourceOutput, error)
+	UntagResourceRequest(*devicefarm.UntagResourceInput) (*request.Request, *devicefarm.UntagResourceOutput)
+
+	UpdateDeviceInstance(*devicefarm.UpdateDeviceInstanceInput) (*devicefarm.UpdateDeviceInstanceOutput, error)
+	UpdateDeviceInstanceWithContext(aws.Context, *devicefarm.UpdateDeviceInstanceInput, ...request.Option) (*devicefarm.UpdateDeviceInstanceOutput, error)
+	UpdateDeviceInstanceRequest(*devicefarm.UpdateDeviceInstanceInput) (*request.Request, *devicefarm.UpdateDeviceInstanceOutput)
+
 	UpdateDevicePool(*devicefarm.UpdateDevicePoolInput) (*devicefarm.UpdateDevicePoolOutput, error)
 	UpdateDevicePoolWithContext(aws.Context, *devicefarm.UpdateDevicePoolInput, ...request.Option) (*devicefarm.UpdateDevicePoolOutput, error)
 	UpdateDevicePoolRequest(*devicefarm.UpdateDevicePoolInput) (*request.Request, *devicefarm.UpdateDevicePoolOutput)
+
+	UpdateInstanceProfile(*devicefarm.UpdateInstanceProfileInput) (*devicefarm.UpdateInstanceProfileOutput, error)
+	UpdateInstanceProfileWithContext(aws.Context, *devicefarm.UpdateInstanceProfileInput, ...request.Option) (*devicefarm.UpdateInstanceProfileOutput, error)
+	UpdateInstanceProfileRequest(*devicefarm.UpdateInstanceProfileInput) (*request.Request, *devicefarm.UpdateInstanceProfileOutput)
 
 	UpdateNetworkProfile(*devicefarm.UpdateNetworkProfileInput) (*devicefarm.UpdateNetworkProfileOutput, error)
 	UpdateNetworkProfileWithContext(aws.Context, *devicefarm.UpdateNetworkProfileInput, ...request.Option) (*devicefarm.UpdateNetworkProfileOutput, error)
@@ -297,6 +409,18 @@ type DeviceFarmAPI interface {
 	UpdateProject(*devicefarm.UpdateProjectInput) (*devicefarm.UpdateProjectOutput, error)
 	UpdateProjectWithContext(aws.Context, *devicefarm.UpdateProjectInput, ...request.Option) (*devicefarm.UpdateProjectOutput, error)
 	UpdateProjectRequest(*devicefarm.UpdateProjectInput) (*request.Request, *devicefarm.UpdateProjectOutput)
+
+	UpdateTestGridProject(*devicefarm.UpdateTestGridProjectInput) (*devicefarm.UpdateTestGridProjectOutput, error)
+	UpdateTestGridProjectWithContext(aws.Context, *devicefarm.UpdateTestGridProjectInput, ...request.Option) (*devicefarm.UpdateTestGridProjectOutput, error)
+	UpdateTestGridProjectRequest(*devicefarm.UpdateTestGridProjectInput) (*request.Request, *devicefarm.UpdateTestGridProjectOutput)
+
+	UpdateUpload(*devicefarm.UpdateUploadInput) (*devicefarm.UpdateUploadOutput, error)
+	UpdateUploadWithContext(aws.Context, *devicefarm.UpdateUploadInput, ...request.Option) (*devicefarm.UpdateUploadOutput, error)
+	UpdateUploadRequest(*devicefarm.UpdateUploadInput) (*request.Request, *devicefarm.UpdateUploadOutput)
+
+	UpdateVPCEConfiguration(*devicefarm.UpdateVPCEConfigurationInput) (*devicefarm.UpdateVPCEConfigurationOutput, error)
+	UpdateVPCEConfigurationWithContext(aws.Context, *devicefarm.UpdateVPCEConfigurationInput, ...request.Option) (*devicefarm.UpdateVPCEConfigurationOutput, error)
+	UpdateVPCEConfigurationRequest(*devicefarm.UpdateVPCEConfigurationInput) (*request.Request, *devicefarm.UpdateVPCEConfigurationOutput)
 }
 
 var _ DeviceFarmAPI = (*devicefarm.DeviceFarm)(nil)

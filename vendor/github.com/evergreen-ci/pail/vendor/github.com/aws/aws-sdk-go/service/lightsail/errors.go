@@ -2,6 +2,10 @@
 
 package lightsail
 
+import (
+	"github.com/aws/aws-sdk-go/private/protocol"
+)
+
 const (
 
 	// ErrCodeAccessDeniedException for service response error code
@@ -25,8 +29,8 @@ const (
 	// rules of an input field.
 	//
 	// Domain-related APIs are only available in the N. Virginia (us-east-1) Region.
-	// Please set your Region configuration to us-east-1 to create, view, or edit
-	// these resources.
+	// Please set your AWS Region configuration to us-east-1 to create, view, or
+	// edit these resources.
 	ErrCodeInvalidInputException = "InvalidInputException"
 
 	// ErrCodeNotFoundException for service response error code
@@ -53,3 +57,13 @@ const (
 	// Lightsail throws this exception when the user has not been authenticated.
 	ErrCodeUnauthenticatedException = "UnauthenticatedException"
 )
+
+var exceptionFromCode = map[string]func(protocol.ResponseMetadata) error{
+	"AccessDeniedException":           newErrorAccessDeniedException,
+	"AccountSetupInProgressException": newErrorAccountSetupInProgressException,
+	"InvalidInputException":           newErrorInvalidInputException,
+	"NotFoundException":               newErrorNotFoundException,
+	"OperationFailureException":       newErrorOperationFailureException,
+	"ServiceException":                newErrorServiceException,
+	"UnauthenticatedException":        newErrorUnauthenticatedException,
+}

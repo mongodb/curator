@@ -11,15 +11,15 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/evergreen-ci/pail/testutil"
 	homedir "github.com/mitchellh/go-homedir"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func getS3SmallBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix, s3Region string) []bucketTestCase {
+func getS3SmallBucketTests(ctx context.Context, tempdir string, s3Credentials *credentials.Credentials, s3BucketName, s3Prefix, s3Region string) []bucketTestCase {
 	return []bucketTestCase{
 		{
 			id: "VerifyBucketType",
@@ -64,7 +64,7 @@ func getS3SmallBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix,
 			id: "TestCheckFailsWhenBucketDNE",
 			test: func(t *testing.T, b Bucket) {
 				rawBucket := b.(*s3BucketSmall)
-				rawBucket.name = newUUID()
+				rawBucket.name = testutil.NewUUID()
 				assert.Error(t, rawBucket.Check(ctx))
 			},
 		},
@@ -101,6 +101,15 @@ func getS3SmallBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix,
 			test: func(t *testing.T, b Bucket) {
 				require.NoError(t, b.Check(ctx))
 
+				homeDir, err := homedir.Dir()
+				require.NoError(t, err)
+				fileName := filepath.Join(homeDir, ".aws", "credentials")
+
+				if _, err = os.Stat(fileName); os.IsNotExist(err) {
+					t.Skip("static credentials file not present")
+				}
+				require.NoError(t, b.Check(ctx))
+
 				sharedCredsOptions := S3Options{
 					SharedCredentialsProfile: "default",
 					Region:                   s3Region,
@@ -108,15 +117,7 @@ func getS3SmallBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix,
 				}
 				sharedCredsBucket, err := NewS3Bucket(sharedCredsOptions)
 				require.NoError(t, err)
-				homeDir, err := homedir.Dir()
-				require.NoError(t, err)
-				fileName := filepath.Join(homeDir, ".aws", "credentials")
-				_, err = os.Stat(fileName)
-				if err == nil {
-					assert.NoError(t, sharedCredsBucket.Check(ctx))
-				} else {
-					assert.True(t, os.IsNotExist(err))
-				}
+				assert.NoError(t, sharedCredsBucket.Check(ctx))
 			},
 		},
 		{
@@ -130,17 +131,15 @@ func getS3SmallBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix,
 					Name:                     s3BucketName,
 				}
 				sharedCredsBucket, err := NewS3Bucket(sharedCredsOptions)
-				assert.NoError(t, err)
-				_, err = sharedCredsBucket.List(ctx, "")
 				assert.Error(t, err)
+				assert.Zero(t, sharedCredsBucket)
 			},
 		},
-
 		{
 			id: "TestPermissions",
 			test: func(t *testing.T, b Bucket) {
 				// default permissions
-				key1 := newUUID()
+				key1 := testutil.NewUUID()
 				writer, err := b.Writer(ctx, key1)
 				require.NoError(t, err)
 				_, err = writer.Write([]byte("hello world"))
@@ -158,14 +157,15 @@ func getS3SmallBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix,
 
 				// explicitly set permissions
 				openOptions := S3Options{
+					Credentials: s3Credentials,
 					Region:      s3Region,
 					Name:        s3BucketName,
-					Prefix:      s3Prefix + newUUID(),
+					Prefix:      s3Prefix + testutil.NewUUID(),
 					Permissions: S3PermissionsPublicRead,
 				}
 				openBucket, err := NewS3Bucket(openOptions)
 				require.NoError(t, err)
-				key2 := newUUID()
+				key2 := testutil.NewUUID()
 				writer, err = openBucket.Writer(ctx, key2)
 				require.NoError(t, err)
 				_, err = writer.Write([]byte("hello world"))
@@ -182,7 +182,7 @@ func getS3SmallBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix,
 				assert.Equal(t, "READ", *objectACLOutput.Grants[1].Permission)
 
 				// copy with permissions
-				destKey := newUUID()
+				destKey := testutil.NewUUID()
 				copyOpts := CopyOptions{
 					SourceKey:         key1,
 					DestinationKey:    destKey,
@@ -198,7 +198,7 @@ func getS3SmallBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix,
 			id: "TestContentType",
 			test: func(t *testing.T, b Bucket) {
 				// default content type
-				key := newUUID()
+				key := testutil.NewUUID()
 				writer, err := b.Writer(ctx, key)
 				require.NoError(t, err)
 				_, err = writer.Write([]byte("hello world"))
@@ -215,14 +215,15 @@ func getS3SmallBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix,
 
 				// explicitly set content type
 				htmlOptions := S3Options{
+					Credentials: s3Credentials,
 					Region:      s3Region,
 					Name:        s3BucketName,
-					Prefix:      s3Prefix + newUUID(),
+					Prefix:      s3Prefix + testutil.NewUUID(),
 					ContentType: "html/text",
 				}
 				htmlBucket, err := NewS3Bucket(htmlOptions)
 				require.NoError(t, err)
-				key = newUUID()
+				key = testutil.NewUUID()
 				writer, err = htmlBucket.Writer(ctx, key)
 				require.NoError(t, err)
 				_, err = writer.Write([]byte("hello world"))
@@ -239,27 +240,27 @@ func getS3SmallBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix,
 				assert.Equal(t, "html/text", *getObjectOutput.ContentType)
 			},
 		},
-
 		{
 			id: "TestCompressingWriter",
 			test: func(t *testing.T, b Bucket) {
 				rawBucket := b.(*s3BucketSmall)
 				s3Options := S3Options{
-					Region:     s3Region,
-					Name:       s3BucketName,
-					Prefix:     rawBucket.prefix,
-					MaxRetries: 20,
-					Compress:   true,
+					Credentials: s3Credentials,
+					Region:      s3Region,
+					Name:        s3BucketName,
+					Prefix:      rawBucket.prefix,
+					MaxRetries:  20,
+					Compress:    true,
 				}
 				cb, err := NewS3Bucket(s3Options)
 				require.NoError(t, err)
 
 				data := []byte{}
 				for i := 0; i < 300; i++ {
-					data = append(data, []byte(newUUID())...)
+					data = append(data, []byte(testutil.NewUUID())...)
 				}
 
-				uncompressedKey := newUUID()
+				uncompressedKey := testutil.NewUUID()
 				w, err := b.Writer(ctx, uncompressedKey)
 				require.NoError(t, err)
 				n, err := w.Write(data)
@@ -267,7 +268,7 @@ func getS3SmallBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix,
 				require.NoError(t, w.Close())
 				assert.Equal(t, len(data), n)
 
-				compressedKey := newUUID()
+				compressedKey := testutil.NewUUID()
 				cw, err := cb.Writer(ctx, compressedKey)
 				require.NoError(t, err)
 				n, err = cw.Write(data)
@@ -297,7 +298,7 @@ func getS3SmallBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix,
 	}
 }
 
-func getS3LargeBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix, s3Region string) []bucketTestCase {
+func getS3LargeBucketTests(ctx context.Context, tempdir string, s3Credentials *credentials.Credentials, s3BucketName, s3Prefix, s3Region string) []bucketTestCase {
 	return []bucketTestCase{
 		{
 			id: "VerifyBucketType",
@@ -342,7 +343,7 @@ func getS3LargeBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix,
 			id: "TestCheckFailsWhenBucketDNE",
 			test: func(t *testing.T, b Bucket) {
 				rawBucket := b.(*s3BucketLarge)
-				rawBucket.name = newUUID()
+				rawBucket.name = testutil.NewUUID()
 				assert.Error(t, rawBucket.Check(ctx))
 			},
 		},
@@ -379,6 +380,14 @@ func getS3LargeBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix,
 			test: func(t *testing.T, b Bucket) {
 				require.NoError(t, b.Check(ctx))
 
+				homeDir, err := homedir.Dir()
+				require.NoError(t, err)
+				fileName := filepath.Join(homeDir, ".aws", "credentials")
+
+				if _, err = os.Stat(fileName); os.IsNotExist(err) {
+					t.Skip("static credentials file not present")
+				}
+
 				sharedCredsOptions := S3Options{
 					SharedCredentialsProfile: "default",
 					Region:                   s3Region,
@@ -386,15 +395,7 @@ func getS3LargeBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix,
 				}
 				sharedCredsBucket, err := NewS3MultiPartBucket(sharedCredsOptions)
 				require.NoError(t, err)
-				homeDir, err := homedir.Dir()
-				require.NoError(t, err)
-				fileName := filepath.Join(homeDir, ".aws", "credentials")
-				_, err = os.Stat(fileName)
-				if err == nil {
-					assert.NoError(t, sharedCredsBucket.Check(ctx))
-				} else {
-					assert.True(t, os.IsNotExist(err))
-				}
+				assert.NoError(t, sharedCredsBucket.Check(ctx))
 			},
 		},
 		{
@@ -408,16 +409,15 @@ func getS3LargeBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix,
 					Name:                     s3BucketName,
 				}
 				sharedCredsBucket, err := NewS3MultiPartBucket(sharedCredsOptions)
-				assert.NoError(t, err)
-				_, err = sharedCredsBucket.List(ctx, "")
 				assert.Error(t, err)
+				assert.Zero(t, sharedCredsBucket)
 			},
 		},
 		{
 			id: "TestPermissions",
 			test: func(t *testing.T, b Bucket) {
 				// default permissions
-				key1 := newUUID()
+				key1 := testutil.NewUUID()
 				writer, err := b.Writer(ctx, key1)
 				require.NoError(t, err)
 				_, err = writer.Write([]byte("hello world"))
@@ -435,14 +435,15 @@ func getS3LargeBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix,
 
 				// explicitly set permissions
 				openOptions := S3Options{
+					Credentials: s3Credentials,
 					Region:      s3Region,
 					Name:        s3BucketName,
-					Prefix:      s3Prefix + newUUID(),
+					Prefix:      s3Prefix + testutil.NewUUID(),
 					Permissions: S3PermissionsPublicRead,
 				}
 				openBucket, err := NewS3MultiPartBucket(openOptions)
 				require.NoError(t, err)
-				key2 := newUUID()
+				key2 := testutil.NewUUID()
 				writer, err = openBucket.Writer(ctx, key2)
 				require.NoError(t, err)
 				_, err = writer.Write([]byte("hello world"))
@@ -459,7 +460,7 @@ func getS3LargeBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix,
 				assert.Equal(t, "READ", *objectACLOutput.Grants[1].Permission)
 
 				// copy with permissions
-				destKey := newUUID()
+				destKey := testutil.NewUUID()
 				copyOpts := CopyOptions{
 					SourceKey:         key1,
 					DestinationKey:    destKey,
@@ -475,7 +476,7 @@ func getS3LargeBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix,
 			id: "TestLargeFileRoundTrip",
 			test: func(t *testing.T, b Bucket) {
 				size := int64(10000000)
-				key := newUUID()
+				key := testutil.NewUUID()
 				bigBuff := make([]byte, size)
 				path := filepath.Join(tempdir, "bigfile.test0")
 
@@ -496,7 +497,7 @@ func getS3LargeBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix,
 			id: "TestContentType",
 			test: func(t *testing.T, b Bucket) {
 				// default content type
-				key := newUUID()
+				key := testutil.NewUUID()
 				writer, err := b.Writer(ctx, key)
 				require.NoError(t, err)
 				_, err = writer.Write([]byte("hello world"))
@@ -513,14 +514,15 @@ func getS3LargeBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix,
 
 				// explicitly set content type
 				htmlOptions := S3Options{
+					Credentials: s3Credentials,
 					Region:      s3Region,
 					Name:        s3BucketName,
-					Prefix:      s3Prefix + newUUID(),
+					Prefix:      s3Prefix + testutil.NewUUID(),
 					ContentType: "html/text",
 				}
 				htmlBucket, err := NewS3MultiPartBucket(htmlOptions)
 				require.NoError(t, err)
-				key = newUUID()
+				key = testutil.NewUUID()
 				writer, err = htmlBucket.Writer(ctx, key)
 				require.NoError(t, err)
 				_, err = writer.Write([]byte("hello world"))
@@ -542,21 +544,22 @@ func getS3LargeBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix,
 			test: func(t *testing.T, b Bucket) {
 				rawBucket := b.(*s3BucketLarge)
 				s3Options := S3Options{
-					Region:     s3Region,
-					Name:       s3BucketName,
-					Prefix:     rawBucket.prefix,
-					MaxRetries: 20,
-					Compress:   true,
+					Credentials: s3Credentials,
+					Region:      s3Region,
+					Name:        s3BucketName,
+					Prefix:      rawBucket.prefix,
+					MaxRetries:  20,
+					Compress:    true,
 				}
 				cb, err := NewS3MultiPartBucket(s3Options)
 				require.NoError(t, err)
 
 				data := []byte{}
 				for i := 0; i < 300; i++ {
-					data = append(data, []byte(newUUID())...)
+					data = append(data, []byte(testutil.NewUUID())...)
 				}
 
-				uncompressedKey := newUUID()
+				uncompressedKey := testutil.NewUUID()
 				w, err := b.Writer(ctx, uncompressedKey)
 				require.NoError(t, err)
 				n, err := w.Write(data)
@@ -564,7 +567,7 @@ func getS3LargeBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix,
 				require.NoError(t, w.Close())
 				assert.Equal(t, len(data), n)
 
-				compressedKey := newUUID()
+				compressedKey := testutil.NewUUID()
 				cw, err := cb.Writer(ctx, compressedKey)
 				require.NoError(t, err)
 				n, err = cw.Write(data)
@@ -587,57 +590,4 @@ func getS3LargeBucketTests(ctx context.Context, tempdir, s3BucketName, s3Prefix,
 			},
 		},
 	}
-}
-
-func cleanUpS3Bucket(name, prefix, region string) error {
-	svc, err := createS3Client(region)
-	if err != nil {
-		return errors.Wrap(err, "clean up failed")
-	}
-	deleteObjectsInput := &s3.DeleteObjectsInput{
-		Bucket: aws.String(name),
-		Delete: &s3.Delete{},
-	}
-	listInput := &s3.ListObjectsInput{
-		Bucket: aws.String(name),
-		Prefix: aws.String(prefix),
-	}
-	var result *s3.ListObjectsOutput
-
-	for {
-		result, err = svc.ListObjects(listInput)
-		if err != nil {
-			return errors.Wrap(err, "clean up failed")
-		}
-
-		for _, object := range result.Contents {
-			deleteObjectsInput.Delete.Objects = append(deleteObjectsInput.Delete.Objects, &s3.ObjectIdentifier{
-				Key: object.Key,
-			})
-		}
-
-		if deleteObjectsInput.Delete.Objects != nil {
-			_, err = svc.DeleteObjects(deleteObjectsInput)
-			if err != nil {
-				return errors.Wrap(err, "failed to delete S3 bucket")
-			}
-			deleteObjectsInput.Delete = &s3.Delete{}
-		}
-
-		if *result.IsTruncated {
-			listInput.Marker = result.Contents[len(result.Contents)-1].Key
-		} else {
-			break
-		}
-	}
-
-	return nil
-}
-func createS3Client(region string) (*s3.S3, error) {
-	sess, err := session.NewSession(&aws.Config{Region: aws.String(region)})
-	if err != nil {
-		return nil, errors.Wrap(err, "problem connecting to AWS")
-	}
-	svc := s3.New(sess)
-	return svc, nil
 }

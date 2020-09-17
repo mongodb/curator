@@ -1,5 +1,10 @@
 {
   "pagination": {
+    "DescribeApplicableIndividualAssessments": {
+      "input_token": "Marker",
+      "output_token": "Marker",
+      "limit_key": "MaxRecords"
+    },
     "DescribeCertificates": {
       "input_token": "Marker",
       "output_token": "Marker",
@@ -35,12 +40,37 @@
       "output_token": "Marker",
       "limit_key": "MaxRecords"
     },
+    "DescribePendingMaintenanceActions": {
+      "input_token": "Marker",
+      "output_token": "Marker",
+      "limit_key": "MaxRecords"
+    },
+    "DescribeReplicationInstanceTaskLogs": {
+      "input_token": "Marker",
+      "output_token": "Marker",
+      "limit_key": "MaxRecords"
+    },
     "DescribeReplicationInstances": {
       "input_token": "Marker",
       "output_token": "Marker",
       "limit_key": "MaxRecords"
     },
     "DescribeReplicationSubnetGroups": {
+      "input_token": "Marker",
+      "output_token": "Marker",
+      "limit_key": "MaxRecords"
+    },
+    "DescribeReplicationTaskAssessmentResults": {
+      "input_token": "Marker",
+      "output_token": "Marker",
+      "limit_key": "MaxRecords"
+    },
+    "DescribeReplicationTaskAssessmentRuns": {
+      "input_token": "Marker",
+      "output_token": "Marker",
+      "limit_key": "MaxRecords"
+    },
+    "DescribeReplicationTaskIndividualAssessments": {
       "input_token": "Marker",
       "output_token": "Marker",
       "limit_key": "MaxRecords"

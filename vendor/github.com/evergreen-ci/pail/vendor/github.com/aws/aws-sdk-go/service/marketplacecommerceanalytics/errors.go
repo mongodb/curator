@@ -2,11 +2,19 @@
 
 package marketplacecommerceanalytics
 
+import (
+	"github.com/aws/aws-sdk-go/private/protocol"
+)
+
 const (
 
 	// ErrCodeException for service response error code
-	// "Exception".
+	// "MarketplaceCommerceAnalyticsException".
 	//
 	// This exception is thrown when an internal service error occurs.
-	ErrCodeException = "Exception"
+	ErrCodeException = "MarketplaceCommerceAnalyticsException"
 )
+
+var exceptionFromCode = map[string]func(protocol.ResponseMetadata) error{
+	"MarketplaceCommerceAnalyticsException": newErrorException,
+}

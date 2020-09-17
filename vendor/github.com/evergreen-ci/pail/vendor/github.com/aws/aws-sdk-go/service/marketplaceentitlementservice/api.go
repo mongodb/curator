@@ -3,19 +3,21 @@
 package marketplaceentitlementservice
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/private/protocol"
 )
 
 const opGetEntitlements = "GetEntitlements"
 
 // GetEntitlementsRequest generates a "aws/request.Request" representing the
 // client's request for the GetEntitlements operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -35,7 +37,7 @@ const opGetEntitlements = "GetEntitlements"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/entitlement.marketplace-2017-01-11/GetEntitlements
+// See also, https://docs.aws.amazon.com/goto/WebAPI/entitlement.marketplace-2017-01-11/GetEntitlements
 func (c *MarketplaceEntitlementService) GetEntitlementsRequest(input *GetEntitlementsInput) (req *request.Request, output *GetEntitlementsOutput) {
 	op := &request.Operation{
 		Name:       opGetEntitlements,
@@ -64,18 +66,18 @@ func (c *MarketplaceEntitlementService) GetEntitlementsRequest(input *GetEntitle
 // See the AWS API reference guide for AWS Marketplace Entitlement Service's
 // API operation GetEntitlements for usage and error information.
 //
-// Returned Error Codes:
-//   * ErrCodeInvalidParameterException "InvalidParameterException"
+// Returned Error Types:
+//   * InvalidParameterException
 //   One or more parameters in your request was invalid.
 //
-//   * ErrCodeThrottlingException "ThrottlingException"
+//   * ThrottlingException
 //   The calls to the GetEntitlements API are throttled.
 //
-//   * ErrCodeInternalServiceErrorException "InternalServiceErrorException"
+//   * InternalServiceErrorException
 //   An internal error has occurred. Retry your request. If the problem persists,
 //   post a message with details on the AWS forums.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/entitlement.marketplace-2017-01-11/GetEntitlements
+// See also, https://docs.aws.amazon.com/goto/WebAPI/entitlement.marketplace-2017-01-11/GetEntitlements
 func (c *MarketplaceEntitlementService) GetEntitlements(input *GetEntitlementsInput) (*GetEntitlementsOutput, error) {
 	req, out := c.GetEntitlementsRequest(input)
 	return out, req.Send()
@@ -100,7 +102,6 @@ func (c *MarketplaceEntitlementService) GetEntitlementsWithContext(ctx aws.Conte
 // An entitlement represents capacity in a product owned by the customer. For
 // example, a customer might own some number of users or seats in an SaaS application
 // or some amount of data capacity in a multi-tenant database.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/entitlement.marketplace-2017-01-11/Entitlement
 type Entitlement struct {
 	_ struct{} `type:"structure"`
 
@@ -119,7 +120,7 @@ type Entitlement struct {
 	// the expiration date is the date at which the customer will renew or cancel
 	// their contract. Customers who are opting to renew their contract will still
 	// have entitlements with an expiration date.
-	ExpirationDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	ExpirationDate *time.Time `type:"timestamp"`
 
 	// The product code for which the given entitlement applies. Product codes are
 	// provided by AWS Marketplace when the product listing is created.
@@ -172,7 +173,6 @@ func (s *Entitlement) SetValue(v *EntitlementValue) *Entitlement {
 
 // The EntitlementValue represents the amount of capacity that the customer
 // is entitled to for the product.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/entitlement.marketplace-2017-01-11/EntitlementValue
 type EntitlementValue struct {
 	_ struct{} `type:"structure"`
 
@@ -228,7 +228,6 @@ func (s *EntitlementValue) SetStringValue(v string) *EntitlementValue {
 }
 
 // The GetEntitlementsRequest contains parameters for the GetEntitlements operation.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/entitlement.marketplace-2017-01-11/GetEntitlementsRequest
 type GetEntitlementsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -305,7 +304,6 @@ func (s *GetEntitlementsInput) SetProductCode(v string) *GetEntitlementsInput {
 }
 
 // The GetEntitlementsRequest contains results from the GetEntitlements operation.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/entitlement.marketplace-2017-01-11/GetEntitlementsResult
 type GetEntitlementsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -342,6 +340,175 @@ func (s *GetEntitlementsOutput) SetNextToken(v string) *GetEntitlementsOutput {
 	return s
 }
 
+// An internal error has occurred. Retry your request. If the problem persists,
+// post a message with details on the AWS forums.
+type InternalServiceErrorException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s InternalServiceErrorException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InternalServiceErrorException) GoString() string {
+	return s.String()
+}
+
+func newErrorInternalServiceErrorException(v protocol.ResponseMetadata) error {
+	return &InternalServiceErrorException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *InternalServiceErrorException) Code() string {
+	return "InternalServiceErrorException"
+}
+
+// Message returns the exception's message.
+func (s *InternalServiceErrorException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *InternalServiceErrorException) OrigErr() error {
+	return nil
+}
+
+func (s *InternalServiceErrorException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *InternalServiceErrorException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *InternalServiceErrorException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// One or more parameters in your request was invalid.
+type InvalidParameterException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s InvalidParameterException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InvalidParameterException) GoString() string {
+	return s.String()
+}
+
+func newErrorInvalidParameterException(v protocol.ResponseMetadata) error {
+	return &InvalidParameterException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *InvalidParameterException) Code() string {
+	return "InvalidParameterException"
+}
+
+// Message returns the exception's message.
+func (s *InvalidParameterException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *InvalidParameterException) OrigErr() error {
+	return nil
+}
+
+func (s *InvalidParameterException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *InvalidParameterException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *InvalidParameterException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
+// The calls to the GetEntitlements API are throttled.
+type ThrottlingException struct {
+	_            struct{}                  `type:"structure"`
+	RespMetadata protocol.ResponseMetadata `json:"-" xml:"-"`
+
+	Message_ *string `locationName:"message" type:"string"`
+}
+
+// String returns the string representation
+func (s ThrottlingException) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ThrottlingException) GoString() string {
+	return s.String()
+}
+
+func newErrorThrottlingException(v protocol.ResponseMetadata) error {
+	return &ThrottlingException{
+		RespMetadata: v,
+	}
+}
+
+// Code returns the exception type name.
+func (s *ThrottlingException) Code() string {
+	return "ThrottlingException"
+}
+
+// Message returns the exception's message.
+func (s *ThrottlingException) Message() string {
+	if s.Message_ != nil {
+		return *s.Message_
+	}
+	return ""
+}
+
+// OrigErr always returns nil, satisfies awserr.Error interface.
+func (s *ThrottlingException) OrigErr() error {
+	return nil
+}
+
+func (s *ThrottlingException) Error() string {
+	return fmt.Sprintf("%s: %s", s.Code(), s.Message())
+}
+
+// Status code returns the HTTP status code for the request's response error.
+func (s *ThrottlingException) StatusCode() int {
+	return s.RespMetadata.StatusCode
+}
+
+// RequestID returns the service's response RequestID for request.
+func (s *ThrottlingException) RequestID() string {
+	return s.RespMetadata.RequestID
+}
+
 const (
 	// GetEntitlementFilterNameCustomerIdentifier is a GetEntitlementFilterName enum value
 	GetEntitlementFilterNameCustomerIdentifier = "CUSTOMER_IDENTIFIER"
@@ -349,3 +516,11 @@ const (
 	// GetEntitlementFilterNameDimension is a GetEntitlementFilterName enum value
 	GetEntitlementFilterNameDimension = "DIMENSION"
 )
+
+// GetEntitlementFilterName_Values returns all elements of the GetEntitlementFilterName enum
+func GetEntitlementFilterName_Values() []string {
+	return []string{
+		GetEntitlementFilterNameCustomerIdentifier,
+		GetEntitlementFilterNameDimension,
+	}
+}

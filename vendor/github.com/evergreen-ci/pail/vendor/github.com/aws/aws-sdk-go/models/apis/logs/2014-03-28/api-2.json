@@ -6,11 +6,26 @@
     "jsonVersion":"1.1",
     "protocol":"json",
     "serviceFullName":"Amazon CloudWatch Logs",
+    "serviceId":"CloudWatch Logs",
     "signatureVersion":"v4",
     "targetPrefix":"Logs_20140328",
     "uid":"logs-2014-03-28"
   },
   "operations":{
+    "AssociateKmsKey":{
+      "name":"AssociateKmsKey",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"AssociateKmsKeyRequest"},
+      "errors":[
+        {"shape":"InvalidParameterException"},
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"OperationAbortedException"},
+        {"shape":"ServiceUnavailableException"}
+      ]
+    },
     "CancelExportTask":{
       "name":"CancelExportTask",
       "http":{
@@ -127,6 +142,33 @@
         {"shape":"ServiceUnavailableException"}
       ]
     },
+    "DeleteQueryDefinition":{
+      "name":"DeleteQueryDefinition",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DeleteQueryDefinitionRequest"},
+      "output":{"shape":"DeleteQueryDefinitionResponse"},
+      "errors":[
+        {"shape":"InvalidParameterException"},
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"ServiceUnavailableException"}
+      ]
+    },
+    "DeleteResourcePolicy":{
+      "name":"DeleteResourcePolicy",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DeleteResourcePolicyRequest"},
+      "errors":[
+        {"shape":"InvalidParameterException"},
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"ServiceUnavailableException"}
+      ]
+    },
     "DeleteRetentionPolicy":{
       "name":"DeleteRetentionPolicy",
       "http":{
@@ -222,6 +264,46 @@
         {"shape":"ServiceUnavailableException"}
       ]
     },
+    "DescribeQueries":{
+      "name":"DescribeQueries",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeQueriesRequest"},
+      "output":{"shape":"DescribeQueriesResponse"},
+      "errors":[
+        {"shape":"InvalidParameterException"},
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"ServiceUnavailableException"}
+      ]
+    },
+    "DescribeQueryDefinitions":{
+      "name":"DescribeQueryDefinitions",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeQueryDefinitionsRequest"},
+      "output":{"shape":"DescribeQueryDefinitionsResponse"},
+      "errors":[
+        {"shape":"InvalidParameterException"},
+        {"shape":"ServiceUnavailableException"}
+      ]
+    },
+    "DescribeResourcePolicies":{
+      "name":"DescribeResourcePolicies",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeResourcePoliciesRequest"},
+      "output":{"shape":"DescribeResourcePoliciesResponse"},
+      "errors":[
+        {"shape":"InvalidParameterException"},
+        {"shape":"ServiceUnavailableException"}
+      ]
+    },
     "DescribeSubscriptionFilters":{
       "name":"DescribeSubscriptionFilters",
       "http":{
@@ -233,6 +315,20 @@
       "errors":[
         {"shape":"InvalidParameterException"},
         {"shape":"ResourceNotFoundException"},
+        {"shape":"ServiceUnavailableException"}
+      ]
+    },
+    "DisassociateKmsKey":{
+      "name":"DisassociateKmsKey",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DisassociateKmsKeyRequest"},
+      "errors":[
+        {"shape":"InvalidParameterException"},
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"OperationAbortedException"},
         {"shape":"ServiceUnavailableException"}
       ]
     },
@@ -258,6 +354,50 @@
       },
       "input":{"shape":"GetLogEventsRequest"},
       "output":{"shape":"GetLogEventsResponse"},
+      "errors":[
+        {"shape":"InvalidParameterException"},
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"ServiceUnavailableException"}
+      ]
+    },
+    "GetLogGroupFields":{
+      "name":"GetLogGroupFields",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetLogGroupFieldsRequest"},
+      "output":{"shape":"GetLogGroupFieldsResponse"},
+      "errors":[
+        {"shape":"InvalidParameterException"},
+        {"shape":"LimitExceededException"},
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"ServiceUnavailableException"}
+      ]
+    },
+    "GetLogRecord":{
+      "name":"GetLogRecord",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetLogRecordRequest"},
+      "output":{"shape":"GetLogRecordResponse"},
+      "errors":[
+        {"shape":"InvalidParameterException"},
+        {"shape":"LimitExceededException"},
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"ServiceUnavailableException"}
+      ]
+    },
+    "GetQueryResults":{
+      "name":"GetQueryResults",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetQueryResultsRequest"},
+      "output":{"shape":"GetQueryResultsResponse"},
       "errors":[
         {"shape":"InvalidParameterException"},
         {"shape":"ResourceNotFoundException"},
@@ -317,7 +457,8 @@
         {"shape":"InvalidSequenceTokenException"},
         {"shape":"DataAlreadyAcceptedException"},
         {"shape":"ResourceNotFoundException"},
-        {"shape":"ServiceUnavailableException"}
+        {"shape":"ServiceUnavailableException"},
+        {"shape":"UnrecognizedClientException"}
       ]
     },
     "PutMetricFilter":{
@@ -331,6 +472,34 @@
         {"shape":"InvalidParameterException"},
         {"shape":"ResourceNotFoundException"},
         {"shape":"OperationAbortedException"},
+        {"shape":"LimitExceededException"},
+        {"shape":"ServiceUnavailableException"}
+      ]
+    },
+    "PutQueryDefinition":{
+      "name":"PutQueryDefinition",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"PutQueryDefinitionRequest"},
+      "output":{"shape":"PutQueryDefinitionResponse"},
+      "errors":[
+        {"shape":"InvalidParameterException"},
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"ServiceUnavailableException"}
+      ]
+    },
+    "PutResourcePolicy":{
+      "name":"PutResourcePolicy",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"PutResourcePolicyRequest"},
+      "output":{"shape":"PutResourcePolicyResponse"},
+      "errors":[
+        {"shape":"InvalidParameterException"},
         {"shape":"LimitExceededException"},
         {"shape":"ServiceUnavailableException"}
       ]
@@ -361,6 +530,36 @@
         {"shape":"ResourceNotFoundException"},
         {"shape":"OperationAbortedException"},
         {"shape":"LimitExceededException"},
+        {"shape":"ServiceUnavailableException"}
+      ]
+    },
+    "StartQuery":{
+      "name":"StartQuery",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"StartQueryRequest"},
+      "output":{"shape":"StartQueryResponse"},
+      "errors":[
+        {"shape":"MalformedQueryException"},
+        {"shape":"InvalidParameterException"},
+        {"shape":"LimitExceededException"},
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"ServiceUnavailableException"}
+      ]
+    },
+    "StopQuery":{
+      "name":"StopQuery",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"StopQueryRequest"},
+      "output":{"shape":"StopQueryResponse"},
+      "errors":[
+        {"shape":"InvalidParameterException"},
+        {"shape":"ResourceNotFoundException"},
         {"shape":"ServiceUnavailableException"}
       ]
     },
@@ -407,6 +606,17 @@
       "min":1
     },
     "Arn":{"type":"string"},
+    "AssociateKmsKeyRequest":{
+      "type":"structure",
+      "required":[
+        "logGroupName",
+        "kmsKeyId"
+      ],
+      "members":{
+        "logGroupName":{"shape":"LogGroupName"},
+        "kmsKeyId":{"shape":"KmsKeyId"}
+      }
+    },
     "CancelExportTaskRequest":{
       "type":"structure",
       "required":["taskId"],
@@ -443,6 +653,7 @@
       "required":["logGroupName"],
       "members":{
         "logGroupName":{"shape":"LogGroupName"},
+        "kmsKeyId":{"shape":"KmsKeyId"},
         "tags":{"shape":"Tags"}
       }
     },
@@ -500,6 +711,25 @@
       "members":{
         "logGroupName":{"shape":"LogGroupName"},
         "filterName":{"shape":"FilterName"}
+      }
+    },
+    "DeleteQueryDefinitionRequest":{
+      "type":"structure",
+      "required":["queryDefinitionId"],
+      "members":{
+        "queryDefinitionId":{"shape":"QueryId"}
+      }
+    },
+    "DeleteQueryDefinitionResponse":{
+      "type":"structure",
+      "members":{
+        "success":{"shape":"Success"}
+      }
+    },
+    "DeleteResourcePolicyRequest":{
+      "type":"structure",
+      "members":{
+        "policyName":{"shape":"PolicyName"}
       }
     },
     "DeleteRetentionPolicyRequest":{
@@ -609,6 +839,56 @@
         "nextToken":{"shape":"NextToken"}
       }
     },
+    "DescribeQueriesMaxResults":{
+      "type":"integer",
+      "max":1000,
+      "min":1
+    },
+    "DescribeQueriesRequest":{
+      "type":"structure",
+      "members":{
+        "logGroupName":{"shape":"LogGroupName"},
+        "status":{"shape":"QueryStatus"},
+        "maxResults":{"shape":"DescribeQueriesMaxResults"},
+        "nextToken":{"shape":"NextToken"}
+      }
+    },
+    "DescribeQueriesResponse":{
+      "type":"structure",
+      "members":{
+        "queries":{"shape":"QueryInfoList"},
+        "nextToken":{"shape":"NextToken"}
+      }
+    },
+    "DescribeQueryDefinitionsRequest":{
+      "type":"structure",
+      "members":{
+        "queryDefinitionNamePrefix":{"shape":"QueryDefinitionName"},
+        "maxResults":{"shape":"QueryListMaxResults"},
+        "nextToken":{"shape":"NextToken"}
+      }
+    },
+    "DescribeQueryDefinitionsResponse":{
+      "type":"structure",
+      "members":{
+        "queryDefinitions":{"shape":"QueryDefinitionList"},
+        "nextToken":{"shape":"NextToken"}
+      }
+    },
+    "DescribeResourcePoliciesRequest":{
+      "type":"structure",
+      "members":{
+        "nextToken":{"shape":"NextToken"},
+        "limit":{"shape":"DescribeLimit"}
+      }
+    },
+    "DescribeResourcePoliciesResponse":{
+      "type":"structure",
+      "members":{
+        "resourcePolicies":{"shape":"ResourcePolicies"},
+        "nextToken":{"shape":"NextToken"}
+      }
+    },
     "DescribeSubscriptionFiltersRequest":{
       "type":"structure",
       "required":["logGroupName"],
@@ -650,6 +930,13 @@
     "Destinations":{
       "type":"list",
       "member":{"shape":"Destination"}
+    },
+    "DisassociateKmsKeyRequest":{
+      "type":"structure",
+      "required":["logGroupName"],
+      "members":{
+        "logGroupName":{"shape":"LogGroupName"}
+      }
     },
     "Distribution":{
       "type":"string",
@@ -734,6 +1021,7 @@
       "key":{"shape":"Token"},
       "value":{"shape":"Value"}
     },
+    "Field":{"type":"string"},
     "FilterCount":{"type":"integer"},
     "FilterLogEventsRequest":{
       "type":"structure",
@@ -741,12 +1029,17 @@
       "members":{
         "logGroupName":{"shape":"LogGroupName"},
         "logStreamNames":{"shape":"InputLogStreamNames"},
+        "logStreamNamePrefix":{"shape":"LogStreamName"},
         "startTime":{"shape":"Timestamp"},
         "endTime":{"shape":"Timestamp"},
         "filterPattern":{"shape":"FilterPattern"},
         "nextToken":{"shape":"NextToken"},
         "limit":{"shape":"EventsLimit"},
-        "interleaved":{"shape":"Interleaved"}
+        "interleaved":{
+          "shape":"Interleaved",
+          "deprecated":true,
+          "deprecatedMessage":"Starting on June 17, 2019, this parameter will be ignored and the value will be assumed to be true. The response from this operation will always interleave events from multiple log streams within a log group."
+        }
       }
     },
     "FilterLogEventsResponse":{
@@ -806,6 +1099,48 @@
         "nextBackwardToken":{"shape":"NextToken"}
       }
     },
+    "GetLogGroupFieldsRequest":{
+      "type":"structure",
+      "required":["logGroupName"],
+      "members":{
+        "logGroupName":{"shape":"LogGroupName"},
+        "time":{"shape":"Timestamp"}
+      }
+    },
+    "GetLogGroupFieldsResponse":{
+      "type":"structure",
+      "members":{
+        "logGroupFields":{"shape":"LogGroupFieldList"}
+      }
+    },
+    "GetLogRecordRequest":{
+      "type":"structure",
+      "required":["logRecordPointer"],
+      "members":{
+        "logRecordPointer":{"shape":"LogRecordPointer"}
+      }
+    },
+    "GetLogRecordResponse":{
+      "type":"structure",
+      "members":{
+        "logRecord":{"shape":"LogRecord"}
+      }
+    },
+    "GetQueryResultsRequest":{
+      "type":"structure",
+      "required":["queryId"],
+      "members":{
+        "queryId":{"shape":"QueryId"}
+      }
+    },
+    "GetQueryResultsResponse":{
+      "type":"structure",
+      "members":{
+        "results":{"shape":"QueryResults"},
+        "statistics":{"shape":"QueryStatistics"},
+        "status":{"shape":"QueryStatus"}
+      }
+    },
     "InputLogEvent":{
       "type":"structure",
       "required":[
@@ -849,6 +1184,10 @@
       },
       "exception":true
     },
+    "KmsKeyId":{
+      "type":"string",
+      "max":256
+    },
     "LimitExceededException":{
       "type":"structure",
       "members":{
@@ -877,8 +1216,20 @@
         "retentionInDays":{"shape":"Days"},
         "metricFilterCount":{"shape":"FilterCount"},
         "arn":{"shape":"Arn"},
-        "storedBytes":{"shape":"StoredBytes"}
+        "storedBytes":{"shape":"StoredBytes"},
+        "kmsKeyId":{"shape":"KmsKeyId"}
       }
+    },
+    "LogGroupField":{
+      "type":"structure",
+      "members":{
+        "name":{"shape":"Field"},
+        "percent":{"shape":"Percentage"}
+      }
+    },
+    "LogGroupFieldList":{
+      "type":"list",
+      "member":{"shape":"LogGroupField"}
     },
     "LogGroupName":{
       "type":"string",
@@ -886,10 +1237,20 @@
       "min":1,
       "pattern":"[\\.\\-_/#A-Za-z0-9]+"
     },
+    "LogGroupNames":{
+      "type":"list",
+      "member":{"shape":"LogGroupName"}
+    },
     "LogGroups":{
       "type":"list",
       "member":{"shape":"LogGroup"}
     },
+    "LogRecord":{
+      "type":"map",
+      "key":{"shape":"Field"},
+      "value":{"shape":"Value"}
+    },
+    "LogRecordPointer":{"type":"string"},
     "LogStream":{
       "type":"structure",
       "members":{
@@ -900,7 +1261,11 @@
         "lastIngestionTime":{"shape":"Timestamp"},
         "uploadSequenceToken":{"shape":"SequenceToken"},
         "arn":{"shape":"Arn"},
-        "storedBytes":{"shape":"StoredBytes"}
+        "storedBytes":{
+          "shape":"StoredBytes",
+          "deprecated":true,
+          "deprecatedMessage":"Starting on June 17, 2019, this parameter will be deprecated for log streams, and will be reported as zero. This change applies only to log streams. The storedBytes parameter for log groups is not affected."
+        }
       }
     },
     "LogStreamName":{
@@ -914,6 +1279,14 @@
       "type":"list",
       "member":{"shape":"LogStream"}
     },
+    "MalformedQueryException":{
+      "type":"structure",
+      "members":{
+        "queryCompileError":{"shape":"QueryCompileError"}
+      },
+      "exception":true
+    },
+    "Message":{"type":"string"},
     "MetricFilter":{
       "type":"structure",
       "members":{
@@ -1003,6 +1376,17 @@
       "type":"list",
       "member":{"shape":"OutputLogEvent"}
     },
+    "Percentage":{
+      "type":"integer",
+      "max":100,
+      "min":0
+    },
+    "PolicyDocument":{
+      "type":"string",
+      "max":5120,
+      "min":1
+    },
+    "PolicyName":{"type":"string"},
     "PutDestinationPolicyRequest":{
       "type":"structure",
       "required":[
@@ -1069,6 +1453,38 @@
         "metricTransformations":{"shape":"MetricTransformations"}
       }
     },
+    "PutQueryDefinitionRequest":{
+      "type":"structure",
+      "required":[
+        "name",
+        "queryString"
+      ],
+      "members":{
+        "name":{"shape":"QueryDefinitionName"},
+        "queryDefinitionId":{"shape":"QueryId"},
+        "logGroupNames":{"shape":"LogGroupNames"},
+        "queryString":{"shape":"QueryDefinitionString"}
+      }
+    },
+    "PutQueryDefinitionResponse":{
+      "type":"structure",
+      "members":{
+        "queryDefinitionId":{"shape":"QueryId"}
+      }
+    },
+    "PutResourcePolicyRequest":{
+      "type":"structure",
+      "members":{
+        "policyName":{"shape":"PolicyName"},
+        "policyDocument":{"shape":"PolicyDocument"}
+      }
+    },
+    "PutResourcePolicyResponse":{
+      "type":"structure",
+      "members":{
+        "resourcePolicy":{"shape":"ResourcePolicy"}
+      }
+    },
     "PutRetentionPolicyRequest":{
       "type":"structure",
       "required":[
@@ -1097,6 +1513,97 @@
         "distribution":{"shape":"Distribution"}
       }
     },
+    "QueryCharOffset":{"type":"integer"},
+    "QueryCompileError":{
+      "type":"structure",
+      "members":{
+        "location":{"shape":"QueryCompileErrorLocation"},
+        "message":{"shape":"Message"}
+      }
+    },
+    "QueryCompileErrorLocation":{
+      "type":"structure",
+      "members":{
+        "startCharOffset":{"shape":"QueryCharOffset"},
+        "endCharOffset":{"shape":"QueryCharOffset"}
+      }
+    },
+    "QueryDefinition":{
+      "type":"structure",
+      "members":{
+        "queryDefinitionId":{"shape":"QueryId"},
+        "name":{"shape":"QueryDefinitionName"},
+        "queryString":{"shape":"QueryDefinitionString"},
+        "lastModified":{"shape":"Timestamp"},
+        "logGroupNames":{"shape":"LogGroupNames"}
+      }
+    },
+    "QueryDefinitionList":{
+      "type":"list",
+      "member":{"shape":"QueryDefinition"}
+    },
+    "QueryDefinitionName":{
+      "type":"string",
+      "max":255,
+      "min":1,
+      "pattern":"^([^:*\\/]+\\/?)*[^:*\\/]+$"
+    },
+    "QueryDefinitionString":{
+      "type":"string",
+      "max":10000,
+      "min":1
+    },
+    "QueryId":{
+      "type":"string",
+      "max":256,
+      "min":0
+    },
+    "QueryInfo":{
+      "type":"structure",
+      "members":{
+        "queryId":{"shape":"QueryId"},
+        "queryString":{"shape":"QueryString"},
+        "status":{"shape":"QueryStatus"},
+        "createTime":{"shape":"Timestamp"},
+        "logGroupName":{"shape":"LogGroupName"}
+      }
+    },
+    "QueryInfoList":{
+      "type":"list",
+      "member":{"shape":"QueryInfo"}
+    },
+    "QueryListMaxResults":{
+      "type":"integer",
+      "max":1000,
+      "min":1
+    },
+    "QueryResults":{
+      "type":"list",
+      "member":{"shape":"ResultRows"}
+    },
+    "QueryStatistics":{
+      "type":"structure",
+      "members":{
+        "recordsMatched":{"shape":"StatsValue"},
+        "recordsScanned":{"shape":"StatsValue"},
+        "bytesScanned":{"shape":"StatsValue"}
+      }
+    },
+    "QueryStatus":{
+      "type":"string",
+      "enum":[
+        "Scheduled",
+        "Running",
+        "Complete",
+        "Failed",
+        "Cancelled"
+      ]
+    },
+    "QueryString":{
+      "type":"string",
+      "max":10000,
+      "min":0
+    },
     "RejectedLogEventsInfo":{
       "type":"structure",
       "members":{
@@ -1116,6 +1623,29 @@
       "members":{
       },
       "exception":true
+    },
+    "ResourcePolicies":{
+      "type":"list",
+      "member":{"shape":"ResourcePolicy"}
+    },
+    "ResourcePolicy":{
+      "type":"structure",
+      "members":{
+        "policyName":{"shape":"PolicyName"},
+        "policyDocument":{"shape":"PolicyDocument"},
+        "lastUpdatedTime":{"shape":"Timestamp"}
+      }
+    },
+    "ResultField":{
+      "type":"structure",
+      "members":{
+        "field":{"shape":"Field"},
+        "value":{"shape":"Value"}
+      }
+    },
+    "ResultRows":{
+      "type":"list",
+      "member":{"shape":"ResultField"}
     },
     "RoleArn":{
       "type":"string",
@@ -1144,6 +1674,42 @@
       "fault":true
     },
     "StartFromHead":{"type":"boolean"},
+    "StartQueryRequest":{
+      "type":"structure",
+      "required":[
+        "startTime",
+        "endTime",
+        "queryString"
+      ],
+      "members":{
+        "logGroupName":{"shape":"LogGroupName"},
+        "logGroupNames":{"shape":"LogGroupNames"},
+        "startTime":{"shape":"Timestamp"},
+        "endTime":{"shape":"Timestamp"},
+        "queryString":{"shape":"QueryString"},
+        "limit":{"shape":"EventsLimit"}
+      }
+    },
+    "StartQueryResponse":{
+      "type":"structure",
+      "members":{
+        "queryId":{"shape":"QueryId"}
+      }
+    },
+    "StatsValue":{"type":"double"},
+    "StopQueryRequest":{
+      "type":"structure",
+      "required":["queryId"],
+      "members":{
+        "queryId":{"shape":"QueryId"}
+      }
+    },
+    "StopQueryResponse":{
+      "type":"structure",
+      "members":{
+        "success":{"shape":"Success"}
+      }
+    },
     "StoredBytes":{
       "type":"long",
       "min":0
@@ -1164,6 +1730,7 @@
       "type":"list",
       "member":{"shape":"SubscriptionFilter"}
     },
+    "Success":{"type":"boolean"},
     "TagKey":{
       "type":"string",
       "max":128,
@@ -1230,6 +1797,12 @@
       "min":0
     },
     "Token":{"type":"string"},
+    "UnrecognizedClientException":{
+      "type":"structure",
+      "members":{
+      },
+      "exception":true
+    },
     "UntagLogGroupRequest":{
       "type":"structure",
       "required":[

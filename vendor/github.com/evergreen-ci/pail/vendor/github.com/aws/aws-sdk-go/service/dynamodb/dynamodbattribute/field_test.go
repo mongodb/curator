@@ -3,8 +3,6 @@ package dynamodbattribute
 import (
 	"reflect"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 type testUnionValues struct {
@@ -75,36 +73,56 @@ func TestUnionStructFields(t *testing.T) {
 		v := reflect.ValueOf(c.in)
 
 		fields := unionStructFields(v.Type(), MarshalOptions{SupportJSONTags: true})
-		for j, f := range fields {
+		for j, f := range fields.All() {
 			expected := c.expect[j]
-			assert.Equal(t, expected.Name, f.Name, "case %d, field %d", i, j)
+			if e, a := expected.Name, f.Name; e != a {
+				t.Errorf("%d:%d expect %v, got %v", i, j, e, f)
+			}
 			actual := v.FieldByIndex(f.Index).Interface()
-			assert.EqualValues(t, expected.Value, actual, "case %d, field %d", i, j)
+			if e, a := expected.Value, actual; !reflect.DeepEqual(e, a) {
+				t.Errorf("%d:%d expect %v, got %v", i, j, e, f)
+			}
 		}
 	}
 }
 
-func TestFieldByName(t *testing.T) {
-	fields := []field{
-		{Name: "Abc"}, {Name: "mixCase"}, {Name: "UPPERCASE"},
+func TestCachedFields(t *testing.T) {
+	type myStruct struct {
+		Dog  int
+		CAT  string
+		bird bool
+	}
+
+	fields := unionStructFields(reflect.TypeOf(myStruct{}), MarshalOptions{})
+
+	const expectedNumFields = 2
+	if numFields := len(fields.All()); numFields != expectedNumFields {
+		t.Errorf("expected number of fields to be %d but got %d", expectedNumFields, numFields)
 	}
 
 	cases := []struct {
-		Name, FieldName string
-		Found           bool
+		Name      string
+		FieldName string
+		Found     bool
 	}{
-		{"abc", "Abc", true}, {"ABC", "Abc", true}, {"Abc", "Abc", true},
-		{"123", "", false},
-		{"ab", "", false},
-		{"MixCase", "mixCase", true},
-		{"uppercase", "UPPERCASE", true}, {"UPPERCASE", "UPPERCASE", true},
+		{"Dog", "Dog", true},
+		{"dog", "Dog", true},
+		{"DOG", "Dog", true},
+		{"Yorkie", "", false},
+		{"Cat", "CAT", true},
+		{"cat", "CAT", true},
+		{"CAT", "CAT", true},
+		{"tiger", "", false},
+		{"bird", "", false},
 	}
 
 	for _, c := range cases {
-		f, ok := fieldByName(fields, c.Name)
-		assert.Equal(t, c.Found, ok)
-		if ok {
-			assert.Equal(t, c.FieldName, f.Name)
+		f, found := fields.FieldByName(c.Name)
+		if found != c.Found {
+			t.Errorf("expected found to be %v but got %v", c.Found, found)
+		}
+		if found && f.Name != c.FieldName {
+			t.Errorf("expected field name to be %s but got %s", c.FieldName, f.Name)
 		}
 	}
 }

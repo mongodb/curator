@@ -13,18 +13,59 @@ import (
 
 // An Operation defines a specific API Operation.
 type Operation struct {
-	API           *API `json:"-"`
-	ExportedName  string
-	Name          string
-	Documentation string
-	HTTP          HTTPInfo
-	InputRef      ShapeRef   `json:"input"`
-	OutputRef     ShapeRef   `json:"output"`
-	ErrorRefs     []ShapeRef `json:"errors"`
-	Paginator     *Paginator
-	Deprecated    bool   `json:"deprecated"`
-	AuthType      string `json:"authtype"`
-	imports       map[string]bool
+	API                 *API `json:"-"`
+	ExportedName        string
+	Name                string
+	Documentation       string
+	HTTP                HTTPInfo
+	Host                string     `json:"host"`
+	InputRef            ShapeRef   `json:"input"`
+	OutputRef           ShapeRef   `json:"output"`
+	ErrorRefs           []ShapeRef `json:"errors"`
+	Paginator           *Paginator
+	Deprecated          bool     `json:"deprecated"`
+	DeprecatedMsg       string   `json:"deprecatedMessage"`
+	AuthType            AuthType `json:"authtype"`
+	imports             map[string]bool
+	CustomBuildHandlers []string
+
+	EventStreamAPI *EventStreamAPI
+
+	IsEndpointDiscoveryOp  bool               `json:"endpointoperation"`
+	EndpointDiscovery      *EndpointDiscovery `json:"endpointdiscovery"`
+	Endpoint               *EndpointTrait     `json:"endpoint"`
+	IsHttpChecksumRequired bool               `json:"httpChecksumRequired"`
+}
+
+// EndpointTrait provides the structure of the modeled endpoint trait, and its
+// properties.
+type EndpointTrait struct {
+	// Specifies the hostPrefix template to prepend to the operation's request
+	// endpoint host.
+	HostPrefix string `json:"hostPrefix"`
+}
+
+// EndpointDiscovery represents a map of key values pairs that represents
+// metadata about how a given API will make a call to the discovery endpoint.
+type EndpointDiscovery struct {
+	// Required indicates that for a given operation that endpoint is required.
+	// Any required endpoint discovery operation cannot have endpoint discovery
+	// turned off.
+	Required bool `json:"required"`
+}
+
+// OperationForMethod returns the API operation name that corresponds to the
+// client method name provided.
+func (a *API) OperationForMethod(name string) *Operation {
+	for _, op := range a.Operations {
+		for _, m := range op.Methods() {
+			if m == name {
+				return op
+			}
+		}
+	}
+
+	return nil
 }
 
 // A HTTPInfo defines the method of HTTP request for the Operation.
@@ -34,7 +75,25 @@ type HTTPInfo struct {
 	ResponseCode uint
 }
 
-// HasInput returns if the Operation accepts an input paramater
+// Methods Returns a list of method names that will be generated.
+func (o *Operation) Methods() []string {
+	methods := []string{
+		o.ExportedName,
+		o.ExportedName + "Request",
+		o.ExportedName + "WithContext",
+	}
+
+	if o.Paginator != nil {
+		methods = append(methods, []string{
+			o.ExportedName + "Pages",
+			o.ExportedName + "PagesWithContext",
+		}...)
+	}
+
+	return methods
+}
+
+// HasInput returns if the Operation accepts an input parameter
 func (o *Operation) HasInput() bool {
 	return o.InputRef.ShapeName != ""
 }
@@ -44,36 +103,57 @@ func (o *Operation) HasOutput() bool {
 	return o.OutputRef.ShapeName != ""
 }
 
-func (o *Operation) GetSigner() string {
-	if o.AuthType == "v4-unsigned-body" {
-		o.API.imports["github.com/aws/aws-sdk-go/aws/signer/v4"] = true
-	}
+// AuthType provides the enumeration of AuthType trait.
+type AuthType string
 
+// Enumeration values for AuthType trait
+const (
+	NoneAuthType           AuthType = "none"
+	V4UnsignedBodyAuthType AuthType = "v4-unsigned-body"
+)
+
+// ShouldSignRequestBody returns if the operation request body should be signed
+// or not.
+func (o *Operation) ShouldSignRequestBody() bool {
+	switch o.AuthType {
+	case NoneAuthType, V4UnsignedBodyAuthType:
+		return false
+	default:
+		return true
+	}
+}
+
+// GetSigner returns the signer that should be used for a API request.
+func (o *Operation) GetSigner() string {
 	buf := bytes.NewBuffer(nil)
 
 	switch o.AuthType {
-	case "none":
+	case NoneAuthType:
+		o.API.AddSDKImport("aws/credentials")
+
 		buf.WriteString("req.Config.Credentials = credentials.AnonymousCredentials")
-	case "v4-unsigned-body":
+	case V4UnsignedBodyAuthType:
+		o.API.AddSDKImport("aws/signer/v4")
+
 		buf.WriteString("req.Handlers.Sign.Remove(v4.SignRequestHandler)\n")
 		buf.WriteString("handler := v4.BuildNamedHandler(\"v4.CustomSignerHandler\", v4.WithUnsignedPayload)\n")
 		buf.WriteString("req.Handlers.Sign.PushFrontNamed(handler)")
 	}
 
-	buf.WriteString("\n")
 	return buf.String()
 }
 
-// tplOperation defines a template for rendering an API Operation
-var tplOperation = template.Must(template.New("operation").Funcs(template.FuncMap{
-	"GetCrosslinkURL": GetCrosslinkURL,
+// operationTmpl defines a template for rendering an API Operation
+var operationTmpl = template.Must(template.New("operation").Funcs(template.FuncMap{
+	"EnableStopOnSameToken": enableStopOnSameToken,
+	"GetDeprecatedMsg":      getDeprecatedMessage,
 }).Parse(`
 const op{{ .ExportedName }} = "{{ .Name }}"
 
 // {{ .ExportedName }}Request generates a "aws/request.Request" representing the
 // client's request for the {{ .ExportedName }} operation. The "output" return
-// value will be populated with the request's response once the request complets
-// successfuly.
+// value will be populated with the request's response once the request completes
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -92,17 +172,20 @@ const op{{ .ExportedName }} = "{{ .Name }}"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-{{ $crosslinkURL := GetCrosslinkURL $.API.BaseCrosslinkURL $.API.APIName $.API.Metadata.UID $.ExportedName -}}
-{{ if ne $crosslinkURL "" -}} 
+{{ $crosslinkURL := $.API.GetCrosslinkURL $.ExportedName -}}
+{{ if ne $crosslinkURL "" -}}
 //
-// Please also see {{ $crosslinkURL }}
+// See also, {{ $crosslinkURL }}
+{{ end -}}
+{{- if .Deprecated }}//
+// Deprecated: {{ GetDeprecatedMsg .DeprecatedMsg .ExportedName }}
 {{ end -}}
 func (c *{{ .API.StructName }}) {{ .ExportedName }}Request(` +
 	`input {{ .InputRef.GoType }}) (req *request.Request, output {{ .OutputRef.GoType }}) {
 	{{ if (or .Deprecated (or .InputRef.Deprecated .OutputRef.Deprecated)) }}if c.Client.Config.Logger != nil {
 		c.Client.Config.Logger.Log("This operation, {{ .ExportedName }}, has been deprecated")
 	}
-	op := &request.Operation{ {{ else }} op := &request.Operation{ {{ end }}	
+	op := &request.Operation{ {{ else }} op := &request.Operation{ {{ end }}
 		Name:       op{{ .ExportedName }},
 		{{ if ne .HTTP.Method "" }}HTTPMethod: "{{ .HTTP.Method }}",
 		{{ end }}HTTPPath: {{ if ne .HTTP.RequestURI "" }}"{{ .HTTP.RequestURI }}"{{ else }}"/"{{ end }},
@@ -120,18 +203,130 @@ func (c *{{ .API.StructName }}) {{ .ExportedName }}Request(` +
 	}
 
 	output = &{{ .OutputRef.GoTypeElem }}{}
-	req = c.newRequest(op, input, output){{ if eq .OutputRef.Shape.Placeholder true }}
-	req.Handlers.Unmarshal.Remove({{ .API.ProtocolPackage }}.UnmarshalHandler)
-	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler){{ end }}
-	{{ if ne .AuthType "" }}{{ .GetSigner }}{{ end -}}
+	req = c.newRequest(op, input, output)
+	{{- if ne .AuthType "" }}
+		{{ .GetSigner }}
+	{{- end }}
+
+	{{- if .ShouldDiscardResponse -}}
+		{{- $_ := .API.AddSDKImport "private/protocol" }}
+		{{- $_ := .API.AddSDKImport "private/protocol" .API.ProtocolPackage }}
+		req.Handlers.Unmarshal.Swap({{ .API.ProtocolPackage }}.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	{{- else }}
+		{{- if $.EventStreamAPI }}
+			{{- $esapi := $.EventStreamAPI }}
+
+			{{- if $esapi.RequireHTTP2 }}
+				req.Handlers.UnmarshalMeta.PushBack(
+					protocol.RequireHTTPMinProtocol{Major:2}.Handler,
+				)
+			{{- end }}
+
+			es := New{{ $esapi.Name }}()
+			{{- if $esapi.Legacy }}
+				req.Handlers.Unmarshal.PushBack(es.setStreamCloser)
+			{{- end }}
+			output.{{ $esapi.OutputMemberName }} = es
+
+			{{- $inputStream := $esapi.InputStream }}
+			{{- $outputStream := $esapi.OutputStream }}
+
+			{{- $_ := .API.AddSDKImport "private/protocol" .API.ProtocolPackage }}
+			{{- $_ := .API.AddSDKImport "private/protocol/rest" }}
+
+			{{- if $inputStream }}
+
+				req.Handlers.Sign.PushFront(es.setupInputPipe)
+				req.Handlers.Build.PushBack(request.WithSetRequestHeaders(map[string]string{
+					"Content-Type": "application/vnd.amazon.eventstream",
+					"X-Amz-Content-Sha256": "STREAMING-AWS4-HMAC-SHA256-EVENTS",
+				}))
+				req.Handlers.Build.Swap({{ .API.ProtocolPackage }}.BuildHandler.Name, rest.BuildHandler)
+				req.Handlers.Send.Swap(client.LogHTTPRequestHandler.Name, client.LogHTTPRequestHeaderHandler)
+				req.Handlers.Unmarshal.PushBack(es.runInputStream)
+
+				{{- if eq .API.Metadata.Protocol "json" }}
+					es.input = input
+					req.Handlers.Unmarshal.PushBack(es.sendInitialEvent)
+				{{- end }}
+			{{- end }}
+
+			{{- if $outputStream }}
+
+				req.Handlers.Send.Swap(client.LogHTTPResponseHandler.Name, client.LogHTTPResponseHeaderHandler)
+				req.Handlers.Unmarshal.Swap({{ .API.ProtocolPackage }}.UnmarshalHandler.Name, rest.UnmarshalHandler)
+				req.Handlers.Unmarshal.PushBack(es.runOutputStream)
+
+				{{- if eq .API.Metadata.Protocol "json" }}
+					es.output = output
+					req.Handlers.Unmarshal.PushBack(es.recvInitialEvent)
+				{{- end }}
+			{{- end }}
+			req.Handlers.Unmarshal.PushBack(es.runOnStreamPartClose)
+
+		{{- end }}
+	{{- end }}
+
+	{{- if .EndpointDiscovery }}
+		// if custom endpoint for the request is set to a non empty string,
+		// we skip the endpoint discovery workflow.
+		if req.Config.Endpoint == nil || *req.Config.Endpoint == "" {
+			{{- if not .EndpointDiscovery.Required }}
+				if aws.BoolValue(req.Config.EnableEndpointDiscovery) {
+			{{- end }}
+			de := discoverer{{ .API.EndpointDiscoveryOp.Name }}{
+				Required: {{ .EndpointDiscovery.Required }},
+				EndpointCache: c.endpointCache,
+				Params: map[string]*string{
+					"op": aws.String(req.Operation.Name),
+					{{- range $key, $ref := .InputRef.Shape.MemberRefs -}}
+						{{- if $ref.EndpointDiscoveryID -}}
+							{{- if ne (len $ref.LocationName) 0 -}}
+								"{{ $ref.LocationName }}": input.{{ $key }},
+							{{- else }}
+								"{{ $key }}": input.{{ $key }},
+							{{- end }}
+						{{- end }}
+					{{- end }}
+				},
+				Client: c,
+			}
+
+			for k, v := range de.Params {
+				if v == nil {
+					delete(de.Params, k)
+				}
+			}
+
+			req.Handlers.Build.PushFrontNamed(request.NamedHandler{
+				Name: "crr.endpointdiscovery",
+				Fn: de.Handler,
+			})
+			{{- if not .EndpointDiscovery.Required }}
+				}
+			{{- end }}
+		}
+	{{- end }}
+
+	{{- range $_, $handler := $.CustomBuildHandlers }}
+		req.Handlers.Build.PushBackNamed({{ $handler }})
+	{{- end }}
+
+	{{- if .IsHttpChecksumRequired }}
+		{{- $_ := .API.AddSDKImport "private/checksum" }}
+		req.Handlers.Build.PushBackNamed(request.NamedHandler{
+			Name: "contentMd5Handler",
+			Fn: checksum.AddBodyContentMD5Handler,
+		})
+	{{- end }}
 	return
 }
 
 // {{ .ExportedName }} API operation for {{ .API.Metadata.ServiceFullName }}.
-{{ if .Documentation -}}
+{{- if .Documentation }}
 //
 {{ .Documentation }}
-{{ end -}}
+{{- end }}
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -139,20 +334,27 @@ func (c *{{ .API.StructName }}) {{ .ExportedName }}Request(` +
 //
 // See the AWS API reference guide for {{ .API.Metadata.ServiceFullName }}'s
 // API operation {{ .ExportedName }} for usage and error information.
-{{ if .ErrorRefs -}}
+{{- if .ErrorRefs }}
 //
-// Returned Error Codes:
-{{ range $_, $err := .ErrorRefs -}}
+// Returned Error {{ if $.API.WithGeneratedTypedErrors }}Types{{ else }}Codes{{ end }}:
+{{- range $_, $err := .ErrorRefs -}}
+{{- if $.API.WithGeneratedTypedErrors }}
+//   * {{ $err.ShapeName }}
+{{- else }}
 //   * {{ $err.Shape.ErrorCodeName }} "{{ $err.Shape.ErrorName}}"
-{{ if $err.Docstring -}}
+{{- end }}
+{{- if $err.Docstring }}
 {{ $err.IndentedDocstring }}
-{{ end -}}
+{{- end }}
 //
+{{- end }}
+{{- end }}
+{{ $crosslinkURL := $.API.GetCrosslinkURL $.ExportedName -}}
+{{ if ne $crosslinkURL "" -}}
+// See also, {{ $crosslinkURL }}
 {{ end -}}
-{{ end -}}
-{{ $crosslinkURL := GetCrosslinkURL $.API.BaseCrosslinkURL $.API.APIName $.API.Metadata.UID $.ExportedName -}}
-{{ if ne $crosslinkURL "" -}} 
-// Please also see {{ $crosslinkURL }}
+{{- if .Deprecated }}//
+// Deprecated: {{ GetDeprecatedMsg .DeprecatedMsg .ExportedName }}
 {{ end -}}
 func (c *{{ .API.StructName }}) {{ .ExportedName }}(` +
 	`input {{ .InputRef.GoType }}) ({{ .OutputRef.GoType }}, error) {
@@ -169,6 +371,9 @@ func (c *{{ .API.StructName }}) {{ .ExportedName }}(` +
 // the context is nil a panic will occur. In the future the SDK may create
 // sub-contexts for http.Requests. See https://golang.org/pkg/context/
 // for more information on using Contexts.
+{{ if .Deprecated }}//
+// Deprecated: {{ GetDeprecatedMsg .DeprecatedMsg (printf "%s%s" .ExportedName "WithContext") }}
+{{ end -}}
 func (c *{{ .API.StructName }}) {{ .ExportedName }}WithContext(` +
 	`ctx aws.Context, input {{ .InputRef.GoType }}, opts ...request.Option) ` +
 	`({{ .OutputRef.GoType }}, error) {
@@ -190,12 +395,15 @@ func (c *{{ .API.StructName }}) {{ .ExportedName }}WithContext(` +
 //    // Example iterating over at most 3 pages of a {{ .ExportedName }} operation.
 //    pageNum := 0
 //    err := client.{{ .ExportedName }}Pages(params,
-//        func(page {{ .OutputRef.GoType }}, lastPage bool) bool {
+//        func(page {{ .OutputRef.Shape.GoTypeWithPkgName }}, lastPage bool) bool {
 //            pageNum++
 //            fmt.Println(page)
 //            return pageNum <= 3
 //        })
 //
+{{ if .Deprecated }}//
+// Deprecated: {{ GetDeprecatedMsg .DeprecatedMsg (printf "%s%s" .ExportedName "Pages") }}
+{{ end -}}
 func (c *{{ .API.StructName }}) {{ .ExportedName }}Pages(` +
 	`input {{ .InputRef.GoType }}, fn func({{ .OutputRef.GoType }}, bool) bool) error {
 	return c.{{ .ExportedName }}PagesWithContext(aws.BackgroundContext(), input, fn)
@@ -208,12 +416,17 @@ func (c *{{ .API.StructName }}) {{ .ExportedName }}Pages(` +
 // the context is nil a panic will occur. In the future the SDK may create
 // sub-contexts for http.Requests. See https://golang.org/pkg/context/
 // for more information on using Contexts.
+{{ if .Deprecated }}//
+// Deprecated: {{ GetDeprecatedMsg .DeprecatedMsg (printf "%s%s" .ExportedName "PagesWithContext") }}
+{{ end -}}
 func (c *{{ .API.StructName }}) {{ .ExportedName }}PagesWithContext(` +
 	`ctx aws.Context, ` +
 	`input {{ .InputRef.GoType }}, ` +
 	`fn func({{ .OutputRef.GoType }}, bool) bool, ` +
 	`opts ...request.Option) error {
 	p := request.Pagination {
+		{{ if EnableStopOnSameToken .API.PackageName -}}EndPageOnSameToken: true,
+		{{ end -}}
 		NewRequest: func() (*request.Request, error) {
 			var inCpy {{ .InputRef.GoType }}
 			if input != nil  {
@@ -227,21 +440,126 @@ func (c *{{ .API.StructName }}) {{ .ExportedName }}PagesWithContext(` +
 		},
 	}
 
-	cont := true
-	for p.Next() && cont {
-		cont = fn(p.Page().({{ .OutputRef.GoType }}), !p.HasNextPage())
+	for p.Next() {
+		if !fn(p.Page().({{ .OutputRef.GoType }}), !p.HasNextPage()) {
+			break
+		}
 	}
+
 	return p.Err()
 }
 {{ end }}
+
+{{- if .IsEndpointDiscoveryOp }}
+type discoverer{{ .ExportedName }} struct {
+	Client *{{ .API.StructName }}
+	Required bool
+	EndpointCache *crr.EndpointCache
+	Params map[string]*string
+	Key string
+	req *request.Request
+}
+
+func (d *discoverer{{ .ExportedName }}) Discover() (crr.Endpoint, error) {
+	input := &{{ .API.EndpointDiscoveryOp.InputRef.ShapeName }}{
+		{{ if .API.EndpointDiscoveryOp.InputRef.Shape.HasMember "Operation" -}}
+		Operation: d.Params["op"],
+		{{ end -}}
+		{{ if .API.EndpointDiscoveryOp.InputRef.Shape.HasMember "Identifiers" -}}
+		Identifiers: d.Params,
+		{{ end -}}
+	}
+
+	resp, err := d.Client.{{ .API.EndpointDiscoveryOp.Name }}(input)
+	if err != nil {
+		return crr.Endpoint{}, err
+	}
+
+	endpoint := crr.Endpoint{
+		Key: d.Key,
+	}
+
+	for _, e := range resp.Endpoints {
+		if e.Address == nil {
+			continue
+		}
+
+		address := *e.Address
+
+		var scheme string
+		if idx := strings.Index(address, "://"); idx != -1 {
+			scheme = address[:idx]
+		}
+
+		if len(scheme) == 0 {
+			address = fmt.Sprintf("%s://%s", d.req.HTTPRequest.URL.Scheme, address)
+		}
+
+		cachedInMinutes := aws.Int64Value(e.CachePeriodInMinutes)
+		u, err := url.Parse(address)
+		if err != nil {
+			continue
+		}
+
+		addr := crr.WeightedAddress{
+			URL: u,
+			Expired:  time.Now().Add(time.Duration(cachedInMinutes) * time.Minute),
+		}
+
+		endpoint.Add(addr)
+	}
+
+	d.EndpointCache.Add(endpoint)
+
+	return endpoint, nil
+}
+
+func (d *discoverer{{ .ExportedName }}) Handler(r *request.Request) {
+	endpointKey := crr.BuildEndpointKey(d.Params)
+	d.Key = endpointKey
+	d.req = r
+
+	endpoint, err := d.EndpointCache.Get(d, endpointKey, d.Required)
+	if err != nil {
+		r.Error = err
+		return
+	}
+
+	if endpoint.URL != nil && len(endpoint.URL.String()) > 0 {
+		r.HTTPRequest.URL = endpoint.URL
+	}
+}
+{{- end }}
 `))
 
 // GoCode returns a string of rendered GoCode for this Operation
 func (o *Operation) GoCode() string {
 	var buf bytes.Buffer
-	err := tplOperation.Execute(&buf, o)
-	if err != nil {
-		panic(err)
+
+	if o.API.EndpointDiscoveryOp != nil {
+		o.API.AddSDKImport("aws/crr")
+		o.API.AddImport("time")
+		o.API.AddImport("net/url")
+		o.API.AddImport("fmt")
+		o.API.AddImport("strings")
+	}
+
+	if o.Endpoint != nil && len(o.Endpoint.HostPrefix) != 0 {
+		setupEndpointHostPrefix(o)
+	}
+
+	if err := operationTmpl.Execute(&buf, o); err != nil {
+		panic(fmt.Sprintf("failed to render operation, %v, %v", o.ExportedName, err))
+	}
+
+	if o.EventStreamAPI != nil {
+		o.API.AddSDKImport("aws/client")
+		o.API.AddSDKImport("private/protocol")
+		o.API.AddSDKImport("private/protocol/rest")
+		o.API.AddSDKImport("private/protocol", o.API.ProtocolPackage())
+		if err := renderEventStreamAPI(&buf, o); err != nil {
+			panic(fmt.Sprintf("failed to render EventStreamAPI for %v, %v", o.ExportedName, err))
+		}
 	}
 
 	return strings.TrimSpace(buf.String())
@@ -308,7 +626,7 @@ func (o *Operation) Example() string {
 func (o *Operation) ExampleInput() string {
 	if len(o.InputRef.Shape.MemberRefs) == 0 {
 		if strings.Contains(o.InputRef.GoTypeElem(), ".") {
-			o.imports["github.com/aws/aws-sdk-go/service/"+strings.Split(o.InputRef.GoTypeElem(), ".")[0]] = true
+			o.imports[SDKImportRoot+"service/"+strings.Split(o.InputRef.GoTypeElem(), ".")[0]] = true
 			return fmt.Sprintf("var params *%s", o.InputRef.GoTypeElem())
 		}
 		return fmt.Sprintf("var params *%s.%s",
@@ -316,6 +634,13 @@ func (o *Operation) ExampleInput() string {
 	}
 	e := example{o, map[string]int{}}
 	return "params := " + e.traverseAny(o.InputRef.Shape, false, false)
+}
+
+// ShouldDiscardResponse returns if the operation should discard the response
+// returned by the service.
+func (o *Operation) ShouldDiscardResponse() bool {
+	s := o.OutputRef.Shape
+	return s.Placeholder || len(s.MemberRefs) == 0
 }
 
 // A example provides

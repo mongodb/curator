@@ -68,6 +68,10 @@ type KinesisAnalyticsAPI interface {
 	AddApplicationInputWithContext(aws.Context, *kinesisanalytics.AddApplicationInputInput, ...request.Option) (*kinesisanalytics.AddApplicationInputOutput, error)
 	AddApplicationInputRequest(*kinesisanalytics.AddApplicationInputInput) (*request.Request, *kinesisanalytics.AddApplicationInputOutput)
 
+	AddApplicationInputProcessingConfiguration(*kinesisanalytics.AddApplicationInputProcessingConfigurationInput) (*kinesisanalytics.AddApplicationInputProcessingConfigurationOutput, error)
+	AddApplicationInputProcessingConfigurationWithContext(aws.Context, *kinesisanalytics.AddApplicationInputProcessingConfigurationInput, ...request.Option) (*kinesisanalytics.AddApplicationInputProcessingConfigurationOutput, error)
+	AddApplicationInputProcessingConfigurationRequest(*kinesisanalytics.AddApplicationInputProcessingConfigurationInput) (*request.Request, *kinesisanalytics.AddApplicationInputProcessingConfigurationOutput)
+
 	AddApplicationOutput(*kinesisanalytics.AddApplicationOutputInput) (*kinesisanalytics.AddApplicationOutputOutput, error)
 	AddApplicationOutputWithContext(aws.Context, *kinesisanalytics.AddApplicationOutputInput, ...request.Option) (*kinesisanalytics.AddApplicationOutputOutput, error)
 	AddApplicationOutputRequest(*kinesisanalytics.AddApplicationOutputInput) (*request.Request, *kinesisanalytics.AddApplicationOutputOutput)
@@ -87,6 +91,10 @@ type KinesisAnalyticsAPI interface {
 	DeleteApplicationCloudWatchLoggingOption(*kinesisanalytics.DeleteApplicationCloudWatchLoggingOptionInput) (*kinesisanalytics.DeleteApplicationCloudWatchLoggingOptionOutput, error)
 	DeleteApplicationCloudWatchLoggingOptionWithContext(aws.Context, *kinesisanalytics.DeleteApplicationCloudWatchLoggingOptionInput, ...request.Option) (*kinesisanalytics.DeleteApplicationCloudWatchLoggingOptionOutput, error)
 	DeleteApplicationCloudWatchLoggingOptionRequest(*kinesisanalytics.DeleteApplicationCloudWatchLoggingOptionInput) (*request.Request, *kinesisanalytics.DeleteApplicationCloudWatchLoggingOptionOutput)
+
+	DeleteApplicationInputProcessingConfiguration(*kinesisanalytics.DeleteApplicationInputProcessingConfigurationInput) (*kinesisanalytics.DeleteApplicationInputProcessingConfigurationOutput, error)
+	DeleteApplicationInputProcessingConfigurationWithContext(aws.Context, *kinesisanalytics.DeleteApplicationInputProcessingConfigurationInput, ...request.Option) (*kinesisanalytics.DeleteApplicationInputProcessingConfigurationOutput, error)
+	DeleteApplicationInputProcessingConfigurationRequest(*kinesisanalytics.DeleteApplicationInputProcessingConfigurationInput) (*request.Request, *kinesisanalytics.DeleteApplicationInputProcessingConfigurationOutput)
 
 	DeleteApplicationOutput(*kinesisanalytics.DeleteApplicationOutputInput) (*kinesisanalytics.DeleteApplicationOutputOutput, error)
 	DeleteApplicationOutputWithContext(aws.Context, *kinesisanalytics.DeleteApplicationOutputInput, ...request.Option) (*kinesisanalytics.DeleteApplicationOutputOutput, error)
@@ -108,6 +116,10 @@ type KinesisAnalyticsAPI interface {
 	ListApplicationsWithContext(aws.Context, *kinesisanalytics.ListApplicationsInput, ...request.Option) (*kinesisanalytics.ListApplicationsOutput, error)
 	ListApplicationsRequest(*kinesisanalytics.ListApplicationsInput) (*request.Request, *kinesisanalytics.ListApplicationsOutput)
 
+	ListTagsForResource(*kinesisanalytics.ListTagsForResourceInput) (*kinesisanalytics.ListTagsForResourceOutput, error)
+	ListTagsForResourceWithContext(aws.Context, *kinesisanalytics.ListTagsForResourceInput, ...request.Option) (*kinesisanalytics.ListTagsForResourceOutput, error)
+	ListTagsForResourceRequest(*kinesisanalytics.ListTagsForResourceInput) (*request.Request, *kinesisanalytics.ListTagsForResourceOutput)
+
 	StartApplication(*kinesisanalytics.StartApplicationInput) (*kinesisanalytics.StartApplicationOutput, error)
 	StartApplicationWithContext(aws.Context, *kinesisanalytics.StartApplicationInput, ...request.Option) (*kinesisanalytics.StartApplicationOutput, error)
 	StartApplicationRequest(*kinesisanalytics.StartApplicationInput) (*request.Request, *kinesisanalytics.StartApplicationOutput)
@@ -115,6 +127,14 @@ type KinesisAnalyticsAPI interface {
 	StopApplication(*kinesisanalytics.StopApplicationInput) (*kinesisanalytics.StopApplicationOutput, error)
 	StopApplicationWithContext(aws.Context, *kinesisanalytics.StopApplicationInput, ...request.Option) (*kinesisanalytics.StopApplicationOutput, error)
 	StopApplicationRequest(*kinesisanalytics.StopApplicationInput) (*request.Request, *kinesisanalytics.StopApplicationOutput)
+
+	TagResource(*kinesisanalytics.TagResourceInput) (*kinesisanalytics.TagResourceOutput, error)
+	TagResourceWithContext(aws.Context, *kinesisanalytics.TagResourceInput, ...request.Option) (*kinesisanalytics.TagResourceOutput, error)
+	TagResourceRequest(*kinesisanalytics.TagResourceInput) (*request.Request, *kinesisanalytics.TagResourceOutput)
+
+	UntagResource(*kinesisanalytics.UntagResourceInput) (*kinesisanalytics.UntagResourceOutput, error)
+	UntagResourceWithContext(aws.Context, *kinesisanalytics.UntagResourceInput, ...request.Option) (*kinesisanalytics.UntagResourceOutput, error)
+	UntagResourceRequest(*kinesisanalytics.UntagResourceInput) (*request.Request, *kinesisanalytics.UntagResourceOutput)
 
 	UpdateApplication(*kinesisanalytics.UpdateApplicationInput) (*kinesisanalytics.UpdateApplicationOutput, error)
 	UpdateApplicationWithContext(aws.Context, *kinesisanalytics.UpdateApplicationInput, ...request.Option) (*kinesisanalytics.UpdateApplicationOutput, error)

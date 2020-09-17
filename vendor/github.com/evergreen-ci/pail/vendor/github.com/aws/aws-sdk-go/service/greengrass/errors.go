@@ -2,17 +2,26 @@
 
 package greengrass
 
+import (
+	"github.com/aws/aws-sdk-go/private/protocol"
+)
+
 const (
 
 	// ErrCodeBadRequestException for service response error code
 	// "BadRequestException".
 	//
-	// user error
+	// General error information.
 	ErrCodeBadRequestException = "BadRequestException"
 
 	// ErrCodeInternalServerErrorException for service response error code
 	// "InternalServerErrorException".
 	//
-	// This request was invalid.
+	// General error information.
 	ErrCodeInternalServerErrorException = "InternalServerErrorException"
 )
+
+var exceptionFromCode = map[string]func(protocol.ResponseMetadata) error{
+	"BadRequestException":          newErrorBadRequestException,
+	"InternalServerErrorException": newErrorInternalServerErrorException,
+}

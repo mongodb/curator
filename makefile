@@ -119,6 +119,8 @@ vendor-clean:
 	rm -rf vendor/github.com/evergreen-ci/gimlet/vendor/github.com/mongodb/grip
 	rm -rf vendor/github.com/evergreen-ci/gimlet/vendor/github.com/stretchr/testify/
 	rm -rf vendor/github.com/evergreen-ci/gimlet/vendor/go.mongodb.org/
+	rm -rf vendor/github.com/evergreen-ci/pail/vendor/github.com/evergreen-ci/poplar/
+	rm -rf vendor/github.com/evergreen-ci/pail/vendor/github.com/evergreen-ci/utility/
 	rm -rf vendor/github.com/evergreen-ci/pail/vendor/github.com/mongodb/grip/
 	rm -rf vendor/github.com/evergreen-ci/pail/vendor/github.com/pkg/errors/
 	rm -rf vendor/github.com/evergreen-ci/pail/vendor/github.com/stretchr/

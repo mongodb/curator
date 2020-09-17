@@ -6,6 +6,7 @@
     "protocol":"query",
     "serviceAbbreviation":"Amazon SQS",
     "serviceFullName":"Amazon Simple Queue Service",
+    "serviceId":"SQS",
     "signatureVersion":"v4",
     "uid":"sqs-2012-11-05",
     "xmlNamespace":"http://queue.amazonaws.com/doc/2012-11-05/"
@@ -151,6 +152,18 @@
         {"shape":"QueueDoesNotExist"}
       ]
     },
+    "ListQueueTags":{
+      "name":"ListQueueTags",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"ListQueueTagsRequest"},
+      "output":{
+        "shape":"ListQueueTagsResult",
+        "resultWrapper":"ListQueueTagsResult"
+      }
+    },
     "ListQueues":{
       "name":"ListQueues",
       "http":{
@@ -244,6 +257,22 @@
       "errors":[
         {"shape":"InvalidAttributeName"}
       ]
+    },
+    "TagQueue":{
+      "name":"TagQueue",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"TagQueueRequest"}
+    },
+    "UntagQueue":{
+      "name":"UntagQueue",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"UntagQueueRequest"}
     }
   },
   "shapes":{
@@ -339,6 +368,10 @@
       }
     },
     "Boolean":{"type":"boolean"},
+    "BoxedInteger":{
+      "type":"integer",
+      "box":true
+    },
     "ChangeMessageVisibilityBatchRequest":{
       "type":"structure",
       "required":[
@@ -417,6 +450,10 @@
         "Attributes":{
           "shape":"QueueAttributeMap",
           "locationName":"Attribute"
+        },
+        "tags":{
+          "shape":"TagMap",
+          "locationName":"Tag"
         }
       }
     },
@@ -576,26 +613,48 @@
       "type":"structure",
       "required":["QueueUrl"],
       "members":{
-        "QueueUrl":{"shape":"String"}
+        "QueueUrl":{"shape":"String"},
+        "NextToken":{"shape":"Token"},
+        "MaxResults":{"shape":"BoxedInteger"}
       }
     },
     "ListDeadLetterSourceQueuesResult":{
       "type":"structure",
       "required":["queueUrls"],
       "members":{
-        "queueUrls":{"shape":"QueueUrlList"}
+        "queueUrls":{"shape":"QueueUrlList"},
+        "NextToken":{"shape":"Token"}
+      }
+    },
+    "ListQueueTagsRequest":{
+      "type":"structure",
+      "required":["QueueUrl"],
+      "members":{
+        "QueueUrl":{"shape":"String"}
+      }
+    },
+    "ListQueueTagsResult":{
+      "type":"structure",
+      "members":{
+        "Tags":{
+          "shape":"TagMap",
+          "locationName":"Tag"
+        }
       }
     },
     "ListQueuesRequest":{
       "type":"structure",
       "members":{
-        "QueueNamePrefix":{"shape":"String"}
+        "QueueNamePrefix":{"shape":"String"},
+        "NextToken":{"shape":"Token"},
+        "MaxResults":{"shape":"BoxedInteger"}
       }
     },
     "ListQueuesResult":{
       "type":"structure",
       "members":{
-        "QueueUrls":{"shape":"QueueUrlList"}
+        "QueueUrls":{"shape":"QueueUrlList"},
+        "NextToken":{"shape":"Token"}
       }
     },
     "Message":{
@@ -656,6 +715,18 @@
       },
       "flattened":true
     },
+    "MessageBodySystemAttributeMap":{
+      "type":"map",
+      "key":{
+        "shape":"MessageSystemAttributeNameForSends",
+        "locationName":"Name"
+      },
+      "value":{
+        "shape":"MessageSystemAttributeValue",
+        "locationName":"Value"
+      },
+      "flattened":true
+    },
     "MessageList":{
       "type":"list",
       "member":{
@@ -697,8 +768,32 @@
         "ApproximateFirstReceiveTimestamp",
         "SequenceNumber",
         "MessageDeduplicationId",
-        "MessageGroupId"
+        "MessageGroupId",
+        "AWSTraceHeader"
       ]
+    },
+    "MessageSystemAttributeNameForSends":{
+      "type":"string",
+      "enum":["AWSTraceHeader"]
+    },
+    "MessageSystemAttributeValue":{
+      "type":"structure",
+      "required":["DataType"],
+      "members":{
+        "StringValue":{"shape":"String"},
+        "BinaryValue":{"shape":"Binary"},
+        "StringListValues":{
+          "shape":"StringList",
+          "flattened":true,
+          "locationName":"StringListValue"
+        },
+        "BinaryListValues":{
+          "shape":"BinaryList",
+          "flattened":true,
+          "locationName":"BinaryListValue"
+        },
+        "DataType":{"shape":"String"}
+      }
     },
     "OverLimit":{
       "type":"structure",
@@ -867,6 +962,10 @@
           "shape":"MessageBodyAttributeMap",
           "locationName":"MessageAttribute"
         },
+        "MessageSystemAttributes":{
+          "shape":"MessageBodySystemAttributeMap",
+          "locationName":"MessageSystemAttribute"
+        },
         "MessageDeduplicationId":{"shape":"String"},
         "MessageGroupId":{"shape":"String"}
       }
@@ -902,6 +1001,7 @@
         "MessageId":{"shape":"String"},
         "MD5OfMessageBody":{"shape":"String"},
         "MD5OfMessageAttributes":{"shape":"String"},
+        "MD5OfMessageSystemAttributes":{"shape":"String"},
         "SequenceNumber":{"shape":"String"}
       }
     },
@@ -927,6 +1027,10 @@
           "shape":"MessageBodyAttributeMap",
           "locationName":"MessageAttribute"
         },
+        "MessageSystemAttributes":{
+          "shape":"MessageBodySystemAttributeMap",
+          "locationName":"MessageSystemAttribute"
+        },
         "MessageDeduplicationId":{"shape":"String"},
         "MessageGroupId":{"shape":"String"}
       }
@@ -936,6 +1040,7 @@
       "members":{
         "MD5OfMessageBody":{"shape":"String"},
         "MD5OfMessageAttributes":{"shape":"String"},
+        "MD5OfMessageSystemAttributes":{"shape":"String"},
         "MessageId":{"shape":"String"},
         "SequenceNumber":{"shape":"String"}
       }
@@ -962,6 +1067,41 @@
         "locationName":"StringListValue"
       }
     },
+    "TagKey":{"type":"string"},
+    "TagKeyList":{
+      "type":"list",
+      "member":{
+        "shape":"TagKey",
+        "locationName":"TagKey"
+      },
+      "flattened":true
+    },
+    "TagMap":{
+      "type":"map",
+      "key":{
+        "shape":"TagKey",
+        "locationName":"Key"
+      },
+      "value":{
+        "shape":"TagValue",
+        "locationName":"Value"
+      },
+      "flattened":true,
+      "locationName":"Tag"
+    },
+    "TagQueueRequest":{
+      "type":"structure",
+      "required":[
+        "QueueUrl",
+        "Tags"
+      ],
+      "members":{
+        "QueueUrl":{"shape":"String"},
+        "Tags":{"shape":"TagMap"}
+      }
+    },
+    "TagValue":{"type":"string"},
+    "Token":{"type":"string"},
     "TooManyEntriesInBatchRequest":{
       "type":"structure",
       "members":{
@@ -983,6 +1123,17 @@
         "senderFault":true
       },
       "exception":true
+    },
+    "UntagQueueRequest":{
+      "type":"structure",
+      "required":[
+        "QueueUrl",
+        "TagKeys"
+      ],
+      "members":{
+        "QueueUrl":{"shape":"String"},
+        "TagKeys":{"shape":"TagKeyList"}
+      }
     }
   }
 }

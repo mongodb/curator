@@ -169,6 +169,9 @@ func (b *gridfsBucket) Reader(ctx context.Context, name string) (io.ReadCloser, 
 
 	reader, err := grid.OpenDownloadStreamByName(b.normalizeKey(name))
 	if err != nil {
+		if err == gridfs.ErrFileNotFound {
+			err = MakeKeyNotFoundError(err)
+		}
 		return nil, errors.Wrap(err, "problem opening stream")
 	}
 

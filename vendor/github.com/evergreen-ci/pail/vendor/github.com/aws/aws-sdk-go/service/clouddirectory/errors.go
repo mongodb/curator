@@ -2,6 +2,10 @@
 
 package clouddirectory
 
+import (
+	"github.com/aws/aws-sdk-go/private/protocol"
+)
+
 const (
 
 	// ErrCodeAccessDeniedException for service response error code
@@ -45,7 +49,7 @@ const (
 	// ErrCodeDirectoryNotEnabledException for service response error code
 	// "DirectoryNotEnabledException".
 	//
-	// An operation can only operate on a directory that is not enabled.
+	// Operations are only permitted on enabled directories.
 	ErrCodeDirectoryNotEnabledException = "DirectoryNotEnabledException"
 
 	// ErrCodeFacetAlreadyExistsException for service response error code
@@ -74,6 +78,14 @@ const (
 	// with the schema.
 	ErrCodeFacetValidationException = "FacetValidationException"
 
+	// ErrCodeIncompatibleSchemaException for service response error code
+	// "IncompatibleSchemaException".
+	//
+	// Indicates a failure occurred while performing a check for backward compatibility
+	// between the specified schema and the schema that is currently applied to
+	// the directory.
+	ErrCodeIncompatibleSchemaException = "IncompatibleSchemaException"
+
 	// ErrCodeIndexedAttributeMissingException for service response error code
 	// "IndexedAttributeMissingException".
 	//
@@ -99,9 +111,9 @@ const (
 	// ErrCodeInvalidAttachmentException for service response error code
 	// "InvalidAttachmentException".
 	//
-	// Indicates that an attempt to attach an object with the same link name or
-	// to apply a schema with the same name has occurred. Rename the link or the
-	// schema and then try again.
+	// Indicates that an attempt to make an attachment was invalid. For example,
+	// attaching two nodes with a link type that is not applicable to the nodes
+	// or attempting to apply a schema to a directory a second time.
 	ErrCodeInvalidAttachmentException = "InvalidAttachmentException"
 
 	// ErrCodeInvalidFacetUpdateException for service response error code
@@ -139,7 +151,7 @@ const (
 	// ErrCodeLimitExceededException for service response error code
 	// "LimitExceededException".
 	//
-	// Indicates that limits are exceeded. See Limits (http://docs.aws.amazon.com/directoryservice/latest/admin-guide/limits.html)
+	// Indicates that limits are exceeded. See Limits (https://docs.aws.amazon.com/clouddirectory/latest/developerguide/limits.html)
 	// for more information.
 	ErrCodeLimitExceededException = "LimitExceededException"
 
@@ -232,3 +244,41 @@ const (
 	// message.
 	ErrCodeValidationException = "ValidationException"
 )
+
+var exceptionFromCode = map[string]func(protocol.ResponseMetadata) error{
+	"AccessDeniedException":            newErrorAccessDeniedException,
+	"BatchWriteException":              newErrorBatchWriteException,
+	"CannotListParentOfRootException":  newErrorCannotListParentOfRootException,
+	"DirectoryAlreadyExistsException":  newErrorDirectoryAlreadyExistsException,
+	"DirectoryDeletedException":        newErrorDirectoryDeletedException,
+	"DirectoryNotDisabledException":    newErrorDirectoryNotDisabledException,
+	"DirectoryNotEnabledException":     newErrorDirectoryNotEnabledException,
+	"FacetAlreadyExistsException":      newErrorFacetAlreadyExistsException,
+	"FacetInUseException":              newErrorFacetInUseException,
+	"FacetNotFoundException":           newErrorFacetNotFoundException,
+	"FacetValidationException":         newErrorFacetValidationException,
+	"IncompatibleSchemaException":      newErrorIncompatibleSchemaException,
+	"IndexedAttributeMissingException": newErrorIndexedAttributeMissingException,
+	"InternalServiceException":         newErrorInternalServiceException,
+	"InvalidArnException":              newErrorInvalidArnException,
+	"InvalidAttachmentException":       newErrorInvalidAttachmentException,
+	"InvalidFacetUpdateException":      newErrorInvalidFacetUpdateException,
+	"InvalidNextTokenException":        newErrorInvalidNextTokenException,
+	"InvalidRuleException":             newErrorInvalidRuleException,
+	"InvalidSchemaDocException":        newErrorInvalidSchemaDocException,
+	"InvalidTaggingRequestException":   newErrorInvalidTaggingRequestException,
+	"LimitExceededException":           newErrorLimitExceededException,
+	"LinkNameAlreadyInUseException":    newErrorLinkNameAlreadyInUseException,
+	"NotIndexException":                newErrorNotIndexException,
+	"NotNodeException":                 newErrorNotNodeException,
+	"NotPolicyException":               newErrorNotPolicyException,
+	"ObjectAlreadyDetachedException":   newErrorObjectAlreadyDetachedException,
+	"ObjectNotDetachedException":       newErrorObjectNotDetachedException,
+	"ResourceNotFoundException":        newErrorResourceNotFoundException,
+	"RetryableConflictException":       newErrorRetryableConflictException,
+	"SchemaAlreadyExistsException":     newErrorSchemaAlreadyExistsException,
+	"SchemaAlreadyPublishedException":  newErrorSchemaAlreadyPublishedException,
+	"StillContainsLinksException":      newErrorStillContainsLinksException,
+	"UnsupportedIndexTypeException":    newErrorUnsupportedIndexTypeException,
+	"ValidationException":              newErrorValidationException,
+}
