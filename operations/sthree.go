@@ -99,10 +99,13 @@ func s3PutCmd() cli.Command {
 				return err
 			}
 
+			bucketName := c.String("bucket")
+			objectKey := c.String("name")
+
 			opts := pail.S3Options{
 				SharedCredentialsProfile: c.String("profile"),
 				Region:                   c.String("region"),
-				Name:                     c.String("bucket"),
+				Name:                     bucketName,
 				Permissions:              pail.S3Permissions(c.String("permissions")),
 				ContentType:              c.String("type"),
 				DryRun:                   c.Bool("dry-run"),
@@ -114,14 +117,20 @@ func s3PutCmd() cli.Command {
 				return errors.Wrap(err, "problem getting new bucket")
 			}
 
-			fmt.Printf("Uploading file '%s' to path '%s' in bucket '%s'\n", c.String("file"), c.String("name"), c.String("bucket"))
-			if err := bucket.Upload(ctx, c.String("name"), c.String("file")); err != nil {
+			fmt.Printf("Uploading file '%s' to path '%s' in bucket '%s'\n", c.String("file"), objectKey, bucketName)
+			if err := bucket.Upload(ctx, objectKey, c.String("file")); err != nil {
 				return errors.Wrapf(err, "problem putting %s in s3", c.String("file"))
 			}
 
-			fileBase := filepath.Base(c.String("file"))
-			remotePath := path.Join(strings.TrimSuffix(c.String("name"), fileBase), fileBase)
-			url := strings.Join([]string{fmt.Sprintf("https://%s.s3.amazonaws.com", c.String("bucket")), remotePath}, "/")
+			fileName := filepath.Base(c.String("file"))
+			remotePath := path.Join(strings.TrimSuffix(objectKey, fileName), fileName)
+			var baseURL string
+			if strings.Contains(bucketName, ".") {
+				baseURL = fmt.Sprintf("https://%s.s3.amazonaws.com", bucketName)
+			} else {
+				baseURL = fmt.Sprintf("https://s3.amazonaws.com/%s", bucketName)
+			}
+			url := strings.Join([]string{baseURL, remotePath}, "/")
 			fmt.Println("Object URL: ", url)
 
 			return nil
