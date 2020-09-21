@@ -52,6 +52,8 @@ imports:
   version: d3107576ba9425fc1c85f4b3569c4631b805a02e
 - name: github.com/aws/aws-sdk-go
   version: d74b040ceb12d170bd1d5d62cc800efbc78ff129
+- name: github.com/jmespath/go-jmespath
+  version: bd40a432e4c76585ef6b72d3fd96fb9b6dc7b68d
 
 - name: github.com/evergreen-ci/birch
   version: 3a26bb67719ad6a9e7daed059abd5d018586f3cd
