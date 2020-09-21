@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/evergreen-ci/utility"
 	"github.com/mongodb/grip"
 	"github.com/mongodb/grip/message"
 	"github.com/pkg/errors"
@@ -113,6 +114,9 @@ func (b *gridfsLegacyBucket) openFile(ctx context.Context, name string, create b
 		file, err = gridfs.Open(normalizedName)
 	}
 	if err != nil {
+		if err == mgo.ErrNotFound {
+			err = MakeKeyNotFoundError(err)
+		}
 		ses.Close()
 		return nil, errors.Wrapf(err, "couldn't open %s/%s", b.opts.Name, normalizedName)
 	}
@@ -297,7 +301,7 @@ func (b *gridfsLegacyBucket) Push(ctx context.Context, opts SyncOptions) error {
 			return errors.Wrapf(err, "problem finding '%s'", target)
 		}
 
-		localmd5, err := md5sum(filepath.Join(opts.Local, path))
+		localmd5, err := utility.MD5SumFile(filepath.Join(opts.Local, path))
 		if err != nil {
 			return errors.Wrapf(err, "problem checksumming '%s'", path)
 		}
@@ -358,7 +362,7 @@ func (b *gridfsLegacyBucket) Pull(ctx context.Context, opts SyncOptions) error {
 		fn := denormalizedName[len(opts.Remote)+1:]
 		name := filepath.Join(opts.Local, fn)
 		keys = append(keys, fn)
-		checksum, err = md5sum(name)
+		checksum, err = utility.MD5SumFile(name)
 		if os.IsNotExist(errors.Cause(err)) {
 			if err = b.Download(ctx, denormalizedName, name); err != nil {
 				return errors.WithStack(err)
@@ -427,7 +431,12 @@ func (b *gridfsLegacyBucket) Remove(ctx context.Context, key string) error {
 	if b.opts.DryRun {
 		return nil
 	}
-	return errors.Wrapf(b.gridFS().Remove(b.normalizeKey(key)), "problem removing file %s", key)
+
+	err := b.gridFS().Remove(b.normalizeKey(key))
+	if err == mgo.ErrNotFound {
+		err = MakeKeyNotFoundError(err)
+	}
+	return errors.Wrapf(err, "problem removing file %s", key)
 }
 
 func (b *gridfsLegacyBucket) RemoveMany(ctx context.Context, keys ...string) error {

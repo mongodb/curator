@@ -1,10 +1,10 @@
 package pail
 
 import (
+	"archive/tar"
 	"bytes"
 	"context"
-	"crypto/rand"
-	"encoding/hex"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/evergreen-ci/pail/testutil"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -20,12 +21,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	mgo "gopkg.in/mgo.v2"
 )
-
-func newUUID() string {
-	b := make([]byte, 16)
-	_, _ = rand.Read(b)
-	return hex.EncodeToString(b)
-}
 
 type bucketTestCase struct {
 	id   string
@@ -36,7 +31,7 @@ func TestBucket(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	uuid := newUUID()
+	uuid := testutil.NewUUID()
 	_, file, _, _ := runtime.Caller(0)
 	tempdir, err := ioutil.TempDir("", "pail-bucket-test")
 	require.NoError(t, err)
@@ -49,10 +44,13 @@ func TestBucket(t *testing.T) {
 	defer ses.Close()
 	defer func() { assert.NoError(t, ses.DB(uuid).DropDatabase()) }()
 
+	s3Credentials := CreateAWSCredentials(os.Getenv("AWS_KEY"), os.Getenv("AWS_SECRET"), "")
 	s3BucketName := "build-test-curator"
-	s3Prefix := newUUID() + "-"
+	s3Prefix := testutil.NewUUID() + "-"
 	s3Region := "us-east-1"
-	defer func() { require.NoError(t, cleanUpS3Bucket(s3BucketName, s3Prefix, s3Region)) }()
+	defer func() {
+		require.NoError(t, testutil.CleanupS3Bucket(s3Credentials, s3BucketName, s3Prefix, s3Region))
+	}()
 
 	client, err := mongo.NewClient(options.Client().ApplyURI(mdburl))
 	require.NoError(t, err)
@@ -70,7 +68,7 @@ func TestBucket(t *testing.T) {
 			constructor: func(t *testing.T) Bucket {
 				path := filepath.Join(tempdir, uuid)
 				require.NoError(t, os.MkdirAll(path, 0777))
-				return &localFileSystem{path: path, prefix: newUUID()}
+				return &localFileSystem{path: path, prefix: testutil.NewUUID()}
 			},
 			tests: []bucketTestCase{
 				{
@@ -191,8 +189,8 @@ func TestBucket(t *testing.T) {
 			constructor: func(t *testing.T) Bucket {
 				require.NoError(t, client.Database(uuid).Drop(ctx))
 				b, err := NewGridFSBucketWithClient(ctx, client, GridFSOptions{
-					Name:     newUUID(),
-					Prefix:   newUUID(),
+					Name:     testutil.NewUUID(),
+					Prefix:   testutil.NewUUID(),
 					Database: uuid,
 				})
 				require.NoError(t, err)
@@ -204,8 +202,8 @@ func TestBucket(t *testing.T) {
 			constructor: func(t *testing.T) Bucket {
 				require.NoError(t, client.Database(uuid).Drop(ctx))
 				b, err := NewLegacyGridFSBucketWithSession(ses.Clone(), GridFSOptions{
-					Name:     newUUID(),
-					Prefix:   newUUID(),
+					Name:     testutil.NewUUID(),
+					Prefix:   testutil.NewUUID(),
 					Database: uuid,
 				})
 				require.NoError(t, err)
@@ -238,24 +236,26 @@ func TestBucket(t *testing.T) {
 			name: "S3Bucket",
 			constructor: func(t *testing.T) Bucket {
 				s3Options := S3Options{
-					Region:     s3Region,
-					Name:       s3BucketName,
-					Prefix:     s3Prefix + newUUID(),
-					MaxRetries: 20,
+					Credentials: s3Credentials,
+					Region:      s3Region,
+					Name:        s3BucketName,
+					Prefix:      s3Prefix + testutil.NewUUID(),
+					MaxRetries:  20,
 				}
 				b, err := NewS3Bucket(s3Options)
 				require.NoError(t, err)
 				return b
 			},
-			tests: getS3SmallBucketTests(ctx, tempdir, s3BucketName, s3Prefix, s3Region),
+			tests: getS3SmallBucketTests(ctx, tempdir, s3Credentials, s3BucketName, s3Prefix, s3Region),
 		},
 		{
 			name: "S3BucketChecksums",
 			constructor: func(t *testing.T) Bucket {
 				s3Options := S3Options{
+					Credentials:            s3Credentials,
 					Region:                 s3Region,
 					Name:                   s3BucketName,
-					Prefix:                 s3Prefix + newUUID(),
+					Prefix:                 s3Prefix + testutil.NewUUID(),
 					MaxRetries:             20,
 					UseSingleFileChecksums: true,
 				}
@@ -263,13 +263,13 @@ func TestBucket(t *testing.T) {
 				require.NoError(t, err)
 				return b
 			},
-			tests: getS3SmallBucketTests(ctx, tempdir, s3BucketName, s3Prefix, s3Region),
+			tests: getS3SmallBucketTests(ctx, tempdir, s3Credentials, s3BucketName, s3Prefix, s3Region),
 		},
 		{
 			name: "ParallelLocal",
 			constructor: func(t *testing.T) Bucket {
 				t.Skip()
-				path := filepath.Join(tempdir, uuid, newUUID())
+				path := filepath.Join(tempdir, uuid, testutil.NewUUID())
 				require.NoError(t, os.MkdirAll(path, 0777))
 				bucket := &localFileSystem{path: path}
 
@@ -282,9 +282,10 @@ func TestBucket(t *testing.T) {
 			name: "ParallelS3Bucket",
 			constructor: func(t *testing.T) Bucket {
 				s3Options := S3Options{
+					Credentials:            s3Credentials,
 					Region:                 s3Region,
 					Name:                   s3BucketName,
-					Prefix:                 s3Prefix + newUUID(),
+					Prefix:                 s3Prefix + testutil.NewUUID(),
 					MaxRetries:             20,
 					UseSingleFileChecksums: true,
 				}
@@ -300,24 +301,26 @@ func TestBucket(t *testing.T) {
 			name: "S3MultiPartBucket",
 			constructor: func(t *testing.T) Bucket {
 				s3Options := S3Options{
-					Region:     s3Region,
-					Name:       s3BucketName,
-					Prefix:     s3Prefix + newUUID(),
-					MaxRetries: 20,
+					Credentials: s3Credentials,
+					Region:      s3Region,
+					Name:        s3BucketName,
+					Prefix:      s3Prefix + testutil.NewUUID(),
+					MaxRetries:  20,
 				}
 				b, err := NewS3MultiPartBucket(s3Options)
 				require.NoError(t, err)
 				return b
 			},
-			tests: getS3LargeBucketTests(ctx, tempdir, s3BucketName, s3Prefix, s3Region),
+			tests: getS3LargeBucketTests(ctx, tempdir, s3Credentials, s3BucketName, s3Prefix, s3Region),
 		},
 		{
 			name: "S3MultiPartBucketChecksum",
 			constructor: func(t *testing.T) Bucket {
 				s3Options := S3Options{
+					Credentials:            s3Credentials,
 					Region:                 s3Region,
 					Name:                   s3BucketName,
-					Prefix:                 s3Prefix + newUUID(),
+					Prefix:                 s3Prefix + testutil.NewUUID(),
 					MaxRetries:             20,
 					UseSingleFileChecksums: true,
 				}
@@ -325,7 +328,7 @@ func TestBucket(t *testing.T) {
 				require.NoError(t, err)
 				return b
 			},
-			tests: getS3LargeBucketTests(ctx, tempdir, s3BucketName, s3Prefix, s3Region),
+			tests: getS3LargeBucketTests(ctx, tempdir, s3Credentials, s3BucketName, s3Prefix, s3Region),
 		},
 	} {
 		t.Run(impl.name, func(t *testing.T) {
@@ -349,7 +352,7 @@ func TestBucket(t *testing.T) {
 				assert.Nil(t, iter.Item())
 				assert.NoError(t, iter.Err())
 			})
-			t.Run("ListErrorsWithCancledContext", func(t *testing.T) {
+			t.Run("ListErrorsWithCanceledContext", func(t *testing.T) {
 				bucket := impl.constructor(t)
 				tctx, cancel := context.WithCancel(ctx)
 				cancel()
@@ -359,11 +362,11 @@ func TestBucket(t *testing.T) {
 			})
 			t.Run("WriteOneFile", func(t *testing.T) {
 				bucket := impl.constructor(t)
-				assert.NoError(t, writeDataToFile(ctx, bucket, newUUID(), "hello world!"))
+				assert.NoError(t, writeDataToFile(ctx, bucket, testutil.NewUUID(), "hello world!"))
 
 				// dry run does not write
 				setDryRun(bucket, true)
-				assert.NoError(t, writeDataToFile(ctx, bucket, newUUID(), "hello world!"))
+				assert.NoError(t, writeDataToFile(ctx, bucket, testutil.NewUUID(), "hello world!"))
 
 				// just check that only one key exists in the iterator
 				iter, err := bucket.List(ctx, "")
@@ -374,7 +377,7 @@ func TestBucket(t *testing.T) {
 			})
 			t.Run("RemoveOneFile", func(t *testing.T) {
 				bucket := impl.constructor(t)
-				key := newUUID()
+				key := testutil.NewUUID()
 				assert.NoError(t, writeDataToFile(ctx, bucket, key, "hello world!"))
 
 				// dry run does not remove anything
@@ -402,14 +405,14 @@ func TestBucket(t *testing.T) {
 				deleteData := map[string]string{}
 				deleteKeys := []string{}
 				for i := 0; i < 20; i++ {
-					key := newUUID()
-					data[key] = strings.Join([]string{newUUID(), newUUID(), newUUID()}, "\n")
+					key := testutil.NewUUID()
+					data[key] = strings.Join([]string{testutil.NewUUID(), testutil.NewUUID(), testutil.NewUUID()}, "\n")
 					keys = append(keys, key)
 				}
 				assert.Len(t, keys, 20)
 				for i := 0; i < 20; i++ {
-					key := newUUID()
-					deleteData[key] = strings.Join([]string{newUUID(), newUUID(), newUUID()}, "\n")
+					key := testutil.NewUUID()
+					deleteData[key] = strings.Join([]string{testutil.NewUUID(), testutil.NewUUID(), testutil.NewUUID()}, "\n")
 					deleteKeys = append(deleteKeys, key)
 				}
 				assert.Len(t, deleteKeys, 20)
@@ -459,16 +462,16 @@ func TestBucket(t *testing.T) {
 				keys := []string{}
 				deleteData := map[string]string{}
 				deleteKeys := []string{}
-				prefix := newUUID()
+				prefix := testutil.NewUUID()
 				for i := 0; i < 5; i++ {
-					key := newUUID()
-					data[key] = strings.Join([]string{newUUID(), newUUID(), newUUID()}, "\n")
+					key := testutil.NewUUID()
+					data[key] = strings.Join([]string{testutil.NewUUID(), testutil.NewUUID(), testutil.NewUUID()}, "\n")
 					keys = append(keys, key)
 				}
 				assert.Len(t, keys, 5)
 				for i := 0; i < 5; i++ {
-					key := prefix + newUUID()
-					deleteData[key] = strings.Join([]string{newUUID(), newUUID(), newUUID()}, "\n")
+					key := prefix + testutil.NewUUID()
+					deleteData[key] = strings.Join([]string{testutil.NewUUID(), testutil.NewUUID(), testutil.NewUUID()}, "\n")
 					deleteKeys = append(deleteKeys, key)
 				}
 				assert.Len(t, deleteKeys, 5)
@@ -509,16 +512,16 @@ func TestBucket(t *testing.T) {
 				keys := []string{}
 				deleteData := map[string]string{}
 				deleteKeys := []string{}
-				postfix := newUUID()
+				postfix := testutil.NewUUID()
 				for i := 0; i < 5; i++ {
-					key := newUUID()
-					data[key] = strings.Join([]string{newUUID(), newUUID(), newUUID()}, "\n")
+					key := testutil.NewUUID()
+					data[key] = strings.Join([]string{testutil.NewUUID(), testutil.NewUUID(), testutil.NewUUID()}, "\n")
 					keys = append(keys, key)
 				}
 				assert.Len(t, keys, 5)
 				for i := 0; i < 5; i++ {
-					key := newUUID() + postfix
-					deleteData[key] = strings.Join([]string{newUUID(), newUUID(), newUUID()}, "\n")
+					key := testutil.NewUUID() + postfix
+					deleteData[key] = strings.Join([]string{testutil.NewUUID(), testutil.NewUUID(), testutil.NewUUID()}, "\n")
 					deleteKeys = append(deleteKeys, key)
 				}
 				assert.Len(t, deleteKeys, 5)
@@ -560,7 +563,7 @@ func TestBucket(t *testing.T) {
 			})
 			t.Run("ReadWriteRoundTripSimple", func(t *testing.T) {
 				bucket := impl.constructor(t)
-				key := newUUID()
+				key := testutil.NewUUID()
 				payload := "hello world!"
 				require.NoError(t, writeDataToFile(ctx, bucket, key, payload))
 
@@ -570,7 +573,7 @@ func TestBucket(t *testing.T) {
 			})
 			t.Run("GetRetrievesData", func(t *testing.T) {
 				bucket := impl.constructor(t)
-				key := newUUID()
+				key := testutil.NewUUID()
 				assert.NoError(t, writeDataToFile(ctx, bucket, key, "hello world!"))
 
 				reader, err := bucket.Get(ctx, key)
@@ -590,7 +593,7 @@ func TestBucket(t *testing.T) {
 			t.Run("PutSavesFiles", func(t *testing.T) {
 				const contents = "check data"
 				bucket := impl.constructor(t)
-				key := newUUID()
+				key := testutil.NewUUID()
 				assert.NoError(t, bucket.Put(ctx, key, bytes.NewBuffer([]byte(contents))))
 
 				reader, err := bucket.Get(ctx, key)
@@ -603,7 +606,7 @@ func TestBucket(t *testing.T) {
 				const contents = "check data"
 				bucket := impl.constructor(t)
 				setDryRun(bucket, true)
-				key := newUUID()
+				key := testutil.NewUUID()
 				assert.NoError(t, bucket.Put(ctx, key, bytes.NewBuffer([]byte(contents))))
 
 				_, err := bucket.Get(ctx, key)
@@ -612,8 +615,8 @@ func TestBucket(t *testing.T) {
 			t.Run("CopyDuplicatesData", func(t *testing.T) {
 				const contents = "this one"
 				bucket := impl.constructor(t)
-				keyOne := newUUID()
-				keyTwo := newUUID()
+				keyOne := testutil.NewUUID()
+				keyTwo := testutil.NewUUID()
 				assert.NoError(t, writeDataToFile(ctx, bucket, keyOne, contents))
 				options := CopyOptions{
 					SourceKey:         keyOne,
@@ -630,8 +633,8 @@ func TestBucket(t *testing.T) {
 				bucket := impl.constructor(t)
 				dryRunBucket := impl.constructor(t)
 				setDryRun(dryRunBucket, true)
-				keyOne := newUUID()
-				keyTwo := newUUID()
+				keyOne := testutil.NewUUID()
+				keyTwo := testutil.NewUUID()
 				assert.NoError(t, writeDataToFile(ctx, bucket, keyOne, contents))
 				options := CopyOptions{
 					SourceKey:         keyOne,
@@ -646,8 +649,8 @@ func TestBucket(t *testing.T) {
 				const contents = "this one"
 				bucket := impl.constructor(t)
 				dryRunBucket := impl.constructor(t)
-				keyOne := newUUID()
-				keyTwo := newUUID()
+				keyOne := testutil.NewUUID()
+				keyTwo := testutil.NewUUID()
 				assert.NoError(t, writeDataToFile(ctx, dryRunBucket, keyOne, contents))
 				setDryRun(dryRunBucket, true)
 				options := CopyOptions{
@@ -664,8 +667,8 @@ func TestBucket(t *testing.T) {
 				const contents = "this one"
 				srcBucket := impl.constructor(t)
 				destBucket := impl.constructor(t)
-				keyOne := newUUID()
-				keyTwo := newUUID()
+				keyOne := testutil.NewUUID()
+				keyTwo := testutil.NewUUID()
 				assert.NoError(t, writeDataToFile(ctx, srcBucket, keyOne, contents))
 				options := CopyOptions{
 					SourceKey:         keyOne,
@@ -680,7 +683,7 @@ func TestBucket(t *testing.T) {
 			t.Run("DownloadWritesFileToDisk", func(t *testing.T) {
 				const contents = "in the file"
 				bucket := impl.constructor(t)
-				key := newUUID()
+				key := testutil.NewUUID()
 				path := filepath.Join(tempdir, uuid, key)
 				assert.NoError(t, writeDataToFile(ctx, bucket, key, contents))
 
@@ -696,7 +699,7 @@ func TestBucket(t *testing.T) {
 
 				// writes file to disk with dry run bucket
 				setDryRun(bucket, true)
-				path = filepath.Join(tempdir, uuid, newUUID())
+				path = filepath.Join(tempdir, uuid, testutil.NewUUID())
 				_, err = os.Stat(path)
 				require.True(t, os.IsNotExist(err))
 				require.NoError(t, bucket.Download(ctx, key, path))
@@ -709,7 +712,7 @@ func TestBucket(t *testing.T) {
 			})
 			t.Run("ListRespectsPrefixes", func(t *testing.T) {
 				bucket := impl.constructor(t)
-				key := newUUID()
+				key := testutil.NewUUID()
 
 				assert.NoError(t, writeDataToFile(ctx, bucket, key, "foo/bar"))
 
@@ -732,7 +735,7 @@ func TestBucket(t *testing.T) {
 			t.Run("RoundTripManyFiles", func(t *testing.T) {
 				data := map[string]string{}
 				for i := 0; i < 3; i++ {
-					data[newUUID()] = strings.Join([]string{newUUID(), newUUID(), newUUID()}, "\n")
+					data[testutil.NewUUID()] = strings.Join([]string{testutil.NewUUID(), testutil.NewUUID(), testutil.NewUUID()}, "\n")
 				}
 
 				bucket := impl.constructor(t)
@@ -767,7 +770,7 @@ func TestBucket(t *testing.T) {
 			t.Run("PullFromBucket", func(t *testing.T) {
 				data := map[string]string{}
 				for i := 0; i < 50; i++ {
-					data[newUUID()] = strings.Join([]string{newUUID(), newUUID(), newUUID()}, "\n")
+					data[testutil.NewUUID()] = strings.Join([]string{testutil.NewUUID(), testutil.NewUUID(), testutil.NewUUID()}, "\n")
 				}
 
 				bucket := impl.constructor(t)
@@ -776,7 +779,7 @@ func TestBucket(t *testing.T) {
 				}
 
 				t.Run("BasicPull", func(t *testing.T) {
-					mirror := filepath.Join(tempdir, "pull-one", newUUID())
+					mirror := filepath.Join(tempdir, "pull-one", testutil.NewUUID())
 					require.NoError(t, os.MkdirAll(mirror, 0700))
 					opts := SyncOptions{Local: mirror}
 					assert.NoError(t, bucket.Pull(ctx, opts))
@@ -793,7 +796,7 @@ func TestBucket(t *testing.T) {
 				})
 				t.Run("DryRunBucketPulls", func(t *testing.T) {
 					setDryRun(bucket, true)
-					mirror := filepath.Join(tempdir, "pull-one", newUUID(), "")
+					mirror := filepath.Join(tempdir, "pull-one", testutil.NewUUID(), "")
 					require.NoError(t, os.MkdirAll(mirror, 0700))
 					opts := SyncOptions{Local: mirror}
 					assert.NoError(t, bucket.Pull(ctx, opts))
@@ -813,7 +816,7 @@ func TestBucket(t *testing.T) {
 					require.NoError(t, writeDataToFile(ctx, bucket, "python.py", "exclude"))
 					require.NoError(t, writeDataToFile(ctx, bucket, "python2.py", "exclude2"))
 
-					mirror := filepath.Join(tempdir, "not_excludes", newUUID())
+					mirror := filepath.Join(tempdir, "not_excludes", testutil.NewUUID())
 					require.NoError(t, os.MkdirAll(mirror, 0700))
 					opts := SyncOptions{Local: mirror}
 					assert.NoError(t, bucket.Pull(ctx, opts))
@@ -831,7 +834,7 @@ func TestBucket(t *testing.T) {
 						}
 					}
 
-					mirror = filepath.Join(tempdir, "excludes", newUUID())
+					mirror = filepath.Join(tempdir, "excludes", testutil.NewUUID())
 					require.NoError(t, os.MkdirAll(mirror, 0700))
 					opts.Local = mirror
 					opts.Exclude = ".*\\.py"
@@ -854,7 +857,7 @@ func TestBucket(t *testing.T) {
 					setDeleteOnSync(bucket, true)
 
 					// dry run bucket does not delete
-					mirror := filepath.Join(tempdir, "pull-one", newUUID())
+					mirror := filepath.Join(tempdir, "pull-one", testutil.NewUUID())
 					require.NoError(t, os.MkdirAll(mirror, 0700))
 					require.NoError(t, writeDataToDisk(mirror, "delete1", "should be deleted"))
 					require.NoError(t, writeDataToDisk(mirror, "delete2", "this should also be deleted"))
@@ -868,7 +871,7 @@ func TestBucket(t *testing.T) {
 					require.NoError(t, os.RemoveAll(mirror))
 
 					// with out dry run set
-					mirror = filepath.Join(tempdir, "pull-one", newUUID())
+					mirror = filepath.Join(tempdir, "pull-one", testutil.NewUUID())
 					require.NoError(t, os.MkdirAll(mirror, 0700))
 					require.NoError(t, writeDataToDisk(mirror, "delete1", "should be deleted"))
 					require.NoError(t, writeDataToDisk(mirror, "delete2", "this should also be deleted"))
@@ -880,16 +883,16 @@ func TestBucket(t *testing.T) {
 					setDeleteOnSync(bucket, false)
 				})
 				t.Run("LargePull", func(t *testing.T) {
-					prefix := newUUID()
+					prefix := testutil.NewUUID()
 					largeData := map[string]string{}
 					for i := 0; i < 1050; i++ {
-						largeData[newUUID()] = strings.Join([]string{newUUID(), newUUID(), newUUID()}, "\n")
+						largeData[testutil.NewUUID()] = strings.Join([]string{testutil.NewUUID(), testutil.NewUUID(), testutil.NewUUID()}, "\n")
 					}
 					for k, v := range largeData {
 						require.NoError(t, writeDataToFile(ctx, bucket, prefix+"/"+k, v))
 					}
 
-					mirror := filepath.Join(tempdir, "pull-one", newUUID(), "")
+					mirror := filepath.Join(tempdir, "pull-one", testutil.NewUUID(), "")
 					require.NoError(t, os.MkdirAll(mirror, 0700))
 
 					opts := SyncOptions{Local: mirror, Remote: prefix}
@@ -907,13 +910,13 @@ func TestBucket(t *testing.T) {
 				})
 			})
 			t.Run("PushToBucket", func(t *testing.T) {
-				prefix := filepath.Join(tempdir, newUUID())
+				prefix := filepath.Join(tempdir, testutil.NewUUID())
 				filenames := map[string]bool{}
 				for i := 0; i < 50; i++ {
-					fn := newUUID()
+					fn := testutil.NewUUID()
 					filenames[fn] = true
 					require.NoError(t, writeDataToDisk(prefix,
-						fn, strings.Join([]string{newUUID(), newUUID(), newUUID()}, "\n")))
+						fn, strings.Join([]string{testutil.NewUUID(), testutil.NewUUID(), testutil.NewUUID()}, "\n")))
 				}
 
 				bucket := impl.constructor(t)
@@ -1050,7 +1053,11 @@ func TestBucket(t *testing.T) {
 			})
 			t.Run("DownloadWithBadFileName", func(t *testing.T) {
 				bucket := impl.constructor(t)
-				err := bucket.Download(ctx, "fileIWant\x00", "loc")
+				// This breaks the convention in the tests where we use the
+				// null terminator ('\x00') to simualte an invalid key name
+				// because it causes Download to hang on newer version of the
+				// AWS SDK.
+				err := bucket.Download(ctx, "fileIWant", "loc")
 				assert.Error(t, err)
 			})
 			t.Run("DownloadBadDirectory", func(t *testing.T) {
@@ -1097,6 +1104,346 @@ func writeDataToFile(ctx context.Context, bucket Bucket, key, data string) error
 	}
 
 	return errors.WithStack(writer.Close())
+}
+
+func TestS3ArchiveBucket(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	tempdir, err := ioutil.TempDir("", "pail-bucket-test")
+	require.NoError(t, err)
+	defer func() { require.NoError(t, os.RemoveAll(tempdir)) }()
+
+	s3Credentials := CreateAWSCredentials(os.Getenv("AWS_KEY"), os.Getenv("AWS_SECRET"), "")
+	s3BucketName := "build-test-curator"
+	s3Prefix := testutil.NewUUID() + "-"
+	s3Region := "us-east-1"
+	defer func() { require.NoError(t, testutil.CleanupS3Bucket(s3Credentials, s3BucketName, s3Prefix, s3Region)) }()
+
+	for _, impl := range []struct {
+		name        string
+		constructor func(*testing.T) *s3ArchiveBucket
+	}{
+		{
+			name: "S3Archive",
+			constructor: func(t *testing.T) *s3ArchiveBucket {
+				s3Options := S3Options{
+					Credentials: s3Credentials,
+					Region:      s3Region,
+					Name:        s3BucketName,
+					Prefix:      s3Prefix + testutil.NewUUID(),
+					MaxRetries:  20,
+				}
+				bucket, err := NewS3ArchiveBucket(s3Options)
+				require.NoError(t, err)
+				archiveBucket, ok := bucket.(*s3ArchiveBucket)
+				require.True(t, ok)
+				return archiveBucket
+			},
+		},
+	} {
+		t.Run("ValidateFixture", func(t *testing.T) {
+			assert.NotNil(t, impl.constructor(t))
+		})
+		t.Run("ReadWriteArchiveRoundTripSimple", func(t *testing.T) {
+			bucket := impl.constructor(t)
+			prefix := testutil.NewUUID()
+			payload := map[string]string{"my_file.txt": "hello world!"}
+			require.NoError(t, writeDataToArchive(ctx, bucket, prefix, payload))
+
+			data, err := readDataFromArchive(ctx, bucket, prefix)
+			require.NoError(t, err)
+			assert.Equal(t, payload, data)
+		})
+		t.Run("PullFromBucket", func(t *testing.T) {
+			for testName, testCase := range map[string]func(t *testing.T, bucket *s3ArchiveBucket, data map[string]string){
+				"BasicPull": func(t *testing.T, bucket *s3ArchiveBucket, data map[string]string) {
+					mirror := filepath.Join(tempdir, testutil.NewUUID())
+					require.NoError(t, os.MkdirAll(mirror, 0777))
+
+					opts := SyncOptions{Local: mirror}
+					require.NoError(t, bucket.Pull(ctx, opts))
+
+					assert.NoError(t, checkLocalTreeMatchesData(ctx, mirror, data))
+				},
+				"DryRunBucketPulls": func(t *testing.T, bucket *s3ArchiveBucket, data map[string]string) {
+					setDryRun(bucket.s3BucketLarge, true)
+					mirror := filepath.Join(tempdir, testutil.NewUUID())
+					require.NoError(t, os.MkdirAll(mirror, 0777))
+
+					opts := SyncOptions{Local: mirror}
+					assert.NoError(t, bucket.Pull(ctx, opts))
+
+					assert.NoError(t, checkLocalTreeMatchesData(ctx, mirror, data))
+				},
+				"PullWithExcludes": func(t *testing.T, bucket *s3ArchiveBucket, data map[string]string) {
+					dataWithExcluded := map[string]string{}
+					for k, v := range data {
+						dataWithExcluded[k] = v
+					}
+					dataWithExcluded["python.py"] = "exclude"
+					dataWithExcluded["python2.py"] = "exclude2"
+					require.NoError(t, writeDataToArchive(ctx, bucket, "", dataWithExcluded))
+
+					mirror := filepath.Join(tempdir, "not_excludes", testutil.NewUUID())
+					require.NoError(t, os.MkdirAll(mirror, 0777))
+					opts := SyncOptions{Local: mirror}
+					assert.NoError(t, bucket.Pull(ctx, opts))
+
+					assert.NoError(t, checkLocalTreeMatchesData(ctx, mirror, dataWithExcluded))
+
+					mirror = filepath.Join(tempdir, "excludes", testutil.NewUUID())
+					require.NoError(t, os.MkdirAll(mirror, 0777))
+					opts = SyncOptions{Local: mirror, Exclude: ".*\\.py"}
+					assert.NoError(t, bucket.Pull(ctx, opts))
+
+					assert.NoError(t, checkLocalTreeMatchesData(ctx, mirror, data))
+				},
+			} {
+				t.Run(testName, func(t *testing.T) {
+					bucket := impl.constructor(t)
+					data := map[string]string{}
+					for i := 0; i < 50; i++ {
+						data[testutil.NewUUID()] = strings.Join([]string{testutil.NewUUID(), testutil.NewUUID(), testutil.NewUUID()}, "\n")
+					}
+					require.NoError(t, writeDataToArchive(ctx, bucket, "", data))
+					testCase(t, bucket, data)
+				})
+			}
+		})
+		t.Run("PushToBucket", func(t *testing.T) {
+			for testName, testCase := range map[string]func(t *testing.T, bucket *s3ArchiveBucket, localPrefix string, data map[string]string){
+				"NoPrefix": func(t *testing.T, bucket *s3ArchiveBucket, localPrefix string, data map[string]string) {
+					opts := SyncOptions{Local: localPrefix}
+					require.NoError(t, bucket.Push(ctx, opts))
+
+					s3Data, err := readDataFromArchive(ctx, bucket, "")
+					require.NoError(t, err)
+					assert.Equal(t, data, s3Data)
+				},
+				"ShortPrefix": func(t *testing.T, bucket *s3ArchiveBucket, localPrefix string, data map[string]string) {
+					remotePrefix := testutil.NewUUID()
+					opts := SyncOptions{Local: localPrefix, Remote: remotePrefix}
+					assert.NoError(t, bucket.Push(ctx, opts))
+
+					s3Data, err := readDataFromArchive(ctx, bucket, remotePrefix)
+					require.NoError(t, err)
+					assert.Equal(t, data, s3Data)
+				},
+				"DryRunBucketDoesNotPush": func(t *testing.T, bucket *s3ArchiveBucket, localPrefix string, data map[string]string) {
+					setDryRun(bucket.s3BucketLarge, true)
+					remotePrefix := testutil.NewUUID()
+					opts := SyncOptions{Local: localPrefix, Remote: remotePrefix}
+					assert.NoError(t, bucket.Push(ctx, opts))
+
+					_, err := readDataFromArchive(ctx, bucket, remotePrefix)
+					assert.Error(t, err)
+				},
+				"PushIsIdempotent": func(t *testing.T, bucket *s3ArchiveBucket, localPrefix string, data map[string]string) {
+					opts := SyncOptions{Local: localPrefix}
+					assert.NoError(t, bucket.Push(ctx, opts))
+					s3Data, err := readDataFromArchive(ctx, bucket, "")
+					require.NoError(t, err)
+					assert.Equal(t, data, s3Data)
+
+					assert.NoError(t, bucket.Push(ctx, opts))
+					s3Data, err = readDataFromArchive(ctx, bucket, "")
+					require.NoError(t, err)
+					assert.Equal(t, data, s3Data)
+				},
+			} {
+				t.Run(testName, func(t *testing.T) {
+					bucket := impl.constructor(t)
+					localPrefix := filepath.Join(tempdir, testutil.NewUUID())
+					data := map[string]string{}
+					for i := 0; i < 50; i++ {
+						file := testutil.NewUUID()
+						content := strings.Join([]string{testutil.NewUUID(), testutil.NewUUID(), testutil.NewUUID()}, "\n")
+						data[file] = content
+						require.NoError(t, writeDataToDisk(localPrefix, file, content))
+					}
+					testCase(t, bucket, localPrefix, data)
+				})
+			}
+		})
+		t.Run("PushToAndPullFromBucket", func(t *testing.T) {
+			for testName, testCase := range map[string]func(t *testing.T, bucket *s3ArchiveBucket, localPrefix string, data map[string]string){
+				"NoPrefix": func(t *testing.T, bucket *s3ArchiveBucket, localPrefix string, data map[string]string) {
+					opts := SyncOptions{Local: localPrefix}
+					require.NoError(t, bucket.Push(ctx, opts))
+
+					mirror := filepath.Join(tempdir, testutil.NewUUID())
+					require.NoError(t, os.MkdirAll(mirror, 0777))
+
+					opts = SyncOptions{Local: mirror}
+					require.NoError(t, bucket.Pull(ctx, opts))
+
+					assert.NoError(t, checkLocalTreeMatchesData(ctx, mirror, data))
+				},
+				"ShortPrefix": func(t *testing.T, bucket *s3ArchiveBucket, localPrefix string, data map[string]string) {
+					remotePrefix := testutil.NewUUID()
+					opts := SyncOptions{Local: localPrefix, Remote: remotePrefix}
+					assert.NoError(t, bucket.Push(ctx, opts))
+
+					mirror := filepath.Join(tempdir, testutil.NewUUID())
+					require.NoError(t, os.MkdirAll(mirror, 0777))
+
+					opts = SyncOptions{Local: mirror, Remote: remotePrefix}
+					require.NoError(t, bucket.Pull(ctx, opts))
+
+					assert.NoError(t, checkLocalTreeMatchesData(ctx, mirror, data))
+				},
+				"DryRunBucketDoesNotPush": func(t *testing.T, bucket *s3ArchiveBucket, localPrefix string, data map[string]string) {
+					setDryRun(bucket.s3BucketLarge, true)
+					remotePrefix := testutil.NewUUID()
+					opts := SyncOptions{Local: localPrefix, Remote: remotePrefix}
+					assert.NoError(t, bucket.Push(ctx, opts))
+
+					mirror := filepath.Join(tempdir, testutil.NewUUID())
+					require.NoError(t, os.MkdirAll(mirror, 0777))
+
+					opts = SyncOptions{Local: mirror, Remote: remotePrefix}
+					assert.Error(t, bucket.Pull(ctx, opts))
+				},
+				"PushWithExcludes": func(t *testing.T, bucket *s3ArchiveBucket, localPrefix string, data map[string]string) {
+					dataWithExcluded := map[string]string{}
+					for k, v := range data {
+						dataWithExcluded[k] = v
+					}
+					dataWithExcluded["python.py"] = "exclude"
+					dataWithExcluded["python2.py"] = "exclude2"
+					require.NoError(t, writeDataToDisk(localPrefix, "python.py", dataWithExcluded["python.py"]))
+					require.NoError(t, writeDataToDisk(localPrefix, "python2.py", dataWithExcluded["python2.py"]))
+
+					remotePrefix := testutil.NewUUID()
+					opts := SyncOptions{Local: localPrefix, Remote: remotePrefix}
+					assert.NoError(t, bucket.Push(ctx, opts))
+
+					mirror := filepath.Join(tempdir, testutil.NewUUID())
+					require.NoError(t, os.MkdirAll(mirror, 0777))
+					opts = SyncOptions{Local: mirror, Remote: remotePrefix}
+					require.NoError(t, bucket.Pull(ctx, opts))
+
+					assert.NoError(t, checkLocalTreeMatchesData(ctx, mirror, dataWithExcluded))
+
+					opts = SyncOptions{Local: localPrefix, Remote: remotePrefix, Exclude: ".*\\.py"}
+					require.NoError(t, bucket.Push(ctx, opts))
+
+					mirror = filepath.Join(tempdir, testutil.NewUUID())
+					require.NoError(t, os.MkdirAll(mirror, 0777))
+					opts = SyncOptions{Local: mirror, Remote: remotePrefix}
+					require.NoError(t, bucket.Pull(ctx, opts))
+
+					assert.NoError(t, checkLocalTreeMatchesData(ctx, mirror, data))
+				},
+			} {
+				t.Run(testName, func(t *testing.T) {
+					bucket := impl.constructor(t)
+					localPrefix := filepath.Join(tempdir, testutil.NewUUID())
+					data := map[string]string{}
+					for i := 0; i < 50; i++ {
+						file := testutil.NewUUID()
+						content := strings.Join([]string{testutil.NewUUID(), testutil.NewUUID(), testutil.NewUUID()}, "\n")
+						data[file] = content
+						require.NoError(t, writeDataToDisk(localPrefix, file, content))
+					}
+					testCase(t, bucket, localPrefix, data)
+				})
+			}
+		})
+	}
+}
+
+type mockFileInfo struct {
+	name    string
+	size    int
+	mode    os.FileMode
+	modTime time.Time
+	isDir   bool
+}
+
+func (m mockFileInfo) Name() string       { return m.name }
+func (m mockFileInfo) Size() int64        { return int64(m.size) }
+func (m mockFileInfo) Mode() os.FileMode  { return m.mode }
+func (m mockFileInfo) ModTime() time.Time { return m.modTime }
+func (m mockFileInfo) IsDir() bool        { return m.isDir }
+func (m mockFileInfo) Sys() interface{}   { return nil }
+
+func writeDataToArchive(ctx context.Context, bucket *s3ArchiveBucket, prefix string, data map[string]string) error {
+	wctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	writer, err := bucket.Writer(wctx, consistentJoin(prefix, syncArchiveName))
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	defer writer.Close()
+	tarWriter := tar.NewWriter(writer)
+	defer tarWriter.Close()
+
+	for name, content := range data {
+		info := mockFileInfo{
+			name: name,
+			size: len(content),
+			mode: 0777,
+		}
+		if err := addToTar(tarWriter, info, bytes.NewBufferString(content), name, name); err != nil {
+			return errors.Wrap(err, "adding to tar")
+		}
+	}
+
+	return errors.WithStack(writer.Close())
+}
+
+func readDataFromArchive(ctx context.Context, bucket *s3ArchiveBucket, prefix string) (map[string]string, error) {
+	rctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	data := map[string]string{}
+
+	reader, err := bucket.Reader(rctx, consistentJoin(prefix, syncArchiveName))
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	tarReader := tar.NewReader(reader)
+	for {
+		header, err := tarReader.Next()
+		if err == io.EOF {
+			return data, nil
+		}
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		content, err := ioutil.ReadAll(tarReader)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		data[header.Name] = string(content)
+	}
+}
+
+func checkLocalTreeMatchesData(ctx context.Context, prefix string, data map[string]string) error {
+	files, err := walkLocalTree(ctx, prefix)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	if len(files) != len(data) {
+		return errors.Errorf("local file tree has %d items, but expected %d items", len(files), len(data))
+	}
+	for _, file := range files {
+		expectedContent, ok := data[file]
+		if !ok {
+			return errors.Errorf("file %s should not exist", file)
+		}
+		content, err := ioutil.ReadFile(filepath.Join(prefix, file))
+		if err != nil {
+			return errors.Wrapf(err, "could not read file %s", file)
+		}
+		if string(content) != expectedContent {
+			return errors.Errorf("expected content did not match actual content for %s", file)
+		}
+	}
+	return nil
 }
 
 func readDataFromFile(ctx context.Context, bucket Bucket, key string) (string, error) {

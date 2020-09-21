@@ -50,7 +50,8 @@ imports:
   version: f047394b6d14284165300fd82dad67edb3a4d7f6
 - name: github.com/sabhiram/go-git-ignore
   version: d3107576ba9425fc1c85f4b3569c4631b805a02e
-
+- name: github.com/aws/aws-sdk-go
+  version: d74b040ceb12d170bd1d5d62cc800efbc78ff129
 
 - name: github.com/evergreen-ci/birch
   version: 3a26bb67719ad6a9e7daed059abd5d018586f3cd
@@ -64,7 +65,7 @@ imports:
 - name: github.com/evergreen-ci/poplar
   version: 5465cce8f21bed7a8cee75353550806a474fa1e5
 - name: github.com/evergreen-ci/pail
-  version: 8bead7f820b8402b7c94c1554951c08199bdd3cd
+  version: 1b1374a4138f044f0eb8ce5f004d6c069f938439
 - name: github.com/evergreen-ci/aviation
   version: e576e1538fbf9207f2abb3ded217d5b633f5e379
 - name: go.mongodb.org/mongo-driver

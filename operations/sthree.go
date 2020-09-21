@@ -32,7 +32,7 @@ long path names, with prefix/directories in the remote name.
 By default curator attempts to read AWS credentials from the
 "AWS_ACCESS_KEY" and "AWS_SECRET_KEY" environment variables (if set),
 or the standard "$HOME/.aws/credentials" file or a file specified in
-the "AWS_CREDNETIAL_FILE" environment variable. By default curator
+the "AWS_SHARED_CREDENTIALS_FILE" environment variable. By default curator
 reads the "default" profile from the credentials file, but you can
 specify a different profile using the "AWS_PROFILE" environment
 variable.
@@ -44,6 +44,9 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/evergreen-ci/pail"
@@ -96,10 +99,13 @@ func s3PutCmd() cli.Command {
 				return err
 			}
 
+			bucketName := c.String("bucket")
+			objectKey := c.String("name")
+
 			opts := pail.S3Options{
 				SharedCredentialsProfile: c.String("profile"),
 				Region:                   c.String("region"),
-				Name:                     c.String("bucket"),
+				Name:                     bucketName,
 				Permissions:              pail.S3Permissions(c.String("permissions")),
 				ContentType:              c.String("type"),
 				DryRun:                   c.Bool("dry-run"),
@@ -111,11 +117,23 @@ func s3PutCmd() cli.Command {
 				return errors.Wrap(err, "problem getting new bucket")
 			}
 
-			return errors.Wrapf(
-				bucket.Upload(ctx, c.String("name"), c.String("file")),
-				"problem putting %s in s3",
-				c.String("file"),
-			)
+			fmt.Printf("Uploading file '%s' to path '%s' in bucket '%s'\n", c.String("file"), objectKey, bucketName)
+			if err := bucket.Upload(ctx, objectKey, c.String("file")); err != nil {
+				return errors.Wrapf(err, "problem putting %s in s3", c.String("file"))
+			}
+
+			fileName := filepath.Base(c.String("file"))
+			remotePath := path.Join(strings.TrimSuffix(objectKey, fileName), fileName)
+			var baseURL string
+			if strings.Contains(bucketName, ".") {
+				baseURL = fmt.Sprintf("https://%s.s3.amazonaws.com", bucketName)
+			} else {
+				baseURL = fmt.Sprintf("https://s3.amazonaws.com/%s", bucketName)
+			}
+			url := strings.Join([]string{baseURL, remotePath}, "/")
+			fmt.Println("Object URL: ", url)
+
+			return nil
 		},
 	}
 }
@@ -415,9 +433,8 @@ func baseS3Flags(args ...cli.Flag) []cli.Flag {
 			Usage: "the name of an s3 bucket",
 		},
 		cli.StringFlag{
-			Name: "profile",
-			Usage: fmt.Sprintln("set the AWS profile. By default reads from ENV vars and the default or",
-				"AWS_PROFILE specified profile in ~/.aws/credentials."),
+			Name:  "profile",
+			Usage: fmt.Sprintln("set the AWS profile. By default reads from AWS_PROFILE environment variable or uses 'default'"),
 		},
 		cli.BoolFlag{
 			Name:  "dry-run",
@@ -500,8 +517,9 @@ func s3putFlags() []cli.Flag {
 			Usage: "standard MIME type describing the format of the data",
 		},
 		cli.StringFlag{
-			Name:  "permissions",
-			Usage: "canned ACL to apply to the file",
+			Name: "permissions",
+			Usage: "canned ACL to apply to the file. Allowed values: " +
+				"'private', 'public-read', 'public-read-write', 'authenticated-read', 'aws-exec-read', 'bucket-owner-read', 'bucket-owner-full-control'",
 		},
 	}
 }
