@@ -66,7 +66,7 @@ func TestProcessPackages(t *testing.T) {
 	j.client = utility.GetDefaultHTTPRetryableClient()
 	j.Distro = &RepositoryDefinition{Name: "test"}
 	defer func() { utility.PutHTTPClient(j.client) }()
-	j.PackagePaths = []string{"https://s3.amazonaws.com/mciuploads/mongo-release/enterprise-rhel-62-64-bit/98d10b50208db52f3aa0f16a634ec6fa73d465bc/artifacts/mongo_release_enterprise_rhel_62_64_bit_98d10b50208db52f3aa0f16a634ec6fa73d465bc_20_03_19_17_13_06-packages.tgz"}
+	j.PackagePaths = []string{"https://mciuploads.s3.amazonaws.com/mongo-release/enterprise-rhel-62-64-bit/98d10b50208db52f3aa0f16a634ec6fa73d465bc/artifacts/mongo_release_enterprise_rhel_62_64_bit_98d10b50208db52f3aa0f16a634ec6fa73d465bc_20_03_19_17_13_06-packages.tgz"}
 	j.tmpdir, err = ioutil.TempDir("", "test-process-packages")
 	require.NoError(t, err)
 
