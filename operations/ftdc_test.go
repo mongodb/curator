@@ -5,15 +5,15 @@ import (
 	"encoding/csv"
 	"encoding/hex"
 	"encoding/json"
+	"flag"
 	"io"
 	"io/ioutil"
 	"math/rand"
 	"os"
-	"os/exec"
 	"path"
-	"path/filepath"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/evergreen-ci/birch"
 	"github.com/mongodb/grip"
@@ -39,29 +39,28 @@ func TestFTDCParentCommandHasExpectedProperties(t *testing.T) {
 	assert.True(t, names["export"])
 }
 
+func runFTDCCommand(cmd cli.Command, in, out string) error {
+	flags := &flag.FlagSet{}
+	_ = flags.String(input, in, "")
+	_ = flags.String(output, out, "")
+	ctx := cli.NewContext(nil, flags, nil)
+	return cli.HandleAction(cmd.Action, ctx)
+}
+
 func TestBSONRoundtrip(t *testing.T) {
 	tempDir, err := ioutil.TempDir(".", "test_dir")
 	require.NoError(t, err)
+	defer func() {
+		assert.NoError(t, os.RemoveAll(tempDir))
+	}()
 	bsonOriginal := path.Join(tempDir, "original.bson")
 	bsonRoundtrip := path.Join(tempDir, "roundtrip.bson")
 	ftdcFromOriginal := path.Join(tempDir, "ftdc")
 	err = createBSONFile(bsonOriginal, 3)
 	require.NoError(t, err)
-	defer func() {
-		_ = os.RemoveAll(tempDir)
-	}()
 
-	wd, err := os.Getwd()
-	require.NoError(t, err)
-	wd = filepath.Dir(wd)
-
-	cmd := exec.Command(filepath.Join(wd, "curator"), "ftdc", "import", "bson", "--input", bsonOriginal, "--output", ftdcFromOriginal)
-	_, err = cmd.CombinedOutput()
-	require.NoError(t, err)
-
-	cmd = exec.Command(filepath.Join(wd, "curator"), "ftdc", "export", "bson", "--input", ftdcFromOriginal, "--output", bsonRoundtrip)
-	_, err = cmd.CombinedOutput()
-	require.NoError(t, err)
+	require.NoError(t, runFTDCCommand(fromBSON(), bsonOriginal, ftdcFromOriginal))
+	require.NoError(t, runFTDCCommand(toBSON(), ftdcFromOriginal, bsonRoundtrip))
 
 	equal, err := compareFiles(bsonOriginal, bsonRoundtrip)
 	require.NoError(t, err)
@@ -71,28 +70,17 @@ func TestBSONRoundtrip(t *testing.T) {
 func TestCSVRoundtrip(t *testing.T) {
 	tempDir, err := ioutil.TempDir(".", "test_dir")
 	require.NoError(t, err)
+	defer func() {
+		assert.NoError(t, os.RemoveAll(tempDir))
+	}()
 	csvOriginal := path.Join(tempDir, "original.csv")
 	csvRoundtrip := path.Join(tempDir, "roundtrip.csv")
 	ftdcFromOriginal := path.Join(tempDir, "ftdc")
 	err = createCSVFile(csvOriginal, 3)
 	require.NoError(t, err)
-	defer func() {
-		_ = os.RemoveAll(tempDir)
-	}()
 
-	wd, err := os.Getwd()
-	require.NoError(t, err)
-	wd = filepath.Dir(wd)
-
-	var output []byte
-
-	cmd := exec.Command(filepath.Join(wd, "curator"), "ftdc", "import", "csv", "--input", csvOriginal, "--output", ftdcFromOriginal)
-	output, err = cmd.CombinedOutput()
-	require.NoError(t, err, "output: %s", string(output))
-
-	cmd = exec.Command(filepath.Join(wd, "curator"), "ftdc", "export", "csv", "--input", ftdcFromOriginal, "--output", csvRoundtrip)
-	output, err = cmd.CombinedOutput()
-	require.NoError(t, err, "output: %s", string(output))
+	require.NoError(t, runFTDCCommand(fromCSV(), csvOriginal, ftdcFromOriginal))
+	require.NoError(t, runFTDCCommand(toCSV(), ftdcFromOriginal, csvRoundtrip))
 
 	equal, err := compareFiles(csvOriginal, csvRoundtrip)
 	require.NoError(t, err)
@@ -102,26 +90,23 @@ func TestCSVRoundtrip(t *testing.T) {
 func TestJSONRoundtrip(t *testing.T) {
 	tempDir, err := ioutil.TempDir(".", "test_dir")
 	require.NoError(t, err)
+	defer func() {
+		assert.NoError(t, os.RemoveAll(tempDir))
+	}()
 	jsonOriginal := path.Join(tempDir, "original.json")
-	jsonRoundtrip := path.Join(tempDir, "rountrip.json")
+	jsonRoundtrip := path.Join(tempDir, "roundtrip.json")
 	ftdcFromOriginal := path.Join(tempDir, "ftdc")
 	err = createJSONFile(jsonOriginal, 3)
 	require.NoError(t, err)
-	defer func() {
-		_ = os.RemoveAll(tempDir)
-	}()
 
-	wd, err := os.Getwd()
-	require.NoError(t, err)
-	wd = filepath.Dir(wd)
-
-	cmd := exec.Command(filepath.Join(wd, "curator"), "ftdc", "import", "json", "--input", jsonOriginal, "--prefix", ftdcFromOriginal)
-	_, err = cmd.CombinedOutput()
-	require.NoError(t, err)
-
-	cmd = exec.Command(filepath.Join(wd, "curator"), "ftdc", "export", "json", "--input", ftdcFromOriginal+".0", "--output", jsonRoundtrip)
-	_, err = cmd.CombinedOutput()
-	require.NoError(t, err)
+	flags := &flag.FlagSet{}
+	_ = flags.String(input, jsonOriginal, "")
+	_ = flags.String(prefix, ftdcFromOriginal, "")
+	_ = flags.Int(maxCount, 1, "")
+	_ = flags.Duration(flush, time.Second, "")
+	ctx := cli.NewContext(nil, flags, nil)
+	require.NoError(t, cli.HandleAction(fromJSON().Action, ctx))
+	require.NoError(t, runFTDCCommand(toJSON(), ftdcFromOriginal+".0", jsonRoundtrip))
 
 	equal, err := compareFiles(jsonOriginal, jsonRoundtrip)
 	require.NoError(t, err)
@@ -149,7 +134,7 @@ func createBSONFile(name string, size int) error {
 		return errors.Wrap(err, "failed to create new file")
 	}
 	defer func() {
-		_ = file.Close()
+		grip.Alert(file.Close())
 	}()
 
 	for i := 0; i < size; i++ {
@@ -198,7 +183,7 @@ func createJSONFile(name string, size int) error {
 		return errors.Wrap(err, "failed to create new file")
 	}
 	defer func() {
-		_ = file.Close()
+		grip.Alert(file.Close())
 	}()
 
 	for i := 0; i < size; i++ {
@@ -226,14 +211,14 @@ func compareFiles(file1, file2 string) (bool, error) {
 		return false, errors.Wrapf(err, "problem opening file '%s'", file1)
 	}
 	defer func() {
-		_ = f1.Close()
+		grip.Alert(f1.Close())
 	}()
 	f2, err := os.Open(file2)
 	if err != nil {
 		return false, errors.Wrapf(err, "problem opening file '%s'", file2)
 	}
 	defer func() {
-		_ = f2.Close()
+		grip.Alert(f2.Close())
 	}()
 
 	for {
