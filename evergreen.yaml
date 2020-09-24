@@ -28,7 +28,6 @@ variables:
         type: system
         params:
           directory: gopath/src/github.com/mongodb/curator
-      - func: setup-credentials
       - func: run-make
         vars: { target: "${task_name}" }
 
@@ -36,31 +35,13 @@ variables:
 #              Functions              #
 #######################################
 functions:
-  setup-credentials:
-    command: shell.exec
-    type: setup
-    params:
-       silent: true
-       script: |
-         mkdir ~/.aws
-
-         cat <<EOF > ~/.aws/config
-         [default]
-         region = us-east-1
-         EOF
-
-         cat <<EOF > ~/.aws/credentials
-         [default]
-         aws_access_key_id = ${aws_key}
-         aws_secret_access_key = ${aws_secret}
-         EOF
   run-make:
     command: subprocess.exec
     type: test
     params:
       working_dir: gopath/src/github.com/mongodb/curator
       binary: make
-      args: ["${make_args}", "${target}"]
+      args: ["${target}"]
       add_expansions_to_env: true
       env:
         GOPATH: ${workdir}/gopath
@@ -105,11 +86,9 @@ tasks:
         type: system
         params:
           directory: gopath/src/github.com/mongodb/curator
-      - func: setup-credentials
       - func: run-make
         vars:
           target: "coverage-html"
-          make_args: "-k"
 
   # define tasks for all test suites (modules)
   - <<: *run-go-test-suite
@@ -127,22 +106,6 @@ tasks:
   - <<: *run-go-test-suite
     tags: ["test"]
     name: test-greenbay-check
-
-  - <<: *run-go-test-suite
-    name: race-operations
-    tags: ["race"]
-  - <<: *run-go-test-suite
-    name: race-cmd-curator
-    tags: ["race"]
-  - <<: *run-go-test-suite
-    name: race-repobuilder
-    tags: ["race"]
-  - <<: *run-go-test-suite
-    name: race-greenbay
-    tags: ["race"]
-  - <<: *run-go-test-suite
-    name: race-greenbay-check
-    tags: ["race"]
 
   - name: push
     patchable: false
@@ -164,6 +127,10 @@ tasks:
              'destination': { 'path': 'build/curator/curator-dist-${goos}-${goarch}-${revision}.tar.gz', 'bucket': 'boxes.10gen.com' } }
 
 post:
+  - command: shell.exec
+    params:
+      shell: bash
+      script: echo "running post commands now, parsing gotest files"
   - command: gotest.parse_files
     type: setup
     params:
@@ -205,21 +172,21 @@ buildvariants:
   - name: race-detector
     display_name: Race Detector (Arch Linux)
     expansions:
+      DISABLE_COVERAGE: true
       GO_BIN_PATH: /opt/golang/go1.13/bin/go
       GOROOT: /opt/golang/go1.13
+      RACE_DETECTOR: true
     run_on:
       - archlinux-small
       - archlinux-large
     tasks:
-      - ".race"
+      - ".test"
 
   - name: lint
     display_name: Lint (Arch Linux)
     expansions:
-      DISABLE_COVERAGE: true
       GOROOT: /opt/golang/go1.13
       GO_BIN_PATH: /opt/golang/go1.13/bin/go
-      make_args: -k
     run_on:
       - archlinux-small
       - archlinux-large

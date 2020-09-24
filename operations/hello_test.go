@@ -1,15 +1,12 @@
 package operations
 
 import (
-	"os"
-	"os/exec"
-	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/mongodb/grip"
 	"github.com/mongodb/grip/level"
 	"github.com/stretchr/testify/suite"
+	"github.com/urfave/cli"
 )
 
 func init() {
@@ -32,15 +29,8 @@ func TestCommandSuite(t *testing.T) {
 }
 
 func (s *CommandsSuite) TestHelloWorldOperationViaDirectCall() {
-	wd, err := os.Getwd()
-	s.Require().NoError(err)
-	wd = filepath.Dir(wd)
-	cmd := exec.Command(filepath.Join(wd, "curator"), "hello")
-	output, err := cmd.CombinedOutput()
-	s.NoError(err)
-
-	// check the results.
-	s.Contains(strings.Trim(string(output), "\n "), "hello world!")
+	ctx := cli.NewContext(nil, nil, nil)
+	s.Require().NoError(cli.HandleAction(HelloWorld().Action, ctx))
 }
 
 func (s *CommandsSuite) TestHelloCommandObjectAttributes() {
