@@ -193,10 +193,6 @@ func createNewMongoDBVersion(parsedVersion LegacyMongoDBVersion) (*NewMongoDBVer
 		}
 	}
 
-	if v.isDev {
-		return nil, errors.New("development builds are not allowed in the new versioning scheme")
-	}
-
 	return v, nil
 }
 

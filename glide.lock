@@ -33,7 +33,7 @@ imports:
 - name: github.com/evergreen-ci/gimlet
   version: 7ad1845db582cfcaa26503d841f77a6277b2a258
 - name: github.com/evergreen-ci/bond
-  version: f6eb72493d0995579a5581b1599bda5d6e329c07
+  version: cd743a5eabee6eab7a40b9a07a829202649e1870
 - name: github.com/evergreen-ci/lru
   version: d1b427740b3b78780272eb34942e4ed27e0e101d
 

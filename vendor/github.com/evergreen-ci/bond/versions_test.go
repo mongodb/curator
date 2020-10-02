@@ -216,6 +216,10 @@ func (s *VersionSuite) TestVersionCanIdentifyReleases() {
 		"3.8.5-23-gffd4a182",
 		"3.2.1-",
 		"2.6.1-pre-",
+		"5.1.5-68-gdd3f158",
+		"5.3.5-23-gffd4a182",
+		"5.2.1-",
+		"5.3.1-pre-",
 	}
 
 	for _, version := range builds {
@@ -224,32 +228,6 @@ func (s *VersionSuite) TestVersionCanIdentifyReleases() {
 		s.Require().NotNil(v)
 		s.True(v.IsDevelopmentBuild())
 		s.False(v.IsRelease())
-	}
-}
-
-func (s *VersionSuite) TestDevelopmentBuildsOnlyAllowedInLegacyVersion() {
-	legacyBuilds := []string{
-		"3.1.5-68-gdd3f158",
-		"3.8.5-23-gffd4a182",
-		"3.2.1-",
-		"2.6.1-pre-",
-	}
-	for _, version := range legacyBuilds {
-		v, err := CreateMongoDBVersion(version)
-		s.NoError(err)
-		s.Require().NotNil(v)
-		s.True(v.IsDevelopmentBuild())
-	}
-
-	newBuilds := []string{
-		"5.1.5-68-gdd3f158",
-		"5.3.5-23-gffd4a182",
-		"5.2.1-",
-		"5.3.1-pre-",
-	}
-	for _, version := range newBuilds {
-		_, err := CreateMongoDBVersion(version)
-		s.Error(err)
 	}
 }
 
@@ -383,15 +361,16 @@ func (s *VersionSuite) TestRCNumberIsLessThanZeroForNonRCs() {
 
 func (s *VersionSuite) TestIsDevelopmentRelease() {
 	cases := map[string]bool{
-		"1.8.0-rc0":      false,
-		"3.2.7":          false,
-		"3.4.0-alpha12":  false,
-		"4.5.0-alpha":    true,
-		"4.5.0-alpha4":   true,
-		"4.6.0-alpha":    true,
-		"5.0.0-alpha123": true,
-		"5.0.0-rc12":     false,
-		"5.0.0":          false,
+		"1.8.0-rc0":               false,
+		"3.2.7":                   false,
+		"3.4.0-alpha12":           false,
+		"4.5.0-alpha":             true,
+		"4.5.0-alpha4":            true,
+		"4.6.0-alpha":             true,
+		"4.8.0-alpha-26-g610cb6a": true,
+		"5.0.0-alpha123":          true,
+		"5.0.0-rc12":              false,
+		"5.0.0":                   false,
 	}
 	for v, expectedValue := range cases {
 		version, err := ConvertVersion(v)
@@ -403,15 +382,16 @@ func (s *VersionSuite) TestIsDevelopmentRelease() {
 
 func (s *VersionSuite) TestDevelopmentReleaseNumber() {
 	cases := map[string]int{
-		"3.4.0-alpha12":  -1,
-		"4.5.0-alpha":    -1,
-		"4.5.0-alpha4":   4,
-		"4.6.0":          -1,
-		"4.6.0-alpha":    -1,
-		"5.4.9-alpha1":   1,
-		"5.0.0-alpha123": 123,
-		"5.0.0-rc12":     -1,
-		"5.0.0":          -1,
+		"3.4.0-alpha12":           -1,
+		"4.5.0-alpha":             -1,
+		"4.5.0-alpha4":            4,
+		"4.6.0":                   -1,
+		"4.6.0-alpha":             -1,
+		"4.8.0-alpha-26-g610cb6a": -1,
+		"5.4.9-alpha1":            1,
+		"5.0.0-alpha123":          123,
+		"5.0.0-rc12":              -1,
+		"5.0.0":                   -1,
 	}
 	for v, expectedValue := range cases {
 		version, err := ConvertVersion(v)
