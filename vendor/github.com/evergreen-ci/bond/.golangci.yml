@@ -6,6 +6,5 @@ linters:
     - goimports
     - govet
     - ineffassign
-    - interfacer
     - misspell
     - unconvert

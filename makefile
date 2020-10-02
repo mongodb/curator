@@ -221,6 +221,7 @@ vendor-clean:
 	rm -rf vendor/github.com/evergreen-ci/bond/vendor/github.com/pkg/errors/
 	rm -rf vendor/github.com/evergreen-ci/bond/vendor/github.com/satori/go.uuid/
 	rm -rf vendor/github.com/evergreen-ci/bond/vendor/github.com/stretchr/testify/
+	rm -rf vendor/github.com/evergreen-ci/bond/vendor/github.com/google/uuid/
 	rm -rf vendor/github.com/evergreen-ci/lru/vendor/github.com/mongodb/grip/
 	rm -rf vendor/github.com/evergreen-ci/lru/vendor/github.com/pkg/errors/
 	rm -rf vendor/github.com/evergreen-ci/aviation/vendor/github.com/evergreen-ci/gimlet/

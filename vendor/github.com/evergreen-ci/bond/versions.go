@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	endOfLegacy   = "4.5.0-alpha0"
+	endOfLegacy   = "4.5.0-alpha"
 	firstLTS      = "5.0.0"
 	devReleaseTag = "alpha"
 )
@@ -154,11 +154,15 @@ func (v *NewMongoDBVersion) DevelopmentReleaseNumber() int {
 // If the parsed version is before 4.5.0, then we use the legacy structure.
 // Otherwise, we use the modern versioning scheme.
 func CreateMongoDBVersion(version string) (MongoDBVersion, error) {
-	endOfLegacyVersion, _ := semver.Parse(endOfLegacy)
+	endOfLegacyVersion, err := semver.Parse(endOfLegacy)
+	if err != nil {
+		return nil, errors.Wrapf(err, "parsing end of legacy version")
+	}
 	v, err := createLegacyMongoDBVersion(version)
 	if err != nil {
 		return nil, errors.Wrapf(err, "creating initial version")
 	}
+
 	if v.Parsed().LT(endOfLegacyVersion) {
 		return v, nil
 	}
@@ -177,8 +181,12 @@ func createNewMongoDBVersion(parsedVersion LegacyMongoDBVersion) (*NewMongoDBVer
 	if strings.Contains(v.tag, devReleaseTag) {
 		v.isDev = false
 		v.isDevRelease = true
-		if len(v.tag) > len(devReleaseTag) {
-			v.devReleaseNumber, err = strconv.Atoi(v.tag[len(devReleaseTag):])
+		// Releases triggered by the waterfall use the git describe of
+		// the commit, we need to remove that before attempting to get
+		// the dev release number.
+		split := strings.Split(v.tag, "-")
+		if len(split) > 0 && len(split[0]) > len(devReleaseTag) {
+			v.devReleaseNumber, err = strconv.Atoi(split[0][len(devReleaseTag):])
 			if err != nil {
 				return nil, errors.Wrapf(err, "couldn't parse development release number")
 			}
@@ -462,7 +470,7 @@ func (s MongoDBVersionSlice) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
 
-// String() adds suport for the Stringer interface, which makes it
+// String() adds support for the Stringer interface, which makes it
 // possible to print slices of MongoDB versions as comma separated
 // lists.
 func (s MongoDBVersionSlice) String() string {
