@@ -1,0 +1,154 @@
+stepback: false
+
+#######################################
+#         YAML Templates              #
+#######################################
+variables:
+  - &run-build
+    # runs a build operation. The task name in evergreen should
+    # correspond to a make target for the build operation.
+    name: test
+    commands:
+      - func: run-make
+        vars: { target: "${task_name}" }
+
+#######################################
+#              Functions              #
+#######################################
+functions:
+  get-project:
+    command: git.get_project
+    type: system
+    params:
+      directory: gopath/src/github.com/evergreen-ci/bond
+  run-make:
+    command: subprocess.exec
+    type: test
+    params:
+      working_dir: gopath/src/github.com/evergreen-ci/bond
+      binary: make
+      args: ["${target}"]
+      add_expansions_to_env: true
+      env:
+        GOPATH: ${workdir}/gopath
+  parse-results:
+    command: gotest.parse_files
+    type: setup
+    params:
+      files:
+        - "gopath/src/github.com/evergreen-ci/bond/build/output.*"
+
+#######################################
+#                Tasks                #
+#######################################
+tasks:
+  - <<: *run-build
+    tags: ["test"]
+    name: test-bond
+
+  - <<: *run-build
+    tags: ["test"]
+    name: test-recall
+
+  - <<: *run-build
+    tags: ["report"]
+    name: lint-bond
+
+  - <<: *run-build
+    tags: ["report"]
+    name: lint-recall
+
+task_groups:
+  - name: lintGroup
+    tasks: [ ".report"]
+    max_hosts: 2
+    setup_group:
+      - func: get-project
+    setup_task:
+      - func: run-make
+        vars: { target: "clean-results" }
+    teardown_task:
+      - func: parse-results
+  - name: testGroup
+    tasks: [ ".test"]
+    max_hosts: 2
+    setup_group:
+      - func: get-project
+      - func: run-make
+        vars: { target: "docker-setup" }
+        variants:
+          - ubuntu1604
+    setup_task:
+      - func: run-make
+        vars: { target: "clean-results" }
+    teardown_task:
+      - func: run-make
+        vars: { target: "docker-cleanup" }
+        variants:
+          - ubuntu1604
+      - func: parse-results
+
+#######################################
+#           Buildvariants             #
+#######################################
+buildvariants:
+  - name: race-detector
+    display_name: Race Detector (Arch Linux)
+    expansions:
+      DISABLE_COVERAGE: true
+      GOROOT: /opt/golang/go1.13
+      GO_BIN_PATH: /opt/golang/go1.13/bin/go
+      RACE_DETECTOR: true
+      SKIP_DOCKER_TESTS: true
+    run_on:
+      - archlinux-small
+      - archlinux-large
+    tasks:
+      - name: "testGroup"
+
+  - name: lint
+    display_name: Lint (Arch Linux)
+    expansions:
+      DISABLE_COVERAGE: true
+      GOROOT: /opt/golang/go1.13
+      GO_BIN_PATH: /opt/golang/go1.13/bin/go
+    run_on:
+      - archlinux-small
+      - archlinux-large
+    tasks: 
+      - name: "lintGroup"
+
+  - name: ubuntu1604
+    display_name: Ubuntu 16.04
+    expansions:
+      DISABLE_COVERAGE: true
+      GOROOT: /opt/golang/go1.9
+      GO_BIN_PATH: /opt/golang/go1.9/bin/go
+    run_on:
+      - ubuntu1604-small
+      - ubuntu1604-large
+    tasks:
+      - name: "testGroup"
+
+  - name: macos
+    display_name: macOS
+    expansions:
+      DISABLE_COVERAGE: true
+      GOROOT: /opt/golang/go1.11
+      GO_BIN_PATH: /opt/golang/go1.11/bin/go
+    run_on:
+      - macos-1014
+    tasks:
+      - name: "testGroup"
+
+  - name: windows
+    display_name: Windows
+    run_on:
+      - windows-64-vs2017-small
+      - windows-64-vs2017-large
+    expansions:
+      DISABLE_COVERAGE: true
+      GOROOT: C:/golang/go1.11
+      GO_BIN_PATH: /cygdrive/c/golang/go1.11/bin/go
+    tasks:
+      - name: "testGroup"

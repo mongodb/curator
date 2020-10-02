@@ -239,7 +239,7 @@ func (s *DownloadJobSuite) TestNoopCaseIfDependencyIsSatisfiedAndForceIsNotSet()
 	j, err := NewDownloadJob(url, s.tempDir, false)
 	s.NoError(err)
 
-	j.SetDependency(dependency.NewCreatesFile("/etc"))
+	j.SetDependency(dependency.NewCreatesFile(s.tempDir))
 	s.Equal(j.Dependency().State(), dependency.Passed)
 	j.Run(context.TODO())
 	s.NoError(j.Error())

@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/mongodb/grip"
-	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -27,7 +27,7 @@ func TestDownloaderSuite(t *testing.T) {
 func (s *DownloaderSuite) SetupSuite() {
 	var err error
 	s.require = s.Require()
-	s.dir, err = ioutil.TempDir("", uuid.NewV4().String())
+	s.dir, err = ioutil.TempDir("", uuid.New().String())
 	s.require.NoError(err)
 	_, err = os.Stat(s.dir)
 	s.require.NoError(os.MkdirAll(s.dir, 0700))
@@ -44,7 +44,7 @@ func (s *DownloaderSuite) TestCreateDirectory() {
 }
 
 func (s *DownloaderSuite) TestCreateDirectoryThatDoesNotExist() {
-	name := filepath.Join(s.dir, uuid.NewV4().String())
+	name := filepath.Join(s.dir, uuid.New().String())
 	_, err := os.Stat(name)
 	s.True(os.IsNotExist(err))
 
@@ -57,7 +57,7 @@ func (s *DownloaderSuite) TestCreateDirectoryErrorsIfPathIsAFile() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	name := filepath.Join(s.dir, uuid.NewV4().String())
+	name := filepath.Join(s.dir, uuid.New().String())
 
 	_, err := os.Stat(name)
 	s.True(os.IsNotExist(err))
@@ -81,7 +81,7 @@ func (s *DownloaderSuite) TestDownloadFileThatExists() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	err := DownloadFile(ctx, "http://example.net", filepath.Join(s.dir, uuid.NewV4().String()))
+	err := DownloadFile(ctx, "http://example.net", filepath.Join(s.dir, uuid.New().String()))
 	s.NoError(err, fmt.Sprintf("%+v", err))
 }
 
@@ -89,6 +89,6 @@ func (s *DownloaderSuite) TestDownloadFileThatDoesNotExist() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	err := DownloadFile(ctx, "http://example.net/DOES_NOT_EXIST", filepath.Join(s.dir, uuid.NewV4().String()))
+	err := DownloadFile(ctx, "http://example.net/DOES_NOT_EXIST", filepath.Join(s.dir, uuid.New().String()))
 	s.Error(err, fmt.Sprintf("%+v", err))
 }
