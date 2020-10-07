@@ -27,12 +27,15 @@ type darwinSystem struct{}
 func (darwinSystem) String() string {
 	return version
 }
+
 func (darwinSystem) Detect() bool {
 	return true
 }
+
 func (darwinSystem) Interactive() bool {
 	return interactive
 }
+
 func (darwinSystem) New(i Interface, c *Config) (Service, error) {
 	s := &darwinLaunchdService{
 		i:      i,
@@ -79,6 +82,13 @@ func (s *darwinLaunchdService) String() string {
 
 func (s *darwinLaunchdService) Platform() string {
 	return version
+}
+
+func (s *darwinLaunchdService) Interactive() bool {
+	if s.Config.ForceInteractive {
+		return true
+	}
+	return system.Interactive()
 }
 
 func (s *darwinLaunchdService) getHomeDir() (string, error) {
@@ -216,6 +226,7 @@ func (s *darwinLaunchdService) Start() error {
 	}
 	return run("launchctl", "load", confPath)
 }
+
 func (s *darwinLaunchdService) Stop() error {
 	confPath, err := s.getServiceFilePath()
 	if err != nil {
@@ -223,6 +234,7 @@ func (s *darwinLaunchdService) Stop() error {
 	}
 	return run("launchctl", "unload", confPath)
 }
+
 func (s *darwinLaunchdService) Restart() error {
 	err := s.Stop()
 	if err != nil {
@@ -250,7 +262,7 @@ func (s *darwinLaunchdService) Run() error {
 }
 
 func (s *darwinLaunchdService) Logger(errs chan<- error) (Logger, error) {
-	if interactive {
+	if s.Interactive() {
 		return ConsoleLogger, nil
 	}
 	return s.SystemLogger(errs)

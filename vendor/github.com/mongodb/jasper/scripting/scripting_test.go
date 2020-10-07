@@ -49,20 +49,20 @@ func TestScriptingHarness(t *testing.T) {
 		assert.NoError(t, os.RemoveAll(tmpdir))
 	}()
 
-	output := options.Output{
-		SendErrorToOutput: true,
-		Loggers: []options.Logger{
-			{
-				Type: options.LogDefault,
-				Options: options.Log{
-					Format: options.LogFormatDefault,
-					Level: send.LevelInfo{
-						Threshold: level.Debug,
-						Default:   level.Info,
-					},
-				},
+	opts := &options.DefaultLoggerOptions{
+		Base: options.BaseOptions{
+			Format: options.LogFormatDefault,
+			Level: send.LevelInfo{
+				Threshold: level.Debug,
+				Default:   level.Info,
 			},
 		},
+	}
+	logger := &options.LoggerConfig{}
+	require.NoError(t, logger.Set(opts))
+	output := options.Output{
+		SendErrorToOutput: true,
+		Loggers:           []*options.LoggerConfig{logger},
 	}
 
 	type seTest struct {

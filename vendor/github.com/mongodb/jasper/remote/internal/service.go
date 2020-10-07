@@ -647,17 +647,22 @@ func (s *jasperService) ScriptingHarnessTest(ctx context.Context, args *Scriptin
 		return nil, newGRPCError(codes.Internal, errors.Wrapf(err, "exporting arguments"))
 	}
 
+	var testErr error
 	res, err := se.Test(ctx, args.Directory, exportedArgs...)
 	if err != nil {
-		return nil, newGRPCError(codes.Internal, errors.Wrapf(err, "running tests"))
+		testErr = err
 	}
 	convertedRes, err := ConvertScriptingTestResults(res)
 	if err != nil {
 		return nil, newGRPCError(codes.Internal, errors.Wrapf(err, "converting test results"))
 	}
 
+	outcome := &OperationOutcome{Success: testErr == nil}
+	if testErr != nil {
+		outcome.Text = testErr.Error()
+	}
 	return &ScriptingHarnessTestResponse{
-		Outcome: &OperationOutcome{Success: true},
+		Outcome: outcome,
 		Results: convertedRes,
 	}, nil
 }

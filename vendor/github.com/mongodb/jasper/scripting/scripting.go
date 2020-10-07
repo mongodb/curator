@@ -37,7 +37,8 @@ type Harness interface {
 	// first argument should be a directory, and the successive
 	// (optional) arguments should either be arguments to the test
 	// runner or names of specific tests to run, depending on the
-	// implementation.
+	// implementation. Test may return both test results and an error,
+	// particularly if tests fail.
 	Test(ctx context.Context, dir string, opts ...TestOptions) ([]TestResult, error)
 	// Cleanup should remove the files created by the scripting environment.
 	Cleanup(context.Context) error

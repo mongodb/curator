@@ -782,7 +782,7 @@ func (s *Service) sendMessages(rw http.ResponseWriter, r *http.Request) {
 	payload := &options.LoggingPayload{}
 	if err := gimlet.GetJSON(r.Body, payload); err != nil {
 		writeError(rw, gimlet.ErrorResponse{
-			StatusCode: http.StatusNotFound,
+			StatusCode: http.StatusBadRequest,
 			Message:    errors.Wrapf(err, "problem parsing payload for %s", id).Error(),
 		})
 		return
@@ -847,7 +847,7 @@ func (s *Service) loggingCacheCreate(rw http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		writeError(rw, gimlet.ErrorResponse{
 			StatusCode: http.StatusBadRequest,
-			Message:    errors.Wrap(err, "problem creating loggers").Error(),
+			Message:    errors.Wrap(err, "problem creating logger").Error(),
 		})
 		return
 	}
@@ -1012,7 +1012,7 @@ func (s *Service) scriptingRun(rw http.ResponseWriter, r *http.Request) {
 	}{}
 	if err := gimlet.GetJSON(r.Body, args); err != nil {
 		writeError(rw, gimlet.ErrorResponse{
-			StatusCode: http.StatusInternalServerError,
+			StatusCode: http.StatusBadRequest,
 			Message:    err.Error(),
 		})
 		return
@@ -1079,7 +1079,7 @@ func (s *Service) scriptingBuild(rw http.ResponseWriter, r *http.Request) {
 	}{}
 	if err = gimlet.GetJSON(r.Body, args); err != nil {
 		writeError(rw, gimlet.ErrorResponse{
-			StatusCode: http.StatusInternalServerError,
+			StatusCode: http.StatusBadRequest,
 			Message:    err.Error(),
 		})
 		return
@@ -1118,7 +1118,7 @@ func (s *Service) scriptingTest(rw http.ResponseWriter, r *http.Request) {
 	}{}
 	if err = gimlet.GetJSON(r.Body, args); err != nil {
 		writeError(rw, gimlet.ErrorResponse{
-			StatusCode: http.StatusInternalServerError,
+			StatusCode: http.StatusBadRequest,
 			Message:    err.Error(),
 		})
 		return

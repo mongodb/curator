@@ -124,12 +124,7 @@ func (s *mdbService) scriptingTest(ctx context.Context, w io.Writer, msg mongowi
 		return
 	}
 	results, err := harness.Test(ctx, req.Params.Dir, req.Params.Options...)
-	if err != nil {
-		shell.WriteErrorResponse(ctx, w, mongowire.OP_REPLY, errors.Wrap(err, "problem running tests"), ScriptingTestCommand)
-		return
-	}
-
-	s.serviceScriptingResponse(ctx, w, makeScriptingTestResponse(results), ScriptingTestCommand)
+	s.serviceScriptingResponse(ctx, w, makeScriptingTestResponse(results, err), ScriptingTestCommand)
 }
 
 func (s *mdbService) serviceScriptingRequest(ctx context.Context, w io.Writer, msg mongowire.Message, req interface{}, command string) bool {

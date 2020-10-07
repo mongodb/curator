@@ -86,7 +86,11 @@ func (e *pythonEnvironment) RunScript(ctx context.Context, script string) error 
 		return errors.Wrap(err, "problem writing script file")
 	}
 
-	return e.manager.CreateCommand(ctx).Environment(e.opts.Environment).SetOutputOptions(e.opts.Output).AppendArgs(e.opts.Interpreter(), wo.Path).Run(ctx)
+	return e.manager.CreateCommand(ctx).
+		Environment(e.opts.Environment).
+		SetOutputOptions(e.opts.Output).
+		AppendArgs(e.opts.Interpreter(), wo.Path).
+		Run(ctx)
 }
 
 func (e *pythonEnvironment) Build(ctx context.Context, dir string, args []string) (string, error) {

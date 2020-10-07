@@ -44,10 +44,11 @@ const (
 
 // Constants representing service flags.
 const (
-	quietFlagName    = "quiet"
-	userFlagName     = "user"
-	passwordFlagName = "password"
-	envFlagName      = "env"
+	quietFlagName            = "quiet"
+	userFlagName             = "user"
+	passwordFlagName         = "password"
+	forceInteractiveFlagName = "interactive"
+	envFlagName              = "env"
 
 	logNameFlagName  = "log_name"
 	defaultLogName   = "jasper"
@@ -122,6 +123,10 @@ func serviceFlags() []cli.Flag {
 		cli.StringSliceFlag{
 			Name:  envFlagName,
 			Usage: "The service environment variables (format: key=value).",
+		},
+		cli.BoolFlag{
+			Name:  forceInteractiveFlagName,
+			Usage: "Force the service to run in an interactive session.",
 		},
 		cli.StringFlag{
 			Name:  logNameFlagName,
@@ -311,14 +316,15 @@ func resourceLimit(limit int) string {
 // serviceConfig returns the daemon service configuration.
 func serviceConfig(serviceType string, c *cli.Context, args []string) *service.Config {
 	return &service.Config{
-		Name:        fmt.Sprintf("%s_jasperd", serviceType),
-		DisplayName: fmt.Sprintf("Jasper %s service", serviceType),
-		Description: "Jasper is a service for process management",
-		Executable:  "", // No executable refers to the current executable.
-		Arguments:   args,
-		Environment: makeUserEnvironment(c.String(userFlagName), c.StringSlice(envFlagName)),
-		UserName:    c.String(userFlagName),
-		Option:      serviceOptions(c),
+		Name:             fmt.Sprintf("%s_jasperd", serviceType),
+		DisplayName:      fmt.Sprintf("Jasper %s service", serviceType),
+		Description:      "Jasper is a service for process management",
+		Executable:       "", // No executable refers to the current executable.
+		Arguments:        args,
+		Environment:      makeUserEnvironment(c.String(userFlagName), c.StringSlice(envFlagName)),
+		UserName:         c.String(userFlagName),
+		ForceInteractive: c.Bool(forceInteractiveFlagName),
+		Option:           serviceOptions(c),
 	}
 }
 
