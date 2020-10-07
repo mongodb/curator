@@ -243,7 +243,7 @@ func (r *RecorderRegistry) SetBenchRecorderPrefix(prefix string) {
 // MakeBenchmark configures a recorder to support executing a
 // BenchmarkCase in the form of a standard library benchmarking
 // format.
-func (r *RecorderRegistry) MakeBenchmark(bench *BenchmarkCase) func(*testing.B) {
+func (r *RecorderRegistry) MakeBenchmark(bench *BenchmarkCase) (func(*testing.B), func() error) {
 	name := bench.Name()
 	r.mu.Lock()
 	fqname := filepath.Join(r.benchPrefix, name) + ".ftdc"
@@ -258,10 +258,11 @@ func (r *RecorderRegistry) MakeBenchmark(bench *BenchmarkCase) func(*testing.B) 
 	})
 
 	if err != nil {
-		return func(b *testing.B) { b.Fatal(errors.Wrap(err, "problem making recorder")) }
+		return func(b *testing.B) { b.Fatal(errors.Wrap(err, "problem making recorder")) },
+			func() error { return nil }
 	}
 
-	return bench.Bench.standard(recorder, func() error { return r.Close(name) })
+	return bench.Bench.standard(recorder), func() error { return r.Close(name) }
 }
 
 // Close flushes and closes the underlying recorder and collector and

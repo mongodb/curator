@@ -270,7 +270,13 @@ func (w *BenchmarkWorkload) Standard(registry *RecorderRegistry) func(*testing.B
 				}()
 
 				if w.Case != nil {
-					b.Run(fmt.Sprintf("WorkloadCase%s%s#%d", w.WorkloadName, w.Case.Name(), id), w.Case.Standard(registry))
+					benchmark, closer := w.Case.Standard(registry)
+					defer func() {
+						if err := closer(); err != nil {
+							b.Fatal(errors.Wrap(err, "benchmark cleanup"))
+						}
+					}()
+					b.Run(fmt.Sprintf("WorkloadCase%s%s#%d", w.WorkloadName, w.Case.Name(), id), benchmark)
 					return
 				}
 
