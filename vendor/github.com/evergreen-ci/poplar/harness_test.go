@@ -2,7 +2,7 @@ package poplar
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -10,6 +10,7 @@ import (
 
 	"github.com/mongodb/ftdc"
 	"github.com/mongodb/ftdc/events"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -607,5 +608,56 @@ func TestSuiteType(t *testing.T) {
 			assert.Equal(t, first, counter)
 		})
 	})
+}
 
+func BenchmarkStandard(b *testing.B) {
+	b.Run("Using Go", func(b *testing.B) {
+		for _, length := range []int{5, 10} {
+			b.Run(fmt.Sprintf("fib_%d", length), func(b *testing.B) {
+				for n := 0; n < b.N; n++ {
+					fib(length)
+				}
+			})
+		}
+	})
+
+	tmpDir, err := ioutil.TempDir(".", "standard-benchmark-test")
+	if err != nil {
+		b.Fatal(errors.Wrap(err, "failed to create temp dir"))
+	}
+	defer func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			b.Fatal(errors.Wrap(err, "failed to remove temp dir"))
+		}
+	}()
+
+	registry := NewRegistry()
+	registry.SetBenchRecorderPrefix(tmpDir)
+	suite := BenchmarkSuite{newStandardBenchmarkCase(5), newStandardBenchmarkCase(10)}
+	b.Run("Suite", suite.Standard(registry))
+}
+
+func newStandardBenchmarkCase(length int) *BenchmarkCase {
+	return &BenchmarkCase{
+		CaseName: fmt.Sprintf("fib_%d", length),
+		Bench: func(ctx context.Context, r Recorder, count int) error {
+			for i := 0; i < count; i++ {
+				fib(length)
+			}
+			return nil
+		},
+		MinIterations: 200,
+		MaxIterations: 500,
+		MinRuntime:    1 * time.Second,
+		MaxRuntime:    30 * time.Second,
+		Recorder:      RecorderPerf,
+	}
+}
+
+func fib(n int) int {
+	if n < 2 {
+		return n
+	}
+
+	return fib(n-1) + fib(n-2)
 }

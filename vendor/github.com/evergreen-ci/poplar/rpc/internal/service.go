@@ -14,6 +14,9 @@ func AttachService(registry *poplar.RecorderRegistry, s *grpc.Server) error {
 	})
 	RegisterPoplarEventCollectorServer(s, &collectorService{
 		registry: registry,
+		coordinator: &streamsCoordinator{
+			groups: map[string]*streamGroup{},
+		},
 	})
 
 	return nil

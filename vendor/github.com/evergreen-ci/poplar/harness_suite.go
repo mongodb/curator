@@ -92,7 +92,13 @@ func (s BenchmarkSuite) Run(ctx context.Context, prefix string) (BenchmarkResult
 func (s BenchmarkSuite) Standard(registry *RecorderRegistry) func(*testing.B) {
 	return func(b *testing.B) {
 		for _, test := range s {
-			b.Run(test.Name(), test.Standard(registry))
+			benchmark, closer := test.Standard(registry)
+			defer func() {
+				if err := closer(); err != nil {
+					b.Fatal(errors.Wrap(err, "benchmark cleanup"))
+				}
+			}()
+			b.Run(test.Name(), benchmark)
 		}
 	}
 }
