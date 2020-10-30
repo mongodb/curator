@@ -129,7 +129,7 @@ func (s *mdbService) scriptingTest(ctx context.Context, w io.Writer, msg mongowi
 
 func (s *mdbService) serviceScriptingRequest(ctx context.Context, w io.Writer, msg mongowire.Message, req interface{}, command string) bool {
 	if s.harnessCache == nil {
-		shell.WriteErrorResponse(ctx, w, mongowire.OP_REPLY, errors.New("scripting environment is not supported"), command)
+		shell.WriteErrorResponse(ctx, w, mongowire.OP_REPLY, errors.New("scripting harness is not supported"), command)
 		return false
 	}
 

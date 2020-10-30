@@ -63,7 +63,7 @@ func ValidMongoDBDownloadOptions() options.MongoDBDownload {
 }
 
 // ValidPythonScriptingHarnessOptions returns valid options for creating a
-// Python scripting environment.
+// Python scripting harness.
 func ValidPythonScriptingHarnessOptions(dir string) options.ScriptingHarness {
 	return &options.ScriptingPython{
 		VirtualEnvPath: dir,
@@ -72,7 +72,7 @@ func ValidPythonScriptingHarnessOptions(dir string) options.ScriptingHarness {
 }
 
 // ValidGolangScriptingHarnessOptions returns valid options for creating a
-// Golang scripting environment.
+// Golang scripting harness.
 func ValidGolangScriptingHarnessOptions(dir string) options.ScriptingHarness {
 	return &options.ScriptingGolang{
 		Gopath: filepath.Join(dir, "gopath"),

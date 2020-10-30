@@ -8,10 +8,9 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Harness provides an interface to execute code in a
-// scripting environment such as a python virtual
-// environment. Implementations should be make it possible to execute
-// either locally or on remote systems.
+// Harness provides an interface to execute code in a scripting environment such
+// as a Python virtual environment. Implementations should be make it possible
+// to execute either locally or on remote systems.
 type Harness interface {
 	// ID returns a unique ID for the underlying environment. This
 	// should match the ID produced by the underlying options

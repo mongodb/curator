@@ -54,14 +54,13 @@ func (e *pythonEnvironment) Setup(ctx context.Context) error {
 		cmd.Add(args)
 	}
 
-	cmd.PostHook(func(res error) error {
-		if res == nil {
-			e.isConfigured = true
-		}
-		return nil
-	})
+	if err := cmd.SetOutputOptions(e.opts.Output).Run(ctx); err != nil {
+		return errors.Wrap(err, "setup")
+	}
 
-	return cmd.SetOutputOptions(e.opts.Output).Run(ctx)
+	e.isConfigured = true
+
+	return nil
 }
 
 func (e *pythonEnvironment) venvMod() string {

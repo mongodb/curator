@@ -943,7 +943,7 @@ func (s *Service) scriptingCreate(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	se, err := s.harnesses.Create(s.manager, seopt)
+	sh, err := s.harnesses.Create(s.manager, seopt)
 	if err != nil {
 		writeError(rw, gimlet.ErrorResponse{
 			StatusCode: http.StatusBadRequest,
@@ -955,7 +955,7 @@ func (s *Service) scriptingCreate(rw http.ResponseWriter, r *http.Request) {
 	gimlet.WriteJSON(rw, struct {
 		ID string `json:"id"`
 	}{
-		ID: se.ID(),
+		ID: sh.ID(),
 	})
 }
 
@@ -975,7 +975,7 @@ func (s *Service) scriptingCheck(rw http.ResponseWriter, r *http.Request) {
 func (s *Service) scriptingSetup(rw http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	se, err := s.harnesses.Get(gimlet.GetVars(r)["id"])
+	sh, err := s.harnesses.Get(gimlet.GetVars(r)["id"])
 	if err != nil {
 		writeError(rw, gimlet.ErrorResponse{
 			StatusCode: http.StatusNotFound,
@@ -984,7 +984,7 @@ func (s *Service) scriptingSetup(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := se.Setup(ctx); err != nil {
+	if err := sh.Setup(ctx); err != nil {
 		writeError(rw, gimlet.ErrorResponse{
 			StatusCode: http.StatusInternalServerError,
 			Message:    err.Error(),
@@ -998,7 +998,7 @@ func (s *Service) scriptingSetup(rw http.ResponseWriter, r *http.Request) {
 func (s *Service) scriptingRun(rw http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	se, err := s.harnesses.Get(gimlet.GetVars(r)["id"])
+	sh, err := s.harnesses.Get(gimlet.GetVars(r)["id"])
 	if err != nil {
 		writeError(rw, gimlet.ErrorResponse{
 			StatusCode: http.StatusNotFound,
@@ -1018,7 +1018,7 @@ func (s *Service) scriptingRun(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := se.Run(ctx, args.Args); err != nil {
+	if err := sh.Run(ctx, args.Args); err != nil {
 		writeError(rw, gimlet.ErrorResponse{
 			StatusCode: http.StatusBadRequest,
 			Message:    err.Error(),
@@ -1032,7 +1032,7 @@ func (s *Service) scriptingRun(rw http.ResponseWriter, r *http.Request) {
 func (s *Service) scriptingRunScript(rw http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	se, err := s.harnesses.Get(gimlet.GetVars(r)["id"])
+	sh, err := s.harnesses.Get(gimlet.GetVars(r)["id"])
 	if err != nil {
 		writeError(rw, gimlet.ErrorResponse{
 			StatusCode: http.StatusNotFound,
@@ -1050,7 +1050,7 @@ func (s *Service) scriptingRunScript(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := se.RunScript(ctx, string(data)); err != nil {
+	if err := sh.RunScript(ctx, string(data)); err != nil {
 		writeError(rw, gimlet.ErrorResponse{
 			StatusCode: http.StatusBadRequest,
 			Message:    err.Error(),
@@ -1064,7 +1064,7 @@ func (s *Service) scriptingRunScript(rw http.ResponseWriter, r *http.Request) {
 func (s *Service) scriptingBuild(rw http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	se, err := s.harnesses.Get(gimlet.GetVars(r)["id"])
+	sh, err := s.harnesses.Get(gimlet.GetVars(r)["id"])
 	if err != nil {
 		writeError(rw, gimlet.ErrorResponse{
 			StatusCode: http.StatusNotFound,
@@ -1084,7 +1084,7 @@ func (s *Service) scriptingBuild(rw http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	path, err := se.Build(ctx, args.Directory, args.Args)
+	path, err := sh.Build(ctx, args.Directory, args.Args)
 	if err != nil {
 		writeError(rw, gimlet.ErrorResponse{
 			StatusCode: http.StatusBadRequest,
@@ -1103,7 +1103,7 @@ func (s *Service) scriptingBuild(rw http.ResponseWriter, r *http.Request) {
 func (s *Service) scriptingTest(rw http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	se, err := s.harnesses.Get(gimlet.GetVars(r)["id"])
+	sh, err := s.harnesses.Get(gimlet.GetVars(r)["id"])
 	if err != nil {
 		writeError(rw, gimlet.ErrorResponse{
 			StatusCode: http.StatusNotFound,
@@ -1124,7 +1124,7 @@ func (s *Service) scriptingTest(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var errOut string
-	res, err := se.Test(ctx, args.Directory, args.Options...)
+	res, err := sh.Test(ctx, args.Directory, args.Options...)
 	if err != nil {
 		errOut = err.Error()
 	}
@@ -1141,7 +1141,7 @@ func (s *Service) scriptingTest(rw http.ResponseWriter, r *http.Request) {
 func (s *Service) scriptingCleanup(rw http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	se, err := s.harnesses.Get(gimlet.GetVars(r)["id"])
+	sh, err := s.harnesses.Get(gimlet.GetVars(r)["id"])
 	if err != nil {
 		writeError(rw, gimlet.ErrorResponse{
 			StatusCode: http.StatusNotFound,
@@ -1150,7 +1150,7 @@ func (s *Service) scriptingCleanup(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := se.Cleanup(ctx); err != nil {
+	if err := sh.Cleanup(ctx); err != nil {
 		writeError(rw, gimlet.ErrorResponse{
 			StatusCode: http.StatusInternalServerError,
 			Message:    err.Error(),

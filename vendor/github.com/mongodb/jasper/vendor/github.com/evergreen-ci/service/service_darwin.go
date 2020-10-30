@@ -279,22 +279,32 @@ var launchdConfig = `<?xml version='1.0' encoding='UTF-8'?>
 <key>Label</key><string>{{html .Name}}</string>
 <key>ProgramArguments</key>
 <array>
-        <string>{{html .Path}}</string>
-{{range .Config.Arguments}}
-        <string>{{html .}}</string>
-{{end}}
-</array>
-{{if .UserName}}<key>UserName</key><string>{{html .UserName}}</string>{{end}}
-{{if .ChRoot}}<key>RootDirectory</key><string>{{html .ChRoot}}</string>{{end}}
-{{if .WorkingDirectory}}<key>WorkingDirectory</key><string>{{html .WorkingDirectory}}</string>{{end}}
-{{if .Environment}}<key>EnvironmentVariables</key>
+	<string>{{html .Path}}</string>
+{{range .Config.Arguments}}	<string>{{html .}}</string>
+{{end}}</array>
+{{if .UserName}}<key>UserName</key><string>{{html .UserName}}</string>
+{{end}}{{if .ChRoot}}<key>RootDirectory</key><string>{{html .ChRoot}}</string>
+{{end}}{{if .WorkingDirectory}}<key>WorkingDirectory</key><string>{{html .WorkingDirectory}}</string>
+{{end}}{{if .Environment}}<key>EnvironmentVariables</key>
 <dict>
 {{range $name, $value := .Environment}}<key>{{$name}}</key>
 <string>{{$value}}</string>
 {{end}}</dict>
-{{end}}
-{{if .ProcessType}}<key>ProcessType</key><string>{{html .ProcessType}}</string>{{end}}
-<key>SessionCreate</key><{{bool .SessionCreate}}/>
+{{end}}{{if .ProcessType}}<key>ProcessType</key><string>{{html .ProcessType}}</string>
+{{end}}{{if or .Option.LimitLockedMemory .Option.LimitNumFiles .Option.LimitNumProcs .Option.LimitVirtualMemory}}
+<key>HardResourceLimits</key>
+	<dict>
+	{{if .Option.LimitLockedMemory}}	<key>MemoryLock</key><integer>{{.Option.LimitLockedMemory}}</integer>
+	{{end}}{{if .Option.LimitNumFiles}}	<key>NumberOfFiles</key><integer>{{.Option.LimitNumFiles}}</integer>
+	{{end}}{{if .Option.LimitNumProcs}}	<key>NumberOfProcesses</key><integer>{{.Option.LimitNumProcs}}</integer>
+	{{end}}</dict>
+<key>SoftResourceLimits</key>
+	<dict>
+	{{if .Option.LimitLockedMemory}}	<key>MemoryLock</key><integer>{{.Option.LimitLockedMemory}}</integer>
+	{{end}}{{if .Option.LimitNumFiles}}	<key>NumberOfFiles</key><integer>{{.Option.LimitNumFiles}}</integer>
+	{{end}}{{if .Option.LimitNumProcs}}	<key>NumberOfProcesses</key><integer>{{.Option.LimitNumProcs}}</integer>
+	{{end}}</dict>
+{{end}}<key>SessionCreate</key><{{bool .SessionCreate}}/>
 <key>KeepAlive</key><{{bool .KeepAlive}}/>
 <key>RunAtLoad</key><{{bool .RunAtLoad}}/>
 <key>Disabled</key><false/>
