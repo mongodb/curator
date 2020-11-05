@@ -133,6 +133,7 @@ vendor-clean:
 	rm -rf vendor/github.com/evergreen-ci/poplar/vendor/github.com/evergreen-ci/birch/
 	rm -rf vendor/github.com/evergreen-ci/poplar/vendor/github.com/evergreen-ci/pail/
 	rm -rf vendor/github.com/evergreen-ci/poplar/vendor/github.com/evergreen-ci/birch/
+	rm -rf vendor/github.com/evergreen-ci/poplar/vendor/github.com/evergreen-ci/juniper/
 	rm -rf vendor/github.com/evergreen-ci/poplar/vendor/github.com/mongodb/amboy/
 	rm -rf vendor/github.com/evergreen-ci/poplar/vendor/github.com/mongodb/grip/
 	rm -rf vendor/github.com/evergreen-ci/poplar/vendor/github.com/mongodb/ftdc/
@@ -235,6 +236,7 @@ vendor-clean:
 	rm -rf vendor/github.com/evergreen-ci/timber/vendor/go.mongodb.org/
 	rm -rf vendor/github.com/evergreen-ci/timber/vendor/github.com/evergreen-ci/aviation/
 	rm -rf vendor/github.com/evergreen-ci/timber/vendor/github.com/evergreen-ci/utility/
+	rm -rf vendor/github.com/evergreen-ci/timber/vendor/github.com/evergreen-ci/juniper/
 	rm -rf vendor/github.com/evergreen-ci/timber/vendor/github.com/golang/protobuf/
 	rm -rf vendor/github.com/evergreen-ci/timber/vendor/github.com/mongodb/grip/
 	rm -rf vendor/github.com/evergreen-ci/timber/vendor/github.com/stretchr/testify/

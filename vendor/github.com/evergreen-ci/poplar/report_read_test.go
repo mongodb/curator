@@ -71,3 +71,57 @@ func TestLoadReport(t *testing.T) {
 		})
 	}
 }
+
+func TestLoadTests(t *testing.T) {
+	data, err := ioutil.ReadFile("testdata/tests.json")
+	require.NoError(t, err)
+	expectedTests := []Test{}
+	require.NoError(t, json.Unmarshal(data, &expectedTests))
+	expectedReport := &Report{Tests: expectedTests}
+
+	for _, test := range []struct {
+		name   string
+		fn     string
+		hasErr bool
+	}{
+		{
+			name:   "FileDoesNotExist",
+			fn:     "DNE",
+			hasErr: true,
+		},
+		{
+			name:   "FileIsDir",
+			fn:     "testdata",
+			hasErr: true,
+		},
+		{
+			name:   "NoUnmarshaler",
+			fn:     "testdata/csv_example.csv",
+			hasErr: true,
+		},
+		{
+			name:   "MarshalsBSONFails",
+			fn:     "testdata/report.bson",
+			hasErr: true,
+		},
+		{
+			name: "MarshalsJSONCorrectly",
+			fn:   "testdata/tests.json",
+		},
+		{
+			name: "MarshalsYAMLCorrectly",
+			fn:   "testdata/tests.yaml",
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			report, err := LoadTests(test.fn)
+			if test.hasErr {
+				assert.Nil(t, report)
+				assert.Error(t, err)
+			} else {
+				assert.Equal(t, expectedReport, report)
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
