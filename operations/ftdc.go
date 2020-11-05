@@ -175,7 +175,7 @@ func fromJSON() cli.Command {
 			opts.FlushInterval = c.Duration(flush)
 			opts.SampleCount = c.Int(maxCount)
 
-			if err := metrics.CollectJSONStream(ctx, opts); err != nil {
+			if _, err := metrics.CollectJSONStream(ctx, opts); err != nil {
 				return errors.Wrap(err, "Failed to write FTDC from JSON")
 			}
 			return nil

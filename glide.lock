@@ -59,7 +59,7 @@ imports:
   version: 3a26bb67719ad6a9e7daed059abd5d018586f3cd
 
 - name: github.com/mongodb/ftdc
-  version: 8b996adb830457905c1f23c0f8738f6ec36e0917
+  version: d5dbbae38209b053448f889ce16f57f1bee3d296
 - name: github.com/mongodb/jasper
   version: 7c6b819182706471e29c1f65edbe6989efd7c0a2
 - name: github.com/mongodb/anser
