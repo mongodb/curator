@@ -29,7 +29,7 @@ $(shell mkdir -p $(buildDir))
 # start lint setup targets
 lintDeps := $(buildDir)/run-linter $(buildDir)/golangci-lint
 $(buildDir)/golangci-lint:
-	@curl --retry 10 --retry-max-time 60 -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/76a82c6ed19784036bbf2d4c84d0228ca12381a4/install.sh | sh -s -- -b $(buildDir) v1.30.0 >/dev/null 2>&1
+	@curl --retry 10 --retry-max-time 60 -sSfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(buildDir) v1.30.0 >/dev/null 2>&1
 $(buildDir)/run-linter:cmd/run-linter/run-linter.go $(buildDir)/golangci-lint
 	@$(gobin) build -o $@ $<
 # end lint setup targets
@@ -116,7 +116,6 @@ vendor:
 .PHONY:vendor
 vendor-clean:
 	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/google/uuid
-	rm -rf vendor/github.com/mongodb/amboy/vendor/github.com/google/uuid
 	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/montanaflynn/stats/
 	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/stretchr/testify/
 	rm -rf vendor/github.com/mongodb/grip/vendor/golang.org/x/sys/
@@ -124,22 +123,20 @@ vendor-clean:
 	rm -rf vendor/github.com/mongodb/ftdc/vendor/github.com/pkg/errors/
 	rm -rf vendor/github.com/mongodb/ftdc/vendor/github.com/mongodb/grip/
 	rm -rf vendor/github.com/mongodb/ftdc/vendor/github.com/stretchr/testify
-	rm -rf vendor/github.com/mongodb/ftdc/vendor/github.com/mongodb/mongo-go-driver/
 	rm -rf vendor/github.com/mongodb/ftdc/vendor/github.com/papertrail/
+	rm -rf vendor/github.com/mongodb/ftdc/vendor/go.mongodb.org/mongo-driver/
 	rm -rf vendor/github.com/mongodb/grip/buildscripts/
-	rm -rf vendor/github.com/mongodb/mongo-go-driver/vendor/golang.org/x/text/
-	rm -rf vendor/github.com/mongodb/mongo-go-driver/vendor/golang.org/x/net/
-	rm -rf vendor/github.com/mongodb/mongo-go-driver/vendor/github.com/montanaflynn/
-	rm -rf vendor/github.com/mongodb/mongo-go-driver/vendor/github.com/stretchr/
-	rm -rf vendor/github.com/mongodb/mongo-go-driver/vendor/github.com/google/go-cmp/cmp/
 	rm -rf vendor/github.com/evergreen-ci/pail/vendor/github.com/mongodb/grip/
 	rm -rf vendor/github.com/evergreen-ci/pail/vendor/github.com/pkg/errors/
 	rm -rf vendor/github.com/evergreen-ci/pail/vendor/github.com/stretchr/testify/
+	rm -rf vendor/github.com/evergreen-ci/pail/vendor/go.mongodb.org/mongo-driver/
 	rm -rf vendor/github.com/papertrail/go-tail/vendor/golang.org/x/sys/
+	rm -rf vendor/github.com/mongodb/amboy/vendor/github.com/google/uuid/
 	rm -rf vendor/github.com/mongodb/amboy/vendor/github.com/pkg/errors/
 	rm -rf vendor/github.com/mongodb/amboy/vendor/github.com/stretchr/testify/
 	rm -rf vendor/github.com/mongodb/amboy/vendor/github.com/mongodb/grip/
 	rm -rf vendor/github.com/mongodb/amboy/vendor/gopkg.in/yaml.v2/
+	rm -rf vendor/github.com/mongodb/amboy/vendor/go.mongodb.org/mongo-driver/
 	rm -rf vendor/github.com/evergreen-ci/aviation/vendor/google.golang.org/grpc/
 	rm -rf vendor/github.com/evergreen-ci/aviation/vendor/github.com/mongodb/grip/
 	rm -rf vendor/github.com/evergreen-ci/aviation/vendor/github.com/pkg/errors/
