@@ -176,8 +176,8 @@ func (sc *streamsCoordinator) addStream(name string, registry *poplar.RecorderRe
 	defer group.mu.Unlock()
 
 	id := utility.RandomString()
-	// A buffer size of 250000 has been determined by downstream tests.
-	group.streams[id] = &stream{buffer: make(chan *events.Performance, 250000)}
+	// A buffer size of 1000000 has been determined by downstream tests.
+	group.streams[id] = &stream{buffer: make(chan *events.Performance, 1000000)}
 	group.availableStreams = append(group.availableStreams, id)
 
 	return nil
