@@ -463,6 +463,8 @@ service JasperProcessManager {
   rpc LoggingCacheCreate(LoggingCacheCreateArgs) returns (LoggingCacheInstance);
   rpc LoggingCacheGet(LoggingCacheArgs) returns (LoggingCacheInstance);
   rpc LoggingCacheRemove(LoggingCacheArgs) returns (OperationOutcome);
+  rpc LoggingCacheCloseAndRemove(LoggingCacheArgs) returns (OperationOutcome);
+  rpc LoggingCacheClear(google.protobuf.Empty) returns (OperationOutcome);
   rpc LoggingCacheLen(google.protobuf.Empty) returns (LoggingCacheSize);
   rpc LoggingCachePrune(google.protobuf.Timestamp) returns (OperationOutcome);
 
