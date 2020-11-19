@@ -2,6 +2,7 @@ package internal
 
 import (
 	"container/heap"
+	"container/list"
 	"context"
 	"io"
 	"sync"
@@ -145,7 +146,7 @@ type streamGroup struct {
 type stream struct {
 	inHeap bool
 	closed bool
-	buffer chan *events.Performance
+	buffer *list.List
 }
 
 // addStream adds a new stream to the group for the given collector. If the
@@ -176,8 +177,7 @@ func (sc *streamsCoordinator) addStream(name string, registry *poplar.RecorderRe
 	defer group.mu.Unlock()
 
 	id := utility.RandomString()
-	// A buffer size of 1000000 has been determined by downstream tests.
-	group.streams[id] = &stream{buffer: make(chan *events.Performance, 1000000)}
+	group.streams[id] = &stream{buffer: list.New()}
 	group.availableStreams = append(group.availableStreams, id)
 
 	return nil
@@ -221,12 +221,8 @@ func (sg *streamGroup) addEvent(ctx context.Context, id string, event *events.Pe
 	}
 
 	if stream.inHeap {
-		select {
-		case stream.buffer <- event:
-			return nil
-		default:
-			return errors.New("event buffer full for this stream")
-		}
+		stream.buffer.PushBack(event)
+		return nil
 	}
 	sg.eventHeap.SafePush(&performanceHeapItem{id: id, event: event})
 	stream.inHeap = true
@@ -246,7 +242,7 @@ func (sg *streamGroup) closeStream(id string) error {
 		return nil
 	}
 	stream.closed = true
-	if len(stream.buffer) == 0 {
+	if stream.buffer.Len() == 0 {
 		delete(sg.streams, id)
 	}
 
@@ -266,22 +262,19 @@ func (sg *streamGroup) flush() error {
 
 		stream, ok := sg.streams[item.id]
 		if ok {
-			if stream.closed && len(stream.buffer) == 0 {
+			if stream.closed && stream.buffer.Len() == 0 {
 				// Remove closed stream with empty buffer.
 				delete(sg.streams, item.id)
 			} else {
 				stream.inHeap = false
 			}
-			select {
-			case event := <-stream.buffer:
+			if event := stream.buffer.Front(); event != nil {
 				// Get next event from stream's buffer and add
 				// it to the min heap.
-				sg.eventHeap.SafePush(&performanceHeapItem{id: item.id, event: event})
+				sg.eventHeap.SafePush(&performanceHeapItem{id: item.id, event: event.Value.(*events.Performance)})
 				stream.inHeap = true
-			default:
-				// Do nothing, buffer empty.
+				stream.buffer.Remove(event)
 			}
-
 		}
 
 		if err := sg.collector.AddEvent(item.event); err != nil {
