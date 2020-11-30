@@ -560,6 +560,20 @@ func TestSend(t *testing.T) {
 		assert.Equal(t, m2.String(), b.buffer[2].Data)
 		assert.EqualValues(t, m.Priority(), b.buffer[2].Priority)
 	})
+	t.Run("WithPrefix", func(t *testing.T) {
+		mc := &mockClient{}
+		ms := &mockSender{Base: send.NewBase("test")}
+		b := createSender(ctx, mc, ms)
+		b.opts.MaxBufferSize = 4096
+		b.opts.Prefix = "prefix"
+
+		m := message.ConvertToComposer(level.Emergency, "Hello world!")
+		b.Send(m)
+		require.NoError(t, b.Close())
+		require.Len(t, mc.logLines.Lines, 1)
+		assert.Equal(t, fmt.Sprintf("[%s] %s", b.opts.Prefix, m.String()), mc.logLines.Lines[0].Data)
+		assert.EqualValues(t, m.Priority(), mc.logLines.Lines[0].Priority)
+	})
 	t.Run("RPCError", func(t *testing.T) {
 		str := "overflow"
 		mc := &mockClient{appendErr: true}
