@@ -34,9 +34,10 @@ message BufferOptions {
 
 enum LogFormat {
   LOGFORMATUNKNOWN = 0;
-  LOGFORMATDEFAULT = 1;
+  LOGFORMATPLAIN = 1;
   LOGFORMATJSON = 2;
-  LOGFORMATPLAIN = 3;
+  LOGFORMATBSON = 3;
+  LOGFORMATDEFAULT = 4;
 }
 
 message BaseOptions {
