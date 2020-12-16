@@ -22,7 +22,7 @@ S3 Tools
 ~~~~~~~~
 
 Curator includes a basic set of AWS S3 operations on the
-command line. Although the get, put, ankd delete operations are faily
+command line. Although the get, put, and delete operations are faily
 basic the ``sync-to`` and ``sync-from`` operations provide parallel
 directory tree sync operations between s3 buckets and the local file
 system. These operations compare objects using MD5 checksums, do
