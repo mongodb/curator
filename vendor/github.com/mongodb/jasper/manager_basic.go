@@ -176,7 +176,11 @@ func (m *basicProcessManager) Clear(ctx context.Context) {
 	for procID, proc := range m.procs {
 		if proc.Complete(ctx) {
 			delete(m.procs, procID)
-			m.loggers.Remove(procID)
+			grip.Warning(message.WrapError(m.loggers.Remove(procID), message.Fields{
+				"message": "problem clearing caching logger for process",
+				"process": proc.ID(),
+				"manager": m.ID(),
+			}))
 		}
 	}
 }

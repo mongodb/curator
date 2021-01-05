@@ -60,8 +60,9 @@ func TestLoggingCache(t *testing.T) {
 						expectedLogger, err := lc.Create("new_logger", &options.Output{})
 						require.NoError(t, err)
 
-						logger := lc.Get(expectedLogger.ID)
-						require.NotNil(t, logger)
+						logger, err := lc.Get(expectedLogger.ID)
+						require.NoError(t, err)
+						require.NotZero(t, logger)
 						assert.Equal(t, expectedLogger.ID, logger.ID)
 					},
 				},
@@ -69,8 +70,29 @@ func TestLoggingCache(t *testing.T) {
 					Name: "LoggingCacheGetFailsWithNonexistentLogger",
 					Case: func(ctx context.Context, t *testing.T, client Manager) {
 						lc := client.LoggingCache(ctx)
-						logger := lc.Get("nonexistent")
-						require.Nil(t, logger)
+						logger, err := lc.Get("nonexistent")
+						assert.Error(t, err)
+						assert.Zero(t, logger)
+					},
+				},
+				{
+					Name: "LoggingCacheClearSucceeds",
+					Case: func(ctx context.Context, t *testing.T, client Manager) {
+						lc := client.LoggingCache(ctx)
+						logger1, err := lc.Create("logger1", &options.Output{})
+						require.NoError(t, err)
+
+						require.NoError(t, lc.Clear(ctx))
+
+						logger2, err := lc.Create("logger2", &options.Output{})
+						require.NoError(t, err)
+
+						cachedLogger1, err := lc.Get(logger1.ID)
+						assert.Error(t, err)
+						assert.Zero(t, cachedLogger1)
+						cachedLogger2, err := lc.Get(logger2.ID)
+						assert.NoError(t, err)
+						assert.NotZero(t, cachedLogger2)
 					},
 				},
 				{
@@ -82,22 +104,25 @@ func TestLoggingCache(t *testing.T) {
 						logger2, err := lc.Create("logger2", &options.Output{})
 						require.NoError(t, err)
 
-						require.NotNil(t, lc.Get(logger1.ID))
-						require.NotNil(t, lc.Get(logger2.ID))
-						lc.Remove(logger2.ID)
-						require.NotNil(t, lc.Get(logger1.ID))
-						require.Nil(t, lc.Get(logger2.ID))
+						require.NoError(t, lc.Remove(logger2.ID))
+						cachedLogger1, err := lc.Get(logger1.ID)
+						assert.NoError(t, err)
+						assert.NotZero(t, cachedLogger1)
+						cachedLogger2, err := lc.Get(logger2.ID)
+						assert.Error(t, err)
+						assert.Zero(t, cachedLogger2)
 					},
 				},
 				{
-					Name: "LoggingCacheRemoveNoopsForNonexistentLogger",
+					Name: "LoggingCacheRemoveWithNonexistentLoggerFails",
 					Case: func(ctx context.Context, t *testing.T, client Manager) {
 						lc := client.LoggingCache(ctx)
 						_, err := lc.Create("logger", &options.Output{})
 						require.NoError(t, err)
-						require.Equal(t, 1, lc.Len())
-						lc.Remove("nonexistent")
-						assert.Equal(t, 1, lc.Len())
+						assert.Error(t, lc.Remove("foo"))
+						length, err := lc.Len()
+						require.NoError(t, err)
+						assert.Equal(t, 1, length)
 					},
 				},
 				{
@@ -106,7 +131,6 @@ func TestLoggingCache(t *testing.T) {
 						lc := client.LoggingCache(ctx)
 						logger1, err := lc.Create("logger1", &options.Output{})
 						require.NoError(t, err)
-						require.NotNil(t, lc.Get(logger1.ID))
 						// We have to sleep to force this logger to be
 						// pruned.
 						time.Sleep(2 * time.Second)
@@ -114,9 +138,11 @@ func TestLoggingCache(t *testing.T) {
 						logger2, err := lc.Create("logger2", &options.Output{})
 						require.NoError(t, err)
 
-						lc.Prune(time.Now().Add(-time.Second))
-						require.Nil(t, lc.Get(logger1.ID))
-						require.NotNil(t, lc.Get(logger2.ID))
+						require.NoError(t, lc.Prune(time.Now().Add(-time.Second)))
+						_, err = lc.Get(logger1.ID)
+						assert.Error(t, err)
+						_, err = lc.Get(logger2.ID)
+						assert.NoError(t, err)
 					},
 				},
 				{
@@ -124,9 +150,15 @@ func TestLoggingCache(t *testing.T) {
 					Case: func(ctx context.Context, t *testing.T, client Manager) {
 						lc := client.LoggingCache(ctx)
 
-						assert.Zero(t, lc.Len())
-						lc.Prune(time.Now())
-						assert.Zero(t, lc.Len())
+						length, err := lc.Len()
+						require.NoError(t, err)
+						require.Zero(t, length)
+
+						require.NoError(t, lc.Prune(time.Now()))
+
+						length, err = lc.Len()
+						require.NoError(t, err)
+						assert.Zero(t, length)
 					},
 				},
 				{
@@ -138,14 +170,18 @@ func TestLoggingCache(t *testing.T) {
 						_, err = lc.Create("logger2", &options.Output{})
 						require.NoError(t, err)
 
-						assert.Equal(t, 2, lc.Len())
+						length, err := lc.Len()
+						require.NoError(t, err)
+						assert.Equal(t, 2, length)
 					},
 				},
 				{
 					Name: "LoggingCacheLenIsZeroWithoutLoggers",
 					Case: func(ctx context.Context, t *testing.T, client Manager) {
 						lc := client.LoggingCache(ctx)
-						assert.Zero(t, lc.Len())
+						length, err := lc.Len()
+						require.NoError(t, err)
+						assert.Zero(t, length)
 					},
 				},
 			} {

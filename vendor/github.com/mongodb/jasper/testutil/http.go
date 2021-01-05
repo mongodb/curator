@@ -65,9 +65,9 @@ func WaitForRESTService(ctx context.Context, url string) error {
 	}
 }
 
-// WaitForWireService waits unti either the wire service becomes available to
-// serve requests or the context times ou t.
-func WaitForWireService(ctx context.Context, addr net.Addr) error { //nolint: interfacer
+// WaitForWireService waits until either the wire service becomes available to
+// serve requests or the context times out.
+func WaitForWireService(ctx context.Context, addr net.Addr) error {
 	// Block until the service comes up
 	timeoutInterval := 10 * time.Millisecond
 	timer := time.NewTimer(timeoutInterval)
