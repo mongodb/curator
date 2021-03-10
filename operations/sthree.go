@@ -44,8 +44,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -122,15 +120,13 @@ func s3PutCmd() cli.Command {
 				return errors.Wrapf(err, "problem putting %s in s3", c.String("file"))
 			}
 
-			fileName := filepath.Base(c.String("file"))
-			remotePath := path.Join(strings.TrimSuffix(objectKey, fileName), fileName)
 			var baseURL string
 			if strings.Contains(bucketName, ".") {
-				baseURL = fmt.Sprintf("https://%s.s3.amazonaws.com", bucketName)
-			} else {
 				baseURL = fmt.Sprintf("https://s3.amazonaws.com/%s", bucketName)
+			} else {
+				baseURL = fmt.Sprintf("https://%s.s3.amazonaws.com", bucketName)
 			}
-			url := strings.Join([]string{baseURL, remotePath}, "/")
+			url := strings.Join([]string{baseURL, objectKey}, "/")
 			fmt.Println("Object URL: ", url)
 
 			return nil
@@ -434,7 +430,7 @@ func baseS3Flags(args ...cli.Flag) []cli.Flag {
 		},
 		cli.StringFlag{
 			Name:  "profile",
-			Usage: fmt.Sprintln("set the AWS profile. By default reads from AWS_PROFILE environment variable or uses 'default'"),
+			Usage: "set the AWS profile. By default reads from AWS_PROFILE environment variable or uses 'default'",
 		},
 		cli.BoolFlag{
 			Name:  "dry-run",
