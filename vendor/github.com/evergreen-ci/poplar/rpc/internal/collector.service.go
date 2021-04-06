@@ -34,14 +34,21 @@ func (s *collectorService) CreateCollector(ctx context.Context, opts *CreateOpti
 }
 
 func (s *collectorService) CloseCollector(ctx context.Context, id *PoplarID) (*PoplarResponse, error) {
-	err := s.registry.Close(id.Name)
+	catcher := grip.NewBasicCatcher()
 
-	grip.Error(message.WrapError(err, message.Fields{
+	for _, group := range s.coordinator.groups {
+		for streamID := range group.streams {
+			catcher.Add(group.closeStream(streamID))
+		}
+	}
+	catcher.Add(s.registry.Close(id.Name))
+
+	grip.Error(message.WrapError(catcher.Resolve(), message.Fields{
 		"message":  "problem closing recorder",
 		"recorder": id.Name,
 	}))
 
-	return &PoplarResponse{Name: id.Name, Status: err == nil}, nil
+	return &PoplarResponse{Name: id.Name, Status: !catcher.HasErrors()}, nil
 }
 
 func (s *collectorService) SendEvent(ctx context.Context, event *EventMetrics) (*PoplarResponse, error) {
