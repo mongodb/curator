@@ -112,6 +112,10 @@ func uploadTests(ctx context.Context, client gopb.CedarPerformanceMetricsClient,
 		if err != nil {
 			return err
 		}
+		metrics, err := extractMetrics(ctx, test)
+		if err != nil {
+			return err
+		}
 		resultData := &gopb.ResultData{
 			Id: &gopb.ResultID{
 				Project:   report.Project,
@@ -130,7 +134,7 @@ func uploadTests(ctx context.Context, client gopb.CedarPerformanceMetricsClient,
 				CreatedAt: createdAt,
 			},
 			Artifacts: artifacts,
-			Rollups:   extractMetrics(ctx, test),
+			Rollups:   metrics,
 		}
 
 		if dryRun {
@@ -202,11 +206,17 @@ func extractArtifacts(ctx context.Context, report *poplar.Report, test poplar.Te
 	return artifacts, nil
 }
 
-func extractMetrics(ctx context.Context, test poplar.Test) []*gopb.RollupValue {
+func extractMetrics(ctx context.Context, test poplar.Test) ([]*gopb.RollupValue, error) {
 	rollups := make([]*gopb.RollupValue, 0, len(test.Metrics))
+	names := map[string]bool{}
 	for _, r := range test.Metrics {
+		if ok := names[r.Name]; ok {
+			return nil, errors.Errorf("duplicate metric name '%s'", r.Name)
+		}
+		names[r.Name] = true
+
 		rollups = append(rollups, internal.ExportRollup(&r))
 	}
 
-	return rollups
+	return rollups, nil
 }

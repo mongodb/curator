@@ -2,6 +2,7 @@ package internal
 
 import (
 	"bytes"
+	"container/list"
 	"context"
 	fmt "fmt"
 	"io/ioutil"
@@ -89,6 +90,14 @@ func TestCloseCollector(t *testing.T) {
 		assert.NoError(t, os.RemoveAll(tmpDir))
 	}()
 	svc := getTestCollectorService(t, tmpDir)
+	svc.coordinator.groups["group"] = &streamGroup{
+		streams: map[string]*stream{
+			"id1": &stream{
+				buffer: &list.List{},
+			},
+		},
+		eventHeap: &PerformanceHeap{},
+	}
 	defer func() {
 		assert.NoError(t, closeCollectorService(svc))
 	}()
@@ -114,6 +123,8 @@ func TestCloseCollector(t *testing.T) {
 			assert.Equal(t, test.resp, resp)
 			assert.NoError(t, err)
 			_, ok := svc.registry.GetCollector(test.id.Name)
+			assert.False(t, ok)
+			_, ok = svc.coordinator.groups["group"].streams["id1"]
 			assert.False(t, ok)
 		})
 	}
