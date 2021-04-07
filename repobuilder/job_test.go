@@ -61,7 +61,7 @@ func TestProcessPackages(t *testing.T) {
 
 	j := buildRepoJob()
 	var err error
-	j.release, err = bond.CreateMongoDBVersion("4.2.5-rc1")
+	j.release, err = bond.CreateMongoDBVersion("4.4.5")
 	require.NoError(t, err)
 	j.client = utility.GetDefaultHTTPRetryableClient()
 	j.Distro = &RepositoryDefinition{Name: "test"}
@@ -71,7 +71,7 @@ func TestProcessPackages(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.NoError(t, j.processPackages(ctx))
-	assert.Len(t, j.PackagePaths, 6)
+	assert.Len(t, j.PackagePaths, 7)
 }
 
 func TestGetPackageLocation(t *testing.T) {
