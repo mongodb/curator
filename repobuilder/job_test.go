@@ -61,17 +61,17 @@ func TestProcessPackages(t *testing.T) {
 
 	j := buildRepoJob()
 	var err error
-	j.release, err = bond.CreateMongoDBVersion("4.2.5-rc1")
+	j.release, err = bond.CreateMongoDBVersion("4.4.5")
 	require.NoError(t, err)
 	j.client = utility.GetDefaultHTTPRetryableClient()
 	j.Distro = &RepositoryDefinition{Name: "test"}
 	defer func() { utility.PutHTTPClient(j.client) }()
-	j.PackagePaths = []string{"https://mciuploads.s3.amazonaws.com/mongo-release/enterprise-rhel-62-64-bit/98d10b50208db52f3aa0f16a634ec6fa73d465bc/artifacts/mongo_release_enterprise_rhel_62_64_bit_98d10b50208db52f3aa0f16a634ec6fa73d465bc_20_03_19_17_13_06-packages.tgz"}
+	j.PackagePaths = []string{"https://mciuploads.s3.amazonaws.com/mongo-release/enterprise-rhel-80-64-bit/d18913b155d170b760eede8c457f6d9ed2969aab/artifacts/mongo_release_enterprise_rhel_80_64_bit_d18913b155d170b760eede8c457f6d9ed2969aab_21_04_01_22_38_07-packages.tgz"}
 	j.tmpdir, err = ioutil.TempDir("", "test-process-packages")
 	require.NoError(t, err)
 
 	assert.NoError(t, j.processPackages(ctx))
-	assert.Len(t, j.PackagePaths, 6)
+	assert.Len(t, j.PackagePaths, 7)
 }
 
 func TestGetPackageLocation(t *testing.T) {
