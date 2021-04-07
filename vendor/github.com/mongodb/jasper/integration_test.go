@@ -110,8 +110,8 @@ func TestMongod(t *testing.T) {
 	defer os.RemoveAll(dir)
 
 	for name, makeProc := range map[string]ProcessConstructor{
-		"Basic":    newBasicProcess,
-		"Blocking": newBlockingProcess,
+		"BasicProcess":    newBasicProcess,
+		"BlockingProcess": newBlockingProcess,
 	} {
 		t.Run(name, func(t *testing.T) {
 			for _, test := range []struct {

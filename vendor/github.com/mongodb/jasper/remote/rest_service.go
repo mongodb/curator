@@ -415,6 +415,11 @@ func (s *Service) addProcessTag(rw http.ResponseWriter, r *http.Request) {
 	gimlet.WriteJSON(rw, struct{}{})
 }
 
+type restWaitResponse struct {
+	Error    string `json:"error,omitempty"`
+	ExitCode int    `json:"exit_code,omitempty"`
+}
+
 func (s *Service) waitForProcess(rw http.ResponseWriter, r *http.Request) {
 	id := gimlet.GetVars(r)["id"]
 	ctx := r.Context()
@@ -428,15 +433,15 @@ func (s *Service) waitForProcess(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	exitCode, err := proc.Wait(ctx)
-	if err != nil && exitCode == -1 {
-		writeError(rw, gimlet.ErrorResponse{
-			StatusCode: http.StatusBadRequest,
-			Message:    err.Error(),
+	if err != nil {
+		gimlet.WriteJSON(rw, restWaitResponse{
+			Error:    err.Error(),
+			ExitCode: exitCode,
 		})
 		return
 	}
 
-	gimlet.WriteJSON(rw, exitCode)
+	gimlet.WriteJSON(rw, restWaitResponse{ExitCode: exitCode})
 }
 
 func (s *Service) respawnProcess(rw http.ResponseWriter, r *http.Request) {

@@ -99,7 +99,7 @@ func (m *basicProcessManager) Register(ctx context.Context, proc Process) error 
 	}
 
 	if proc == nil {
-		return errors.New("process is not defined")
+		return errors.New("process cannot be nil")
 	}
 
 	id := proc.ID()
