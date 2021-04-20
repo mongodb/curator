@@ -42,7 +42,7 @@ functions:
       working_dir: gopath/src/github.com/mongodb/curator
       binary: make
       args: ["${target}"]
-      add_expansions_to_env: true
+      include_expansions_in_env: ["DISABLE_COVERAGE", "GO_BIN_PATH", "GOROOT", "RACE_DETECTOR"]
       env:
         GOPATH: ${workdir}/gopath
         GOOS: ${goos}
@@ -239,6 +239,23 @@ buildvariants:
       - name: "push"
 
   # the following targets *just* cross compile the binary for different architectures.
+  - name: macos-arm64
+    display_name: macOS 11.00 ARM64 (cross-compile)
+    expansions:
+      DISABLE_COVERAGE: true
+      GOROOT: /opt/golang/go1.13
+      GO_BIN_PATH: /opt/golang/go1.13/bin/go
+      goarch: arm64
+      goos: darwin
+    run_on:
+      - macos-1014
+    tasks:
+      - name: ".dist"
+        depends_on:
+          - name: ".test"
+            variant: macos
+      - name: "push"
+
   - name: s390x
     display_name: "zLinux (cross-compile)"
     expansions:
@@ -250,7 +267,7 @@ buildvariants:
       - ubuntu1604-small
       - ubuntu1604-large
     tasks:
-      - name: "build"
+      - name: ".dist"
         depends_on:
         - name: ".test"
           variant: "rhel70"
@@ -267,7 +284,7 @@ buildvariants:
       - ubuntu1604-small
       - ubuntu1604-large
     tasks:
-      - name: "build"
+      - name: ".dist"
         depends_on:
         - name: ".test"
           variant: "rhel70"
@@ -284,7 +301,7 @@ buildvariants:
       - ubuntu1604-small
       - ubuntu1604-large
     tasks:
-      - name: "build"
+      - name: ".dist"
         depends_on:
         - name: ".test"
           variant: "rhel70"
@@ -301,7 +318,7 @@ buildvariants:
       - ubuntu1604-small
       - ubuntu1604-large
     tasks:
-      - name: "build"
+      - name: ".dist"
         depends_on:
         - name: ".test"
           variant: "rhel70"
@@ -318,7 +335,7 @@ buildvariants:
       - ubuntu1604-small
       - ubuntu1604-large
     tasks:
-      - name: "build"
+      - name: ".dist"
         depends_on:
         - name: ".test"
           variant: "rhel70"
@@ -335,7 +352,7 @@ buildvariants:
       - ubuntu1604-small
       - ubuntu1604-large
     tasks:
-      - name: "build"
+      - name: ".dist"
         depends_on:
         - name: ".test"
           variant: "rhel70"
