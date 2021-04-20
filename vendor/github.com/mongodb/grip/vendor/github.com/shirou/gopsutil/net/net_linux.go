@@ -50,7 +50,7 @@ func IOCounters(pernic bool) ([]IOCountersStat, error) {
 
 func IOCountersWithContext(ctx context.Context, pernic bool) ([]IOCountersStat, error) {
 	filename := common.HostProc("net/dev")
-	return IOCountersByFile(pernic, filename)
+	return IOCountersByFileWithContext(ctx, pernic, filename)
 }
 
 func IOCountersByFile(pernic bool, filename string) ([]IOCountersStat, error) {
@@ -618,7 +618,7 @@ func PidsWithContext(ctx context.Context) ([]int32, error) {
 // FIXME: Import process occures import cycle.
 // see remarks on pids()
 type process struct {
-	Pid  int32 `json:"pid" bson:"pid,omitempty"`
+	Pid  int32 `json:"pid"`
 	uids []int32
 }
 
@@ -696,7 +696,7 @@ func decodeAddress(family uint32, src string) (Addr, error) {
 		return Addr{}, fmt.Errorf("does not contain port, %s", src)
 	}
 	addr := t[0]
-	port, err := strconv.ParseInt("0x"+t[1], 0, 64)
+	port, err := strconv.ParseUint(t[1], 16, 16)
 	if err != nil {
 		return Addr{}, fmt.Errorf("invalid port, %s", src)
 	}

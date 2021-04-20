@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//go:build darwin || dragonfly || freebsd || openbsd
 // +build darwin dragonfly freebsd openbsd
 
 package unix_test
@@ -10,6 +11,7 @@ import (
 	"os/exec"
 	"runtime"
 	"testing"
+	"time"
 
 	"golang.org/x/sys/unix"
 )
@@ -63,4 +65,21 @@ func TestSysctlUint32(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Logf("kern.maxproc: %v", maxproc)
+}
+
+func TestSysctlClockinfo(t *testing.T) {
+	ci, err := unix.SysctlClockinfo("kern.clockrate")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("tick = %v, hz = %v, profhz = %v, stathz = %v",
+		ci.Tick, ci.Hz, ci.Profhz, ci.Stathz)
+}
+
+func TestSysctlTimeval(t *testing.T) {
+	tv, err := unix.SysctlTimeval("kern.boottime")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("boottime = %v", time.Unix(tv.Unix()))
 }

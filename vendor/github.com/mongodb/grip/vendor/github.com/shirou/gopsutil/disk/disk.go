@@ -1,6 +1,7 @@
 package disk
 
 import (
+	"context"
 	"encoding/json"
 
 	"github.com/shirou/gopsutil/internal/common"
@@ -9,40 +10,40 @@ import (
 var invoke common.Invoker = common.Invoke{}
 
 type UsageStat struct {
-	Path              string  `json:"path" bson:"path,omitempty"`
-	Fstype            string  `json:"fstype" bson:"fstype,omitempty"`
-	Total             uint64  `json:"total" bson:"total,omitempty"`
-	Free              uint64  `json:"free" bson:"free,omitempty"`
-	Used              uint64  `json:"used" bson:"used,omitempty"`
-	UsedPercent       float64 `json:"usedPercent" bson:"usedPercent,omitempty"`
-	InodesTotal       uint64  `json:"inodesTotal" bson:"inodesTotal,omitempty"`
-	InodesUsed        uint64  `json:"inodesUsed" bson:"inodesUsed,omitempty"`
-	InodesFree        uint64  `json:"inodesFree" bson:"inodesFree,omitempty"`
-	InodesUsedPercent float64 `json:"inodesUsedPercent" bson:"inodesUsedPercent,omitempty"`
+	Path              string  `json:"path"`
+	Fstype            string  `json:"fstype"`
+	Total             uint64  `json:"total"`
+	Free              uint64  `json:"free"`
+	Used              uint64  `json:"used"`
+	UsedPercent       float64 `json:"usedPercent"`
+	InodesTotal       uint64  `json:"inodesTotal"`
+	InodesUsed        uint64  `json:"inodesUsed"`
+	InodesFree        uint64  `json:"inodesFree"`
+	InodesUsedPercent float64 `json:"inodesUsedPercent"`
 }
 
 type PartitionStat struct {
-	Device     string `json:"device" bson:"device,omitempty"`
-	Mountpoint string `json:"mountpoint" bson:"mountpoint,omitempty"`
-	Fstype     string `json:"fstype" bson:"fstype,omitempty"`
-	Opts       string `json:"opts" bson:"opts,omitempty"`
+	Device     string `json:"device"`
+	Mountpoint string `json:"mountpoint"`
+	Fstype     string `json:"fstype"`
+	Opts       string `json:"opts"`
 }
 
 type IOCountersStat struct {
-	ReadCount        uint64 `json:"readCount" bson:"readCount,omitempty"`
-	MergedReadCount  uint64 `json:"mergedReadCount" bson:"mergedReadCount,omitempty"`
-	WriteCount       uint64 `json:"writeCount" bson:"writeCount,omitempty"`
-	MergedWriteCount uint64 `json:"mergedWriteCount" bson:"mergedWriteCount,omitempty"`
-	ReadBytes        uint64 `json:"readBytes" bson:"readBytes,omitempty"`
-	WriteBytes       uint64 `json:"writeBytes" bson:"writeBytes,omitempty"`
-	ReadTime         uint64 `json:"readTime" bson:"readTime,omitempty"`
-	WriteTime        uint64 `json:"writeTime" bson:"writeTime,omitempty"`
-	IopsInProgress   uint64 `json:"iopsInProgress" bson:"iopsInProgress,omitempty"`
-	IoTime           uint64 `json:"ioTime" bson:"ioTime,omitempty"`
-	WeightedIO       uint64 `json:"weightedIO" bson:"weightedIO,omitempty"`
-	Name             string `json:"name" bson:"name,omitempty"`
-	SerialNumber     string `json:"serialNumber" bson:"serialNumber,omitempty"`
-	Label            string `json:"label" bson:"label,omitempty"`
+	ReadCount        uint64 `json:"readCount"`
+	MergedReadCount  uint64 `json:"mergedReadCount"`
+	WriteCount       uint64 `json:"writeCount"`
+	MergedWriteCount uint64 `json:"mergedWriteCount"`
+	ReadBytes        uint64 `json:"readBytes"`
+	WriteBytes       uint64 `json:"writeBytes"`
+	ReadTime         uint64 `json:"readTime"`
+	WriteTime        uint64 `json:"writeTime"`
+	IopsInProgress   uint64 `json:"iopsInProgress"`
+	IoTime           uint64 `json:"ioTime"`
+	WeightedIO       uint64 `json:"weightedIO"`
+	Name             string `json:"name"`
+	SerialNumber     string `json:"serialNumber"`
+	Label            string `json:"label"`
 }
 
 func (d UsageStat) String() string {
@@ -58,4 +59,24 @@ func (d PartitionStat) String() string {
 func (d IOCountersStat) String() string {
 	s, _ := json.Marshal(d)
 	return string(s)
+}
+
+// Usage returns a file system usage. path is a filesystem path such
+// as "/", not device file path like "/dev/vda1".  If you want to use
+// a return value of disk.Partitions, use "Mountpoint" not "Device".
+func Usage(path string) (*UsageStat, error) {
+	return UsageWithContext(context.Background(), path)
+}
+
+// Partitions returns disk partitions. If all is false, returns
+// physical devices only (e.g. hard disks, cd-rom drives, USB keys)
+// and ignore all others (e.g. memory partitions such as /dev/shm)
+//
+// 'all' argument is ignored for BSD, see: https://github.com/giampaolo/psutil/issues/906
+func Partitions(all bool) ([]PartitionStat, error) {
+	return PartitionsWithContext(context.Background(), all)
+}
+
+func IOCounters(names ...string) (map[string]IOCountersStat, error) {
+	return IOCountersWithContext(context.Background(), names...)
 }
