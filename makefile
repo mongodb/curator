@@ -147,6 +147,7 @@ vendor-clean:
 	rm -rf vendor/github.com/mongodb/amboy/vendor/github.com/google/uuid/
 	rm -rf vendor/github.com/mongodb/amboy/vendor/github.com/urfave/cli/
 	rm -rf vendor/github.com/mongodb/amboy/vendor/go.mongodb.org/
+	rm -rf vendor/github.com/mongodb/amboy/vendor/github.com/google/uuid
 	rm -rf vendor/github.com/mongodb/amboy/vendor/github.com/mongodb/grip/
 	rm -rf vendor/github.com/mongodb/amboy/vendor/github.com/pkg/errors/
 	rm -rf vendor/github.com/mongodb/amboy/vendor/github.com/stretchr/testify/
@@ -171,8 +172,10 @@ vendor-clean:
 	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/google/uuid/
 	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/pkg/
 	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/stretchr/testify/
-	rm -rf vendor/github.com/mongodb/amboy/vendor/github.com/google/uuid
 	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/google/uuid
+	# riscv64 isn't recognized as a valid GOARCH until go1.16, so we can likely stop removing this file once CI tests
+	# are compiled with go1.16+.
+	rm -rf vendor/github.com/mongodb/grip/vendor/github.com/tklauser/go-sysconf/zsysconf_values_linux_riscv64.go
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/docker/docker/vendor/github.com/aws/aws-sdk-go/
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/evergreen-ci/aviation/
 	rm -rf vendor/github.com/mongodb/jasper/vendor/github.com/evergreen-ci/birch/
