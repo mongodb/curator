@@ -47,6 +47,7 @@ functions:
         GOPATH: ${workdir}/gopath
         GOOS: ${goos}
         GOARCH: ${goarch}
+        GO111MODULE: off
 
 #######################################
 #                Tasks                #
