@@ -139,7 +139,7 @@ endif
 
 docker-cleanup:
 ifneq (true,$(SKIP_DOCKER_TESTS))
-	docker rm -f $(docker ps -a -q)
+	docker rm -f $(shell docker ps -a -q)
 	docker rmi -f $(docker_image)
 endif
 # end Docker

@@ -169,7 +169,7 @@ func executorTestCases() []executorTestCase {
 					assert.NoError(t, exec.Close())
 				}()
 				require.NoError(t, exec.Start())
-				assert.True(t, exec.PID() > 0)
+				assert.True(t, exec.PID() > 0, "PID '%d' should be positive", exec.PID())
 				assert.False(t, exec.Success())
 				assert.Equal(t, -1, exec.ExitCode())
 			},
@@ -188,14 +188,14 @@ func executorTestCases() []executorTestCase {
 		{
 			Name: "WaitBlocksUntilProcessCompletes",
 			Case: func(ctx context.Context, t *testing.T, makeExec executorConstructor) {
-				exec, err := makeExec(ctx, []string{"true"})
+				exec, err := makeExec(ctx, []string{"sleep", "1"})
 				require.NoError(t, err)
 				defer func() {
 					assert.NoError(t, exec.Close())
 				}()
 				require.NoError(t, exec.Start())
 				require.NoError(t, exec.Wait())
-				assert.True(t, exec.PID() > 0)
+				assert.True(t, exec.PID() > 0, "PID '%d' should be positive", exec.PID())
 				assert.True(t, exec.Success())
 				assert.Zero(t, exec.ExitCode())
 			},
@@ -239,11 +239,11 @@ func executorTestCases() []executorTestCase {
 			},
 		},
 		{
-			Name: "WaitFailsWhenContextIsDone",
+			Name: "WaitFailsWhenContextIsDoneBeforeProcessExits",
 			Case: func(ctx context.Context, t *testing.T, makeExec executorConstructor) {
 				cctx, ccancel := context.WithCancel(ctx)
 				defer ccancel()
-				exec, err := makeExec(cctx, []string{"true"})
+				exec, err := makeExec(cctx, []string{"sleep", "1"})
 				require.NoError(t, err)
 				defer func() {
 					assert.NoError(t, exec.Close())
