@@ -1,6 +1,7 @@
 package operations
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -172,17 +173,19 @@ func Notify() cli.Command {
 				}
 			case "jira":
 				opts := &send.JiraOptions{
-					Name:     c.String("source"),
-					BaseURL:  c.String("jiraURL"),
-					Username: c.String("username"),
-					Password: c.String("password"),
+					Name:    c.String("source"),
+					BaseURL: c.String("jiraURL"),
+					BasicAuthOpts: send.JiraBasicAuth{
+						Username: c.String("username"),
+						Password: c.String("password"),
+					},
 				}
 				issue := c.String("issue")
 
 				if issue == "" {
-					sender, err = send.MakeJiraLogger(opts)
+					sender, err = send.MakeJiraLogger(context.Background(), opts)
 				} else {
-					sender, err = send.MakeJiraCommentLogger(issue, opts)
+					sender, err = send.MakeJiraCommentLogger(context.Background(), issue, opts)
 				}
 
 				if err != nil {

@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//go:build aix || darwin || dragonfly || freebsd || linux || netbsd || openbsd || solaris
 // +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
 
 package unix_test
@@ -48,6 +49,16 @@ func TestFdSet(t *testing.T) {
 			if fdSet.IsSet(fd) {
 				t.Fatalf("IsSet(%d): expected false, got true", fd)
 			}
+		}
+	}
+
+	for fd := 1; fd < unix.FD_SETSIZE; fd += 2 {
+		fdSet.Clear(fd)
+	}
+
+	for fd := 0; fd < unix.FD_SETSIZE; fd++ {
+		if fdSet.IsSet(fd) {
+			t.Fatalf("Clear(%d) did not clear fd", fd)
 		}
 	}
 }

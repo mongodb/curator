@@ -1,8 +1,9 @@
 gopsutil: psutil for golang
 ==============================
 
-.. image:: https://circleci.com/gh/shirou/gopsutil.svg?&style=shield
-        :target: https://circleci.com/gh/shirou/gopsutil
+
+.. image:: https://github.com/shirou/gopsutil/workflows/Test/badge.svg
+        :target: https://github.com/shirou/gopsutil/actions?query=workflow%3ATest
 
 .. image:: https://coveralls.io/repos/shirou/gopsutil/badge.svg?branch=master
         :target: https://coveralls.io/r/shirou/gopsutil?branch=master
@@ -13,12 +14,10 @@ gopsutil: psutil for golang
 This is a port of psutil (https://github.com/giampaolo/psutil). The challenge is porting all
 psutil functions on some architectures.
 
+v3 migration
+---------------
 
-Breaking Changes! golang 1.8 is required
--------------------------------------------
-
-After v2.17.04, golang 1.8 is required to build.
-
+from v3.20.10, gopsutil becomes v3 which breaks backawards compatiblity. See `v3Changes.md <_tools/v3migration/v3Changes.md>`_ more detail changes.
 
 Tag semantics
 -------------------------
@@ -46,13 +45,17 @@ Available Architectures
 - OpenBSD amd64 (Thank you @mpfz0r!)
 - Solaris amd64 (developed and tested on SmartOS/Illumos, Thank you @jen20!)
 
+These are partial support:
+
+- CPU on DragonFly BSD (#893, Thank you @gballet!)
+- host on Linux RISC-V (#896, Thank you @tklauser!)
+
 All works are implemented without cgo by porting c struct to golang struct.
 
 
 Usage
 ---------
 
-Note: gopsutil v2 breaks compatibility. If you want to stay with compatibility, please use v1 branch and vendoring.
 
 .. code:: go
 
@@ -61,7 +64,8 @@ Note: gopsutil v2 breaks compatibility. If you want to stay with compatibility, 
    import (
        "fmt"
 
-       "github.com/shirou/gopsutil/mem"
+       "github.com/shirou/gopsutil/v3/mem"
+       // "github.com/shirou/gopsutil/mem"  // to use v2
    )
 
    func main() {
@@ -89,6 +93,11 @@ You can set an alternative location to :code:`/etc` by setting the :code:`HOST_E
 
 You can set an alternative location to :code:`/var` by setting the :code:`HOST_VAR` environment variable.
 
+You can set an alternative location to :code:`/run` by setting the :code:`HOST_RUN` environment variable.
+
+You can set an alternative location to :code:`/dev` by setting the :code:`HOST_DEV` environment variable.
+
+
 Documentation
 ------------------------
 
@@ -97,7 +106,7 @@ see http://godoc.org/github.com/shirou/gopsutil
 Requirements
 -----------------
 
-- go1.7 or above is required.
+- go1.11 or above is required.
 
 
 More Info
