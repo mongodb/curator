@@ -243,8 +243,8 @@ buildvariants:
     display_name: macOS 11.00 ARM64 (cross-compile)
     expansions:
       DISABLE_COVERAGE: true
-      GOROOT: /opt/golang/go1.13
-      GO_BIN_PATH: /opt/golang/go1.13/bin/go
+      GOROOT: /opt/golang/go1.16
+      GO_BIN_PATH: /opt/golang/go1.16/bin/go
       goarch: arm64
       goos: darwin
     run_on:
