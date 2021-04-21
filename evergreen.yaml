@@ -178,8 +178,8 @@ buildvariants:
       GOROOT: /opt/golang/go1.13
       RACE_DETECTOR: true
     run_on:
-      - archlinux-small
-      - archlinux-large
+      - archlinux-new-small
+      - archlinux-new-large
     tasks:
       - ".test"
 
@@ -189,8 +189,8 @@ buildvariants:
       GOROOT: /opt/golang/go1.13
       GO_BIN_PATH: /opt/golang/go1.13/bin/go
     run_on:
-      - archlinux-small
-      - archlinux-large
+      - archlinux-new-small
+      - archlinux-new-large
     tasks: 
       - name: ".report"
 
