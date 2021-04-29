@@ -36,7 +36,7 @@ func Splunk() cli.Command {
 				Usage:  "",
 				EnvVar: "GRIP_SPLUNK_CHANNEL",
 			},
-			cli.StringFlag{
+			cli.BoolFlag{
 				Name:  "json",
 				Usage: "when specified, all input is parsed as new-line separated json",
 			},
