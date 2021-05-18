@@ -113,8 +113,8 @@ buildvariants:
       RACE_DETECTOR: true
       mongodb_url: http://fastdl.mongodb.org/linux/mongodb-linux-x86_64-4.0.1.tgz
     run_on:
-      - archlinux-test
-      - archlinux-build
+      - archlinux-new-small
+      - archlinux-new-large
     tasks:
       - name: ".test"
 
@@ -126,8 +126,8 @@ buildvariants:
       GOROOT: /opt/golang/go1.13
       mongodb_url: http://fastdl.mongodb.org/linux/mongodb-linux-x86_64-4.0.1.tgz
     run_on:
-      - archlinux-test
-      - archlinux-build
+      - archlinux-new-small
+      - archlinux-new-large
     tasks:
       - name: ".report"
 
