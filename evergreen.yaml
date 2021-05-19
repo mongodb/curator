@@ -125,6 +125,8 @@ tasks:
              'destination': { 'path': 'build/curator/curator-dist-${build_variant}-latest.tar.gz', 'bucket': 'boxes.10gen.com' } }
           - {'source': { 'path': 'curator/${build_id}-${build_variant}/curator-dist-${revision}.tar.gz', 'bucket': 'mciuploads' },
              'destination': { 'path': 'build/curator/curator-dist-${goos}-${goarch}-${revision}.tar.gz', 'bucket': 'boxes.10gen.com' } }
+          - {'source': { 'path': 'curator/${build_id}-${build_variant}/curator-dist-${revision}.tar.gz', 'bucket': 'mciuploads' },
+             'destination': { 'path': 'build/curator/curator-dist-${goos}-${goarch}-latest.tar.gz', 'bucket': 'boxes.10gen.com' } }
 
 post:
   - command: shell.exec
