@@ -711,3 +711,61 @@ func fromMDB() cli.Command {
 		},
 	}
 }
+
+func toT2() cli.Command {
+	return cli.Command{
+		Name:  "csv",
+		Usage: "write data from an FTDC file to CSV",
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:  input,
+				Usage: "source FTDC data file",
+			},
+			cli.StringFlag{
+				Name:  output,
+				Usage: "write FTDC data in CSV format to this file (default: stdout)",
+			},
+		},
+		Before: requireFileExists(input, false),
+		Action: func(c *cli.Context) error {
+			inputPath := c.String(input)
+			outputPath := c.String(output)
+
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			// Perpare the input
+			//
+			inputFile, err := os.Open(inputPath)
+			if err != nil {
+				return errors.Wrapf(err, "problem opening file '%s'", inputPath)
+			}
+			defer func() { grip.Warning(inputFile.Close()) }()
+
+			// open the data source
+			//
+			var outputFile *os.File
+			if outputPath == "" {
+				outputFile = os.Stdout
+			} else {
+				if _, err = os.Stat(outputPath); !os.IsNotExist(err) {
+					return errors.Errorf("cannot write ftdc to '%s', file already exists", outputPath)
+				}
+
+				outputFile, err = os.Create(outputPath)
+				if err != nil {
+					return errors.Wrapf(err, "problem opening file '%s'", outputPath)
+				}
+				defer func() { grip.EmergencyFatal(outputFile.Close()) }()
+			}
+
+			// actually convert data
+			//
+			if err := ftdc.WriteCSV(ctx, ftdc.ReadChunks(ctx, inputFile), outputFile); err != nil {
+				return errors.Wrap(err, "problem parsing csv")
+			}
+
+			return nil
+		},
+	}
+}
