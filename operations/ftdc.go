@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/evergreen-ci/birch"
@@ -43,6 +44,7 @@ func FTDC() cli.Command {
 					toBSON(),
 					toCSV(),
 					toMDB(),
+					toT2(),
 				},
 			},
 			{
@@ -714,16 +716,16 @@ func fromMDB() cli.Command {
 
 func toT2() cli.Command {
 	return cli.Command{
-		Name:  "csv",
-		Usage: "write data from an FTDC file to CSV",
+		Name:  "t2",
+		Usage: "write data from genny output file to FTDC",
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:  input,
-				Usage: "source FTDC data file",
+				Usage: "source genny output data file",
 			},
 			cli.StringFlag{
 				Name:  output,
-				Usage: "write FTDC data in CSV format to this file (default: stdout)",
+				Usage: "write genny output data in FTDC format to this file (default: stdout)",
 			},
 		},
 		Before: requireFileExists(input, false),
@@ -740,6 +742,12 @@ func toT2() cli.Command {
 			if err != nil {
 				return errors.Wrapf(err, "problem opening file '%s'", inputPath)
 			}
+
+			//prepare Actor.Operation name
+			actorOp := strings.Split(inputPath, "/")
+			aoWithSuffix := strings.Split(actorOp[len(actorOp)-1], ".")
+			aoName := aoWithSuffix[0] + "." + aoWithSuffix[1]
+
 			defer func() { grip.Warning(inputFile.Close()) }()
 
 			// open the data source
@@ -758,13 +766,11 @@ func toT2() cli.Command {
 				}
 				defer func() { grip.EmergencyFatal(outputFile.Close()) }()
 			}
-
 			// actually convert data
 			//
-			if err := ftdc.WriteCSV(ctx, ftdc.ReadChunks(ctx, inputFile), outputFile); err != nil {
+			if err := ftdc.CreateStats(ctx, ftdc.ReadChunks(ctx, inputFile), outputFile, aoName); err != nil {
 				return errors.Wrap(err, "problem parsing csv")
 			}
-
 			return nil
 		},
 	}
