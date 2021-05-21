@@ -14,7 +14,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 )
 
 const (
@@ -94,14 +93,18 @@ func poplarGRPC() cli.Command {
 
 func poplarReport() cli.Command {
 	const (
-		serviceFlagName     = "service"
-		pathFlagName        = "path"
-		insecureFlagName    = "insecure"
-		caFileFlagName      = "ca"
-		certFileFlagName    = "cert"
-		keyFileFlagName     = "key"
-		dryRunFlagName      = "dry-run"
-		dryRunFlagNameShort = "n"
+		serviceFlagName           = "service"
+		pathFlagName              = "path"
+		insecureFlagName          = "insecure"
+		caFileFlagName            = "ca"
+		certFileFlagName          = "cert"
+		keyFileFlagName           = "key"
+		apiUsernameFlagName       = "api-username"
+		apiKeyFlagName            = "api-key"
+		apiUsernameHeaderFlagName = "api-username-header"
+		apiKeyHeaderFlagName      = "api-key-header"
+		dryRunFlagName            = "dry-run"
+		dryRunFlagNameShort       = "n"
 	)
 
 	return cli.Command{
@@ -129,6 +132,22 @@ func poplarReport() cli.Command {
 				Usage: "specify the client cert key to connect over TLS",
 			},
 			cli.StringFlag{
+				Name:  apiUsernameFlagName,
+				Usage: "specify the username for API authentication",
+			},
+			cli.StringFlag{
+				Name:  apiKeyFlagName,
+				Usage: "specify the API key for API authentication",
+			},
+			cli.StringFlag{
+				Name:  apiUsernameHeaderFlagName,
+				Usage: "specify the username header for API authentication",
+			},
+			cli.StringFlag{
+				Name:  apiKeyHeaderFlagName,
+				Usage: "specify the API key header for API authentication",
+			},
+			cli.StringFlag{
 				Name:  pathFlagName,
 				Usage: "specify the path of the input file, may be the first positional argument",
 			},
@@ -145,9 +164,13 @@ func poplarReport() cli.Command {
 			addr := c.String(serviceFlagName)
 			fileName := c.String(pathFlagName)
 			isInsecure := c.Bool(insecureFlagName)
-			certFile := c.String(certFileFlagName)
 			caFile := c.String(caFileFlagName)
+			certFile := c.String(certFileFlagName)
 			keyFile := c.String(keyFileFlagName)
+			apiUsername := c.String(apiUsernameFlagName)
+			apiKey := c.String(apiKeyFlagName)
+			apiUsernameHeader := c.String(apiUsernameHeaderFlagName)
+			apiKeyHeader := c.String(apiKeyHeaderFlagName)
 			dryRun := c.Bool("dry-run") || c.Bool("n")
 
 			report, err := poplar.LoadReport(fileName)
@@ -155,26 +178,25 @@ func poplarReport() cli.Command {
 				return errors.WithStack(err)
 			}
 
-			rpcOpts := []grpc.DialOption{
-				grpc.WithUnaryInterceptor(aviation.MakeRetryUnaryClientInterceptor(10)),
-				grpc.WithStreamInterceptor(aviation.MakeRetryStreamClientInterceptor(10)),
-			}
-			if isInsecure {
-				rpcOpts = append(rpcOpts, grpc.WithInsecure())
-			} else {
-				var tlsConf *tls.Config
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			var tlsConf *tls.Config
+			if !isInsecure {
 				tlsConf, err = aviation.GetClientTLSConfigFromFiles([]string{caFile}, certFile, keyFile)
 				if err != nil {
 					return errors.WithStack(err)
 				}
-
-				rpcOpts = append(rpcOpts, grpc.WithTransportCredentials(credentials.NewTLS(tlsConf)))
 			}
-
-			ctx, cancel := context.WithCancel(context.Background())
-			defer cancel()
-
-			conn, err := grpc.DialContext(ctx, addr, rpcOpts...)
+			conn, err := aviation.Dial(ctx, aviation.DialOptions{
+				Address:       addr,
+				Retries:       10,
+				TLSConf:       tlsConf,
+				Username:      apiUsername,
+				APIKey:        apiKey,
+				APIUserHeader: apiUsernameHeader,
+				APIKeyHeader:  apiKeyHeader,
+			})
 			if err != nil {
 				return errors.WithStack(err)
 			}
