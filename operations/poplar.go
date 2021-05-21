@@ -183,9 +183,17 @@ func poplarReport() cli.Command {
 
 			var tlsConf *tls.Config
 			if !isInsecure {
-				tlsConf, err = aviation.GetClientTLSConfigFromFiles([]string{caFile}, certFile, keyFile)
-				if err != nil {
-					return errors.WithStack(err)
+				if certFile != "" {
+					tlsConf, err = aviation.GetClientTLSConfigFromFiles([]string{caFile}, certFile, keyFile)
+					if err != nil {
+						return errors.WithStack(err)
+					}
+				} else {
+					cp, err := aviation.GetCACertPool()
+					if err != nil {
+						return errors.WithStack(err)
+					}
+					tlsConf = &tls.Config{RootCAs: cp}
 				}
 			}
 			conn, err := aviation.Dial(ctx, aviation.DialOptions{
