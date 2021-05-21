@@ -69,11 +69,11 @@ imports:
 - name: github.com/evergreen-ci/pail
   version: 1b1374a4138f044f0eb8ce5f004d6c069f938439
 - name: github.com/evergreen-ci/aviation
-  version: e576e1538fbf9207f2abb3ded217d5b633f5e379
+  version: a758f0ae769ae2ac15810bde51ca76c3f191d8e0
 - name: go.mongodb.org/mongo-driver
   version: 305bc4a5e4131420fe8ba5628e6faa9e6ade4e86
 - name: github.com/evergreen-ci/timber
-  version: 802491fe536b6262068b1ba90d7ae7318a0f2c6a
+  version: 8b4977542c6a7fee3a3c0f1732d3178dbe36e0aa
 - name: github.com/evergreen-ci/birch
   version: 3a26bb67719ad6a9e7daed059abd5d018586f3cd
 - name: github.com/evergreen-ci/utility
@@ -93,4 +93,4 @@ imports:
 - name: github.com/golang/protobuf
   version: c823c79ea1570fb5ff454033735a8e68575d1d0f
 - name: github.com/evergreen-ci/juniper
-  version: 75f93ec68b7847d65e8c0508a8553608e0e60aff
+  version: 5073cb7711610abd618fb98fb65cada479f7efe6

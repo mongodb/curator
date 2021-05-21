@@ -305,7 +305,7 @@ func (b *buildlogger) Send(m message.Composer) {
 		logLine := &gopb.LogLine{
 			Priority:  int32(m.Priority()),
 			Timestamp: &timestamp.Timestamp{Seconds: ts.Unix(), Nanos: int32(ts.Nanosecond())},
-			Data:      data,
+			Data:      []byte(data),
 		}
 
 		b.buffer = append(b.buffer, logLine)

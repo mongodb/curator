@@ -163,7 +163,7 @@ func poplarReport() cli.Command {
 				rpcOpts = append(rpcOpts, grpc.WithInsecure())
 			} else {
 				var tlsConf *tls.Config
-				tlsConf, err = aviation.GetClientTLSConfigFromFiles(caFile, certFile, keyFile)
+				tlsConf, err = aviation.GetClientTLSConfigFromFiles([]string{caFile}, certFile, keyFile)
 				if err != nil {
 					return errors.WithStack(err)
 				}
