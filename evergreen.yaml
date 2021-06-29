@@ -47,7 +47,6 @@ functions:
         GOPATH: ${workdir}/gopath
         GOOS: ${goos}
         GOARCH: ${goarch}
-        GO111MODULE: "off"
 
 #######################################
 #                Tasks                #
@@ -126,6 +125,8 @@ tasks:
              'destination': { 'path': 'build/curator/curator-dist-${build_variant}-latest.tar.gz', 'bucket': 'boxes.10gen.com' } }
           - {'source': { 'path': 'curator/${build_id}-${build_variant}/curator-dist-${revision}.tar.gz', 'bucket': 'mciuploads' },
              'destination': { 'path': 'build/curator/curator-dist-${goos}-${goarch}-${revision}.tar.gz', 'bucket': 'boxes.10gen.com' } }
+          - {'source': { 'path': 'curator/${build_id}-${build_variant}/curator-dist-${revision}.tar.gz', 'bucket': 'mciuploads' },
+             'destination': { 'path': 'build/curator/curator-dist-${goos}-${goarch}-latest.tar.gz', 'bucket': 'boxes.10gen.com' } }
 
 post:
   - command: shell.exec
@@ -174,8 +175,8 @@ buildvariants:
     display_name: Race Detector (Arch Linux)
     expansions:
       DISABLE_COVERAGE: true
-      GO_BIN_PATH: /opt/golang/go1.13/bin/go
-      GOROOT: /opt/golang/go1.13
+      GO_BIN_PATH: /opt/golang/go1.16/bin/go
+      GOROOT: /opt/golang/go1.16
       RACE_DETECTOR: true
     run_on:
       - archlinux-new-small
@@ -186,8 +187,8 @@ buildvariants:
   - name: lint
     display_name: Lint (Arch Linux)
     expansions:
-      GOROOT: /opt/golang/go1.13
-      GO_BIN_PATH: /opt/golang/go1.13/bin/go
+      GOROOT: /opt/golang/go1.16
+      GO_BIN_PATH: /opt/golang/go1.16/bin/go
     run_on:
       - archlinux-new-small
       - archlinux-new-large
@@ -197,8 +198,8 @@ buildvariants:
   - name: rhel70
     display_name: RHEL 7.0
     expansions:
-      GO_BIN_PATH: /opt/golang/go1.9/bin/go
-      GOROOT: /opt/golang/go1.9
+      GO_BIN_PATH: /opt/golang/go1.16/bin/go
+      GOROOT: /opt/golang/go1.16
       goarch: amd64
       goos: linux
     run_on:
@@ -209,14 +210,14 @@ buildvariants:
       - ".test"
       - name: "push"
 
-  - name: ubuntu1604
-    display_name: Ubuntu 16.04
+  - name: ubuntu
+    display_name: Ubuntu 18.04
     run_on:
-      - ubuntu1604-small
-      - ubuntu1604-large
+      - ubuntu1804-small
+      - ubuntu1804-large
     expansions:
-      GO_BIN_PATH: /opt/golang/go1.9/bin/go
-      GOROOT: /opt/golang/go1.9
+      GO_BIN_PATH: /opt/golang/go1.16/bin/go
+      GOROOT: /opt/golang/go1.16
       goarch: amd64
       goos: linux
     tasks:
@@ -228,8 +229,8 @@ buildvariants:
     display_name: macOS 10.14
     expansions:
       DISABLE_COVERAGE: true
-      GOROOT: /opt/golang/go1.13
-      GO_BIN_PATH: /opt/golang/go1.13/bin/go
+      GOROOT: /opt/golang/go1.16
+      GO_BIN_PATH: /opt/golang/go1.16/bin/go
       goarch: amd64
       goos: darwin
     run_on:
@@ -260,13 +261,13 @@ buildvariants:
   - name: s390x
     display_name: "zLinux (cross-compile)"
     expansions:
-      GO_BIN_PATH: /opt/golang/go1.13/bin/go
-      GOROOT: /opt/golang/go1.13
+      GO_BIN_PATH: /opt/golang/go1.16/bin/go
+      GOROOT: /opt/golang/go1.16
       goarch: s390x
       goos: linux
     run_on:
-      - ubuntu1604-small
-      - ubuntu1604-large
+      - ubuntu1804-small
+      - ubuntu1804-large
     tasks:
       - name: ".dist"
         depends_on:
@@ -277,13 +278,13 @@ buildvariants:
   - name: power
     display_name: "Linux POWER (cross-compile)"
     expansions:
-      GO_BIN_PATH: /opt/golang/go1.13/bin/go
-      GOROOT: /opt/golang/go1.13
+      GO_BIN_PATH: /opt/golang/go1.16/bin/go
+      GOROOT: /opt/golang/go1.16
       goarch: ppc64le
       goos: linux
     run_on:
-      - ubuntu1604-small
-      - ubuntu1604-large
+      - ubuntu1804-small
+      - ubuntu1804-large
     tasks:
       - name: ".dist"
         depends_on:
@@ -294,13 +295,13 @@ buildvariants:
   - name: arm
     display_name: "Linux ARM64 (cross-compile)"
     expansions:
-      GO_BIN_PATH: /opt/golang/go1.13/bin/go
-      GOROOT: /opt/golang/go1.13
+      GO_BIN_PATH: /opt/golang/go1.16/bin/go
+      GOROOT: /opt/golang/go1.16
       goarch: arm64
       goos: linux
     run_on:
-      - ubuntu1604-small
-      - ubuntu1604-large
+      - ubuntu1804-small
+      - ubuntu1804-large
     tasks:
       - name: ".dist"
         depends_on:
@@ -311,13 +312,13 @@ buildvariants:
   - name: linux-32
     display_name: "Linux 32-bit (cross-compile)"
     expansions:
-      GO_BIN_PATH: /opt/golang/go1.13/bin/go
-      GOROOT: /opt/golang/go1.13
+      GO_BIN_PATH: /opt/golang/go1.16/bin/go
+      GOROOT: /opt/golang/go1.16
       goarch: 386
       goos: linux
     run_on:
-      - ubuntu1604-small
-      - ubuntu1604-large
+      - ubuntu1804-small
+      - ubuntu1804-large
     tasks:
       - name: ".dist"
         depends_on:
@@ -328,13 +329,13 @@ buildvariants:
   - name: windows-64
     display_name: "Windows 64-bit (cross-compile)"
     expansions:
-      GO_BIN_PATH: /opt/golang/go1.13/bin/go
-      GOROOT: /opt/golang/go1.13
+      GO_BIN_PATH: /opt/golang/go1.16/bin/go
+      GOROOT: /opt/golang/go1.16
       goarch: amd64
       goos: windows
     run_on:
-      - ubuntu1604-small
-      - ubuntu1604-large
+      - ubuntu1804-small
+      - ubuntu1804-large
     tasks:
       - name: ".dist"
         depends_on:
@@ -345,13 +346,13 @@ buildvariants:
   - name: windows-32
     display_name: "Windows 32-bit (cross-compile)"
     expansions:
-      GO_BIN_PATH: /opt/golang/go1.13/bin/go
-      GOROOT: /opt/golang/go1.13
+      GO_BIN_PATH: /opt/golang/go1.16/bin/go
+      GOROOT: /opt/golang/go1.16
       goarch: 386
       goos: windows
     run_on:
-      - ubuntu1604-small
-      - ubuntu1604-large
+      - ubuntu1804-small
+      - ubuntu1804-large
     tasks:
       - name: ".dist"
         depends_on:
