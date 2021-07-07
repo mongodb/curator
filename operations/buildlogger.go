@@ -337,7 +337,7 @@ func (l *cmdLogger) runCommand(cmd *exec.Cmd) error {
 }
 
 func (l *cmdLogger) readPipe(pipe io.Reader) error {
-	lvl := l.logger.GetSender().Level().Default
+	lvl := l.logger.GetSender().Level().Threshold
 	input := bufio.NewScanner(pipe)
 	for input.Scan() {
 		l.logLine(input.Bytes(), lvl)
@@ -347,7 +347,7 @@ func (l *cmdLogger) readPipe(pipe io.Reader) error {
 }
 
 func (l *cmdLogger) followFile(fn string) error {
-	lvl := l.logger.GetSender().Level().Default
+	lvl := l.logger.GetSender().Level().Threshold
 	tail, err := follower.New(fn, follower.Config{Reopen: true})
 	if err != nil {
 		return errors.Wrapf(err, "problem setting up file follower of '%s'", fn)
