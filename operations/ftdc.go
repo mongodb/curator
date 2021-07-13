@@ -768,7 +768,7 @@ func toT2() cli.Command {
 			}
 			// actually convert data
 			//
-			if err := ftdc.CreateStats(ctx, ftdc.ReadChunks(ctx, inputFile), outputFile, aoName); err != nil {
+			if err := ftdc.TranslateGenny(ctx, ftdc.ReadChunks(ctx, inputFile), outputFile, aoName); err != nil {
 				return errors.Wrap(err, "problem parsing csv")
 			}
 			return nil
