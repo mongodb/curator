@@ -66,19 +66,22 @@ func Repo() cli.Command {
 
 			grip.Infof("curator version: %s", curator.BuildRevision)
 
-			return buildRepo(ctx,
-				c.String("packages"),
-				c.String("config"),
-				c.String("dir"),
-				c.String("distro"),
-				c.String("edition"),
-				c.String("version"),
-				c.String("arch"),
-				c.String("profile"),
-				c.Bool("dry-run"),
-				c.Bool("verbose"),
-				c.Bool("rebuild"),
-				c.Int("retries"),
+			return buildRepo(
+				ctx,
+				buildRepoOptions{
+					workingDir: c.String("dir"),
+					profile:    c.String("profile"),
+					configPath: c.String("config"),
+					distro:     c.String("distro"),
+					edition:    c.String("edition"),
+					version:    c.String("version"),
+					arch:       c.String("arch"),
+					packages:   c.String("packages"),
+					rebuild:    c.Bool("rebuild"),
+					dryRun:     c.Bool("dry-run"),
+					verbose:    c.Bool("verbose"),
+					retries:    c.Int("retries"),
+				},
 			)
 		},
 	}
@@ -91,7 +94,7 @@ func repoSubmit() cli.Command {
 		Flags: repoFlags(
 			cli.StringSliceFlag{
 				Name:  "packages",
-				Usage: "path to packages, searches for valid packages recursively",
+				Usage: "package filepaths",
 			},
 			cli.StringFlag{
 				Name:  "service",
@@ -113,6 +116,16 @@ func repoSubmit() cli.Command {
 				Usage:  "specify the API key to authenticate to the repobuilding service",
 				EnvVar: "BARQUE_API_KEY",
 			},
+			cli.StringFlag{
+				Name:  "notary_key_name_env",
+				Usage: "notary key name environment variable name",
+				Value: "NOTARY_KEY_NAME",
+			},
+			cli.StringFlag{
+				Name:  "notary_token_env",
+				Usage: "notary token environment variable name",
+				Value: "NOTARY_TOKEN",
+			},
 		),
 		Action: func(c *cli.Context) error {
 			ctx, cancel := ctxWithTimeout(c.Duration("timeout"))
@@ -120,19 +133,23 @@ func repoSubmit() cli.Command {
 
 			grip.Infof("curator version: %s", curator.BuildRevision)
 
-			return submitRepo(ctx,
-				barqueServiceInfo{
-					url:      c.String("service"),
-					username: c.String("username"),
-					password: c.String("password"),
-					apiKey:   c.String("api_key"),
+			return submitRepo(
+				ctx,
+				submitRepoOptions{
+					url:              c.String("service"),
+					username:         c.String("username"),
+					password:         c.String("password"),
+					apiKey:           c.String("api_key"),
+					configPath:       c.String("config"),
+					distro:           c.String("distro"),
+					edition:          c.String("edition"),
+					version:          c.String("version"),
+					arch:             c.String("arch"),
+					packages:         c.StringSlice("packages"),
+					notaryKeyNameEnv: c.String("notary_key_name_env"),
+					notaryTokenEnv:   c.String("notary_token_env"),
 				},
-				c.String("config"),
-				c.String("distro"),
-				c.String("edition"),
-				c.String("version"),
-				c.String("arch"),
-				c.StringSlice("packages"))
+			)
 		},
 	}
 
@@ -207,33 +224,48 @@ func getPackages(rootPath, suffix string) ([]string, error) {
 	return output, err
 }
 
-func buildRepo(ctx context.Context, packages, configPath, workingDir, distro, edition, version, arch, profile string, dryRun, verbose, rebuild bool, retries int) error {
+type buildRepoOptions struct {
+	workingDir string
+	profile    string
+	configPath string
+	distro     string
+	edition    string
+	version    string
+	arch       string
+	packages   string
+	rebuild    bool
+	dryRun     bool
+	verbose    bool
+	retries    int
+}
+
+func buildRepo(ctx context.Context, opts buildRepoOptions) error {
 	// validate inputs
-	if edition == "community" {
-		edition = "org"
+	if opts.edition == "community" {
+		opts.edition = "org"
 	}
 
 	// get configuration objects.
-	conf, err := repobuilder.GetConfig(configPath)
+	conf, err := repobuilder.GetConfig(opts.configPath)
 	if err != nil {
 		grip.Error(err)
 		return errors.Wrap(err, "problem getting repo config")
 	}
 
-	repo, ok := conf.GetRepositoryDefinition(distro, edition)
+	repo, ok := conf.GetRepositoryDefinition(opts.distro, opts.edition)
 	if !ok {
-		e := fmt.Sprintf("repo not defined for distro=%s, edition=%s ", distro, edition)
+		e := fmt.Sprintf("repo not defined for distro=%s, edition=%s ", opts.distro, opts.edition)
 		grip.Error(e)
 		return errors.New(e)
 	}
 
 	var pkgs []string
 
-	if !rebuild {
+	if !opts.rebuild {
 		if repo.Type == repobuilder.RPM {
-			pkgs, err = getPackages(packages, ".rpm")
+			pkgs, err = getPackages(opts.packages, ".rpm")
 		} else if repo.Type == repobuilder.DEB {
-			pkgs, err = getPackages(packages, ".deb")
+			pkgs, err = getPackages(opts.packages, ".deb")
 		}
 
 		if err != nil {
@@ -241,21 +273,21 @@ func buildRepo(ctx context.Context, packages, configPath, workingDir, distro, ed
 		}
 	}
 
-	conf.DryRun = dryRun
-	conf.Verbose = verbose
-	conf.WorkSpace = workingDir
+	conf.DryRun = opts.dryRun
+	conf.Verbose = opts.verbose
+	conf.WorkSpace = opts.workingDir
 
-	job, err := repobuilder.NewBuildRepoJob(conf, repo, version, arch, profile, pkgs...)
+	job, err := repobuilder.NewBuildRepoJob(conf, repo, opts.version, opts.arch, opts.profile, pkgs...)
 	if err != nil {
 		return errors.Wrap(err, "problem constructing task for building repository")
 	}
 
-	if retries < 1 {
-		retries = 1
+	if opts.retries < 1 {
+		opts.retries = 1
 	}
 
 	catcher := grip.NewCatcher()
-	for i := 0; i < retries; i++ {
+	for i := 0; i < opts.retries; i++ {
 		job.Run(ctx)
 		err = job.Error()
 		if err == nil {
@@ -264,59 +296,67 @@ func buildRepo(ctx context.Context, packages, configPath, workingDir, distro, ed
 		catcher.Add(err)
 	}
 
-	return errors.Wrapf(catcher.Resolve(), "encountered problem rebuilding repository after %d retries", retries)
+	return errors.Wrapf(catcher.Resolve(), "encountered problem rebuilding repository after %d retries", opts.retries)
 }
 
-type barqueServiceInfo struct {
-	url      string
-	username string
-	password string
-	apiKey   string
+type submitRepoOptions struct {
+	url              string
+	username         string
+	password         string
+	apiKey           string
+	configPath       string
+	distro           string
+	edition          string
+	version          string
+	arch             string
+	packages         []string
+	notaryKeyNameEnv string
+	notaryTokenEnv   string
 }
 
-func submitRepo(ctx context.Context, info barqueServiceInfo, configPath, distro, edition, version, arch string, packages []string) error {
+func submitRepo(ctx context.Context, opts submitRepoOptions) error {
 	// validate inputs
-	if edition == "community" {
-		edition = "org"
+	if opts.edition == "community" {
+		opts.edition = "org"
 	}
 
 	// get configuration objects.
-	conf, err := repobuilder.GetConfig(configPath)
+	conf, err := repobuilder.GetConfig(opts.configPath)
 	if err != nil {
 		grip.Error(err)
 		return errors.Wrap(err, "problem getting repo config")
 	}
 
-	repo, ok := conf.GetRepositoryDefinition(distro, edition)
+	repo, ok := conf.GetRepositoryDefinition(opts.distro, opts.edition)
 	if !ok {
-		e := fmt.Sprintf("repo not defined for distro=%s, edition=%s ", distro, edition)
+		e := fmt.Sprintf("repo not defined for distro=%s, edition=%s ", opts.distro, opts.edition)
 		grip.Error(e)
 		return errors.New(e)
 	}
 
-	opts := repobuilder.JobOptions{
+	jobOpts := repobuilder.JobOptions{
 		Configuration: conf,
 		Distro:        repo,
-		Version:       version,
-		Arch:          arch,
-		Packages:      packages,
-		NotaryKey:     os.Getenv("NOTARY_KEY_NAME"),
-		NotaryToken:   os.Getenv("NOTARY_TOKEN"),
+		Version:       opts.version,
+		Arch:          opts.arch,
+		Packages:      opts.packages,
+		NotaryKey:     os.Getenv(opts.notaryKeyNameEnv),
+		NotaryToken:   os.Getenv(opts.notaryTokenEnv),
 		JobID:         uuid.New().String(),
 	}
 
-	client, err := barquesubmit.New(info.url)
+	client, err := barquesubmit.New(opts.url)
 	if err != nil {
 		return errors.Wrap(err, "problem constructing barque client")
 	}
 
-	if info.username != "" && info.apiKey != "" {
-		client.SetCredentials(info.username, info.apiKey)
-	} else if err = client.Login(ctx, info.username, info.password); err != nil {
+	if opts.username != "" && opts.apiKey != "" {
+		client.SetCredentials(opts.username, opts.apiKey)
+	} else if err = client.Login(ctx, opts.username, opts.password); err != nil {
 		return errors.Wrap(err, "problem authenticating to barque")
 	}
 
-	id, err := client.SubmitJob(ctx, opts)
+	id, err := client.SubmitJob(ctx, jobOpts)
 	if err != nil {
 		return errors.Wrap(err, "problem submitting repobuilder job")
 	}
