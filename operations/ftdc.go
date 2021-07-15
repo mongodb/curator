@@ -746,10 +746,10 @@ func toT2() cli.Command {
 			// All genny output files are named using the workload actor and operation.
 			//   i.e., Actor.Operation.ftdc
 			//
-			// We get the actor and operation names from the ftdc filepath for use 
+			// We get the actor and operation names from the ftdc filepath for use
 			// in the translation process.
 			//
-			// e.g. A file named InsertRemoveActor.Remove.ftdc will extract 
+			// e.g. A file named InsertRemoveActor.Remove.ftdc will extract
 			// InsertRemoveActor.Remove for the translation process.
 			//
 			fileName := strings.Split(inputPath, "/")
