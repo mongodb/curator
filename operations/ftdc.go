@@ -736,17 +736,18 @@ func toT2() cli.Command {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			// Perpare the input
+			// Prepare the input
 			//
 			inputFile, err := os.Open(inputPath)
 			if err != nil {
 				return errors.Wrapf(err, "problem opening file '%s'", inputPath)
 			}
 
-			//prepare Actor.Operation name
-			actorOp := strings.Split(inputPath, "/")
-			aoWithSuffix := strings.Split(actorOp[len(actorOp)-1], ".")
-			aoName := aoWithSuffix[0] + "." + aoWithSuffix[1]
+			// Gets the actor and operation names from the ftdc filepath for use 
+			// in the translation process.
+			//
+			fileName := strings.Split(inputPath, "/")
+			actorOperation := strings.Split(fileName[len(fileName)-1], ".ftdc")
 
 			defer func() { grip.Warning(inputFile.Close()) }()
 
@@ -768,7 +769,7 @@ func toT2() cli.Command {
 			}
 			// actually convert data
 			//
-			if err := ftdc.TranslateGenny(ctx, ftdc.ReadChunks(ctx, inputFile), outputFile, aoName); err != nil {
+			if err := ftdc.TranslateGenny(ctx, ftdc.ReadChunks(ctx, inputFile), outputFile, actorOperation[0]); err != nil {
 				return errors.Wrap(err, "problem parsing csv")
 			}
 			return nil
