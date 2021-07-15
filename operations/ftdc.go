@@ -743,8 +743,14 @@ func toT2() cli.Command {
 				return errors.Wrapf(err, "problem opening file '%s'", inputPath)
 			}
 
-			// Gets the actor and operation names from the ftdc filepath for use 
+			// All genny output files are named using the workload actor and operation.
+			//   i.e., Actor.Operation.ftdc
+			//
+			// We get the actor and operation names from the ftdc filepath for use 
 			// in the translation process.
+			//
+			// e.g. A file named InsertRemoveActor.Remove.ftdc will extract 
+			// InsertRemoveActor.Remove for the translation process.
 			//
 			fileName := strings.Split(inputPath, "/")
 			actorOperation := strings.Split(fileName[len(fileName)-1], ".ftdc")
