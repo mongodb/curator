@@ -42,19 +42,23 @@ func (s *CommandsSuite) TestRepoFlags() {
 func (s *CommandsSuite) TestRebuildOperationOnProcess() {
 	err := os.Setenv("NOTARY_TOKEN", "foo")
 	s.NoError(err)
-	err = buildRepo(context.Background(),
-		"./",                           // packages
-		"repobuilder/config_test.yaml", // repo config path
-		"build/repo-build-test",        // workingdir
-		"rhel7",                        // distro
-		"enterprise",                   // edition
-		"2.8.0",                        // mongodbe version
-		"x86_64",                       // arch
-		"default",                      // aws profile
-		true,                           // dryrun
-		false,                          // verbose
-		true,                           // rebuild
-		1)                              // retries
+	err = buildRepo(
+		context.Background(),
+		buildRepoOptions{
+			workingDir: "build/repo-build-test",
+			profile:    "default",
+			configPath: "repobuilder/config_test.yaml",
+			distro:     "rhel7",
+			edition:    "enterprise",
+			version:    "2.8.0",
+			arch:       "x86_64",
+			packages:   "./",
+			rebuild:    true,
+			dryRun:     true,
+			verbose:    false,
+			retries:    1,
+		},
+	)
 
 	// TODO: we should be able to get a dry run that passes on
 	// tests machines, but at the moment this depends on the
@@ -65,19 +69,23 @@ func (s *CommandsSuite) TestRebuildOperationOnProcess() {
 }
 
 func (s *CommandsSuite) TestDryRunOperationOnProcess() {
-	err := buildRepo(context.Background(),
-		"./",                           // packages
-		"repobuilder/config_test.yaml", // repo config path
-		"build/repo-build-test",        // workingdir
-		"rhel7",                        // distro
-		"enterprise",                   // edition
-		"2.8.0",                        // mongodbe version
-		"x86_64",                       // arch
-		"default",                      // aws profile
-		true,                           // dryrun
-		true,                           // verbose
-		false,                          // rebuild
-		1)                              // retries
+	err := buildRepo(
+		context.Background(),
+		buildRepoOptions{
+			workingDir: "build/repo-build-test",
+			profile:    "default",
+			configPath: "repobuilder/config_test.yaml",
+			distro:     "rhel7",
+			edition:    "enterprise",
+			version:    "2.8.0",
+			arch:       "x86_64",
+			packages:   "./",
+			rebuild:    false,
+			dryRun:     true,
+			verbose:    false,
+			retries:    1,
+		},
+	)
 
 	s.Error(err)
 	grip.Warning(err)
