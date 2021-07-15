@@ -11,7 +11,9 @@ metrics.ftdc:
 	curl -LO "https://ftdc-test-files.s3.amazonaws.com/metrics.ftdc"
 perf_metrics.ftdc:
 	curl -LO "https://ftdc-test-files.s3.amazonaws.com/perf_metrics.ftdc"
-$(buildDir)/output.ftdc.test:perf_metrics.ftdc metrics.ftdc
+genny_metrics.ftdc:
+	curl -LO "https://ftdc-test-files.s3.amazonaws.com/genny_metrics.ftdc"
+$(buildDir)/output.ftdc.test:perf_metrics.ftdc metrics.ftdc genny_metrics.ftdc
 # end test files
 
 # start environment setup
@@ -30,6 +32,7 @@ endif
 export GOCACHE := $(gocache)
 export GOPATH := $(gopath)
 export GOROOT := $(goroot)
+export GO111MODULE := off
 # end environment setup
 
 # Ensure the build directory exists, since most targets require it.
@@ -52,7 +55,7 @@ testSrcFiles := makefile $(shell find . -name "*.go" -not -path "./$(buildDir)/*
 # start lint setup targets
 lintDeps := $(buildDir)/golangci-lint $(buildDir)/run-linter
 $(buildDir)/golangci-lint:
-	@curl --retry 10 --retry-max-time 60 -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/76a82c6ed19784036bbf2d4c84d0228ca12381a4/install.sh | sh -s -- -b $(buildDir) v1.30.0 >/dev/null 2>&1
+	@curl --retry 10 --retry-max-time 60 -sSfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(buildDir) v1.40.0 >/dev/null 2>&1
 $(buildDir)/run-linter:cmd/run-linter/run-linter.go $(buildDir)/golangci-lint
 	$(gobin) build -o $@ $<
 # end lint setup targets
@@ -135,8 +138,8 @@ $(buildDir)/output.%.coverage: $(buildDir)/ .FORCE
 $(buildDir)/output.%.coverage.html:$(buildDir)/output.%.coverage
 	$(testRunEnv) $(gobin) tool cover -html=$< -o $@
 #  targets to generate gotest output from the linter.
+# We have to handle the PATH specially for CI, because if the PATH has a different version of Go in it, it'll break.
 $(buildDir)/output.%.lint:$(buildDir)/run-linter $(buildDir)/ .FORCE
-	@# We have to handle the PATH specially for CI, because if the PATH has a different version of Go in it, it'll break.
 	@$(if $(GO_BIN_PATH), PATH="$(shell dirname $(GO_BIN_PATH)):$(PATH)") ./$< --output=$@ --lintBin="$(buildDir)/golangci-lint" --packages='$*'
 # end test and coverage artifacts
 
