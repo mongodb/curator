@@ -298,6 +298,7 @@ func (j *repoBuilderJob) linkPackages(dest string) error {
 		update, err := shouldUpdate(mirror, pkg)
 		if err != nil {
 			catcher.Wrapf(err, "checking if package update needed for %s", pkg)
+			continue
 		}
 		if update {
 			grip.Debug(message.Fields{
