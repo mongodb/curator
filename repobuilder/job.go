@@ -724,5 +724,9 @@ func shouldUpdate(oldFile, newFile string) (bool, error) {
 		return false, errors.Wrapf(err, "checksumming %s", newFile)
 	}
 
-	return oldChecksum != newChecksum, nil
+	if oldChecksum != newChecksum {
+		return true, errors.Wrapf(os.Remove(oldFile), "removing outdated file %s", oldFile)
+	}
+
+	return false, nil
 }
