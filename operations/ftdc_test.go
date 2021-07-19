@@ -240,10 +240,13 @@ func createGennyFile(name string) error {
 	elems2 := birch.NewDocument(birch.EC.Int64("ts", 1000), id, birch.EC.SubDocument("counters", counterElems), birch.EC.SubDocument("gauges", gaugesElems), birch.EC.SubDocument("timers", timersElems))
 
 	err = collector.Add(elems1)
-	err = collector.Add(elems2)
-
 	if err != nil {
-		return errors.Wrap(err, "failed to add element to collector")
+		return errors.Wrap(err, "failed to add first element to collector")
+	}
+
+	err = collector.Add(elems2)
+	if err != nil {
+		return errors.Wrap(err, "failed to add second element to collector")
 	}
 
 	err = ftdc.FlushCollector(collector, file)
