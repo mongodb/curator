@@ -736,29 +736,20 @@ func toT2() cli.Command {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			// Prepare the input
-			//
 			inputFile, err := os.Open(inputPath)
 			if err != nil {
 				return errors.Wrapf(err, "problem opening file '%s'", inputPath)
 			}
+			defer func() { grip.Warning(inputFile.Close()) }()
 
 			// All genny output files are named using the workload actor and operation.
 			//   i.e., Actor.Operation.ftdc
 			//
 			// We get the actor and operation names from the ftdc filepath for use
 			// in the translation process.
-			//
-			// e.g. A file named InsertRemoveActor.Remove.ftdc will extract
-			// InsertRemoveActor.Remove for the translation process.
-			//
 			fileName := strings.Split(inputPath, "/")
 			actorOperation := strings.Split(fileName[len(fileName)-1], ".ftdc")
 
-			defer func() { grip.Warning(inputFile.Close()) }()
-
-			// open the data source
-			//
 			var outputFile *os.File
 			if outputPath == "" {
 				outputFile = os.Stdout
@@ -773,8 +764,7 @@ func toT2() cli.Command {
 				}
 				defer func() { grip.EmergencyFatal(outputFile.Close()) }()
 			}
-			// actually convert data
-			//
+
 			if err := ftdc.TranslateGenny(ctx, ftdc.ReadChunks(ctx, inputFile), outputFile, actorOperation[0]); err != nil {
 				return errors.Wrap(err, "problem parsing csv")
 			}
