@@ -239,7 +239,7 @@ func createGennyFile(name string) error {
 	elems1 := birch.NewDocument(birch.EC.Int64("ts", 0), id, birch.EC.SubDocument("counters", counterElems), birch.EC.SubDocument("gauges", gaugesElems), birch.EC.SubDocument("timers", timersElems))
 	elems2 := birch.NewDocument(birch.EC.Int64("ts", 1000), id, birch.EC.SubDocument("counters", counterElems), birch.EC.SubDocument("gauges", gaugesElems), birch.EC.SubDocument("timers", timersElems))
 
-	collector.Add(elems1)
+	err = collector.Add(elems1)
 	err = collector.Add(elems2)
 
 	if err != nil {
