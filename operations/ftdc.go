@@ -766,7 +766,7 @@ func toT2() cli.Command {
 			}
 
 			if err := ftdc.TranslateGenny(ctx, ftdc.ReadChunks(ctx, inputFile), outputFile, actorOperation[0]); err != nil {
-				return errors.Wrap(err, "problem parsing csv")
+				return errors.Wrap(err, "problem parsing ftdc")
 			}
 			return nil
 		},
