@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -717,7 +718,7 @@ func fromMDB() cli.Command {
 func toT2() cli.Command {
 	return cli.Command{
 		Name:  "t2",
-		Usage: "write data from genny output file to FTDC",
+		Usage: "write data from genny output file to t2 compatible FTDC",
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:  input,
@@ -725,7 +726,7 @@ func toT2() cli.Command {
 			},
 			cli.StringFlag{
 				Name:  output,
-				Usage: "write genny output data in FTDC format to this file (default: stdout)",
+				Usage: "write genny output data in FTDC format `FILE` (default: stdout)",
 			},
 		},
 		Before: requireFileExists(input, false),
@@ -747,8 +748,8 @@ func toT2() cli.Command {
 			//
 			// We get the actor and operation names from the ftdc filepath for use
 			// in the translation process.
-			fileName := strings.Split(inputPath, "/")
-			actorOperation := strings.Split(fileName[len(fileName)-1], ".ftdc")
+			fileName := filepath.Base(inputPath)
+			actorOperation := strings.Split(fileName, ".ftdc")
 
 			var outputFile *os.File
 			if outputPath == "" {
@@ -762,7 +763,7 @@ func toT2() cli.Command {
 				if err != nil {
 					return errors.Wrapf(err, "problem opening file '%s'", outputPath)
 				}
-				defer func() { grip.EmergencyFatal(outputFile.Close()) }()
+				defer func() { grip.Warning(outputFile.Close()) }()
 			}
 
 			if err := ftdc.TranslateGenny(ctx, ftdc.ReadChunks(ctx, inputFile), outputFile, actorOperation[0]); err != nil {
