@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/evergreen-ci/birch"
+	"github.com/mongodb/ftdc"
 	"github.com/mongodb/grip"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -113,6 +114,21 @@ func TestJSONRoundtrip(t *testing.T) {
 	assert.True(t, equal)
 }
 
+func TestToT2OneWay(t *testing.T) {
+	tempDir, err := ioutil.TempDir(".", "test_dir")
+	require.NoError(t, err)
+	defer func() {
+		assert.NoError(t, os.RemoveAll(tempDir))
+	}()
+	gennyOriginal := path.Join(tempDir, "original.ftdc")
+	t2OneWay := path.Join(tempDir, "t2OneWay.ftdc")
+	err = createGennyFile(gennyOriginal)
+	require.NoError(t, err)
+
+	require.NoError(t, runFTDCCommand(toT2(), gennyOriginal, t2OneWay))
+	assert.NotEmpty(t, t2OneWay)
+}
+
 func randFlatDocument(numKeys int) *birch.Document {
 	doc := birch.NewDocument()
 	for i := 0; i < numKeys; i++ {
@@ -200,6 +216,44 @@ func createJSONFile(name string, size int) error {
 			return errors.Wrap(err, "failed to write json to file")
 		}
 	}
+	return nil
+}
+
+func createGennyFile(name string) error {
+	file, err := os.Create(name)
+	if err != nil {
+		return errors.Wrap(err, "failed to create new file")
+	}
+	defer func() {
+		grip.Alert(file.Close())
+	}()
+
+	collector := ftdc.NewStreamingCollector(300, file)
+
+	id := birch.EC.Int64("id", 10)
+
+	counterElems := birch.NewDocument(birch.EC.Int64("errors", 0), birch.EC.Int64("n", 1), birch.EC.Int64("ops", 1), birch.EC.Int64("size", 0))
+	gaugesElems := birch.NewDocument(birch.EC.Boolean("failed", false), birch.EC.Int64("state", 1), birch.EC.Int64("workers", 100))
+	timersElems := birch.NewDocument(birch.EC.Int64("dur", 387804), birch.EC.Int64("total", 72379417))
+
+	elems1 := birch.NewDocument(birch.EC.Int64("ts", 0), id, birch.EC.SubDocument("counters", counterElems), birch.EC.SubDocument("gauges", gaugesElems), birch.EC.SubDocument("timers", timersElems))
+	elems2 := birch.NewDocument(birch.EC.Int64("ts", 1000), id, birch.EC.SubDocument("counters", counterElems), birch.EC.SubDocument("gauges", gaugesElems), birch.EC.SubDocument("timers", timersElems))
+
+	err = collector.Add(elems1)
+	if err != nil {
+		return errors.Wrap(err, "failed to add first element to collector")
+	}
+
+	err = collector.Add(elems2)
+	if err != nil {
+		return errors.Wrap(err, "failed to add second element to collector")
+	}
+
+	err = ftdc.FlushCollector(collector, file)
+	if err != nil {
+		return errors.Wrap(err, "failed to flush collector")
+	}
+
 	return nil
 }
 

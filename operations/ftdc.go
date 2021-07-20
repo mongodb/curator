@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/evergreen-ci/birch"
@@ -43,6 +45,7 @@ func FTDC() cli.Command {
 					toBSON(),
 					toCSV(),
 					toMDB(),
+					toT2(),
 				},
 			},
 			{
@@ -708,6 +711,65 @@ func fromMDB() cli.Command {
 			})
 
 			return catcher.Resolve()
+		},
+	}
+}
+
+func toT2() cli.Command {
+	return cli.Command{
+		Name:  "t2",
+		Usage: "write data from genny output file to t2 compatible FTDC",
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:  input,
+				Usage: "source genny output data file",
+			},
+			cli.StringFlag{
+				Name:  output,
+				Usage: "write genny output data in FTDC format `FILE` (default: stdout)",
+			},
+		},
+		Before: requireFileExists(input, false),
+		Action: func(c *cli.Context) error {
+			inputPath := c.String(input)
+			outputPath := c.String(output)
+
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			inputFile, err := os.Open(inputPath)
+			if err != nil {
+				return errors.Wrapf(err, "problem opening file '%s'", inputPath)
+			}
+			defer func() { grip.Warning(inputFile.Close()) }()
+
+			// All genny output files are named using the workload actor and operation.
+			//   i.e., Actor.Operation.ftdc
+			//
+			// We get the actor and operation names from the ftdc filepath for use
+			// in the translation process.
+			fileName := filepath.Base(inputPath)
+			actorOperation := strings.Split(fileName, ".ftdc")
+
+			var outputFile *os.File
+			if outputPath == "" {
+				outputFile = os.Stdout
+			} else {
+				if _, err = os.Stat(outputPath); !os.IsNotExist(err) {
+					return errors.Errorf("cannot write ftdc to '%s', file already exists", outputPath)
+				}
+
+				outputFile, err = os.Create(outputPath)
+				if err != nil {
+					return errors.Wrapf(err, "problem opening file '%s'", outputPath)
+				}
+				defer func() { grip.Warning(outputFile.Close()) }()
+			}
+
+			if err := ftdc.TranslateGenny(ctx, ftdc.ReadChunks(ctx, inputFile), outputFile, actorOperation[0]); err != nil {
+				return errors.Wrap(err, "problem parsing ftdc")
+			}
+			return nil
 		},
 	}
 }
