@@ -19,6 +19,7 @@ type APIRoute struct {
 	wrappers          []Middleware
 	version           int
 	overrideAppPrefix bool
+	isPrefix          bool
 }
 
 func (r *APIRoute) String() string {
@@ -28,13 +29,14 @@ func (r *APIRoute) String() string {
 	}
 
 	return fmt.Sprintf(
-		"r='%s%s', v='%d', methods=[%s], defined=%t, prefixOverride=%t",
+		"r='%s%s', v='%d', methods=[%s], defined=%t, prefixOverride=%t, isPrefex=%t",
 		r.prefix,
 		r.route,
 		r.version,
 		strings.Join(methods, ", "),
 		r.handler != nil,
 		r.overrideAppPrefix,
+		r.isPrefix,
 	)
 }
 
@@ -50,6 +52,15 @@ func (a *APIApp) AddRoute(r string) *APIRoute {
 	}
 
 	a.routes = append(a.routes, route)
+
+	return route
+}
+
+// AddPrefixRoute creates and registers a new route with an application
+// matching everything under the given prefix.
+func (a *APIApp) AddPrefixRoute(prefix string) *APIRoute {
+	route := a.AddRoute(prefix)
+	route.isPrefix = true
 
 	return route
 }
@@ -144,7 +155,7 @@ func (r *APIRoute) Version(version int) *APIRoute {
 // Handler makes it possible to register an http.HandlerFunc with a
 // route. Chainable. The common pattern for implementing these
 // functions is to write functions and methods in your application
-// that *return* handler fucntions, so you can pass application state
+// that *return* handler functions, so you can pass application state
 // or other data into to the handlers when the applications start,
 // without relying on either global state *or* running into complex
 // typing issues.
@@ -238,6 +249,11 @@ func (r *APIRoute) Head() *APIRoute {
 
 func (r *APIRoute) Options() *APIRoute {
 	r.methods = append(r.methods, options)
+	return r
+}
+
+func (r *APIRoute) AllMethods() *APIRoute {
+	r.methods = append(r.methods, get, put, post, del, patch, head, options)
 	return r
 }
 
