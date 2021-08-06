@@ -295,7 +295,12 @@ func (j *repoBuilderJob) linkPackages(dest string) error {
 			}
 		}
 
-		if _, err := os.Stat(mirror); os.IsNotExist(err) {
+		update, err := shouldUpdate(mirror, pkg)
+		if err != nil {
+			catcher.Wrapf(err, "checking if package update needed for %s", pkg)
+			continue
+		}
+		if update {
 			grip.Debug(message.Fields{
 				"op":        "copying packages to local staging",
 				"from":      pkg,
@@ -323,7 +328,6 @@ func (j *repoBuilderJob) linkPackages(dest string) error {
 			}
 		}
 	}
-
 	wg.Wait()
 
 	return catcher.Resolve()
@@ -705,4 +709,25 @@ func (j *repoBuilderJob) Run(ctx context.Context) {
 	} else {
 		grip.Info(msg)
 	}
+}
+
+func shouldUpdate(oldFile, newFile string) (bool, error) {
+	if _, err := os.Stat(oldFile); os.IsNotExist(err) {
+		return true, nil
+	}
+
+	oldChecksum, err := utility.MD5SumFile(oldFile)
+	if err != nil {
+		return false, errors.Wrapf(err, "checksumming %s", oldFile)
+	}
+	newChecksum, err := utility.MD5SumFile(newFile)
+	if err != nil {
+		return false, errors.Wrapf(err, "checksumming %s", newFile)
+	}
+
+	if oldChecksum != newChecksum {
+		return true, errors.Wrapf(os.Remove(oldFile), "removing outdated file %s", oldFile)
+	}
+
+	return false, nil
 }
