@@ -767,10 +767,14 @@ func toT2() cli.Command {
 							return errors.Wrapf(err, "problem opening file '%s'", inputPath+file.Name())
 						}
 						defer func() { grip.Warning(f.Close()) }()
-
-						gennyOutput = ftdc.GetGennyTime(ctx, f, gennyOutput)
+						gennyOutput.Iter = ftdc.ReadChunks(ctx, f)
+						gennyOutput = ftdc.GetGennyTime(ctx, gennyOutput)
+						input.Close()
 
 						f, err = os.Open(inputPath + file.Name())
+						if err != nil {
+							return errors.Wrapf(err, "problem opening file '%s'", inputPath+file.Name())
+						}
 
 						gennyOutput.Iter = ftdc.ReadChunks(ctx, f)
 						gennyOutput.Name = strings.Split(file.Name(), ".ftdc")[0]
@@ -785,8 +789,15 @@ func toT2() cli.Command {
 				}
 				defer func() { grip.Warning((input.Close())) }()
 
-				gennyOutput = ftdc.GetGennyTime(ctx, input, gennyOutput)
+				gennyOutput.Iter = ftdc.ReadChunks(ctx, input)
+				gennyOutput = ftdc.GetGennyTime(ctx, gennyOutput)
+				input.Close()
+
 				input, err = os.Open(inputPath)
+				if err != nil {
+					return errors.Wrapf(err, "problem opening file '%s'", inputPath)
+				}
+
 				fileName := filepath.Base(inputPath)
 
 				gennyOutput.Iter = ftdc.ReadChunks(ctx, input)
