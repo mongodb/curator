@@ -718,11 +718,11 @@ func fromMDB() cli.Command {
 func toT2() cli.Command {
 	return cli.Command{
 		Name:  "t2",
-		Usage: "write data from genny output file to t2 compatible FTDC",
+		Usage: "write data from genny output file or directory to t2 compatible FTDC",
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:  input,
-				Usage: "source genny output data file",
+				Usage: "source genny output data file or directory",
 			},
 			cli.StringFlag{
 				Name:  output,
@@ -737,19 +737,62 @@ func toT2() cli.Command {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			inputFile, err := os.Open(inputPath)
+			inputStat, err := os.Stat(inputPath)
 			if err != nil {
 				return errors.Wrapf(err, "problem opening file '%s'", inputPath)
 			}
-			defer func() { grip.Warning(inputFile.Close()) }()
 
-			// All genny output files are named using the workload actor and operation.
-			//   i.e., Actor.Operation.ftdc
-			//
-			// We get the actor and operation names from the ftdc filepath for use
-			// in the translation process.
-			fileName := filepath.Base(inputPath)
-			actorOperation := strings.Split(fileName, ".ftdc")
+			var outputSlice []*ftdc.GennyOutputMetadata
+
+			switch mode := inputStat.Mode(); {
+			case mode.IsDir():
+				if !strings.HasSuffix(inputPath, "/") {
+					inputPath += "/"
+				}
+				input, err := os.Open(inputPath)
+				if err != nil {
+					return errors.Wrapf(err, "problem opening input path '%s'", inputPath)
+				}
+				files, err := input.Readdir(-1)
+				if err != nil {
+					return errors.Wrapf(err, "problem reading dir '%s'", inputPath)
+				}
+
+				for _, file := range files {
+					if file.Mode().IsRegular() && filepath.Ext(file.Name()) == ".ftdc" {
+						var gennyOutput ftdc.GennyOutputMetadata
+
+						f, err := os.Open(inputPath + file.Name())
+						if err != nil {
+							return errors.Wrapf(err, "problem opening file '%s'", inputPath+file.Name())
+						}
+						defer func() { grip.Warning(f.Close()) }()
+
+						gennyOutput = ftdc.GetGennyTime(ctx, f, gennyOutput)
+
+						f, err = os.Open(inputPath + file.Name())
+
+						gennyOutput.Iter = ftdc.ReadChunks(ctx, f)
+						gennyOutput.Name = strings.Split(file.Name(), ".ftdc")[0]
+						outputSlice = append(outputSlice, &gennyOutput)
+					}
+				}
+			case mode.IsRegular():
+				var gennyOutput ftdc.GennyOutputMetadata
+				input, err := os.Open(inputPath)
+				if err != nil {
+					return errors.Wrapf(err, "problem opening file '%s'", inputPath)
+				}
+				defer func() { grip.Warning((input.Close())) }()
+
+				gennyOutput = ftdc.GetGennyTime(ctx, input, gennyOutput)
+				input, err = os.Open(inputPath)
+				fileName := filepath.Base(inputPath)
+
+				gennyOutput.Iter = ftdc.ReadChunks(ctx, input)
+				gennyOutput.Name = strings.Split(fileName, ".ftdc")[0]
+				outputSlice = append(outputSlice, &gennyOutput)
+			}
 
 			var outputFile *os.File
 			if outputPath == "" {
@@ -766,7 +809,7 @@ func toT2() cli.Command {
 				defer func() { grip.Warning(outputFile.Close()) }()
 			}
 
-			if err := ftdc.TranslateGenny(ctx, ftdc.ReadChunks(ctx, inputFile), outputFile, actorOperation[0]); err != nil {
+			if err := ftdc.TranslateGenny(ctx, outputSlice, outputFile); err != nil {
 				return errors.Wrap(err, "problem parsing ftdc")
 			}
 			return nil
