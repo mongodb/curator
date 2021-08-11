@@ -742,9 +742,14 @@ func toT2() cli.Command {
 				return errors.Wrapf(err, "problem opening file '%s'", inputPath)
 			}
 
+			// Stores ftdc chunk iterators and its metadata to be used in TranslateGenny.
 			var outputSlice []*ftdc.GennyOutputMetadata
 
+			// Check if input path is an individual file or directory.
+			// All ftdc files in the provided input directory are initially
+			// used to set GennyOutputMetadata Name, Iter, StartTime and EndTime.
 			switch mode := inputStat.Mode(); {
+			// Handle directory.
 			case mode.IsDir():
 				if !strings.HasSuffix(inputPath, "/") {
 					inputPath += "/"
@@ -769,8 +774,9 @@ func toT2() cli.Command {
 						defer func() { grip.Warning(f.Close()) }()
 						gennyOutput.Iter = ftdc.ReadChunks(ctx, f)
 						gennyOutput = ftdc.GetGennyTime(ctx, gennyOutput)
-						input.Close()
 
+						// Reset the chunk iterator for the ftdc file.
+						input.Close()
 						f, err = os.Open(inputPath + file.Name())
 						if err != nil {
 							return errors.Wrapf(err, "problem opening file '%s'", inputPath+file.Name())
@@ -778,9 +784,12 @@ func toT2() cli.Command {
 
 						gennyOutput.Iter = ftdc.ReadChunks(ctx, f)
 						gennyOutput.Name = strings.Split(file.Name(), ".ftdc")[0]
+						// Upon describing the genny output metadata, store into the slice
+						// to be used in TranslateGenny.
 						outputSlice = append(outputSlice, &gennyOutput)
 					}
 				}
+			// Handle single file.
 			case mode.IsRegular():
 				var gennyOutput ftdc.GennyOutputMetadata
 				input, err := os.Open(inputPath)
