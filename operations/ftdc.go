@@ -778,7 +778,7 @@ func toT2() cli.Command {
 						gennyOutput.Iter = ftdc.ReadChunks(ctx, f)
 
 						// GetGennyTime exhausts the current chunk iterator and renders it
-						// unusable for future tasks. 
+						// unusable for future tasks.
 						gennyOutput = ftdc.GetGennyTime(ctx, gennyOutput)
 
 						// Reopen the file to get a new chunk iterator for the ftdc file.
