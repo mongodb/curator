@@ -767,28 +767,21 @@ func toT2() cli.Command {
 
 				for _, file := range files {
 					if file.Mode().IsRegular() && filepath.Ext(file.Name()) == ".ftdc" {
-						var gennyOutput ftdc.GennyOutputMetadata
 						filePath := filepath.Join(inputPath + file.Name())
+						gennyOutput, err := getGennyMetadata(ctx, filePath)
+						if err != nil {
+							return errors.Wrapf(err, "problem parsing genny data '%s'", filePath)
+						}
 
+						// Reopen the file to get a new chunk iterator for the ftdc file.
 						f, err := os.Open(filePath)
 						if err != nil {
 							return errors.Wrapf(err, "problem opening file '%s'", filePath)
 						}
-						defer func() { grip.Warning(f.Close()) }()
-						gennyOutput.Iter = ftdc.ReadChunks(ctx, f)
-
-						// GetGennyTime exhausts the current chunk iterator and renders it
-						// unusable for future tasks.
-						gennyOutput = ftdc.GetGennyTime(ctx, gennyOutput)
-
-						// Reopen the file to get a new chunk iterator for the ftdc file.
-						f, err = os.Open(filePath)
-						if err != nil {
-							return errors.Wrapf(err, "problem opening file '%s'", filePath)
-						}
+						defer func() { grip.Warning((f.Close())) }()
 
 						gennyOutput.Iter = ftdc.ReadChunks(ctx, f)
-						gennyOutput.Name = strings.Split(file.Name(), ".ftdc")[0]
+
 						// Upon describing the genny output metadata, store into the slice
 						// to be used in TranslateGenny.
 						outputSlice = append(outputSlice, &gennyOutput)
@@ -796,25 +789,19 @@ func toT2() cli.Command {
 				}
 			// Handle single file.
 			case mode.IsRegular():
-				var gennyOutput ftdc.GennyOutputMetadata
-				input, err := os.Open(inputPath)
+				gennyOutput, err := getGennyMetadata(ctx, inputPath)
+				if err != nil {
+					return errors.Wrapf(err, "problem parsing genny data '%s'", inputPath)
+				}
+
+				f, err := os.Open(inputPath)
 				if err != nil {
 					return errors.Wrapf(err, "problem opening file '%s'", inputPath)
 				}
-				defer func() { grip.Warning((input.Close())) }()
+				defer func() { grip.Warning((f.Close())) }()
 
-				gennyOutput.Iter = ftdc.ReadChunks(ctx, input)
-				gennyOutput = ftdc.GetGennyTime(ctx, gennyOutput)
+				gennyOutput.Iter = ftdc.ReadChunks(ctx, f)
 
-				input, err = os.Open(inputPath)
-				if err != nil {
-					return errors.Wrapf(err, "problem opening file '%s'", inputPath)
-				}
-
-				fileName := filepath.Base(inputPath)
-
-				gennyOutput.Iter = ftdc.ReadChunks(ctx, input)
-				gennyOutput.Name = strings.Split(fileName, ".ftdc")[0]
 				outputSlice = append(outputSlice, &gennyOutput)
 			}
 
