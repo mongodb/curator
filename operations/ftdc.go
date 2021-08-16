@@ -751,9 +751,6 @@ func toT2() cli.Command {
 			switch mode := inputStat.Mode(); {
 			// Handle directory.
 			case mode.IsDir():
-				if !strings.HasSuffix(inputPath, "/") {
-					inputPath += "/"
-				}
 				input, err := os.Open(inputPath)
 				if err != nil {
 					return errors.Wrapf(err, "problem opening input path '%s'", inputPath)
@@ -768,7 +765,7 @@ func toT2() cli.Command {
 				for _, file := range files {
 					if file.Mode().IsRegular() && filepath.Ext(file.Name()) == ".ftdc" {
 						var gennyOutput ftdc.GennyOutputMetadata
-						filePath := filepath.Join(inputPath + file.Name())
+						filePath := filepath.Join(inputPath, file.Name())
 
 						f, err := os.Open(filePath)
 						if err != nil {
@@ -779,7 +776,10 @@ func toT2() cli.Command {
 						// GetGennyTime exhausts the current chunk iterator and renders it
 						// unusable for future tasks.
 						gennyOutput = ftdc.GetGennyTime(ctx, gennyOutput)
-						f.Close()
+						err = f.Close()
+						if err != nil {
+							return errors.Wrapf(err, "problem opening file '%s'", filePath)
+						}
 
 						// Reopen the file to get a new chunk iterator for the ftdc file.
 						f, err = os.Open(filePath)
@@ -804,7 +804,10 @@ func toT2() cli.Command {
 
 				gennyOutput.Iter = ftdc.ReadChunks(ctx, input)
 				gennyOutput = ftdc.GetGennyTime(ctx, gennyOutput)
-				input.Close()
+				err = input.Close()
+				if err != nil {
+					return errors.Wrapf(err, "problem closing file '%s'", inputPath)
+				}
 
 				input, err = os.Open(inputPath)
 				if err != nil {
