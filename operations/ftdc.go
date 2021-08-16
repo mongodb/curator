@@ -774,12 +774,12 @@ func toT2() cli.Command {
 						if err != nil {
 							return errors.Wrapf(err, "problem opening file '%s'", filePath)
 						}
-						defer func() { grip.Warning(f.Close()) }()
 						gennyOutput.Iter = ftdc.ReadChunks(ctx, f)
 
 						// GetGennyTime exhausts the current chunk iterator and renders it
 						// unusable for future tasks.
 						gennyOutput = ftdc.GetGennyTime(ctx, gennyOutput)
+						f.Close()
 
 						// Reopen the file to get a new chunk iterator for the ftdc file.
 						f, err = os.Open(filePath)
@@ -801,10 +801,10 @@ func toT2() cli.Command {
 				if err != nil {
 					return errors.Wrapf(err, "problem opening file '%s'", inputPath)
 				}
-				defer func() { grip.Warning((input.Close())) }()
 
 				gennyOutput.Iter = ftdc.ReadChunks(ctx, input)
 				gennyOutput = ftdc.GetGennyTime(ctx, gennyOutput)
+				input.Close()
 
 				input, err = os.Open(inputPath)
 				if err != nil {
