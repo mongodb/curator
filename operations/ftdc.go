@@ -776,9 +776,8 @@ func toT2() cli.Command {
 						// GetGennyTime exhausts the current chunk iterator and renders it
 						// unusable for future tasks.
 						gennyOutput = ftdc.GetGennyTime(ctx, gennyOutput)
-						err = f.Close()
-						if err != nil {
-							return errors.Wrapf(err, "problem opening file '%s'", filePath)
+						if err = f.Close(); err != nil {
+							return errors.Wrapf(err, "problem closing file '%s'", filePath)
 						}
 
 						// Reopen the file to get a new chunk iterator for the ftdc file.
@@ -786,6 +785,7 @@ func toT2() cli.Command {
 						if err != nil {
 							return errors.Wrapf(err, "problem opening file '%s'", filePath)
 						}
+						defer func() { grip.Warning(f.Close()) }()
 
 						gennyOutput.Iter = ftdc.ReadChunks(ctx, f)
 						gennyOutput.Name = strings.Split(file.Name(), ".ftdc")[0]
@@ -804,8 +804,7 @@ func toT2() cli.Command {
 
 				gennyOutput.Iter = ftdc.ReadChunks(ctx, input)
 				gennyOutput = ftdc.GetGennyTime(ctx, gennyOutput)
-				err = input.Close()
-				if err != nil {
+				if err = input.Close(); err != nil {
 					return errors.Wrapf(err, "problem closing file '%s'", inputPath)
 				}
 
@@ -813,9 +812,9 @@ func toT2() cli.Command {
 				if err != nil {
 					return errors.Wrapf(err, "problem opening file '%s'", inputPath)
 				}
+				defer func() { grip.Warning(input.Close()) }()
 
 				fileName := filepath.Base(inputPath)
-
 				gennyOutput.Iter = ftdc.ReadChunks(ctx, input)
 				gennyOutput.Name = strings.Split(fileName, ".ftdc")[0]
 				outputSlice = append(outputSlice, &gennyOutput)
