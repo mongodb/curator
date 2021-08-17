@@ -120,13 +120,20 @@ func TestToT2OneWay(t *testing.T) {
 	defer func() {
 		assert.NoError(t, os.RemoveAll(tempDir))
 	}()
-	gennyOriginal := path.Join(tempDir, "original.ftdc")
-	t2OneWay := path.Join(tempDir, "t2OneWay.ftdc")
-	err = createGennyFile(gennyOriginal)
+	gennyOriginal_0 := path.Join(tempDir, "original.ftdc")
+	gennyOriginal_1 := path.Join(tempDir, "original.ftdc")
+	t2OneWay_0 := path.Join(tempDir, "t2OneWay_0.ftdc")
+	t2OneWay_1 := path.Join(tempDir, "t2OneWay_1.ftdc")
+	err = createGennyFile(gennyOriginal_0)
+	require.NoError(t, err)
+	err = createGennyFile(gennyOriginal_1)
 	require.NoError(t, err)
 
-	require.NoError(t, runFTDCCommand(toT2(), gennyOriginal, t2OneWay))
-	assert.NotEmpty(t, t2OneWay)
+	require.NoError(t, runFTDCCommand(toT2(), tempDir, t2OneWay_0))
+	assert.NotEmpty(t, t2OneWay_0)
+
+	require.NoError(t, runFTDCCommand(toT2(), gennyOriginal_0, t2OneWay_1))
+	assert.NotEmpty(t, t2OneWay_1)
 }
 
 func randFlatDocument(numKeys int) *birch.Document {
