@@ -763,7 +763,7 @@ func toT2() cli.Command {
 				}
 
 				for _, file := range files {
-					if file.Mode().IsRegular() && filepath.Ext(file.Name()) == ".ftdc" {
+					if file.Mode().IsRegular() && filepath.Ext(file.Name()) == ".ftdc" && file.Size() > 0 {
 						var gennyOutput ftdc.GennyOutputMetadata
 						filePath := filepath.Join(inputPath, file.Name())
 
