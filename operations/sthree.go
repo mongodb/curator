@@ -55,7 +55,7 @@ import (
 )
 
 const (
-	defaultMaxRetries = 20
+	defaultMaxRetries = 10
 )
 
 // S3 returns a cli.Command object for the S3 command group which has a
@@ -107,7 +107,7 @@ func s3PutCmd() cli.Command {
 				Permissions:              pail.S3Permissions(c.String("permissions")),
 				ContentType:              c.String("type"),
 				DryRun:                   c.Bool("dry-run"),
-				MaxRetries:               defaultMaxRetries,
+				MaxRetries:               c.Int("retries"),
 				Verbose:                  c.Bool("verbose"),
 			}
 			bucket, err := pail.NewS3Bucket(opts)
@@ -152,7 +152,7 @@ func s3GetCmd() cli.Command {
 				Region:                   c.String("region"),
 				Name:                     c.String("bucket"),
 				DryRun:                   c.Bool("dry-run"),
-				MaxRetries:               defaultMaxRetries,
+				MaxRetries:               c.Int("retries"),
 				Verbose:                  c.Bool("verbose"),
 			}
 			bucket, err := pail.NewS3Bucket(opts)
@@ -191,7 +191,7 @@ func s3DeleteCmd() cli.Command {
 				Region:                   c.String("region"),
 				Name:                     c.String("bucket"),
 				DryRun:                   c.Bool("dry-run"),
-				MaxRetries:               defaultMaxRetries,
+				MaxRetries:               c.Int("retries"),
 				Verbose:                  c.Bool("verbose"),
 			}
 			bucket, err := pail.NewS3Bucket(opts)
@@ -230,7 +230,7 @@ func s3DeletePrefixCmd() cli.Command {
 				Region:                   c.String("region"),
 				Name:                     c.String("bucket"),
 				DryRun:                   c.Bool("dry-run"),
-				MaxRetries:               defaultMaxRetries,
+				MaxRetries:               c.Int("retries"),
 				Verbose:                  c.Bool("verbose"),
 			}
 			bucket, err := pail.NewS3Bucket(opts)
@@ -269,7 +269,7 @@ func s3DeleteMatchingCmd() cli.Command {
 				Region:                   c.String("region"),
 				Name:                     c.String("bucket"),
 				DryRun:                   c.Bool("dry-run"),
-				MaxRetries:               defaultMaxRetries,
+				MaxRetries:               c.Int("retries"),
 				Verbose:                  c.Bool("verbose"),
 			}
 			bucket, err := pail.NewS3Bucket(opts)
@@ -306,7 +306,7 @@ func s3SyncToCmd() cli.Command {
 				Name:                     c.String("bucket"),
 				DryRun:                   c.Bool("dry-run"),
 				DeleteOnSync:             c.Bool("delete"),
-				MaxRetries:               defaultMaxRetries,
+				MaxRetries:               c.Int("retries"),
 				UseSingleFileChecksums:   true,
 				Permissions:              pail.S3Permissions(c.String("permissions")),
 				Verbose:                  c.Bool("verbose"),
@@ -362,7 +362,7 @@ func s3SyncFromCmd() cli.Command {
 				Name:                     c.String("bucket"),
 				DryRun:                   c.Bool("dry-run"),
 				DeleteOnSync:             c.Bool("delete"),
-				MaxRetries:               defaultMaxRetries,
+				MaxRetries:               c.Int("retries"),
 				UseSingleFileChecksums:   true,
 				Verbose:                  c.Bool("verbose"),
 			}
@@ -439,6 +439,11 @@ func baseS3Flags(args ...cli.Flag) []cli.Flag {
 		cli.BoolFlag{
 			Name:  "verbose",
 			Usage: "run task in verbose (debug) mode",
+		},
+		cli.IntFlag{
+			Name:  "retries",
+			Usage: "number of retry attempts",
+			Value: defaultMaxRetries,
 		},
 	}
 
