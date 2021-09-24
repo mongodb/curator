@@ -10,7 +10,7 @@ imports:
   - name: github.com/mongodb/grip
     version: 6c30202c3826555dd2b2054591bbafe9b0632db2
   - name: github.com/evergreen-ci/gimlet
-    version: 8a317d725d0315a97c5d0c08ec04921f3ba498d5
+    version: 3aa4522aad2fa8ad15755e00441b597d6d54cc5e
   - name: github.com/evergreen-ci/bond
     version: e4a29fb10c31b3651cb623b73655bc66035f83e7
   - name: github.com/evergreen-ci/lru
@@ -38,11 +38,11 @@ imports:
   - name: github.com/evergreen-ci/utility
     version: 8a885e291da3d271f58d396ee2b313ab1aec21a8
   - name: github.com/evergreen-ci/baobab
-    version: f927da222fd10dec811ce4f524d8da6d423cec97
+    version: b19a4285a1da932348a69ce63ab1e5be17619148
   - name: github.com/evergreen-ci/shrub
     version: 0efab318592de79316c35c9d40512a2f696abb28
 
-  # cgroup/docker requirements
+    # cgroup/docker requirements
   - name: github.com/containerd/cgroups
     version: dbea6f2bd41658b84b00417ceefa416b979cbf10
   - name: github.com/opencontainers/runtime-spec
@@ -58,7 +58,7 @@ imports:
   - name: github.com/gogo/protobuf
     version: 382325bbbb4d1c850eec1f3ec92a1a16f502d68b
 
-  # grpc and dependencies
+    # grpc and dependencies
   - name: google.golang.org/grpc
     version: 39ef2aaf62df775b9c54a59957d113a0495cae73
   - name: golang.org/x/crypto
@@ -73,7 +73,7 @@ imports:
     version: 082222b4a5c572e33e82ee9162d1352c7cf38682
   - name: github.com/golang/protobuf
     version: c823c79ea1570fb5ff454033735a8e68575d1d0f
-  # vendoring because many dependencies use it
+    # vendoring because many dependencies use it
   - name: go.mongodb.org/mongo-driver
     version: 305bc4a5e4131420fe8ba5628e6faa9e6ade4e86
   - name: gopkg.in/mgo.v2

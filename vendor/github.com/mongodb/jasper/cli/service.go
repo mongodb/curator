@@ -60,6 +60,7 @@ const (
 	// Flags related to resource limits.
 	limitNumFilesFlagName      = "limit_num_files"
 	limitNumProcsFlagName      = "limit_num_procs"
+	limitNumTasksFlagName      = "limit_num_tasks"
 	limitLockedMemoryFlagName  = "limit_locked_memory"
 	limitVirtualMemoryFlagName = "limit_virtual_memory"
 )
@@ -147,6 +148,10 @@ func serviceFlags() []cli.Flag {
 		cli.IntFlag{
 			Name:  limitNumProcsFlagName,
 			Usage: "The maximum number of processes. Specify -1 for no limit.",
+		},
+		cli.IntFlag{
+			Name:  limitNumTasksFlagName,
+			Usage: "The maximum number of cgroup tasks (systemd only). Specify -1 for no limit.",
 		},
 		cli.IntFlag{
 			Name:  limitLockedMemoryFlagName,
@@ -251,17 +256,16 @@ func serviceOptions(c *cli.Context) baobab.KeyValue {
 	}
 
 	// Linux/launchd-specific resource limit options
-	if limit := resourceLimit(c.Int(limitNumFilesFlagName)); limit != "" {
-		opts["LimitNumFiles"] = limit
-	}
-	if limit := resourceLimit(c.Int(limitNumProcsFlagName)); limit != "" {
-		opts["LimitNumProcs"] = limit
-	}
-	if limit := resourceLimit(c.Int(limitLockedMemoryFlagName)); limit != "" {
-		opts["LimitLockedMemory"] = limit
-	}
-	if limit := resourceLimit(c.Int(limitVirtualMemoryFlagName)); limit != "" {
-		opts["LimitVirtualMemory"] = limit
+	for flagName, limitField := range map[string]string{
+		limitNumFilesFlagName:      "LimitNumFiles",
+		limitNumProcsFlagName:      "LimitNumProcs",
+		limitNumTasksFlagName:      "LimitNumTasks",
+		limitLockedMemoryFlagName:  "LimitLockedMemory",
+		limitVirtualMemoryFlagName: "LimitVirtualMemory",
+	} {
+		if limit := resourceLimit(c.Int(flagName)); limit != "" {
+			opts[limitField] = limit
+		}
 	}
 
 	return opts

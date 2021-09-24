@@ -271,6 +271,7 @@ ExecStart={{.Path|cmdEscape}}{{range .Arguments}} {{.|cmd}}{{end}}
 {{if .Option.LimitNumFiles }}LimitNOFILE={{.Option.LimitNumFiles}}{{end}}
 {{if .Option.LimitNumProcs }}LimitNPROC={{.Option.LimitNumProcs}}{{end}}
 {{if .Option.LimitVirtualMemory }}LimitAS={{.Option.LimitVirtualMemory}}{{end}}
+{{if .Option.LimitNumTasks}}TasksMax={{.Option.LimitNumTasks}}{{end}}
 {{if and .LogOutput .HasOutputFileSupport -}}
 StandardOutput=file:/var/log/{{.Name}}.out
 StandardError=file:/var/log/{{.Name}}.err
