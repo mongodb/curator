@@ -42,7 +42,7 @@ functions:
       working_dir: gopath/src/github.com/mongodb/curator
       binary: make
       args: ["${target}"]
-      include_expansions_in_env: ["DISABLE_COVERAGE", "GO_BIN_PATH", "GOROOT", "RACE_DETECTOR"]
+      include_expansions_in_env: ["DISABLE_COVERAGE", "GOROOT", "RACE_DETECTOR"]
       env:
         GOPATH: ${workdir}/gopath
         GOOS: ${goos}
@@ -175,7 +175,6 @@ buildvariants:
     display_name: Race Detector (Arch Linux)
     expansions:
       DISABLE_COVERAGE: true
-      GO_BIN_PATH: /opt/golang/go1.16/bin/go
       GOROOT: /opt/golang/go1.16
       RACE_DETECTOR: true
     run_on:
@@ -188,7 +187,6 @@ buildvariants:
     display_name: Lint (Arch Linux)
     expansions:
       GOROOT: /opt/golang/go1.16
-      GO_BIN_PATH: /opt/golang/go1.16/bin/go
     run_on:
       - archlinux-new-small
       - archlinux-new-large
@@ -198,7 +196,6 @@ buildvariants:
   - name: rhel70
     display_name: RHEL 7.0
     expansions:
-      GO_BIN_PATH: /opt/golang/go1.16/bin/go
       GOROOT: /opt/golang/go1.16
       goarch: amd64
       goos: linux
@@ -216,7 +213,6 @@ buildvariants:
       - ubuntu1804-small
       - ubuntu1804-large
     expansions:
-      GO_BIN_PATH: /opt/golang/go1.16/bin/go
       GOROOT: /opt/golang/go1.16
       goarch: amd64
       goos: linux
@@ -230,7 +226,6 @@ buildvariants:
     expansions:
       DISABLE_COVERAGE: true
       GOROOT: /opt/golang/go1.16
-      GO_BIN_PATH: /opt/golang/go1.16/bin/go
       goarch: amd64
       goos: darwin
     run_on:
@@ -246,7 +241,6 @@ buildvariants:
     expansions:
       DISABLE_COVERAGE: true
       GOROOT: /opt/golang/go1.16
-      GO_BIN_PATH: /opt/golang/go1.16/bin/go
       goarch: arm64
       goos: darwin
     run_on:
@@ -261,7 +255,6 @@ buildvariants:
   - name: s390x
     display_name: "zLinux (cross-compile)"
     expansions:
-      GO_BIN_PATH: /opt/golang/go1.16/bin/go
       GOROOT: /opt/golang/go1.16
       goarch: s390x
       goos: linux
@@ -278,7 +271,6 @@ buildvariants:
   - name: power
     display_name: "Linux POWER (cross-compile)"
     expansions:
-      GO_BIN_PATH: /opt/golang/go1.16/bin/go
       GOROOT: /opt/golang/go1.16
       goarch: ppc64le
       goos: linux
@@ -295,7 +287,6 @@ buildvariants:
   - name: arm
     display_name: "Linux ARM64 (cross-compile)"
     expansions:
-      GO_BIN_PATH: /opt/golang/go1.16/bin/go
       GOROOT: /opt/golang/go1.16
       goarch: arm64
       goos: linux
@@ -312,7 +303,6 @@ buildvariants:
   - name: linux-32
     display_name: "Linux 32-bit (cross-compile)"
     expansions:
-      GO_BIN_PATH: /opt/golang/go1.16/bin/go
       GOROOT: /opt/golang/go1.16
       goarch: 386
       goos: linux
@@ -329,7 +319,6 @@ buildvariants:
   - name: windows-64
     display_name: "Windows 64-bit (cross-compile)"
     expansions:
-      GO_BIN_PATH: /opt/golang/go1.16/bin/go
       GOROOT: /opt/golang/go1.16
       goarch: amd64
       goos: windows
@@ -346,7 +335,6 @@ buildvariants:
   - name: windows-32
     display_name: "Windows 32-bit (cross-compile)"
     expansions:
-      GO_BIN_PATH: /opt/golang/go1.16/bin/go
       GOROOT: /opt/golang/go1.16
       goarch: 386
       goos: windows
