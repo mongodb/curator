@@ -29,6 +29,12 @@ export GOROOT := $(shell cygpath -m $(GOROOT))
 endif
 
 export GO111MODULE := off
+ifneq (,$(RACE_DETECTOR))
+# cgo is required for using the race detector.
+export CGO_ENABLED=1
+else
+export CGO_ENABLED=0
+endif
 # end environment setup
 
 # Ensure the build directory exists, since most targets require it.
@@ -109,11 +115,12 @@ $(buildDir)/output.%.lint: $(buildDir)/run-linter .FORCE
 # start cli and distribution targets
 ldFlags += $(if $(DEBUG_ENABLED),,-w -s)
 ldFlags += -X=github.com/mongodb/curator.BuildRevision=$(shell git rev-parse HEAD)
+compileFlags += -ldflags="$(ldFlags)" -trimpath
 # convenience link in the working directory to the binary
 $(binary): $(buildDir)/$(binary)
 	@[ -e $@ ] || ln -s $<
 $(buildDir)/$(binary): $(srcFiles)
-	$(gobin) build -ldflags="$(ldFlags)" -o $@ cmd/$(name)/$(name).go
+	$(gobin) build $(compileFlags) -o $@ cmd/$(name)/$(name).go
 phony += $(buildDir)/$(binary)
 dist: $(buildDir)/dist.tar.gz
 $(buildDir)/dist.tar.gz: $(buildDir)/$(binary)
