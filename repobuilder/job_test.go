@@ -74,6 +74,44 @@ func TestProcessPackages(t *testing.T) {
 	assert.Len(t, j.PackagePaths, 7)
 }
 
+func TestSetNotaryKey(t *testing.T) {
+	cases := []struct {
+		mongoVersion  string
+		wantNotaryKey string
+	}{
+		{mongoVersion: "5.0.0-rc0-29-gafea6bf", wantNotaryKey: "server-5.0"},
+		{mongoVersion: "3.4.0-rc24", wantNotaryKey: "server-3.4"},
+		{mongoVersion: "4.2.0", wantNotaryKey: "server-4.2"},
+		{mongoVersion: "5.1.2-alpha", wantNotaryKey: "server-5.0"},
+		{mongoVersion: "3.7.1", wantNotaryKey: "server-3.8"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.mongoVersion, func(t *testing.T) {
+			j := buildRepoJob()
+
+			release, err := bond.CreateMongoDBVersion(tc.mongoVersion)
+			if err != nil {
+				t.Errorf("%q: could not make mongo db version: %v", tc.mongoVersion, err)
+			}
+
+			j.release = release
+			// TODO: implement test cases for DEB as well
+			distro := &RepositoryDefinition{
+				Type: RPM,
+			}
+			j.Distro = distro
+
+			setNotaryKey(j)
+			if j.NotaryKey != tc.wantNotaryKey {
+				t.Errorf("%q. setNotaryKey() = %v, want %v", tc.mongoVersion, j.NotaryKey, tc.wantNotaryKey)
+			}
+
+		})
+	}
+
+}
+
 func TestGetPackageLocation(t *testing.T) {
 	for _, test := range []struct {
 		name             string
