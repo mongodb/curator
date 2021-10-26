@@ -180,6 +180,39 @@ func NewRepoBuilderJob(opts JobOptions) (amboy.Job, error) {
 	return j, nil
 }
 
+// this function isolates our logic to alter a repoBuilderJob's
+// notaryKey for use when looking up signing keys
+func setNotaryKey(j *repoBuilderJob) {
+	if j.NotaryKey != "" || j.release == nil {
+		return
+	}
+
+	if j.NotaryKey = os.Getenv("NOTARY_KEY_NAME"); j.NotaryKey != "" {
+		return
+	}
+
+	if j.Distro.Type == DEB && (j.release.Series() == "3.0" || j.release.Series() == "2.6") {
+		j.NotaryKey = "richard"
+		j.NotaryToken = os.Getenv("NOTARY_TOKEN_DEB_LEGACY")
+
+		return
+	}
+
+	var series string
+
+	switch v := j.release.(type) {
+	case *bond.LegacyMongoDBVersion:
+		series = v.StableReleaseSeries()
+	default:
+		series = v.LTS()
+		if series == "" {
+			series = v.Series()
+		}
+	}
+
+	j.NotaryKey = "server-" + series
+}
+
 func (j *repoBuilderJob) setup() {
 	if j.builder != nil {
 		return
@@ -216,23 +249,7 @@ func (j *repoBuilderJob) setup() {
 		j.AddError(errors.Wrap(err, "problem making tempdir"))
 	}
 
-	if j.NotaryKey == "" {
-		j.NotaryKey = os.Getenv("NOTARY_KEY_NAME")
-		if j.NotaryKey == "" && j.release != nil {
-			if j.Distro.Type == DEB && (j.release.Series() == "3.0" || j.release.Series() == "2.6") {
-				j.NotaryKey = "richard"
-				j.NotaryToken = os.Getenv("NOTARY_TOKEN_DEB_LEGACY")
-			} else if j.release.IsLTS() || j.release.IsContinuous() {
-				series := j.release.LTS()
-				if series == "" {
-					series = j.release.Series()
-				}
-				j.NotaryKey = "server-" + series
-			} else {
-				j.NotaryKey = "server-" + j.release.StableReleaseSeries()
-			}
-		}
-	}
+	setNotaryKey(j)
 
 	if j.NotaryToken == "" {
 		j.NotaryToken = os.Getenv("NOTARY_TOKEN")
