@@ -43,7 +43,6 @@ func buildApp() *cli.App {
 		operations.PruneCache(),
 		operations.Artifacts(),
 		operations.SystemInfo(),
-		operations.Revendor(),
 		operations.BuildLogger(),
 		operations.Splunk(),
 		operations.Notify(),

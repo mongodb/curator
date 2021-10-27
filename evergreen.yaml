@@ -7,14 +7,14 @@ ignore:
 #######################################
 variables:
   - &run-build
-    # runs a build operations. The task name in evergreen should
+    # runs a build operation. The task name in evergreen should
     # correspond to a make target for the build operation.
     name: test
     commands:
       - command: git.get_project
         type: system
         params:
-          directory: gopath/src/github.com/mongodb/curator
+          directory: curator
       - func: run-make
         vars: { target: "${task_name}" }
 
@@ -24,10 +24,7 @@ variables:
     # that suite
     name: test
     commands:
-      - command: git.get_project
-        type: system
-        params:
-          directory: gopath/src/github.com/mongodb/curator
+      - func: get-project-and-modules
       - func: run-make
         vars: { target: "${task_name}" }
 
@@ -35,16 +32,27 @@ variables:
 #              Functions              #
 #######################################
 functions:
+  get-project-and-modules:
+    - command: git.get_project
+      type: system
+      params:
+        directory: curator
+    - command: subprocess.exec
+      type: setup
+      params:
+        working_dir: curator
+        binary: make
+        args: ["mod-tidy"]
+        include_expansions_in_env: ["GOROOT"]
   run-make:
     command: subprocess.exec
     type: test
     params:
-      working_dir: gopath/src/github.com/mongodb/curator
+      working_dir: curator
       binary: make
       args: ["${target}"]
       include_expansions_in_env: ["DISABLE_COVERAGE", "GOROOT", "RACE_DETECTOR"]
       env:
-        GOPATH: ${workdir}/gopath
         GOOS: ${goos}
         GOARCH: ${goarch}
 
@@ -57,10 +65,7 @@ tasks:
   - name: build
     tags: ["dist"]
     commands:
-      - command: git.get_project
-        type: system
-        params:
-          directory: gopath/src/github.com/mongodb/curator
+      - func: get-project-and-modules
       - func: run-make
         vars: { target: "dist" }
       - command: s3.put
@@ -68,7 +73,7 @@ tasks:
         params:
           aws_key: ${aws_key}
           aws_secret: ${aws_secret}
-          local_file: gopath/src/github.com/mongodb/curator/build/dist.tar.gz
+          local_file: curator/build/dist.tar.gz
           remote_file: curator/${build_id}-${build_variant}/curator-dist-${revision}.tar.gz
           bucket: mciuploads
           content_type: application/x-gzip
@@ -79,16 +84,9 @@ tasks:
     tags: ["report"]
     name: lint
 
-  - name: coverage
-    tags: [ "report" ]
-    commands:
-      - command: git.get_project
-        type: system
-        params:
-          directory: gopath/src/github.com/mongodb/curator
-      - func: run-make
-        vars:
-          target: "coverage-html"
+  - <<: *run-build
+    tags: ["report"]
+    name: coverage-html
 
   # define tasks for all test suites (modules)
   - <<: *run-go-test-suite
@@ -129,15 +127,11 @@ tasks:
              'destination': { 'path': 'build/curator/curator-dist-${goos}-${goarch}-latest.tar.gz', 'bucket': 'boxes.10gen.com' } }
 
 post:
-  - command: shell.exec
-    params:
-      shell: bash
-      script: echo "running post commands now, parsing gotest files"
   - command: gotest.parse_files
     type: setup
     params:
       files:
-        - "gopath/src/github.com/mongodb/curator/build/output.*"
+        - "curator/build/output.*"
   - command: shell.exec
     type: setup
     params:
@@ -149,7 +143,7 @@ post:
     params:
       aws_key: ${aws_key}
       aws_secret: ${aws_secret}
-      local_files_include_filter: ["gopath/src/github.com/mongodb/curator/build/output.*.coverage.html"]
+      local_files_include_filter: ["curator/build/output.*.coverage.html"]
       remote_file: curator/${task_id}/
       bucket: mciuploads
       content_type: text/html
@@ -160,7 +154,7 @@ post:
     params:
       aws_key: ${aws_key}
       aws_secret: ${aws_secret}
-      local_files_include_filter: ["gopath/src/github.com/mongodb/curator/build/output.*.coverage"]
+      local_files_include_filter: ["curator/build/output.*.coverage"]
       remote_file: curator/${task_id}/
       bucket: mciuploads
       content_type: text/plain
