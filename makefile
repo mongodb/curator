@@ -6,8 +6,9 @@ else
 	binary := $(name)
 endif
 buildDir := build
-packages := $(name) operations repobuilder greenbay greenbay-check
-compilePackages := $(subst $(name),,$(subst -,/,$(foreach target,$(packages),./$(target))))
+allPackages := $(name) barquesubmit greenbay greenbay-check operations repobuilder
+testPackages := operations repobuilder greenbay greenbay-check
+compilePackages := $(subst $(name),,$(subst -,/,$(foreach target,$(allPackages),./$(target))))
 srcFiles := makefile $(shell find . -name "*.go" -not -path "./$(buildDir)/*" -not -name "*_test.go" )
 testSrcFiles := makefile $(shell find . -name "*.go" -not -path "./$(buildDir)/*")
 orgPath := github.com/mongodb
@@ -73,10 +74,10 @@ $(buildDir)/run-linter: cmd/run-linter/run-linter.go $(buildDir)/golangci-lint
 # end lint setup targets
 
 # start output files
-lintOutput := $(foreach target,$(packages),$(buildDir)/output.$(target).lint)
-testOutput := $(foreach target,$(packages),$(buildDir)/output.$(target).test)
-coverageOutput := $(foreach target,$(packages),$(buildDir)/output.$(target).coverage)
-coverageHtmlOutput := $(foreach target,$(packages),$(buildDir)/output.$(target).coverage.html)
+lintOutput := $(foreach target,$(allPackages),$(buildDir)/output.$(target).lint)
+testOutput := $(foreach target,$(testPackages),$(buildDir)/output.$(target).test)
+coverageOutput := $(foreach target,$(testPackages),$(buildDir)/output.$(target).coverage)
+coverageHtmlOutput := $(foreach target,$(testPackages),$(buildDir)/output.$(target).coverage.html)
 .PRECIOUS: $(testOutput) $(lintOutput) $(coverageOutput) $(coverageHtmlOutput)
 # end output files
 

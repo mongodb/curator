@@ -82,7 +82,22 @@ tasks:
 
   - <<: *run-build
     tags: ["report"]
-    name: lint
+    name: lint-curator
+  - <<: *run-build
+    tags: ["report"]
+    name: lint-barquesubmit
+  - <<: *run-build
+    tags: ["report"]
+    name: lint-greenbay
+  - <<: *run-build
+    tags: ["report"]
+    name: lint-greenbay-check
+  - <<: *run-build
+    tags: ["report"]
+    name: lint-operations
+  - <<: *run-build
+    tags: ["report"]
+    name: lint-repobuilder
 
   - <<: *run-build
     tags: ["report"]
@@ -91,19 +106,19 @@ tasks:
   # define tasks for all test suites (modules)
   - <<: *run-go-test-suite
     tags: ["test"]
-    name: test-operations
-  - <<: *run-go-test-suite
-    tags: ["test"]
-    name: test-cmd-curator
-  - <<: *run-go-test-suite
-    tags: ["test"]
-    name: test-repobuilder
+    name: test-barquesubmit
   - <<: *run-go-test-suite
     tags: ["test"]
     name: test-greenbay
   - <<: *run-go-test-suite
     tags: ["test"]
     name: test-greenbay-check
+  - <<: *run-go-test-suite
+    tags: ["test"]
+    name: test-operations
+  - <<: *run-go-test-suite
+    tags: ["test"]
+    name: test-repobuilder
 
   - name: push
     patchable: false
