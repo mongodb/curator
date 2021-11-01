@@ -8,7 +8,7 @@ require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/evergreen-ci/aviation v0.0.0-20211026175554-41a4410c650f
 	github.com/evergreen-ci/birch v0.0.0-20211025210128-7f3409c2b515
-	github.com/evergreen-ci/bond v0.0.0-20211028185610-dd9f42390412
+	github.com/evergreen-ci/bond v0.0.0-20211101153628-3fabd9ffaead
 	github.com/evergreen-ci/gimlet v0.0.0-20211029160936-5b64c7b33753
 	github.com/evergreen-ci/lru v0.0.0-20211029170532-008d075b972d
 	github.com/evergreen-ci/pail v0.0.0-20211028170419-8efd623fd305
@@ -17,25 +17,18 @@ require (
 	github.com/evergreen-ci/utility v0.0.0-20211026201827-97b21fa2660a
 	github.com/ghodss/yaml v1.0.0
 	github.com/google/uuid v1.3.0
-	github.com/mattn/go-xmpp v0.0.0-20211029151415-912ba614897a // indirect
-	github.com/mholt/archiver v3.1.1+incompatible
-	github.com/mongodb/amboy v0.0.0-20211018154850-5a8b4826253e
-	github.com/mongodb/anser v0.0.0-20211015200222-352e7ea48e94
-	github.com/mongodb/ftdc v0.0.0-20211018154918-80dd1c22e4cf
-	github.com/mongodb/grip v0.0.0-20211028155128-86e6e47bafdb
-	github.com/mongodb/jasper v0.0.0-20211029172258-e9a26d9d36a0
+	github.com/mholt/archiver/v3 v3.5.0
+	github.com/mongodb/amboy v0.0.0-20211101161704-2b42087d24e6
+	github.com/mongodb/anser v0.0.0-20211101170237-60a39d433c32
+	github.com/mongodb/ftdc v0.0.0-20211028165431-67f017692185
+	github.com/mongodb/grip v0.0.0-20211101151816-abbea0c0d465
+	github.com/mongodb/jasper v0.0.0-20211101172506-f8fa1102b6e0
 	github.com/papertrail/go-tail v0.0.0-20180509224916-973c153b0431
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.7.0
 	github.com/urfave/cli v1.22.5
-	github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a // indirect
 	go.mongodb.org/mongo-driver v1.7.3
-	golang.org/x/net v0.0.0-20211029160332-540bb53d3b2e // indirect
-	golang.org/x/oauth2 v0.0.0-20211028175245-ba495a64dcb5 // indirect
-	golang.org/x/sys v0.0.0-20211029165221-6e7872819dc8
-	golang.org/x/text v0.3.7 // indirect
-	google.golang.org/genproto v0.0.0-20211029142109-e255c875f7c7 // indirect
+	golang.org/x/sys v0.0.0-20211031064116-611d5d643895
 	google.golang.org/grpc v1.41.0
 	gopkg.in/yaml.v2 v2.4.0
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )
