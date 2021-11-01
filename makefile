@@ -6,8 +6,8 @@ else
 	binary := $(name)
 endif
 buildDir := build
-allPackages := $(name) barquesubmit greenbay greenbay-check operations repobuilder
 testPackages := operations repobuilder greenbay greenbay-check
+allPackages := $(testPackages) $(name) barquesubmit
 compilePackages := $(subst $(name),,$(subst -,/,$(foreach target,$(allPackages),./$(target))))
 srcFiles := makefile $(shell find . -name "*.go" -not -path "./$(buildDir)/*" -not -name "*_test.go" )
 testSrcFiles := makefile $(shell find . -name "*.go" -not -path "./$(buildDir)/*")
