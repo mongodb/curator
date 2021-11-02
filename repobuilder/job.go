@@ -534,28 +534,12 @@ func (j *repoBuilderJob) processPackages(ctx context.Context) error {
 			catcher.Errorf("file '%s' does not have any known means to unarchive it", localPath)
 			break
 		}
-		// kim: QUESTION: does this depend on using the archiver name?
 		expandedPath = filepath.Join(j.tmpdir, fmt.Sprintf("extracted-%d-%s", idx, utility.RandomString()))
 		if err := unarchiveFormat.Unarchive(localPath, expandedPath); err != nil {
 			catcher.Wrapf(err, "unarchiving file '%s' to path '%s'", localPath, expandedPath)
 			break
 		}
 
-		// for archiverName, ff := range archiver.SupportedFormats {
-		//     if !ff.Match(localPath) {
-		//         continue
-		//     }
-		//
-		//     expandedPath = filepath.Join(j.tmpdir, fmt.Sprintf("extracted-%d-%s", idx, archiverName))
-		//     if err := ff.Open(localPath, expandedPath); err != nil {
-		//         catcher.Add(err)
-		//     }
-		//
-		//     break
-		// }
-		// if expandedPath == "" {
-		//     catcher.Errorf("could not expand archive for %s", localPath)
-		// }
 		catcher.Add(filepath.Walk(expandedPath, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
 				return err
