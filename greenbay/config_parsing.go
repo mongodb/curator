@@ -12,30 +12,36 @@ import (
 
 // Helper functions that convert yaml-to-json so that the constructor
 // can just convert to the required struct type.
+type format string
 
-func getFormat(fn string) (amboy.Format, error) {
+const (
+	formatYAML format = "yaml"
+	formatJSON format = "json"
+)
+
+func getFormat(fn string) (format, error) {
 	ext := filepath.Ext(fn)
 
 	if ext == ".yaml" || ext == ".yml" {
-		return amboy.YAML, nil
+		return formatYAML, nil
 	} else if ext == ".json" {
-		return amboy.JSON, nil
+		return formatJSON, nil
 	}
 
-	return -1, errors.Errorf("greenbay does not support files with '%s' extension", ext)
+	return "", errors.Errorf("greenbay does not support files with '%s' extension", ext)
 }
 
-func getJSONFormattedConfig(format amboy.Format, data []byte) ([]byte, error) {
+func getJSONFormattedConfig(format format, data []byte) ([]byte, error) {
 	var err error
 
-	if format == amboy.YAML {
+	if format == formatYAML {
 		data, err = yaml.YAMLToJSON(data)
 		if err != nil {
 			return nil, errors.Wrap(err, "problem parsing config")
 		}
 
 		return data, nil
-	} else if format == amboy.JSON {
+	} else if format == formatJSON {
 		return data, nil
 	}
 

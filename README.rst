@@ -94,11 +94,6 @@ Development
 Design Principles and Goals
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- To the greatest extent possible, maintain support for go 1.4
-  (e.g. gccgo 5.3) as well as the latest stable release of mainline go
-  (gc) toolchains. The Curator makefile uses a vendoring strategy that
-  is naively compatible with both approaches.
-
 - All operations in the continuous integration environment should be
   easily reproducible outside of the environment. In practice, curator
   exists to build repositories inside of Evergreen tasks; however, it
@@ -126,6 +121,6 @@ for more information about curator interfaces and internals.
 Issues
 ~~~~~~
 
-Please file all issues in the `MAKE project
-<https://jira.mongodb.org/browse/MAKE>`_ in the `MongoDB Jira
+Please file all issues in the `EVG project
+<https://jira.mongodb.org/browse/EVG>`_ in the `MongoDB Jira
 <https://jira.mongodb.org/>`_ instance.

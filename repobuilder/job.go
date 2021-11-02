@@ -19,7 +19,7 @@ import (
 	"github.com/evergreen-ci/pail"
 	"github.com/evergreen-ci/utility"
 	"github.com/google/uuid"
-	"github.com/mholt/archiver"
+	"github.com/mholt/archiver/v3"
 	"github.com/mongodb/amboy"
 	"github.com/mongodb/amboy/dependency"
 	"github.com/mongodb/amboy/job"
@@ -524,21 +524,22 @@ func (j *repoBuilderJob) processPackages(ctx context.Context) error {
 		}
 
 		var expandedPath string
-		for archiverName, ff := range archiver.SupportedFormats {
-			if !ff.Match(localPath) {
-				continue
-			}
-
-			expandedPath = filepath.Join(j.tmpdir, fmt.Sprintf("extracted-%d-%s", idx, archiverName))
-			if err := ff.Open(localPath, expandedPath); err != nil {
-				catcher.Add(err)
-			}
-
+		format, err := archiver.ByExtension(localPath)
+		if err != nil {
+			catcher.Wrapf(err, "unrecognized archive extension for file '%s'", localPath)
 			break
 		}
-		if expandedPath == "" {
-			catcher.Errorf("could not expand archive for %s", localPath)
+		unarchiveFormat, ok := format.(archiver.Unarchiver)
+		if !ok {
+			catcher.Errorf("file '%s' does not have any known means to unarchive it", localPath)
+			break
 		}
+		expandedPath = filepath.Join(j.tmpdir, fmt.Sprintf("extracted-%d-%s", idx, utility.RandomString()))
+		if err := unarchiveFormat.Unarchive(localPath, expandedPath); err != nil {
+			catcher.Wrapf(err, "unarchiving file '%s' to path '%s'", localPath, expandedPath)
+			break
+		}
+
 		catcher.Add(filepath.Walk(expandedPath, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
 				return err

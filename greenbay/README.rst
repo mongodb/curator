@@ -11,14 +11,6 @@ configured as we expect. The ``greenbay`` tool (`API documentation
 <https://godoc.org/github.com/mongodb/greenbay>`_) reads a configuration
 file and executes the tests it describes.
 
-Building Greenbay
------------------
-::
-
-  go get github.com/mongodb/greenbay
-  cd $GOPATH/src/github.com/mongodb/greenbay
-  make greenbay
-
 Writing Tests
 -------------
 
