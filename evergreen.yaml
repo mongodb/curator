@@ -99,6 +99,16 @@ tasks:
     tags: ["report"]
     name: lint-repobuilder
 
+  - name: verify-mod-tidy
+    tags: ["report"]
+    commands:
+      - command: git.get_project
+        type: system
+        params:
+          directory: curator
+      - func: run-make
+        vars: { target: "${task_name}" }
+
   - <<: *run-build
     tags: ["report"]
     name: coverage-html
