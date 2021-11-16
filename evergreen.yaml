@@ -51,7 +51,7 @@ functions:
       working_dir: curator
       binary: make
       args: ["${target}"]
-      include_expansions_in_env: ["DISABLE_COVERAGE", "GOROOT", "RACE_DETECTOR"]
+      include_expansions_in_env: ["GOROOT", "RACE_DETECTOR"]
       env:
         GOOS: ${goos}
         GOARCH: ${goarch}
@@ -184,7 +184,6 @@ buildvariants:
   - name: race-detector
     display_name: Race Detector (Arch Linux)
     expansions:
-      DISABLE_COVERAGE: true
       GOROOT: /opt/golang/go1.16
       RACE_DETECTOR: true
     run_on:
@@ -206,7 +205,6 @@ buildvariants:
   - name: rhel70
     display_name: RHEL 7.0
     expansions:
-      DISABLE_COVERAGE: true
       GOROOT: /opt/golang/go1.16
       goarch: amd64
       goos: linux
@@ -224,7 +222,6 @@ buildvariants:
       - ubuntu1804-small
       - ubuntu1804-large
     expansions:
-      DISABLE_COVERAGE: true
       GOROOT: /opt/golang/go1.16
       goarch: amd64
       goos: linux
@@ -236,7 +233,6 @@ buildvariants:
   - name: macos
     display_name: macOS 10.14
     expansions:
-      DISABLE_COVERAGE: true
       GOROOT: /opt/golang/go1.16
       goarch: amd64
       goos: darwin
@@ -251,7 +247,6 @@ buildvariants:
   - name: macos-arm64
     display_name: macOS 11.00 ARM64 (cross-compile)
     expansions:
-      DISABLE_COVERAGE: true
       GOROOT: /opt/golang/go1.16
       goarch: arm64
       goos: darwin
@@ -267,7 +262,6 @@ buildvariants:
   - name: s390x
     display_name: "zLinux (cross-compile)"
     expansions:
-      DISABLE_COVERAGE: true
       GOROOT: /opt/golang/go1.16
       goarch: s390x
       goos: linux
@@ -284,7 +278,6 @@ buildvariants:
   - name: power
     display_name: "Linux POWER (cross-compile)"
     expansions:
-      DISABLE_COVERAGE: true
       GOROOT: /opt/golang/go1.16
       goarch: ppc64le
       goos: linux
@@ -301,7 +294,6 @@ buildvariants:
   - name: arm
     display_name: "Linux ARM64 (cross-compile)"
     expansions:
-      DISABLE_COVERAGE: true
       GOROOT: /opt/golang/go1.16
       goarch: arm64
       goos: linux
@@ -318,7 +310,6 @@ buildvariants:
   - name: linux-32
     display_name: "Linux 32-bit (cross-compile)"
     expansions:
-      DISABLE_COVERAGE: true
       GOROOT: /opt/golang/go1.16
       goarch: 386
       goos: linux
@@ -335,7 +326,6 @@ buildvariants:
   - name: windows-64
     display_name: "Windows 64-bit (cross-compile)"
     expansions:
-      DISABLE_COVERAGE: true
       GOROOT: /opt/golang/go1.16
       goarch: amd64
       goos: windows
@@ -352,7 +342,6 @@ buildvariants:
   - name: windows-32
     display_name: "Windows 32-bit (cross-compile)"
     expansions:
-      DISABLE_COVERAGE: true
       GOROOT: /opt/golang/go1.16
       goarch: 386
       goos: windows

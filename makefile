@@ -111,9 +111,6 @@ endif
 ifneq (,$(RUN_COUNT))
 testArgs += -count=$(RUN_COUNT)
 endif
-ifeq (,$(DISABLE_COVERAGE))
-testArgs += -cover
-endif
 ifneq (,$(RACE_DETECTOR))
 testArgs += -race
 endif
