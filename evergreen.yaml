@@ -111,7 +111,7 @@ tasks:
 
   - <<: *run-build
     tags: ["report"]
-    name: coverage-html
+    name: html-coverage
 
   # define tasks for all test suites (modules)
   - <<: *run-go-test-suite
