@@ -6,23 +6,12 @@ ignore:
 #         YAML Templates              #
 #######################################
 variables:
-  - &run-build
-    # runs a build operation. The task name in evergreen should
-    # correspond to a make target for the build operation.
-    name: test
-    commands:
-      - command: git.get_project
-        type: system
-        params:
-          directory: curator
-      - func: run-make
-        vars: { target: "${task_name}" }
-
   - &run-go-test-suite
     # runs a make target and then uploads gotest output to
     # evergreen. The test name should correspond to a make target for
     # that suite
     name: test
+    must_have_test_results: true
     commands:
       - func: get-project-and-modules
       - func: run-make
@@ -60,8 +49,6 @@ functions:
 #                Tasks                #
 #######################################
 tasks:
-  # the build (with and without the race detector) and lint tasks use
-  # a template that does not include test result parsing.
   - name: build
     tags: ["dist"]
     commands:
@@ -80,22 +67,22 @@ tasks:
           permissions: public-read
           display_name: dist.tar.gz
 
-  - <<: *run-build
+  - <<: *run-go-test-suite
     tags: ["report"]
     name: lint-curator
-  - <<: *run-build
+  - <<: *run-go-test-suite
     tags: ["report"]
     name: lint-barquesubmit
-  - <<: *run-build
+  - <<: *run-go-test-suite
     tags: ["report"]
     name: lint-greenbay
-  - <<: *run-build
+  - <<: *run-go-test-suite
     tags: ["report"]
     name: lint-greenbay-check
-  - <<: *run-build
+  - <<: *run-go-test-suite
     tags: ["report"]
     name: lint-operations
-  - <<: *run-build
+  - <<: *run-go-test-suite
     tags: ["report"]
     name: lint-repobuilder
 
@@ -109,7 +96,7 @@ tasks:
       - func: run-make
         vars: { target: "${task_name}" }
 
-  - <<: *run-build
+  - <<: *run-go-test-suite
     tags: ["report"]
     name: html-coverage
 
