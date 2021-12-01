@@ -32,26 +32,17 @@ exponential backoff, for efficient and robust transfers.
 Repobuilder
 ~~~~~~~~~~~
 
-The repobuilder is an amalgamated operation that builds RPM and DEB
-package repositories in S3. These jobs: sync files from an existing
-repository, add packages from the local filesystem to the repository,
-sign packages (for RPM), regenerate package metadata, sign package
-metadata, generate html pages for web-based display, and sync the
-changed files to the remote repository.
+The repobuilder is a helper package to submit Barque jobs to build RPM
+and DEB package repositories in S3. These jobs: sync files from an
+existing repository, add packages from the local filesystem to the
+repository, sign packages (for RPM), regenerate package metadata, sign
+package metadata, generate html pages for web-based display, and sync
+the changed files to the remote repository.
 
 The current implementation of the repobuilder process depends on
 external repository generation tools (e.g. ``createrepo`` and
 ``apt`` tools.) Additionally, the repobuilder currently depends on
 MongoDB's internal signing service.
-
-Index Pages
-~~~~~~~~~~~
-
-The index page rebuilding tool generates Apache-style directory
-listing pages for a tree of files. This operation is part of the
-repobuilder, but is available via an independent interface. This makes
-it possible to regenerate listings for directories that are not
-regenerated as part of the normal repository building process.
 
 Artifacts
 ~~~~~~~~~

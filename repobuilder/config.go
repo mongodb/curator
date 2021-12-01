@@ -77,6 +77,7 @@ func NewRepositoryConfig() *RepositoryConfig {
 // GetConfig takes the name of a file and returns a pointer to
 // RepositoryConfig object. If the object is invalid or currupt in
 // some way, the method returns a nil RepositoryConfig and an error.
+// kim: TODO: must stay
 func GetConfig(fileName string) (*RepositoryConfig, error) {
 	c := NewRepositoryConfig()
 

@@ -37,8 +37,6 @@ func buildApp() *cli.App {
 		operations.HelloWorld(),
 		operations.Version(),
 		operations.S3(),
-		operations.Repo(),
-		operations.Index(),
 		operations.Archive(),
 		operations.PruneCache(),
 		operations.Artifacts(),
