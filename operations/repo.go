@@ -18,6 +18,18 @@ import (
 	"github.com/urfave/cli"
 )
 
+// Repo returns a cli.Command object for the repo building and
+// rebuilding operation.
+func Repo() cli.Command {
+	return cli.Command{
+		Name:  "repo",
+		Usage: "build repository",
+		Subcommands: []cli.Command{
+			repoSubmit(),
+		},
+	}
+}
+
 func repoSubmit() cli.Command {
 	return cli.Command{
 		Name:  "submit",
