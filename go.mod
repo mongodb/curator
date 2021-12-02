@@ -18,7 +18,6 @@ require (
 	github.com/evergreen-ci/utility v0.0.0-20211026201827-97b21fa2660a
 	github.com/ghodss/yaml v1.0.0
 	github.com/google/uuid v1.3.0
-	github.com/mholt/archiver/v3 v3.5.1
 	github.com/mongodb/amboy v0.0.0-20211101161704-2b42087d24e6
 	github.com/mongodb/anser v0.0.0-20211117165837-ac44bc8e3e4f
 	github.com/mongodb/ftdc v0.0.0-20211028165431-67f017692185

@@ -6,7 +6,6 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -19,70 +18,13 @@ import (
 	"github.com/urfave/cli"
 )
 
-// Repo returns a cli.Command object for the repo building and
-// rebuilding operation.
+// Repo returns a cli.Command object for the repo building job submission.
 func Repo() cli.Command {
-	pwd, err := os.Getwd()
-	grip.EmergencyFatal(err)
-	workingDir := filepath.Join(pwd, uuid.New().String())
-
 	return cli.Command{
 		Name:  "repo",
 		Usage: "build repository",
-		Flags: repoFlags(
-			cli.StringFlag{
-				Name:  "packages",
-				Usage: "path to packages, searches for valid packages recursively",
-			},
-			cli.StringFlag{
-				Name:  "dir",
-				Value: workingDir,
-				Usage: "path to a workspace for curator to do its work",
-			},
-			cli.BoolFlag{
-				Name:  "dry-run",
-				Usage: "make task operate in a dry-run mode",
-			},
-			cli.BoolFlag{
-				Name:  "verbose",
-				Usage: "run task in verbose (debug) mode",
-			},
-			cli.BoolFlag{
-				Name:  "rebuild",
-				Usage: "rebuild a repository without adding any new packages",
-			},
-			cli.IntFlag{
-				Name:  "retries",
-				Usage: "number of times to retry in the case of failures",
-				Value: 1,
-			},
-		),
 		Subcommands: []cli.Command{
 			repoSubmit(),
-		},
-		Action: func(c *cli.Context) error {
-			ctx, cancel := ctxWithTimeout(c.Duration("timeout"))
-			defer cancel()
-
-			grip.Infof("curator version: %s", curator.BuildRevision)
-
-			return buildRepo(
-				ctx,
-				buildRepoOptions{
-					workingDir: c.String("dir"),
-					profile:    c.String("profile"),
-					configPath: c.String("config"),
-					distro:     c.String("distro"),
-					edition:    c.String("edition"),
-					version:    c.String("version"),
-					arch:       c.String("arch"),
-					packages:   c.String("packages"),
-					rebuild:    c.Bool("rebuild"),
-					dryRun:     c.Bool("dry-run"),
-					verbose:    c.Bool("verbose"),
-					retries:    c.Int("retries"),
-				},
-			)
 		},
 	}
 }
@@ -196,107 +138,6 @@ func repoFlags(flags ...cli.Flag) []cli.Flag {
 			Usage: "specify a timeout for operations. Defaults to unlimited timeout if not specified",
 		},
 	}, flags...)
-}
-
-func getPackages(rootPath, suffix string) ([]string, error) {
-	var output []string
-
-	err := filepath.Walk(rootPath, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if strings.HasSuffix(info.Name(), suffix) {
-			output = append(output, path)
-		}
-
-		return nil
-	})
-
-	if err != nil {
-		return []string{}, err
-	}
-
-	if len(output) == 0 {
-		return []string{}, fmt.Errorf("no '%s' packages found in path '%s'", suffix, rootPath)
-	}
-
-	return output, err
-}
-
-type buildRepoOptions struct {
-	workingDir string
-	profile    string
-	configPath string
-	distro     string
-	edition    string
-	version    string
-	arch       string
-	packages   string
-	rebuild    bool
-	dryRun     bool
-	verbose    bool
-	retries    int
-}
-
-func buildRepo(ctx context.Context, opts buildRepoOptions) error {
-	// validate inputs
-	if opts.edition == "community" {
-		opts.edition = "org"
-	}
-
-	// get configuration objects.
-	conf, err := repobuilder.GetConfig(opts.configPath)
-	if err != nil {
-		grip.Error(err)
-		return errors.Wrap(err, "problem getting repo config")
-	}
-
-	repo, ok := conf.GetRepositoryDefinition(opts.distro, opts.edition)
-	if !ok {
-		e := fmt.Sprintf("repo not defined for distro=%s, edition=%s ", opts.distro, opts.edition)
-		grip.Error(e)
-		return errors.New(e)
-	}
-
-	var pkgs []string
-
-	if !opts.rebuild {
-		if repo.Type == repobuilder.RPM {
-			pkgs, err = getPackages(opts.packages, ".rpm")
-		} else if repo.Type == repobuilder.DEB {
-			pkgs, err = getPackages(opts.packages, ".deb")
-		}
-
-		if err != nil {
-			return errors.Wrap(err, "problem finding packages")
-		}
-	}
-
-	conf.DryRun = opts.dryRun
-	conf.Verbose = opts.verbose
-	conf.WorkSpace = opts.workingDir
-
-	job, err := repobuilder.NewBuildRepoJob(conf, repo, opts.version, opts.arch, opts.profile, pkgs...)
-	if err != nil {
-		return errors.Wrap(err, "problem constructing task for building repository")
-	}
-
-	if opts.retries < 1 {
-		opts.retries = 1
-	}
-
-	catcher := grip.NewCatcher()
-	for i := 0; i < opts.retries; i++ {
-		job.Run(ctx)
-		err = job.Error()
-		if err == nil {
-			break
-		}
-		catcher.Add(err)
-	}
-
-	return errors.Wrapf(catcher.Resolve(), "encountered problem rebuilding repository after %d retries", opts.retries)
 }
 
 type submitRepoOptions struct {

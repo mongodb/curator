@@ -36,9 +36,8 @@ func buildApp() *cli.App {
 	app.Commands = []cli.Command{
 		operations.HelloWorld(),
 		operations.Version(),
-		operations.S3(),
 		operations.Repo(),
-		operations.Index(),
+		operations.S3(),
 		operations.Archive(),
 		operations.PruneCache(),
 		operations.Artifacts(),
