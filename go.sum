@@ -331,8 +331,9 @@ github.com/evergreen-ci/pail v0.0.0-20211018155204-833e3187cfe7/go.mod h1:5gJ3sr
 github.com/evergreen-ci/pail v0.0.0-20211028170419-8efd623fd305 h1:tnLHGYdEFW3hHvmz8VcK6Tu4Pr7wTcqgIJucNyP2qck=
 github.com/evergreen-ci/pail v0.0.0-20211028170419-8efd623fd305/go.mod h1:ch0TKjI+NK2GewovamMpY9tqoe0Fal71c/4x+4x1+Io=
 github.com/evergreen-ci/poplar v0.0.0-20211028170046-0999224b53df/go.mod h1:xiggfkrlxlu2C2e58tvk0WAYFetgNC7U9ONqcP29xZs=
-github.com/evergreen-ci/poplar v0.0.0-20211028171636-d45516ea1ce5 h1:nFR0q4RmLKbxnbsvC7nyL24UIZIVmTU2XwUlTd+Hx9k=
 github.com/evergreen-ci/poplar v0.0.0-20211028171636-d45516ea1ce5/go.mod h1:RHBpqOlxE28M/lUgWRpxJ+WrHqCuY8a7EcXIvzqiPys=
+github.com/evergreen-ci/poplar v0.0.0-20211206214017-8d2f6355358c h1:WDvQB7upMR5p71vFSoGp4p2+T+zYaULHOqDMBEPbkE4=
+github.com/evergreen-ci/poplar v0.0.0-20211206214017-8d2f6355358c/go.mod h1:u/swqTZU7mQxsyoy7bdSWT+NokKTcOdaLpCryEikJe8=
 github.com/evergreen-ci/tarjan v0.0.0-20170824211642-fcd3f3321826/go.mod h1:SnQ9F63VSR6kHbC4aFE+f7+iL3yANhjaN9TT9T4skao=
 github.com/evergreen-ci/timber v0.0.0-20211029170449-9cc62c8d8869 h1:Np28WQaa6h0ZoPDDJKI6Vb1hvLzzkvfThSrdofb4aqk=
 github.com/evergreen-ci/timber v0.0.0-20211029170449-9cc62c8d8869/go.mod h1:OUh+UqS4iMMCatRHjQph7RrmV7Wy6RelAMJA/+bBpr0=
