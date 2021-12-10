@@ -29,6 +29,6 @@ require (
 	github.com/urfave/cli v1.22.5
 	go.mongodb.org/mongo-driver v1.7.4
 	golang.org/x/sys v0.0.0-20211031064116-611d5d643895
-	google.golang.org/grpc v1.41.0
+	google.golang.org/grpc v1.42.0
 	gopkg.in/yaml.v2 v2.4.0
 )
