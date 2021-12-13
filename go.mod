@@ -22,13 +22,13 @@ require (
 	github.com/mongodb/anser v0.0.0-20211117165837-ac44bc8e3e4f
 	github.com/mongodb/ftdc v0.0.0-20211028165431-67f017692185
 	github.com/mongodb/grip v0.0.0-20211101151816-abbea0c0d465
-	github.com/mongodb/jasper v0.0.0-20211118154831-ee0b5744e192
+	github.com/mongodb/jasper v0.0.0-20211213143437-1d373fd6f2c6
 	github.com/papertrail/go-tail v0.0.0-20180509224916-973c153b0431
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.7.0
 	github.com/urfave/cli v1.22.5
-	go.mongodb.org/mongo-driver v1.7.4
+	go.mongodb.org/mongo-driver v1.8.1
 	golang.org/x/sys v0.0.0-20211031064116-611d5d643895
-	google.golang.org/grpc v1.41.0
+	google.golang.org/grpc v1.42.0
 	gopkg.in/yaml.v2 v2.4.0
 )
