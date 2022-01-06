@@ -124,10 +124,10 @@ func (s *BaseCheckSuite) TestSetMessageConvertsTypesToString() {
 
 func (s *BaseCheckSuite) TestSetSuitesOverridesExistingSuites() {
 	cases := [][]string{
-		[]string{},
-		[]string{"foo", "bar"},
-		[]string{"1", "false"},
-		[]string{"greenbay", "kenosha", "jainseville"},
+		{},
+		{"foo", "bar"},
+		{"1", "false"},
+		{"greenbay", "kenosha", "jainseville"},
 	}
 
 	for _, suites := range cases {

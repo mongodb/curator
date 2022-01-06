@@ -11,10 +11,10 @@ func init() {
 	}
 
 	groupRequirementRegistry = map[string]GroupRequirements{
-		"all":  GroupRequirements{All: true},
-		"any":  GroupRequirements{Any: true},
-		"one":  GroupRequirements{One: true},
-		"none": GroupRequirements{None: true},
+		"all":  {All: true},
+		"any":  {Any: true},
+		"one":  {One: true},
+		"none": {None: true},
 	}
 
 	registerPackageChecks()       // from package.go
