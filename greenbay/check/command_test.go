@@ -23,8 +23,8 @@ func TestCommandCheck(t *testing.T) {
 	}
 
 	envMaps := []map[string]string{
-		map[string]string{},
-		map[string]string{
+		{},
+		{
 			"VALUE": "env var",
 		},
 	}

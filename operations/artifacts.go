@@ -23,7 +23,7 @@ func Artifacts() cli.Command {
 		Aliases: []string{"archives", "builds"},
 		Usage:   "download ",
 		Subcommands: []cli.Command{
-			cli.Command{
+			{
 				Name:    "download",
 				Usage:   "downloads builds of MongoDB",
 				Aliases: []string{"dl", "get"},
@@ -70,7 +70,7 @@ func Artifacts() cli.Command {
 					return nil
 				},
 			},
-			cli.Command{
+			{
 				Name:  "list-variants",
 				Usage: "find all targets, editions and architectures for a version",
 				Flags: baseDlFlags(false),
@@ -87,7 +87,7 @@ func Artifacts() cli.Command {
 					return nil
 				},
 			},
-			cli.Command{
+			{
 				Name:  "list-map",
 				Usage: "find targets/edition/architecture mappings for a version",
 				Flags: baseDlFlags(false),
@@ -104,7 +104,7 @@ func Artifacts() cli.Command {
 					return nil
 				},
 			},
-			cli.Command{
+			{
 				Name:  "list-all",
 				Usage: "prints a listing of the current contents of the version cache",
 				Flags: baseDlFlags(false),
@@ -120,7 +120,7 @@ func Artifacts() cli.Command {
 					return nil
 				},
 			},
-			cli.Command{
+			{
 				Name:  "get-path",
 				Usage: "get path to a build",
 				Flags: buildInfoFlags(baseDlFlags(false)...),

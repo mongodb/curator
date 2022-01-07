@@ -37,12 +37,12 @@ func goCompilerIterfaceFactoryTable() map[string]compilerFactory {
 
 func goCompilerAuto() compiler {
 	paths := [][]string{
-		[]string{"/opt/go/bin/go", ""},
-		[]string{"/opt/mongodbtoolchain/v2/bin/go", "/opt/mongodbtoolchain/v2/bin"},
-		[]string{"/usr/bin/go", ""},
-		[]string{"/usr/local/go/bin/go", ""},
-		[]string{"/usr/local/bin/go", ""},
-		[]string{"/opt/golang/go1.10/bin/go", "/opt/golang/go1.10"},
+		{"/opt/go/bin/go", ""},
+		{"/opt/mongodbtoolchain/v2/bin/go", "/opt/mongodbtoolchain/v2/bin"},
+		{"/usr/bin/go", ""},
+		{"/usr/local/go/bin/go", ""},
+		{"/usr/local/bin/go", ""},
+		{"/opt/golang/go1.10/bin/go", "/opt/golang/go1.10"},
 	}
 	c := compileGolang{}
 

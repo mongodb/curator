@@ -37,7 +37,7 @@ func TestGetJsonConfig(t *testing.T) {
 	assert := assert.New(t) // nolint
 
 	inputs := [][]byte{
-		[]byte{},
+		{},
 		[]byte(`{foo: 1, bar: true}`),
 		[]byte(`{}`),
 		[]byte(`[]`),
