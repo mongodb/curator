@@ -279,6 +279,8 @@ github.com/docker/distribution v2.7.1+incompatible h1:a5mlkVzth6W5A4fOsS3D2EO5BU
 github.com/docker/distribution v2.7.1+incompatible/go.mod h1:J2gT2udsDAN96Uj4KfcMRqY0/ypR+oyYUYmja8H+y+w=
 github.com/docker/docker v20.10.11+incompatible h1:OqzI/g/W54LczvhnccGqniFoQghHx3pklbLuhfXpqGo=
 github.com/docker/docker v20.10.11+incompatible/go.mod h1:eEKB0N0r5NX/I1kEveEz05bcu8tLC/8azJZsviup8Sk=
+github.com/docker/docker v20.10.12+incompatible h1:CEeNmFM0QZIsJCZKMkZx0ZcahTiewkrgiwfYD+dfl1U=
+github.com/docker/docker v20.10.12+incompatible/go.mod h1:eEKB0N0r5NX/I1kEveEz05bcu8tLC/8azJZsviup8Sk=
 github.com/docker/go-connections v0.4.0 h1:El9xVISelRB7BuFusrZozjnkIM5YnzCViNKohAFqRJQ=
 github.com/docker/go-connections v0.4.0/go.mod h1:Gbd7IOopHjR8Iph03tsViu4nIes5XhDvyHbTtUxmeec=
 github.com/docker/go-events v0.0.0-20170721190031-9461782956ad/go.mod h1:Uw6UezgYA44ePAFQYUehOuCzmy5zmg/+nl2ZfMWGkpA=
@@ -667,6 +669,10 @@ github.com/mongodb/grip v0.0.0-20211101151816-abbea0c0d465 h1:roArDXftboUy4WHPhI
 github.com/mongodb/grip v0.0.0-20211101151816-abbea0c0d465/go.mod h1:686LUUoh+vP85XVjr1ZYqC2mk52m138QmCZ4B2HZYkI=
 github.com/mongodb/jasper v0.0.0-20211213143437-1d373fd6f2c6 h1:6uC/rZHvuS+UGglb1q6rFp4EE/0om9hQZb6LlN5pFaM=
 github.com/mongodb/jasper v0.0.0-20211213143437-1d373fd6f2c6/go.mod h1:+2hw73IRiLWBytkhAJkCFa1gYKvFFQ8EYu+HujcSvRk=
+github.com/mongodb/jasper v0.0.0-20220119163612-925f84f424e9 h1:NG0lFdg812FZZsLY+U6p9H/J/euC4AoL/lXOypLWZ14=
+github.com/mongodb/jasper v0.0.0-20220119163612-925f84f424e9/go.mod h1:fEnodk/qAKdZ5GYczxvRUmwt2Q0YttfISd0Dqoj0EQY=
+github.com/mongodb/jasper v0.0.0-20220119202715-d976320a41e6 h1:LZP8fFSQf9Ve8eBeuZfqUw1R8Hq0gFbma+gNK1qmd40=
+github.com/mongodb/jasper v0.0.0-20220119202715-d976320a41e6/go.mod h1:51kGIBSpoTxBpZF8I95yxCAkrXe5IKCQqaWmaZLYsuI=
 github.com/montanaflynn/stats v0.0.0-20171201202039-1bf9dbcd8cbe/go.mod h1:wL8QJuTMNUDYhXwkmfOly8iTdp5TEcJFWZD2D7SIkUc=
 github.com/montanaflynn/stats v0.0.0-20180911141734-db72e6cae808/go.mod h1:wL8QJuTMNUDYhXwkmfOly8iTdp5TEcJFWZD2D7SIkUc=
 github.com/morikuni/aec v1.0.0 h1:nP9CBfwrvYnBRgY6qfDQkygYDmYwOilePFkwzv4dU8A=
