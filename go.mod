@@ -14,7 +14,7 @@ require (
 	github.com/evergreen-ci/lru v0.0.0-20211029170532-008d075b972d
 	github.com/evergreen-ci/pail v0.0.0-20211028170419-8efd623fd305
 	github.com/evergreen-ci/poplar v0.0.0-20220119144730-b220d71c0330
-	github.com/evergreen-ci/timber v0.0.0-20211029170449-9cc62c8d8869
+	github.com/evergreen-ci/timber v0.0.0-20220119202616-544be15f3b95
 	github.com/evergreen-ci/utility v0.0.0-20211026201827-97b21fa2660a
 	github.com/ghodss/yaml v1.0.0
 	github.com/google/uuid v1.3.0
@@ -22,7 +22,7 @@ require (
 	github.com/mongodb/anser v0.0.0-20211117165837-ac44bc8e3e4f
 	github.com/mongodb/ftdc v0.0.0-20211028165431-67f017692185
 	github.com/mongodb/grip v0.0.0-20211101151816-abbea0c0d465
-	github.com/mongodb/jasper v0.0.0-20211213143437-1d373fd6f2c6
+	github.com/mongodb/jasper v0.0.0-20220119202715-d976320a41e6
 	github.com/papertrail/go-tail v0.0.0-20180509224916-973c153b0431
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.7.0
