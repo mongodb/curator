@@ -343,6 +343,8 @@ github.com/evergreen-ci/poplar v0.0.0-20220119144730-b220d71c0330/go.mod h1:O5wG
 github.com/evergreen-ci/tarjan v0.0.0-20170824211642-fcd3f3321826/go.mod h1:SnQ9F63VSR6kHbC4aFE+f7+iL3yANhjaN9TT9T4skao=
 github.com/evergreen-ci/timber v0.0.0-20211029170449-9cc62c8d8869 h1:Np28WQaa6h0ZoPDDJKI6Vb1hvLzzkvfThSrdofb4aqk=
 github.com/evergreen-ci/timber v0.0.0-20211029170449-9cc62c8d8869/go.mod h1:OUh+UqS4iMMCatRHjQph7RrmV7Wy6RelAMJA/+bBpr0=
+github.com/evergreen-ci/timber v0.0.0-20220119202616-544be15f3b95 h1:Y88D2bv37Ocfa8BoLfbTVepef9VvikKkoP5TaFQw/Jk=
+github.com/evergreen-ci/timber v0.0.0-20220119202616-544be15f3b95/go.mod h1:Owh+4Jydm5Pp+OuNgW4Z9YB79tc6hly2g36t9fnWqMc=
 github.com/evergreen-ci/utility v0.0.0-20211026201827-97b21fa2660a h1:rCM80/P6uEBpRnL+OLKf0ybMyEpnqQ5UQURxHlapbAc=
 github.com/evergreen-ci/utility v0.0.0-20211026201827-97b21fa2660a/go.mod h1:fuEDytmDhOv+UCUwRPG/qD7mjVkUgx37KEv+thUgHVk=
 github.com/fatih/color v1.7.0/go.mod h1:Zm6kSWBoL9eyXnKyktHP6abPY2pDugNf5KwzbycvMj4=
