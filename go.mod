@@ -21,7 +21,7 @@ require (
 	github.com/mongodb/amboy v0.0.0-20211101161704-2b42087d24e6
 	github.com/mongodb/anser v0.0.0-20211117165837-ac44bc8e3e4f
 	github.com/mongodb/ftdc v0.0.0-20211028165431-67f017692185
-	github.com/mongodb/grip v0.0.0-20211101151816-abbea0c0d465
+	github.com/mongodb/grip v0.0.0-20220210164115-898ba2888109
 	github.com/mongodb/jasper v0.0.0-20220119202715-d976320a41e6
 	github.com/papertrail/go-tail v0.0.0-20180509224916-973c153b0431
 	github.com/pkg/errors v0.9.1
