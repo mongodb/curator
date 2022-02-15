@@ -2,6 +2,7 @@ package operations
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -114,7 +115,11 @@ func buildLogCommand() cli.Command {
 			},
 		},
 		Action: func(c *cli.Context) error {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
 			clogger, err := setupBuildLogger(
+				ctx,
 				getBuildloggerConfig(c),
 				getAnnotations(c.Parent().StringSlice("annotation")),
 				c.Parent().Bool("json"),
@@ -141,7 +146,11 @@ func buildLogPipe() cli.Command {
 		Name:  "pipe",
 		Usage: "send standard input to the buildlogger",
 		Action: func(c *cli.Context) error {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
 			clogger, err := setupBuildLogger(
+				ctx,
 				getBuildloggerConfig(c),
 				getAnnotations(c.Parent().StringSlice("annotation")),
 				c.Parent().Bool("json"),
@@ -173,7 +182,11 @@ func buildLogFollowFile() cli.Command {
 			},
 		},
 		Action: func(c *cli.Context) error {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
 			clogger, err := setupBuildLogger(
+				ctx,
 				getBuildloggerConfig(c),
 				getAnnotations(c.Parent().StringSlice("annotation")),
 				c.Parent().Bool("json"),
@@ -239,7 +252,7 @@ type cmdLogger struct {
 	closer      func()
 }
 
-func setupBuildLogger(conf *send.BuildloggerConfig, data map[string]string, logJSON bool, count int, interval time.Duration) (*cmdLogger, error) {
+func setupBuildLogger(ctx context.Context, conf *send.BuildloggerConfig, data map[string]string, logJSON bool, count int, interval time.Duration) (*cmdLogger, error) {
 	out := &cmdLogger{annotations: data}
 	if logJSON {
 		out.logLine = out.logJSONLine
@@ -266,8 +279,10 @@ func setupBuildLogger(conf *send.BuildloggerConfig, data map[string]string, logJ
 	if err != nil {
 		return out, errors.Wrap(err, "problem configuring global sender")
 	}
-
-	globalBuffered := send.NewBufferedSender(globalSender, interval, count)
+	globalBuffered, err := send.NewBufferedSender(ctx, globalSender, send.BufferedSenderOptions{FlushInterval: interval, BufferSize: count})
+	if err != nil {
+		return out, errors.Wrap(err, "constructing global sender")
+	}
 	toClose = append(toClose, globalBuffered)
 	if err := out.logger.SetSender(globalBuffered); err != nil {
 		return out, errors.Wrap(err, "problem setting global sender")
@@ -282,7 +297,10 @@ func setupBuildLogger(conf *send.BuildloggerConfig, data map[string]string, logJ
 			return out, errors.Wrap(err, "problem constructing test logger")
 		}
 
-		testBuffered := send.NewBufferedSender(globalSender, interval, count)
+		testBuffered, err := send.NewBufferedSender(ctx, globalSender, send.BufferedSenderOptions{FlushInterval: interval, BufferSize: count})
+		if err != nil {
+			return out, errors.Wrap(err, "constructing buffered test logger")
+		}
 		toClose = append(toClose, testBuffered)
 		if err := out.logger.SetSender(testBuffered); err != nil {
 			return out, errors.Wrap(err, "problem setting test logger")
