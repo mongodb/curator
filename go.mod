@@ -15,7 +15,7 @@ require (
 	github.com/evergreen-ci/pail v0.0.0-20211028170419-8efd623fd305
 	github.com/evergreen-ci/poplar v0.0.0-20220119144730-b220d71c0330
 	github.com/evergreen-ci/timber v0.0.0-20220119202616-544be15f3b95
-	github.com/evergreen-ci/utility v0.0.0-20211026201827-97b21fa2660a
+	github.com/evergreen-ci/utility v0.0.0-20220302150552-3f7a1a268ea7
 	github.com/ghodss/yaml v1.0.0
 	github.com/google/uuid v1.3.0
 	github.com/mongodb/amboy v0.0.0-20211101161704-2b42087d24e6
