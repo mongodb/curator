@@ -63,7 +63,7 @@ func systemInfo() cli.Command {
 			logger, closer, err := getLogger(c.String("file"))
 			defer closer()
 			if err != nil {
-				return errors.Wrap(err, "problem building logger")
+				return errors.Wrap(err, "building logger")
 			}
 
 			return doCollection(c.Int("count"), c.Duration("interval"), func() error {
@@ -134,7 +134,7 @@ func processAll() cli.Command {
 		Action: func(c *cli.Context) error {
 			logger, closer, err := getLogger(c.String("file"))
 			if err != nil {
-				return errors.Wrap(err, "problem building logger")
+				return errors.Wrap(err, "building logger")
 			}
 			defer closer()
 
@@ -165,7 +165,7 @@ func processInfo() cli.Command {
 			logger, closer, err := getLogger(c.String("file"))
 			defer closer()
 			if err != nil {
-				return errors.Wrap(err, "problem building logger")
+				return errors.Wrap(err, "building logger")
 			}
 
 			return doCollection(c.Int("count"), c.Duration("interval"), func() error {
@@ -194,7 +194,7 @@ func processTree() cli.Command {
 			logger, closer, err := getLogger(c.String("file"))
 			defer closer()
 			if err != nil {
-				return errors.Wrap(err, "problem building logger")
+				return errors.Wrap(err, "building logger")
 			}
 
 			return doCollection(c.Int("count"), c.Duration("interval"), func() error {
@@ -227,24 +227,24 @@ func getLogger(fn string) (grip.Journaler, closer, error) {
 	if fn != "" {
 		sender, err = send.MakeJSONFileLogger(fn)
 		if err != nil {
-			return nil, closer, errors.Wrap(err, "problem building logger")
+			return nil, closer, errors.Wrap(err, "building logger")
 		}
 		closer = func() { grip.Critical(sender.Close()) }
 
 		if err = logger.SetSender(sender); err != nil {
-			return nil, closer, errors.Wrap(err, "problem configuring logger")
+			return nil, closer, errors.Wrap(err, "configuring logger")
 		}
 	} else {
 		sender = send.MakeJSONConsoleLogger()
 		closer = func() { grip.Critical(sender.Close()) }
 
 		if err = logger.SetSender(sender); err != nil {
-			return nil, closer, errors.Wrap(err, "problem configuring logger")
+			return nil, closer, errors.Wrap(err, "configuring logger")
 		}
 	}
 
 	if err := sender.SetLevel(lvl); err != nil {
-		return nil, closer, errors.Wrap(err, "problem setting logging threshold")
+		return nil, closer, errors.Wrap(err, "setting logging threshold")
 	}
 
 	return logger, closer, nil

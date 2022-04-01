@@ -112,12 +112,12 @@ func s3PutCmd() cli.Command {
 			}
 			bucket, err := pail.NewS3Bucket(opts)
 			if err != nil {
-				return errors.Wrap(err, "problem getting new bucket")
+				return errors.Wrap(err, "getting new bucket")
 			}
 
 			fmt.Printf("Uploading file '%s' to path '%s' in bucket '%s'\n", c.String("file"), objectKey, bucketName)
 			if err := bucket.Upload(ctx, objectKey, c.String("file")); err != nil {
-				return errors.Wrapf(err, "problem putting %s in s3", c.String("file"))
+				return errors.Wrapf(err, "putting file '%s' in s3", c.String("file"))
 			}
 
 			var baseURL string
@@ -157,12 +157,12 @@ func s3GetCmd() cli.Command {
 			}
 			bucket, err := pail.NewS3Bucket(opts)
 			if err != nil {
-				return errors.Wrap(err, "problem getting new bucket")
+				return errors.Wrap(err, "getting new bucket")
 			}
 
 			return errors.Wrapf(
 				bucket.Download(ctx, c.String("name"), c.String("file")),
-				"problem getting %s from s3",
+				"getting object '%s' from s3",
 				c.String("name"),
 			)
 		},
@@ -196,12 +196,12 @@ func s3DeleteCmd() cli.Command {
 			}
 			bucket, err := pail.NewS3Bucket(opts)
 			if err != nil {
-				return errors.Wrap(err, "problem getting new bucket")
+				return errors.Wrap(err, "getting new bucket")
 			}
 
 			return errors.Wrapf(
 				bucket.Remove(ctx, c.String("name")),
-				"problem removing %s from s3",
+				"removing '%s' from s3",
 				c.String("name"),
 			)
 		},
@@ -235,12 +235,12 @@ func s3DeletePrefixCmd() cli.Command {
 			}
 			bucket, err := pail.NewS3Bucket(opts)
 			if err != nil {
-				return errors.Wrap(err, "problem getting new bucket")
+				return errors.Wrap(err, "getting new bucket")
 			}
 
 			return errors.Wrapf(
 				bucket.RemovePrefix(ctx, c.String("name")),
-				"problem removing %s from s3",
+				"removing prefix '%s' from s3",
 				c.String("name"),
 			)
 		},
@@ -274,12 +274,12 @@ func s3DeleteMatchingCmd() cli.Command {
 			}
 			bucket, err := pail.NewS3Bucket(opts)
 			if err != nil {
-				return errors.Wrap(err, "problem getting new bucket")
+				return errors.Wrap(err, "getting new bucket")
 			}
 
 			return errors.Wrapf(
 				bucket.RemoveMatching(ctx, c.String("match")),
-				"problem removing objects matching %s in s3",
+				"removing objects matching pattern '%s' in s3",
 				c.String("match"),
 			)
 		},
@@ -313,7 +313,7 @@ func s3SyncToCmd() cli.Command {
 			}
 			bucket, err := pail.NewS3Bucket(opts)
 			if err != nil {
-				return errors.Wrap(err, "problem getting new bucket")
+				return errors.Wrap(err, "getting new bucket")
 			}
 			if c.Int("workers") > 0 {
 				parallelOpts := pail.ParallelBucketOptions{
@@ -323,7 +323,7 @@ func s3SyncToCmd() cli.Command {
 				}
 				bucket, err = pail.NewParallelSyncBucket(parallelOpts, bucket)
 				if err != nil {
-					return errors.Wrap(err, "problem constructing parallel bucket")
+					return errors.Wrap(err, "constructing parallel bucket")
 				}
 
 			}
@@ -335,7 +335,7 @@ func s3SyncToCmd() cli.Command {
 			}
 			return errors.Wrapf(
 				bucket.Push(ctx, syncOpts),
-				"problem syncing %s to s3",
+				"syncing %s to s3",
 				c.String("local"),
 			)
 		},
@@ -368,7 +368,7 @@ func s3SyncFromCmd() cli.Command {
 			}
 			bucket, err := pail.NewS3Bucket(opts)
 			if err != nil {
-				return errors.Wrap(err, "problem getting new bucket")
+				return errors.Wrap(err, "getting new bucket")
 			}
 			if c.Int("workers") > 0 {
 				parallelOpts := pail.ParallelBucketOptions{
@@ -378,7 +378,7 @@ func s3SyncFromCmd() cli.Command {
 				}
 				bucket, err = pail.NewParallelSyncBucket(parallelOpts, bucket)
 				if err != nil {
-					return errors.Wrap(err, "problem constructing parallel bucket")
+					return errors.Wrap(err, "constructing parallel bucket")
 				}
 
 			}
@@ -390,7 +390,7 @@ func s3SyncFromCmd() cli.Command {
 			}
 			return errors.Wrapf(
 				bucket.Pull(ctx, syncOpts),
-				"problem syncing %s from  s3",
+				"syncing %s from s3",
 				c.String("prefix"),
 			)
 		},
@@ -531,7 +531,7 @@ func setVerboseLogging(verbose bool) error {
 		info := sender.Level()
 		info.Threshold = level.Debug
 
-		return errors.Wrap(sender.SetLevel(info), "problem setting logger threshold to debug")
+		return errors.Wrap(sender.SetLevel(info), "setting logger threshold to debug")
 	}
 
 	return nil

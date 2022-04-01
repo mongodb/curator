@@ -127,16 +127,16 @@ func buildLogCommand() cli.Command {
 				c.Parent().Duration("interval"))
 			defer clogger.closer() // should close before checking error.
 			if err != nil {
-				return errors.Wrap(err, "problem configuring buildlogger")
+				return errors.Wrap(err, "configuring buildlogger")
 			}
 			clogger.addMeta = c.Parent().Bool("addMeta")
 
 			cmd, err := getCmd(c.String("exec"))
 			if err != nil {
-				return errors.Wrap(err, "problem creating command object")
+				return errors.Wrap(err, "creating command object")
 			}
 
-			return errors.Wrap(clogger.runCommand(cmd), "problem running command")
+			return errors.Wrap(clogger.runCommand(cmd), "running command")
 		},
 	}
 }
@@ -159,11 +159,11 @@ func buildLogPipe() cli.Command {
 
 			defer clogger.closer()
 			if err != nil {
-				return errors.Wrap(err, "problem configuring buildlogger")
+				return errors.Wrap(err, "configuring buildlogger")
 			}
 
 			if err := clogger.readPipe(os.Stdin); err != nil {
-				return errors.Wrap(err, "problem reading from standard input")
+				return errors.Wrap(err, "reading from standard input")
 			}
 
 			return nil
@@ -195,13 +195,13 @@ func buildLogFollowFile() cli.Command {
 
 			defer clogger.closer()
 			if err != nil {
-				return errors.Wrap(err, "problem configuring buildlogger")
+				return errors.Wrap(err, "configuring buildlogger")
 			}
 
 			fn := c.String("file")
 
 			if err := clogger.followFile(fn); err != nil {
-				return errors.Wrapf(err, "problem following file %s", fn)
+				return errors.Wrapf(err, "following file '%s'", fn)
 			}
 			return nil
 		},
@@ -227,7 +227,7 @@ func getBuildloggerConfig(c *cli.Context) *send.BuildloggerConfig {
 func getCmd(command string) (*exec.Cmd, error) {
 	args, err := shlex.Split(command, true)
 	if err != nil {
-		return nil, errors.Wrapf(err, "problem parsing command: %s", command)
+		return nil, errors.Wrapf(err, "parsing command '%s'", command)
 	}
 
 	var cmd *exec.Cmd
@@ -277,15 +277,15 @@ func setupBuildLogger(ctx context.Context, conf *send.BuildloggerConfig, data ma
 	globalSender, err := send.MakeBuildlogger("curator", conf)
 	toClose = append(toClose, globalSender)
 	if err != nil {
-		return out, errors.Wrap(err, "problem configuring global sender")
+		return out, errors.Wrap(err, "configuring global sender")
 	}
 	globalBuffered, err := send.NewBufferedSender(ctx, globalSender, send.BufferedSenderOptions{FlushInterval: interval, BufferSize: count})
 	if err != nil {
-		return out, errors.Wrap(err, "constructing global sender")
+		return out, errors.Wrap(err, "constructing global buffered sender")
 	}
 	toClose = append(toClose, globalBuffered)
 	if err := out.logger.SetSender(globalBuffered); err != nil {
-		return out, errors.Wrap(err, "problem setting global sender")
+		return out, errors.Wrap(err, "setting global sender")
 	}
 
 	if conf.Test != "" {
@@ -294,7 +294,7 @@ func setupBuildLogger(ctx context.Context, conf *send.BuildloggerConfig, data ma
 		testSender, err := send.MakeBuildlogger(conf.Test, conf)
 		toClose = append(toClose, testSender)
 		if err != nil {
-			return out, errors.Wrap(err, "problem constructing test logger")
+			return out, errors.Wrap(err, "constructing test logger")
 		}
 
 		testBuffered, err := send.NewBufferedSender(ctx, globalSender, send.BufferedSenderOptions{FlushInterval: interval, BufferSize: count})
@@ -303,7 +303,7 @@ func setupBuildLogger(ctx context.Context, conf *send.BuildloggerConfig, data ma
 		}
 		toClose = append(toClose, testBuffered)
 		if err := out.logger.SetSender(testBuffered); err != nil {
-			return out, errors.Wrap(err, "problem setting test logger")
+			return out, errors.Wrap(err, "setting test logger")
 		}
 	}
 
@@ -318,17 +318,17 @@ func (l *cmdLogger) runCommand(cmd *exec.Cmd) error {
 	// setup the output
 	stdOut, err := cmd.StdoutPipe()
 	if err != nil {
-		return errors.Wrap(err, "problem getting standard output")
+		return errors.Wrap(err, "getting standard output")
 	}
 	stdErr, err := cmd.StderrPipe()
 	if err != nil {
-		return errors.Wrap(err, "problem getting standard error")
+		return errors.Wrap(err, "getting standard error")
 	}
 
 	// Now actually run the command
 	startedAt := time.Now()
 	if err = cmd.Start(); err != nil {
-		return errors.Wrap(err, "problem starting command")
+		return errors.Wrap(err, "starting command")
 	}
 
 	grip.Infoln("running command:", command)
@@ -361,19 +361,19 @@ func (l *cmdLogger) readPipe(pipe io.Reader) error {
 		l.logLine(input.Bytes(), lvl)
 	}
 
-	return errors.Wrap(input.Err(), "problem reading from pipe")
+	return errors.Wrap(input.Err(), "reading from pipe")
 }
 
 func (l *cmdLogger) followFile(fn string) error {
 	lvl := l.logger.GetSender().Level().Threshold
 	tail, err := follower.New(fn, follower.Config{Reopen: true})
 	if err != nil {
-		return errors.Wrapf(err, "problem setting up file follower of '%s'", fn)
+		return errors.Wrapf(err, "setting up follower of file '%s'", fn)
 	}
 	defer tail.Close()
 
 	if err = tail.Err(); err != nil {
-		return errors.Wrapf(err, "problem starting up file follower of '%s'", fn)
+		return errors.Wrapf(err, "starting up follower of file '%s'", fn)
 	}
 
 	end := make(chan int)
@@ -397,7 +397,7 @@ func (l *cmdLogger) followFile(fn string) error {
 	end <- 0
 
 	if err = tail.Err(); err != nil {
-		return errors.Wrapf(err, "problem finishing file following of '%s'", fn)
+		return errors.Wrapf(err, "finishing following file '%s'", fn)
 	}
 	return nil
 }

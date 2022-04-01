@@ -93,7 +93,7 @@ func getContents(paths []string, exclusions []string) <-chan archiveWorkUnit {
 			})
 
 			if err != nil {
-				panic(errors.Wrap(err, "caught error walking file system"))
+				panic(errors.Wrap(err, "walking file system"))
 			}
 		}
 		close(output)
@@ -140,22 +140,22 @@ func createArchive(fileName, prefix string, paths []string, exclude []string) er
 	// set up the output file
 	file, err := os.Create(fileName)
 	if err != nil {
-		return errors.Wrapf(err, "problem creating file %s", fileName)
+		return errors.Wrapf(err, "creating file '%s'", fileName)
 	}
-	defer func() { grip.Error(errors.Wrapf(file.Close(), "problem closing file %s", fileName)) }()
+	defer func() { grip.Error(errors.Wrapf(file.Close(), "closing file '%s'", fileName)) }()
 
 	// set up the  gzip writer
 	gw := gzip.NewWriter(file)
-	defer func() { grip.Error(errors.Wrapf(gw.Close(), "problem closing gzip writer %s", fileName)) }()
+	defer func() { grip.Error(errors.Wrapf(gw.Close(), "closing gzip writer for file '%s'", fileName)) }()
 	tw := tar.NewWriter(gw)
-	defer func() { grip.Error(errors.Wrapf(tw.Close(), "problem closing tar writer %s", fileName)) }()
+	defer func() { grip.Error(errors.Wrapf(tw.Close(), "closing tar writer for file '%s'", fileName)) }()
 
 	grip.Infoln("creating archive:", fileName)
 
 	for unit := range getContents(paths, exclude) {
 		err := addFile(tw, prefix, unit)
 		if err != nil {
-			return errors.Wrapf(err, "error adding path: %s [%+v]",
+			return errors.Wrapf(err, "adding path: %s [%+v]",
 				unit.path, unit)
 		}
 	}

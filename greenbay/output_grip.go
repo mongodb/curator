@@ -95,11 +95,11 @@ func (r *gripOutputData) ToFile(fn string) error {
 	}
 
 	if err != nil {
-		return errors.Wrapf(err, "problem setting up output logger to file '%s'", fn)
+		return errors.Wrapf(err, "setting up output logger to file '%s'", fn)
 	}
 
 	if err := logger.SetSender(sender); err != nil {
-		return errors.Wrap(err, "problem configuring logger")
+		return errors.Wrap(err, "configuring logger")
 	}
 
 	r.logResults(logger)
@@ -126,11 +126,11 @@ func (r *gripOutputData) Print() error {
 	}
 
 	if err != nil {
-		return errors.Wrap(err, "problem setting up logger")
+		return errors.Wrap(err, "setting up logger")
 	}
 
 	if err := logger.SetSender(sender); err != nil {
-		return errors.Wrap(err, "problem configuring logger")
+		return errors.Wrap(err, "configuring logger")
 	}
 
 	r.logResults(logger)

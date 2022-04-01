@@ -90,7 +90,7 @@ func toJSON() cli.Command {
 
 			ftdcFile, err := os.Open(ftdcPath)
 			if err != nil {
-				return errors.Wrapf(err, "problem opening file '%s'", ftdcPath)
+				return errors.Wrapf(err, "opening file '%s'", ftdcPath)
 			}
 			defer func() { grip.Warning(ftdcFile.Close()) }()
 
@@ -99,12 +99,12 @@ func toJSON() cli.Command {
 				jsonFile = os.Stdout
 			} else {
 				if _, err = os.Stat(jsonPath); !os.IsNotExist(err) {
-					return errors.Errorf("cannot export bson to %s, file already exists", jsonPath)
+					return errors.Errorf("cannot export BSON to file '%s', file already exists", jsonPath)
 				}
 
 				jsonFile, err = os.Create(jsonPath)
 				if err != nil {
-					return errors.Wrapf(err, "problem opening flie '%s'", jsonPath)
+					return errors.Wrapf(err, "opening file '%s'", jsonPath)
 				}
 				defer func() { grip.Warning(jsonFile.Close()) }()
 			}
@@ -120,12 +120,12 @@ func toJSON() cli.Command {
 				dmap := iter.Document().ExportMap()
 				jsondoc, err := json.Marshal(dmap)
 				if err != nil {
-					return errors.Wrap(err, "problem reading document to json")
+					return errors.Wrap(err, "reading document to JSON")
 				}
 
 				_, err = jsonFile.WriteString(string(jsondoc) + "\n")
 				if err != nil {
-					return errors.Wrap(err, "problem writing json to document")
+					return errors.Wrap(err, "writing JSON to document")
 				}
 			}
 
@@ -179,7 +179,7 @@ func fromJSON() cli.Command {
 			opts.SampleCount = c.Int(maxCount)
 
 			if _, err := metrics.CollectJSONStream(ctx, opts); err != nil {
-				return errors.Wrap(err, "Failed to write FTDC from JSON")
+				return errors.Wrap(err, "writing FTDC from JSON")
 			}
 			return nil
 		},
@@ -216,7 +216,7 @@ func toBSON() cli.Command {
 
 			ftdcFile, err := os.Open(ftdcPath)
 			if err != nil {
-				return errors.Wrapf(err, "problem opening file '%s'", ftdcPath)
+				return errors.Wrapf(err, "opening file '%s'", ftdcPath)
 			}
 			defer func() { grip.Warning(ftdcFile.Close()) }()
 
@@ -225,12 +225,12 @@ func toBSON() cli.Command {
 				bsonFile = os.Stdout
 			} else {
 				if _, err = os.Stat(bsonPath); !os.IsNotExist(err) {
-					return errors.Errorf("cannot export ftdc to %s, file already exists", bsonPath)
+					return errors.Errorf("cannot export FTDC to file '%s', file already exists", bsonPath)
 				}
 
 				bsonFile, err = os.Create(bsonPath)
 				if err != nil {
-					return errors.Wrapf(err, "problem opening flie '%s'", bsonPath)
+					return errors.Wrapf(err, "opening file '%s'", bsonPath)
 				}
 				defer func() { grip.Warning(bsonFile.Close()) }()
 			}
@@ -246,15 +246,15 @@ func toBSON() cli.Command {
 				var bytes []byte
 				bytes, err = iter.Document().MarshalBSON()
 				if err != nil {
-					return errors.Wrap(err, "problem marshaling BSON")
+					return errors.Wrap(err, "marshalling BSON")
 				}
 				_, err = bsonFile.Write(bytes)
 				if err != nil {
-					return errors.Wrap(err, "problem writing data to file")
+					return errors.Wrap(err, "writing data to file")
 				}
 			}
 
-			return errors.Wrap(iter.Err(), "problem iterating ftdc file")
+			return errors.Wrap(iter.Err(), "iterating FTDC file")
 		},
 	}
 }
@@ -291,21 +291,21 @@ func fromBSON() cli.Command {
 			//
 			bsonFile, err := os.Open(bsonPath)
 			if err != nil {
-				return errors.Wrapf(err, "problem opening file '%s'", bsonPath)
+				return errors.Wrapf(err, "opening file '%s'", bsonPath)
 			}
 			defer func() { grip.Warning(bsonFile.Close()) }()
 
 			// prepare the output file
 			//
 			if _, err = os.Stat(ftdcPath); !os.IsNotExist(err) {
-				return errors.Errorf("cannot export ftdc to %s, file already exists", ftdcPath)
+				return errors.Errorf("cannot export FTDC to file '%s', file already exists", ftdcPath)
 			}
 			ftdcFile, err := os.Create(ftdcPath)
 			if err != nil {
-				return errors.Wrapf(err, "problem creating file '%s'", ftdcPath)
+				return errors.Wrapf(err, "creating file '%s'", ftdcPath)
 			}
 			defer func() {
-				grip.EmergencyFatal(errors.Wrapf(ftdcFile.Close(), "problem closing '%s' file", ftdcPath))
+				grip.EmergencyFatal(errors.Wrapf(ftdcFile.Close(), "closing file '%s'", ftdcPath))
 			}()
 
 			// collect the data
@@ -319,11 +319,11 @@ func fromBSON() cli.Command {
 					if err == io.EOF {
 						break
 					}
-					return errors.Wrap(err, "failed to write FTDC from BSON")
+					return errors.Wrap(err, "writing FTDC from BSON")
 				}
 				err = collector.Add(bsonDoc)
 				if err != nil {
-					return errors.Wrap(err, "failed to write FTDC from BSON")
+					return errors.Wrap(err, "writing FTDC from BSON")
 				}
 			}
 
@@ -358,7 +358,7 @@ func toCSV() cli.Command {
 			//
 			inputFile, err := os.Open(inputPath)
 			if err != nil {
-				return errors.Wrapf(err, "problem opening file '%s'", inputPath)
+				return errors.Wrapf(err, "opening file '%s'", inputPath)
 			}
 			defer func() { grip.Warning(inputFile.Close()) }()
 
@@ -369,12 +369,12 @@ func toCSV() cli.Command {
 				outputFile = os.Stdout
 			} else {
 				if _, err = os.Stat(outputPath); !os.IsNotExist(err) {
-					return errors.Errorf("cannot write ftdc to '%s', file already exists", outputPath)
+					return errors.Errorf("cannot write FTDC to file '%s', file already exists", outputPath)
 				}
 
 				outputFile, err = os.Create(outputPath)
 				if err != nil {
-					return errors.Wrapf(err, "problem opening file '%s'", outputPath)
+					return errors.Wrapf(err, "opening file '%s'", outputPath)
 				}
 				defer func() { grip.EmergencyFatal(outputFile.Close()) }()
 			}
@@ -382,7 +382,7 @@ func toCSV() cli.Command {
 			// actually convert data
 			//
 			if err := ftdc.WriteCSV(ctx, ftdc.ReadChunks(ctx, inputFile), outputFile); err != nil {
-				return errors.Wrap(err, "problem parsing csv")
+				return errors.Wrap(err, "parsing csv")
 			}
 
 			return nil
@@ -430,7 +430,7 @@ func fromCSV() cli.Command {
 				var err error
 				srcFile, err = os.Open(srcPath)
 				if err != nil {
-					return errors.Wrapf(err, "problem opening file %s", srcPath)
+					return errors.Wrapf(err, "opening file '%s'", srcPath)
 				}
 				defer func() { grip.Warning(srcFile.Close()) }()
 			}
@@ -438,19 +438,19 @@ func fromCSV() cli.Command {
 			// Create the output file
 			//
 			if _, err := os.Stat(outputPath); !os.IsNotExist(err) {
-				return errors.Errorf("cannot export ftdc to %s, file already exists", outputPath)
+				return errors.Errorf("cannot export FTDC to file '%s', file already exists", outputPath)
 			}
 			outputFile, err := os.Create(outputPath)
 			if err != nil {
-				return errors.Wrapf(err, "problem creating file '%s'", outputPath)
+				return errors.Wrapf(err, "creating file '%s'", outputPath)
 			}
 			defer func() {
-				grip.EmergencyFatal(errors.Wrapf(outputFile.Close(), "problem closing '%s' file", outputPath))
+				grip.EmergencyFatal(errors.Wrapf(outputFile.Close(), "closing file '%s'", outputPath))
 			}()
 
 			// Use the library conversion function.
 			//
-			return errors.Wrap(ftdc.ConvertFromCSV(ctx, chunkSize, srcFile, outputFile), "problem writing data to csv")
+			return errors.Wrap(ftdc.ConvertFromCSV(ctx, chunkSize, srcFile, outputFile), "writing data to CSV")
 		},
 	}
 }
@@ -509,19 +509,19 @@ func toMDB() cli.Command {
 
 			srcFile, err := os.Open(srcPath)
 			if err != nil {
-				return errors.Wrapf(err, "problem opening file %s", srcPath)
+				return errors.Wrapf(err, "opening file '%s'", srcPath)
 			}
 			defer func() { grip.Error(srcFile.Close()) }()
 
 			client, err := mongo.NewClient(options.Client().ApplyURI(mdburl))
 			if err != nil {
-				return errors.Wrap(err, "problem creating mongodb client")
+				return errors.Wrap(err, "creating DB client")
 			}
 
 			connCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 			defer cancel()
 			if err := client.Connect(connCtx); err != nil {
-				return errors.Wrap(err, "problem connecting to mongodb")
+				return errors.Wrap(err, "connecting to DB")
 			}
 
 			var iter ftdc.Iterator
@@ -534,7 +534,7 @@ func toMDB() cli.Command {
 			coll := client.Database(dbName).Collection(collName)
 			if doDrop {
 				if err := coll.Drop(ctx); err != nil {
-					return errors.Wrap(err, "problem dropping collection")
+					return errors.Wrap(err, "dropping collection")
 				}
 				grip.Infof("dropped '%s.%s'", dbName, collName)
 
@@ -562,7 +562,7 @@ func toMDB() cli.Command {
 					break
 				}
 			}
-			catcher.Add(errors.Wrapf(iter.Err(), "problem iterating ftdc data from file '%s'", srcPath))
+			catcher.Add(errors.Wrapf(iter.Err(), "iterating FTDC data from file '%s'", srcPath))
 
 			if len(batch) > 0 {
 				batches++
@@ -632,19 +632,19 @@ func fromMDB() cli.Command {
 
 			client, err := mongo.NewClient(options.Client().ApplyURI(mdburl))
 			if err != nil {
-				return errors.Wrap(err, "problem creating mongodb client")
+				return errors.Wrap(err, "creating DB client")
 			}
 
 			connCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 			defer cancel()
 			if err = client.Connect(connCtx); err != nil {
-				return errors.Wrap(err, "problem connecting to mongodb")
+				return errors.Wrap(err, "connecting to DB")
 			}
 
 			coll := client.Database(dbName).Collection(collName)
 			size, err := coll.CountDocuments(ctx, struct{}{})
 			if err != nil {
-				return errors.Wrap(err, "problem finding number of source documents")
+				return errors.Wrap(err, "counting number of source documents")
 			}
 			if size == 0 {
 				return errors.New("cannot write data from collection without documents")
@@ -655,19 +655,19 @@ func fromMDB() cli.Command {
 				out = os.Stdout
 			} else {
 				if _, err = os.Stat(outfn); !os.IsNotExist(err) {
-					return errors.Errorf("cannot export collection to %s, file already exists", outfn)
+					return errors.Errorf("cannot export collection to file '%s', file already exists", outfn)
 				}
 
 				out, err = os.Create(outfn)
 				if err != nil {
-					return errors.Wrapf(err, "problem opening file '%s'", outfn)
+					return errors.Wrapf(err, "opening file '%s'", outfn)
 				}
 				defer func() { grip.EmergencyFatal(out.Close()) }()
 			}
 
 			cursor, err := coll.Find(ctx, birch.NewDocument())
 			if err != nil {
-				return errors.Wrap(err, "problem finding documents")
+				return errors.Wrap(err, "finding documents")
 			}
 			defer func() { grip.Error(cursor.Close(ctx)) }()
 
@@ -739,7 +739,7 @@ func toT2() cli.Command {
 
 			inputStat, err := os.Stat(inputPath)
 			if err != nil {
-				return errors.Wrapf(err, "problem opening file '%s'", inputPath)
+				return errors.Wrapf(err, "opening file '%s'", inputPath)
 			}
 
 			// Stores ftdc chunk iterators and its metadata to be used in TranslateGenny.
@@ -753,13 +753,13 @@ func toT2() cli.Command {
 			case mode.IsDir():
 				input, err := os.Open(inputPath)
 				if err != nil {
-					return errors.Wrapf(err, "problem opening input path '%s'", inputPath)
+					return errors.Wrapf(err, "opening input path '%s'", inputPath)
 				}
 				defer func() { grip.Warning((input.Close())) }()
 
 				files, err := input.Readdir(-1)
 				if err != nil {
-					return errors.Wrapf(err, "problem reading dir '%s'", inputPath)
+					return errors.Wrapf(err, "reading dir '%s'", inputPath)
 				}
 
 				for _, file := range files {
@@ -769,7 +769,7 @@ func toT2() cli.Command {
 
 						f, err := os.Open(filePath)
 						if err != nil {
-							return errors.Wrapf(err, "problem opening file '%s'", filePath)
+							return errors.Wrapf(err, "opening file '%s'", filePath)
 						}
 						gennyOutput.Iter = ftdc.ReadChunks(ctx, f)
 
@@ -777,13 +777,13 @@ func toT2() cli.Command {
 						// unusable for future tasks.
 						gennyOutput = ftdc.GetGennyTime(ctx, gennyOutput)
 						if err = f.Close(); err != nil {
-							return errors.Wrapf(err, "problem closing file '%s'", filePath)
+							return errors.Wrapf(err, "closing file '%s'", filePath)
 						}
 
 						// Reopen the file to get a new chunk iterator for the ftdc file.
 						f, err = os.Open(filePath)
 						if err != nil {
-							return errors.Wrapf(err, "problem opening file '%s'", filePath)
+							return errors.Wrapf(err, "opening file '%s'", filePath)
 						}
 						defer func() { grip.Warning(f.Close()) }()
 
@@ -799,18 +799,18 @@ func toT2() cli.Command {
 				var gennyOutput ftdc.GennyOutputMetadata
 				input, err := os.Open(inputPath)
 				if err != nil {
-					return errors.Wrapf(err, "problem opening file '%s'", inputPath)
+					return errors.Wrapf(err, "opening file '%s'", inputPath)
 				}
 
 				gennyOutput.Iter = ftdc.ReadChunks(ctx, input)
 				gennyOutput = ftdc.GetGennyTime(ctx, gennyOutput)
 				if err = input.Close(); err != nil {
-					return errors.Wrapf(err, "problem closing file '%s'", inputPath)
+					return errors.Wrapf(err, "closing file '%s'", inputPath)
 				}
 
 				input, err = os.Open(inputPath)
 				if err != nil {
-					return errors.Wrapf(err, "problem opening file '%s'", inputPath)
+					return errors.Wrapf(err, "opening file '%s'", inputPath)
 				}
 				defer func() { grip.Warning(input.Close()) }()
 
@@ -830,13 +830,13 @@ func toT2() cli.Command {
 
 				outputFile, err = os.Create(outputPath)
 				if err != nil {
-					return errors.Wrapf(err, "problem opening file '%s'", outputPath)
+					return errors.Wrapf(err, "opening file '%s'", outputPath)
 				}
 				defer func() { grip.Warning(outputFile.Close()) }()
 			}
 
 			if err := ftdc.TranslateGenny(ctx, outputSlice, outputFile); err != nil {
-				return errors.Wrap(err, "problem parsing ftdc")
+				return errors.Wrap(err, "parsing FTDC")
 			}
 			return nil
 		},

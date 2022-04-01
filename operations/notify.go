@@ -115,7 +115,7 @@ func Notify() cli.Command {
 				}
 				sender, err = send.MakeSlackLogger(opts)
 				if err != nil {
-					return errors.Wrap(err, "problem building slack logger")
+					return errors.Wrap(err, "building slack logger")
 				}
 			case "email":
 				opts := &send.SMTPOptions{
@@ -129,18 +129,18 @@ func Notify() cli.Command {
 				}
 				recips := c.StringSlice("emailRecipient")
 				if err = opts.AddRecipients(recips...); err != nil {
-					return errors.Wrapf(err, "problem adding addresses [%v]", recips)
+					return errors.Wrapf(err, "adding email recipients %s", recips)
 				}
 
 				sender, err = send.MakeSMTPLogger(opts)
 				if err != nil {
-					return errors.Wrap(err, "problem building email logger")
+					return errors.Wrap(err, "building email logger")
 				}
 			case "xmpp":
 				sender, err = send.MakeXMPP(c.String("target"))
 
 				if err != nil {
-					return errors.Wrap(err, "problem building jabber/xmpp logger")
+					return errors.Wrap(err, "building jabber/xmpp logger")
 				}
 			case "github":
 				info := strings.SplitN(c.String("target"), "/", 2)
@@ -162,14 +162,14 @@ func Notify() cli.Command {
 					var id int
 					id, err = strconv.Atoi(issue)
 					if err != nil {
-						return errors.Errorf("%s is not a valid issue id", issue)
+						return errors.Errorf("'%s' is not a valid issue ID", issue)
 					}
 					sender, err = send.NewGithubCommentLogger(c.String("source"),
 						id, opts)
 				}
 
 				if err != nil {
-					return errors.Wrap(err, "problem setting up github logger")
+					return errors.Wrap(err, "setting up GitHub logger")
 				}
 			case "jira":
 				opts := &send.JiraOptions{
@@ -189,7 +189,7 @@ func Notify() cli.Command {
 				}
 
 				if err != nil {
-					return errors.Wrap(err, "problem setting up jira logger")
+					return errors.Wrap(err, "setting up Jira logger")
 				}
 			case "print":
 				sender = send.MakeNative()
@@ -197,7 +197,7 @@ func Notify() cli.Command {
 					return fmt.Sprintf("[notify=%s] [p=%s]: %s", c.String("target"), m.Priority(), m.String()), nil
 				})
 				if err != nil {
-					return errors.Wrap(err, "problem setting up message formatting function")
+					return errors.Wrap(err, "setting up message formatting function")
 				}
 			default:
 				return errors.Errorf("output '%s' is not supported", c.String("output"))
@@ -207,12 +207,12 @@ func Notify() cli.Command {
 
 			// we want to log errors sending messages to curator's process logging (e.g. standard output)
 			if err = sender.SetErrorHandler(send.ErrorHandlerFromSender(grip.GetSender())); err != nil {
-				return errors.Wrap(err, "problem setting error handler")
+				return errors.Wrap(err, "setting error handler")
 			}
 
 			msg := message.NewString(c.String("message"))
 			if err = msg.SetPriority(level.FromString(c.Parent().String("level"))); err != nil {
-				return errors.Wrap(err, "problem setting log level")
+				return errors.Wrap(err, "setting log level")
 			}
 
 			sender.Send(msg)

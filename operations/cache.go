@@ -16,7 +16,7 @@ import (
 func PruneCache() cli.Command {
 	return cli.Command{
 		Name:  "prune",
-		Usage: "prunes contets of a filesystem based on modification time. Follows symlinks.",
+		Usage: "prunes contents of a filesystem based on modification time. Follows symlinks.",
 		Flags: []cli.Flag{
 			cli.IntFlag{
 				Name:  "max-size",
@@ -56,8 +56,8 @@ func pruneCache(path string, maxSize int, recursive, dryRun bool) error {
 	}
 
 	if err != nil {
-		return errors.Wrapf(err, "problem building cache for '%s'", path)
+		return errors.Wrapf(err, "building cache for '%s'", path)
 	}
 
-	return errors.Wrap(cache.Prune(maxSize, []string{"full.json"}, dryRun), "problem pruning cache")
+	return errors.Wrap(cache.Prune(maxSize, []string{"full.json"}, dryRun), "pruning cache")
 }

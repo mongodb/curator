@@ -8,7 +8,6 @@ repository.
 package repobuilder
 
 import (
-	"fmt"
 	"io/ioutil"
 
 	"github.com/mongodb/grip"
@@ -104,7 +103,7 @@ func (c *RepositoryConfig) read(fileName string) error {
 
 	data, err := ioutil.ReadFile(fileName)
 	if err != nil {
-		return errors.Wrapf(err, "could not read file %v", fileName)
+		return errors.Wrapf(err, "reading file '%s'", fileName)
 	}
 
 	if err = yaml.Unmarshal(data, c); err != nil {
@@ -131,7 +130,7 @@ func (c *RepositoryConfig) processRepos() error {
 	for idx, dfn := range c.Repos {
 		// do some basic validation that the type value is correct.
 		if dfn.Type != DEB && dfn.Type != RPM {
-			catcher.Add(fmt.Errorf("%s is not a valid repo type", dfn.Type))
+			catcher.Errorf("%s is not a valid repo type", dfn.Type)
 		}
 
 		// build the definitionLookup map
@@ -142,14 +141,12 @@ func (c *RepositoryConfig) processRepos() error {
 		// this lets us detect if there are duplicate
 		// repository/edition pairs.
 		if _, ok := c.definitionLookup[dfn.Edition][dfn.Name]; ok {
-			catcher.Add(fmt.Errorf("the %s.%s already exists as repo #%d",
-				dfn.Edition, dfn.Name, idx))
+			catcher.Errorf("'%s.%s' already exists as repo #%d", dfn.Edition, dfn.Name, idx)
 			continue
 		}
 
 		if dfn.Type == DEB && len(dfn.Architectures) == 0 {
-			catcher.Add(fmt.Errorf("debian distro %s does not specify architecture list",
-				dfn.Name))
+			catcher.Errorf("debian distro '%s' does not specify architecture list", dfn.Name)
 			continue
 		}
 

@@ -68,15 +68,15 @@ func timberCommand() cli.Command {
 			)
 			defer clogger.closer() // should close before checking error.
 			if err != nil {
-				return errors.Wrap(err, "problem configuring logger")
+				return errors.Wrap(err, "configuring logger")
 			}
 
 			cmd, err := getCmd(c.String("exec"))
 			if err != nil {
-				return errors.Wrap(err, "problem creating command object")
+				return errors.Wrap(err, "creating command object")
 			}
 
-			return errors.Wrap(clogger.runCommand(cmd), "problem running command")
+			return errors.Wrap(clogger.runCommand(cmd), "running command")
 		},
 	}
 }
@@ -97,11 +97,11 @@ func timberPipe() cli.Command {
 			)
 			defer clogger.closer()
 			if err != nil {
-				return errors.Wrap(err, "problem configuring logger")
+				return errors.Wrap(err, "configuring logger")
 			}
 
 			if err := clogger.readPipe(os.Stdin); err != nil {
-				return errors.Wrap(err, "problem reading from standard input")
+				return errors.Wrap(err, "reading from standard input")
 			}
 
 			return nil
@@ -132,12 +132,12 @@ func timberFollowFile() cli.Command {
 			)
 			defer clogger.closer()
 			if err != nil {
-				return errors.Wrap(err, "problem configuring logger")
+				return errors.Wrap(err, "configuring logger")
 			}
 
 			fn := c.String(fileFlagName)
 			if err := clogger.followFile(fn); err != nil {
-				return errors.Wrapf(err, "problem following file %s", fn)
+				return errors.Wrapf(err, "following file '%s'", fn)
 			}
 			return nil
 		},
@@ -161,14 +161,14 @@ func setupTimber(ctx context.Context, path string, meta bool, data map[string]st
 
 	opts, err := buildlogger.LoadLoggerOptions(path)
 	if err != nil {
-		return out, errors.Wrapf(err, "problem loading logger options from %s", path)
+		return out, errors.Wrapf(err, "loading logger options from file '%s'", path)
 	}
 	sender, err = buildlogger.MakeLoggerWithContext(ctx, "curator", opts)
 	if err != nil {
-		return out, errors.Wrap(err, "problem creating logger")
+		return out, errors.Wrap(err, "creating logger")
 	}
 	if err := out.logger.SetSender(sender); err != nil {
-		return out, errors.Wrap(err, "problem setting global sender")
+		return out, errors.Wrap(err, "setting global sender")
 	}
 
 	switch opts.Format {

@@ -45,7 +45,7 @@ func (c *Configuration) reset() {
 func ReadConfig(fn string) (*Configuration, error) {
 	data, err := getRawConfig(fn)
 	if err != nil {
-		return nil, errors.Wrapf(err, "problem reading config data for '%s'", fn)
+		return nil, errors.Wrapf(err, "reading config data for '%s'", fn)
 	}
 
 	c := newTestConfig()
@@ -56,13 +56,13 @@ func ReadConfig(fn string) (*Configuration, error) {
 	// the lock here.
 
 	if err = json.Unmarshal(data, c); err != nil {
-		return nil, errors.Wrapf(err, "problem parsing config '%s'", fn)
+		return nil, errors.Wrapf(err, "parsing config '%s'", fn)
 	}
 
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	if err = c.parseTests(); err != nil {
-		return nil, errors.Wrapf(err, "problem parsing tests from file '%s'", fn)
+		return nil, errors.Wrapf(err, "parsing tests from file '%s'", fn)
 	}
 
 	grip.Infoln("loading config file:", fn)
@@ -79,15 +79,15 @@ func (c *Configuration) Reload() error {
 
 	data, err := getRawConfig(c.filename)
 	if err != nil {
-		return errors.Wrapf(err, "problem reading config data for '%s'", c.filename)
+		return errors.Wrapf(err, "reading config data for '%s'", c.filename)
 	}
 
 	if err = json.Unmarshal(data, c); err != nil {
-		return errors.Wrapf(err, "problem parsing config '%s'", c.filename)
+		return errors.Wrapf(err, "parsing config '%s'", c.filename)
 	}
 
 	if err = c.parseTests(); err != nil {
-		return errors.Wrapf(err, "problem parsing tests from file '%s'", c.filename)
+		return errors.Wrapf(err, "parsing tests from file '%s'", c.filename)
 	}
 
 	grip.Infoln("reloaded config file:", c.filename)

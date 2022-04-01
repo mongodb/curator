@@ -45,7 +45,7 @@ func (c *limitCheck) Run(_ context.Context) {
 
 	if !result {
 		c.setState(false)
-		c.AddError(errors.Errorf("limit in check %s is incorrect", c.ID()))
+		c.AddError(errors.Errorf("limit in check '%s' is incorrect", c.ID()))
 		return
 	}
 
@@ -54,7 +54,7 @@ func (c *limitCheck) Run(_ context.Context) {
 
 func undefinedLimitCheckFactory(name string) limitValueCheck {
 	return func(_ int) (bool, error) {
-		return false, errors.Errorf("limit check %s is not defined on this platform (%s)",
+		return false, errors.Errorf("limit check '%s' is not defined on this platform (%s)",
 			name, runtime.GOOS)
 	}
 }

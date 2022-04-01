@@ -50,7 +50,7 @@ func (r *Report) ToFile(fn string) error {
 	}
 
 	if err := ioutil.WriteFile(fn, data, 0644); err != nil {
-		return errors.Wrapf(err, "problem writing output to %s", fn)
+		return errors.Wrapf(err, "writing output to file '%s'", fn)
 	}
 
 	if r.hasErrors {
@@ -80,7 +80,7 @@ func (r *Report) Print() error {
 func (r *Report) getJSON() ([]byte, error) {
 	data, err := json.MarshalIndent(r.results, "", "   ")
 	if err != nil {
-		return []byte{}, errors.Wrap(err, "problem marhsaling results")
+		return []byte{}, errors.Wrap(err, "marshalling results")
 	}
 	return data, nil
 }

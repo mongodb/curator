@@ -16,7 +16,7 @@ func (c *undefinedCompileCheck) CompileAndRun(_ string, _ ...string) (string, er
 	return err.Error(), err
 }
 func (c *undefinedCompileCheck) Validate() error {
-	return errors.Errorf("compiler check %s is not defined on this platform (%s)",
+	return errors.Errorf("compiler check '%s' is not defined on this platform (%s)",
 		c.name, runtime.GOOS)
 }
 

@@ -29,13 +29,13 @@ func limitValueCheckTable() map[string]limitValueCheck {
 func irpStackSize(value int) (bool, error) {
 	key, err := registry.OpenKey(registry.LOCAL_MACHINE, `SYSTEM\CurrentControlSet\services\LanmanServer\Parameters`, registry.QUERY_VALUE)
 	if err != nil {
-		return false, errors.Wrap(err, "problem opening registry key")
+		return false, errors.Wrap(err, "opening registry key")
 	}
 	defer key.Close()
 
 	irpStackSize, _, err := key.GetIntegerValue("IRPStackSize")
 	if err != nil {
-		return false, errors.Wrap(err, "problem getting value of IRPStackSize Value")
+		return false, errors.Wrap(err, "getting value of IRPStackSize Value")
 	}
 
 	if irpStackSize != uint64(value) {

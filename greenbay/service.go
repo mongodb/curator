@@ -40,7 +40,7 @@ func NewService(confPath string, host string, port int) (*Service, error) {
 	if confPath != "" {
 		conf, err := ReadConfig(confPath)
 		if err != nil {
-			return nil, errors.Wrap(err, "problem parsing config file")
+			return nil, errors.Wrap(err, "parsing config file")
 		}
 		s.conf = conf
 		s.output = &OutputOptions{}
@@ -49,11 +49,11 @@ func NewService(confPath string, host string, port int) (*Service, error) {
 	app := s.service.App()
 
 	if err := app.SetPort(port); err != nil {
-		return nil, errors.Wrap(err, "problem constructing greenbay service")
+		return nil, errors.Wrap(err, "constructing greenbay service")
 	}
 
 	if err := app.SetHost(host); err != nil {
-		return nil, errors.Wrap(err, "problem constructing greenbay service")
+		return nil, errors.Wrap(err, "constructing greenbay service")
 	}
 
 	return s, nil
@@ -79,7 +79,7 @@ func (s *Service) Open(ctx context.Context, opts rest.QueueServiceOptions) error
 	}
 
 	if err := s.service.OpenWithOptions(ctx, opts); err != nil {
-		return errors.Wrap(err, "problem opening queue")
+		return errors.Wrap(err, "opening queue")
 	}
 
 	return nil
@@ -160,7 +160,7 @@ func (s *Service) runAdhocTests(ctx context.Context, jobs <-chan JobWithError) (
 	defer cancel()
 	amboy.WaitInterval(ctx, q, 10*time.Millisecond)
 	if ctx.Err() != nil {
-		return nil, errors.New("check operation timedout")
+		return nil, errors.New("check operation timed out")
 	}
 
 	output, err := s.output.Report(q.Results(ctx))

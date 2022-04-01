@@ -36,7 +36,7 @@ func limitCheckFactory(name string, resource int, max uint64) limitValueCheck {
 
 		err := syscall.Getrlimit(resource, limits)
 		if err != nil {
-			return false, errors.Wrapf(err, "problem finding %s limit", name)
+			return false, errors.Wrapf(err, "finding '%s' limit", name)
 		}
 
 		expected := uint64(value)
@@ -45,7 +45,7 @@ func limitCheckFactory(name string, resource int, max uint64) limitValueCheck {
 		}
 
 		if limits.Max < expected {
-			return false, errors.Errorf("%s limit is %d which is less than %d",
+			return false, errors.Errorf("'%s' limit is %d which is less than %d",
 				name, limits.Max, value)
 		}
 

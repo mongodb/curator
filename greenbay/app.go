@@ -43,12 +43,12 @@ type Application struct {
 func NewApplication(confPath, outFn, format string, quiet bool, jobs int, suite, tests []string) (*Application, error) {
 	out, err := NewOutputOptions(outFn, format, quiet)
 	if err != nil {
-		return nil, errors.Wrap(err, "problem generating output definition")
+		return nil, errors.Wrap(err, "generating output definition")
 	}
 
 	conf, err := ReadConfig(confPath)
 	if err != nil {
-		return nil, errors.Wrap(err, "problem parsing config file")
+		return nil, errors.Wrap(err, "parsing config file")
 	}
 
 	app := &Application{
@@ -68,7 +68,7 @@ func NewApplication(confPath, outFn, format string, quiet bool, jobs int, suite,
 // execution.
 func (a *Application) Run(ctx context.Context) error {
 	if a.Conf == nil || a.Output == nil {
-		return errors.New("Application is not correctly constructed:" +
+		return errors.New("application is not correctly constructed:" +
 			"system and output configuration must be specified.")
 	}
 
@@ -79,7 +79,7 @@ func (a *Application) Run(ctx context.Context) error {
 	q := queue.NewLocalLimitedSize(a.NumWorkers, 2048)
 
 	if err := q.Start(ctx); err != nil {
-		return errors.Wrap(err, "problem starting workers")
+		return errors.Wrap(err, "starting workers")
 	}
 
 	// begin "real" work
@@ -94,7 +94,7 @@ func (a *Application) Run(ctx context.Context) error {
 		catcher.Add(q.Put(ctx, check.Job))
 	}
 	if catcher.HasErrors() {
-		return errors.Wrap(catcher.Resolve(), "problem collecting and submitting jobs")
+		return errors.Wrap(catcher.Resolve(), "collecting and submitting jobs")
 	}
 
 	stats := q.Stats(ctx)
@@ -103,7 +103,7 @@ func (a *Application) Run(ctx context.Context) error {
 
 	grip.Noticef("checks complete in [num=%d, runtime=%s] ", stats.Total, time.Since(start))
 	if err := a.Output.ProduceResults(ctx, q); err != nil {
-		return errors.Wrap(err, "problems encountered during tests")
+		return errors.Wrap(err, "producing job results")
 	}
 
 	return nil

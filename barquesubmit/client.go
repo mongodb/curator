@@ -28,7 +28,7 @@ type Client struct {
 
 func New(baseURL string) (*Client, error) {
 	if !strings.HasPrefix(baseURL, "http") {
-		return nil, errors.New("malformed url")
+		return nil, errors.New("malformed URL")
 	}
 
 	if !strings.HasSuffix(baseURL, "/") {
@@ -55,7 +55,7 @@ func (c *Client) getURL(p string) string {
 func (c *Client) makeRequest(ctx context.Context, url, method string, body io.Reader) (*http.Request, error) {
 	req, err := http.NewRequest(method, c.getURL(url), body)
 	if err != nil {
-		return nil, errors.Wrap(err, "problem with request")
+		return nil, errors.Wrap(err, "creating request")
 	}
 	req = req.WithContext(ctx)
 
@@ -89,17 +89,17 @@ func (c *Client) Login(ctx context.Context, username, password string) error {
 
 	payload, err := json.Marshal(&userCredentials{Username: username, Password: password})
 	if err != nil {
-		return errors.Wrap(err, "problem marshaling login payload")
+		return errors.Wrap(err, "marshalling login payload")
 	}
 
 	req, err := c.makeRequest(ctx, "admin/login", http.MethodPost, bytes.NewBuffer(payload))
 	if err != nil {
-		return errors.Wrap(err, "problem building login request")
+		return errors.Wrap(err, "building login request")
 	}
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return errors.Wrap(err, "problem making login request")
+		return errors.Wrap(err, "making login request")
 	}
 
 	if resp.StatusCode != http.StatusOK {
@@ -108,7 +108,7 @@ func (c *Client) Login(ctx context.Context, username, password string) error {
 
 	data := &userAPIKeyResponse{}
 	if err = gimlet.GetJSON(resp.Body, data); err != nil {
-		return errors.Wrap(err, "problem reading body of login response")
+		return errors.Wrap(err, "reading body of login response")
 	}
 
 	if data.Username != username {
@@ -131,17 +131,17 @@ func (c *Client) SubmitJob(ctx context.Context, opts repobuilder.JobOptions) (st
 
 	payload, err := json.Marshal(opts)
 	if err != nil {
-		return "", errors.Wrap(err, "problem marshaling json")
+		return "", errors.Wrap(err, "marshalling json")
 	}
 
 	req, err := c.makeRequest(ctx, "repobuilder", http.MethodPost, bytes.NewBuffer(payload))
 	if err != nil {
-		return "", errors.Wrap(err, "problem building job request")
+		return "", errors.Wrap(err, "building job request")
 	}
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", errors.Wrap(err, "problem making job submission request")
+		return "", errors.Wrap(err, "making job submission request")
 	}
 
 	if resp.StatusCode != http.StatusOK {
@@ -154,7 +154,7 @@ func (c *Client) SubmitJob(ctx context.Context, opts repobuilder.JobOptions) (st
 	}{}
 
 	if err = gimlet.GetJSON(resp.Body, &out); err != nil {
-		return "", errors.Wrap(err, "problem reading body of login response")
+		return "", errors.Wrap(err, "reading body of login response")
 	}
 
 	return out.ID, nil
@@ -173,7 +173,7 @@ func (c *Client) handleError(code int, body io.ReadCloser) gimlet.ErrorResponse 
 	out := gimlet.ErrorResponse{}
 	err := gimlet.GetJSON(body, &out)
 	if err != nil {
-		out.Message = errors.Wrap(err, "problem parsing error response").Error()
+		out.Message = errors.Wrap(err, "parsing error response").Error()
 		out.StatusCode = code
 	}
 	return out
@@ -185,12 +185,12 @@ func (c *Client) CheckJobStatus(ctx context.Context, id string) (*JobStatus, err
 
 	req, err := c.makeRequest(ctx, strings.Join([]string{"repobuilder", "check", id}, "/"), http.MethodGet, nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "problem building job request")
+		return nil, errors.Wrap(err, "building job request")
 	}
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "problem making job submission request")
+		return nil, errors.Wrap(err, "making job submission request")
 	}
 
 	if resp.StatusCode != http.StatusOK {
@@ -198,7 +198,7 @@ func (c *Client) CheckJobStatus(ctx context.Context, id string) (*JobStatus, err
 	}
 	out := &JobStatus{}
 	if err = gimlet.GetJSON(resp.Body, out); err != nil {
-		return nil, errors.Wrap(err, "problem reading body of job status response")
+		return nil, errors.Wrap(err, "reading body of job status response")
 	}
 
 	return out, nil

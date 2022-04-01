@@ -144,10 +144,10 @@ func checks() cli.Command {
 				tests)
 
 			if err != nil {
-				return errors.Wrap(err, "problem prepping to run tests")
+				return errors.Wrap(err, "preparing to run tests")
 			}
 
-			return errors.Wrap(app.Run(ctx), "problem running tests")
+			return errors.Wrap(app.Run(ctx), "running tests")
 		},
 	}
 }
@@ -256,10 +256,10 @@ func client() cli.Command {
 				tests)
 
 			if err != nil {
-				return errors.Wrap(err, "problem constructing client to run tasks")
+				return errors.Wrap(err, "constructing client to run tasks")
 			}
 
-			return errors.Wrap(app.Run(ctx), "problem running tests remotely")
+			return errors.Wrap(app.Run(ctx), "running tests remotely")
 		},
 	}
 

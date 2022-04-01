@@ -158,7 +158,7 @@ func randStr() string {
 func createBSONFile(name string, size int) error {
 	file, err := os.Create(name)
 	if err != nil {
-		return errors.Wrap(err, "failed to create new file")
+		return errors.Wrap(err, "creating new file")
 	}
 	defer func() {
 		grip.Alert(file.Close())
@@ -167,7 +167,7 @@ func createBSONFile(name string, size int) error {
 	for i := 0; i < size; i++ {
 		_, err := randFlatDocument(size).WriteTo(file)
 		if err != nil {
-			return errors.Wrap(err, "failed to write BSON file")
+			return errors.Wrap(err, "writing BSON file")
 		}
 	}
 	return nil
@@ -176,13 +176,13 @@ func createBSONFile(name string, size int) error {
 func createCSVFile(name string, size int) error {
 	file, err := os.Create(name)
 	if err != nil {
-		return errors.Wrap(err, "failed to create new file")
+		return errors.Wrap(err, "creating new file")
 	}
 	defer func() { grip.Alert(file.Close()) }()
 
 	csvw := csv.NewWriter(file)
 	if err := csvw.Write([]string{"one", "two", "three", "four", "five", "six", "seven", "eight"}); err != nil {
-		return errors.Wrap(err, "problem writing header row")
+		return errors.Wrap(err, "writing header row")
 	}
 	for i := 0; i < size; i++ {
 		row := []string{
@@ -207,7 +207,7 @@ func createCSVFile(name string, size int) error {
 func createJSONFile(name string, size int) error {
 	file, err := os.Create(name)
 	if err != nil {
-		return errors.Wrap(err, "failed to create new file")
+		return errors.Wrap(err, "creating new file")
 	}
 	defer func() {
 		grip.Alert(file.Close())
@@ -220,11 +220,11 @@ func createJSONFile(name string, size int) error {
 		}
 		jsonString, err := json.Marshal(jsonMap)
 		if err != nil {
-			return errors.Wrap(err, "failed to marshal json")
+			return errors.Wrap(err, "marshalling JSON")
 		}
 		_, err = file.Write(append(jsonString, '\n'))
 		if err != nil {
-			return errors.Wrap(err, "failed to write json to file")
+			return errors.Wrap(err, "writing JSON to file")
 		}
 	}
 	return nil
@@ -233,7 +233,7 @@ func createJSONFile(name string, size int) error {
 func createGennyFile(name string) error {
 	file, err := os.Create(name)
 	if err != nil {
-		return errors.Wrap(err, "failed to create new file")
+		return errors.Wrap(err, "creating new file")
 	}
 	defer func() {
 		grip.Alert(file.Close())
@@ -252,17 +252,17 @@ func createGennyFile(name string) error {
 
 	err = collector.Add(elems1)
 	if err != nil {
-		return errors.Wrap(err, "failed to add first element to collector")
+		return errors.Wrap(err, "adding first element to collector")
 	}
 
 	err = collector.Add(elems2)
 	if err != nil {
-		return errors.Wrap(err, "failed to add second element to collector")
+		return errors.Wrap(err, "adding second element to collector")
 	}
 
 	err = ftdc.FlushCollector(collector, file)
 	if err != nil {
-		return errors.Wrap(err, "failed to flush collector")
+		return errors.Wrap(err, "flushing collector")
 	}
 
 	return nil
@@ -273,14 +273,14 @@ func compareFiles(file1, file2 string) (bool, error) {
 
 	f1, err := os.Open(file1)
 	if err != nil {
-		return false, errors.Wrapf(err, "problem opening file '%s'", file1)
+		return false, errors.Wrapf(err, "opening file '%s'", file1)
 	}
 	defer func() {
 		grip.Alert(f1.Close())
 	}()
 	f2, err := os.Open(file2)
 	if err != nil {
-		return false, errors.Wrapf(err, "problem opening file '%s'", file2)
+		return false, errors.Wrapf(err, "opening file '%s'", file2)
 	}
 	defer func() {
 		grip.Alert(f2.Close())
@@ -297,9 +297,9 @@ func compareFiles(file1, file2 string) (bool, error) {
 			if err1 == io.EOF && err2 == io.EOF {
 				return true, nil
 			} else if err1 != io.EOF && err1 != nil {
-				return false, errors.Wrapf(err2, "problem reading file '%s'", file1)
+				return false, errors.Wrapf(err2, "reading file '%s'", file1)
 			} else if err2 != io.EOF && err1 != nil {
-				return false, errors.Wrapf(err2, "problem reading file '%s'", file2)
+				return false, errors.Wrapf(err2, "reading file '%s'", file2)
 			} else if err1 == io.EOF || err2 == io.EOF {
 				return false, nil
 			}

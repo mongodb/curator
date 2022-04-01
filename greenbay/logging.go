@@ -35,7 +35,7 @@ func SetupLogging(format string, fileName string) error {
 	}
 
 	if err != nil {
-		return errors.Wrapf(err, "log type %s is not configured", format)
+		return errors.Wrapf(err, "configuring log type '%s'", format)
 	}
 
 	return grip.SetSender(sender)

@@ -119,7 +119,7 @@ func (c *containerCheck) Run(_ context.Context) {
 		activeHosts++
 
 		if msg := c.container.hostHasPrograms(host, c.Programs); len(msg) > 0 {
-			c.AddError(errors.Errorf("host %s is missing %d programs", host, len(msg)))
+			c.AddError(errors.Errorf("host '%s' is missing %d programs", host, len(msg)))
 			messages = append(messages, msg...)
 			c.setState(false)
 			failed = true

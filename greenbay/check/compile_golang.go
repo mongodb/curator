@@ -84,7 +84,7 @@ func (c compileGolang) Validate() error {
 func (c compileGolang) Compile(testBody string, _ ...string) error {
 	_, source, err := writeTestBody(testBody, "go")
 	if err != nil {
-		return errors.Wrap(err, "problem writing test to temporary file")
+		return errors.Wrap(err, "writing test to temporary file")
 	}
 	defer func() { grip.Error(os.Remove(source)) }()
 
@@ -97,7 +97,7 @@ func (c compileGolang) Compile(testBody string, _ ...string) error {
 
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return errors.Wrapf(err, "problem compiling go test: %s", string(out))
+		return errors.Wrapf(err, "compiling go test: %s", string(out))
 	}
 
 	return nil
@@ -106,7 +106,7 @@ func (c compileGolang) Compile(testBody string, _ ...string) error {
 func (c compileGolang) CompileAndRun(testBody string, _ ...string) (string, error) {
 	_, source, err := writeTestBody(testBody, "go")
 	if err != nil {
-		return "", errors.Wrap(err, "problem writing test to temporary file")
+		return "", errors.Wrap(err, "writing test to temporary file")
 	}
 	defer func() { grip.Error(os.Remove(source)) }()
 
@@ -116,7 +116,7 @@ func (c compileGolang) CompileAndRun(testBody string, _ ...string) (string, erro
 	out, err := cmd.CombinedOutput()
 	output := string(out)
 	if err != nil {
-		return output, errors.Wrapf(err, "problem running go program: %s", output)
+		return output, errors.Wrapf(err, "running go program: %s", output)
 	}
 
 	output = strings.Trim(output, "\r\t\n ")

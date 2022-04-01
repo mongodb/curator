@@ -36,7 +36,7 @@ func (r *Results) Populate(jobs <-chan amboy.Job) error {
 	r.out = &resultsDocument{}
 
 	if err := r.out.populate(jobsToCheck(r.skipPassing, jobs)); err != nil {
-		return errors.Wrap(err, "problem constructing results document")
+		return errors.Wrap(err, "constructing results document")
 	}
 
 	return nil
@@ -45,7 +45,7 @@ func (r *Results) Populate(jobs <-chan amboy.Job) error {
 // ToFile writes results.json output output to the specified file.
 func (r *Results) ToFile(fn string) error {
 	if err := r.out.writeToFile(fn); err != nil {
-		return errors.Wrap(err, "problem writing results to json")
+		return errors.Wrap(err, "writing results to JSON")
 	}
 
 	if r.out.failed {
@@ -58,7 +58,7 @@ func (r *Results) ToFile(fn string) error {
 // Print writes, to standard output, the results.json data.
 func (r *Results) Print() error {
 	if err := r.out.print(); err != nil {
-		return errors.Wrap(err, "problem printing results")
+		return errors.Wrap(err, "printing results")
 	}
 
 	if r.out.failed {
@@ -129,11 +129,11 @@ func (r *resultsDocument) addItem(check CheckOutput) {
 func (r *resultsDocument) write(w io.Writer) error {
 	out, err := json.MarshalIndent(r, "   ", "   ")
 	if err != nil {
-		return errors.Wrap(err, "problem converting results to json")
+		return errors.Wrap(err, "converting results to JSON")
 	}
 
 	if _, err = w.Write(out); err != nil {
-		return errors.Wrapf(err, "problem writing results to %s (%T)", w, w)
+		return errors.Wrapf(err, "writing results to file '%s' (%T)", w, w)
 	}
 
 	// adding a newline, but if it errors we shouldn't care.
@@ -150,11 +150,11 @@ func (r *resultsDocument) writeToFile(fn string) error {
 	buf := &bytes.Buffer{}
 
 	if err := r.write(buf); err != nil {
-		return errors.Wrap(err, "problem extracting json to buffer")
+		return errors.Wrap(err, "extracting JSON to buffer")
 	}
 
 	if err := ioutil.WriteFile(fn, buf.Bytes(), 0644); err != nil {
-		return errors.Wrapf(err, "problem writing output to %s", fn)
+		return errors.Wrapf(err, "writing output to file '%s'", fn)
 	}
 
 	grip.Infoln("wrote results document to:", fn)

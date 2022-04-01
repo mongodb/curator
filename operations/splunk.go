@@ -90,7 +90,7 @@ func setupSplunkLogger(c *cli.Context) (*cmdLogger, error) {
 
 	sender, err := send.NewSplunkLogger(c.Parent().String("name"), info, grip.GetSender().Level())
 	if err != nil {
-		return out, errors.Wrap(err, "problem constructing logger")
+		return out, errors.Wrap(err, "constructing logger")
 	}
 	out.logger = logging.MakeGrip(sender)
 	out.closer = func() {
@@ -137,16 +137,16 @@ func splunkLogCommand() cli.Command {
 			clogger, err := setupSplunkLogger(c)
 			defer clogger.closer()
 			if err != nil {
-				return errors.Wrap(err, "problem configuring splunk connection")
+				return errors.Wrap(err, "configuring Splunk connection")
 			}
 			clogger.addMeta = c.Parent().Bool("addMeta")
 
 			cmd, err := getCmd(c.String("exec"))
 			if err != nil {
-				return errors.Wrap(err, "problem creating command object")
+				return errors.Wrap(err, "creating command object")
 			}
 
-			return errors.Wrap(clogger.runCommand(cmd), "problem running command")
+			return errors.Wrap(clogger.runCommand(cmd), "running command")
 		},
 	}
 }
@@ -159,11 +159,11 @@ func splunkLogPipe() cli.Command {
 			clogger, err := setupSplunkLogger(c)
 			defer clogger.closer()
 			if err != nil {
-				return errors.Wrap(err, "problem configuring splunk connection")
+				return errors.Wrap(err, "configuring Splunk connection")
 			}
 
 			if err := clogger.readPipe(os.Stdin); err != nil {
-				return errors.Wrap(err, "problem reading from standard input")
+				return errors.Wrap(err, "reading from standard input")
 			}
 
 			return nil
@@ -185,16 +185,15 @@ func splunkLogFollowFile() cli.Command {
 			clogger, err := setupSplunkLogger(c)
 			defer clogger.closer()
 			if err != nil {
-				return errors.Wrap(err, "problem configuring buildlogger")
+				return errors.Wrap(err, "configuring buildlogger")
 			}
 
 			fn := c.String("file")
 
 			if err := clogger.followFile(fn); err != nil {
-				return errors.Wrapf(err, "problem following file %s", fn)
+				return errors.Wrapf(err, "following file '%s'", fn)
 			}
 			return nil
 		},
 	}
-
 }

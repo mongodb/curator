@@ -67,11 +67,11 @@ func Backup() cli.Command {
 
 			client, err := mongo.NewClient(options.Client().ApplyURI(c.String("mongodbURI")))
 			if err != nil {
-				return errors.Wrap(err, "problem constructing client")
+				return errors.Wrap(err, "constructing client")
 			}
 
 			if err = client.Connect(ctx); err != nil {
-				return errors.Wrap(err, "problem connecting client")
+				return errors.Wrap(err, "connecting client")
 			}
 			httpClient := utility.GetHTTPClient()
 			defer utility.PutHTTPClient(httpClient)
@@ -86,7 +86,7 @@ func Backup() cli.Command {
 					Compress:                 c.Bool("gzip"),
 				})
 			if err != nil {
-				return errors.Wrap(err, "problem constructing bucket client client")
+				return errors.Wrap(err, "constructing bucket client")
 			}
 
 			seen := 0
