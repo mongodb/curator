@@ -25,7 +25,7 @@ require (
 	github.com/mongodb/jasper v0.0.0-20220214215554-82e5a72cff6b
 	github.com/papertrail/go-tail v0.0.0-20180509224916-973c153b0431
 	github.com/pkg/errors v0.9.1
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.7.1
 	github.com/urfave/cli v1.22.5
 	go.mongodb.org/mongo-driver v1.8.4
 	golang.org/x/sys v0.0.0-20211031064116-611d5d643895
