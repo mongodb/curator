@@ -21,7 +21,7 @@ func (t *rawTest) resolveCheck() (Checker, error) {
 	}
 
 	if err = json.Unmarshal(t.RawArgs, check); err != nil {
-		return nil, errors.Wrapf(err, "parsing argument for job %s (%s)",
+		return nil, errors.Wrapf(err, "parsing argument for job '%s' (%s)",
 			t.Name, t.Operation)
 	}
 

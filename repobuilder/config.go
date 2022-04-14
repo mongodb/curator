@@ -130,7 +130,7 @@ func (c *RepositoryConfig) processRepos() error {
 	for idx, dfn := range c.Repos {
 		// do some basic validation that the type value is correct.
 		if dfn.Type != DEB && dfn.Type != RPM {
-			catcher.Errorf("%s is not a valid repo type", dfn.Type)
+			catcher.Errorf("'%s' is not a valid repo type", dfn.Type)
 		}
 
 		// build the definitionLookup map
@@ -146,7 +146,7 @@ func (c *RepositoryConfig) processRepos() error {
 		}
 
 		if dfn.Type == DEB && len(dfn.Architectures) == 0 {
-			catcher.Errorf("debian distro '%s' does not specify architecture list", dfn.Name)
+			catcher.Errorf("Debian distro '%s' does not specify architecture list", dfn.Name)
 			continue
 		}
 

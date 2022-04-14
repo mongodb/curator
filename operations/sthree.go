@@ -117,7 +117,7 @@ func s3PutCmd() cli.Command {
 
 			fmt.Printf("Uploading file '%s' to path '%s' in bucket '%s'\n", c.String("file"), objectKey, bucketName)
 			if err := bucket.Upload(ctx, objectKey, c.String("file")); err != nil {
-				return errors.Wrapf(err, "putting file '%s' in s3", c.String("file"))
+				return errors.Wrapf(err, "putting file '%s' in S3", c.String("file"))
 			}
 
 			var baseURL string
@@ -162,7 +162,7 @@ func s3GetCmd() cli.Command {
 
 			return errors.Wrapf(
 				bucket.Download(ctx, c.String("name"), c.String("file")),
-				"getting object '%s' from s3",
+				"getting object '%s' from S3",
 				c.String("name"),
 			)
 		},
@@ -201,7 +201,7 @@ func s3DeleteCmd() cli.Command {
 
 			return errors.Wrapf(
 				bucket.Remove(ctx, c.String("name")),
-				"removing '%s' from s3",
+				"removing object '%s' from S3",
 				c.String("name"),
 			)
 		},
@@ -240,7 +240,7 @@ func s3DeletePrefixCmd() cli.Command {
 
 			return errors.Wrapf(
 				bucket.RemovePrefix(ctx, c.String("name")),
-				"removing prefix '%s' from s3",
+				"removing prefix '%s' from S3",
 				c.String("name"),
 			)
 		},
@@ -279,7 +279,7 @@ func s3DeleteMatchingCmd() cli.Command {
 
 			return errors.Wrapf(
 				bucket.RemoveMatching(ctx, c.String("match")),
-				"removing objects matching pattern '%s' in s3",
+				"removing objects matching pattern '%s' in S3",
 				c.String("match"),
 			)
 		},
@@ -335,7 +335,7 @@ func s3SyncToCmd() cli.Command {
 			}
 			return errors.Wrapf(
 				bucket.Push(ctx, syncOpts),
-				"syncing %s to s3",
+				"syncing local path '%s' to S3",
 				c.String("local"),
 			)
 		},
@@ -390,7 +390,7 @@ func s3SyncFromCmd() cli.Command {
 			}
 			return errors.Wrapf(
 				bucket.Pull(ctx, syncOpts),
-				"syncing %s from s3",
+				"syncing remote prefix '%s' from S3",
 				c.String("prefix"),
 			)
 		},

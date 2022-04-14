@@ -115,7 +115,7 @@ func Notify() cli.Command {
 				}
 				sender, err = send.MakeSlackLogger(opts)
 				if err != nil {
-					return errors.Wrap(err, "building slack logger")
+					return errors.Wrap(err, "building Slack logger")
 				}
 			case "email":
 				opts := &send.SMTPOptions{
@@ -140,7 +140,7 @@ func Notify() cli.Command {
 				sender, err = send.MakeXMPP(c.String("target"))
 
 				if err != nil {
-					return errors.Wrap(err, "building jabber/xmpp logger")
+					return errors.Wrap(err, "building Jabber/XMPP logger")
 				}
 			case "github":
 				info := strings.SplitN(c.String("target"), "/", 2)

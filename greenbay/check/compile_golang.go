@@ -97,7 +97,7 @@ func (c compileGolang) Compile(testBody string, _ ...string) error {
 
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return errors.Wrapf(err, "compiling go test: %s", string(out))
+		return errors.Wrapf(err, "compiling Go test: %s", string(out))
 	}
 
 	return nil

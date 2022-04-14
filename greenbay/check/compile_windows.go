@@ -55,14 +55,14 @@ func newCompileVS() compiler {
 	k, err := registry.OpenKey(registry.LOCAL_MACHINE, vcKeyName,
 		registry.ENUMERATE_SUB_KEYS|registry.READ)
 	if err != nil {
-		c.catcher.Add(errors.Wrap(err, "reading from registry"))
+		c.catcher.Wrap(err, "reading from registry")
 		return nil
 	}
 	defer k.Close()
 
 	installed, err := k.ReadSubKeyNames(-1)
 	if err != nil {
-		c.catcher.Add(errors.Wrap(err, "reading subkeys"))
+		c.catcher.Wrap(err, "reading subkeys")
 		return nil
 	}
 

@@ -382,7 +382,7 @@ func toCSV() cli.Command {
 			// actually convert data
 			//
 			if err := ftdc.WriteCSV(ctx, ftdc.ReadChunks(ctx, inputFile), outputFile); err != nil {
-				return errors.Wrap(err, "parsing csv")
+				return errors.Wrap(err, "parsing CSV")
 			}
 
 			return nil
@@ -562,7 +562,7 @@ func toMDB() cli.Command {
 					break
 				}
 			}
-			catcher.Add(errors.Wrapf(iter.Err(), "iterating FTDC data from file '%s'", srcPath))
+			catcher.Wrapf(iter.Err(), "iterating FTDC data from file '%s'", srcPath)
 
 			if len(batch) > 0 {
 				batches++
@@ -742,11 +742,11 @@ func toT2() cli.Command {
 				return errors.Wrapf(err, "opening file '%s'", inputPath)
 			}
 
-			// Stores ftdc chunk iterators and its metadata to be used in TranslateGenny.
+			// Stores FTDC chunk iterators and its metadata to be used in TranslateGenny.
 			var outputSlice []*ftdc.GennyOutputMetadata
 
 			// Check if input path is an individual file or directory.
-			// All ftdc files in the provided input directory are initially
+			// All FTDC files in the provided input directory are initially
 			// used to set GennyOutputMetadata Name, Iter, StartTime and EndTime.
 			switch mode := inputStat.Mode(); {
 			// Handle directory.

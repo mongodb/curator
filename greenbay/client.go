@@ -38,7 +38,7 @@ func NewClient(confPath, host string, port int, outFn, format string, quiet bool
 
 	c, err := rest.NewQueueClient(host, port, "")
 	if err != nil {
-		return nil, errors.Wrap(err, "constructing amboy rest client")
+		return nil, errors.Wrap(err, "constructing Amboy REST client")
 	}
 
 	client := &Client{

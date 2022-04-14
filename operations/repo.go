@@ -188,13 +188,13 @@ func submitRepo(ctx context.Context, opts submitRepoOptions) error {
 
 	client, err := barquesubmit.New(opts.url)
 	if err != nil {
-		return errors.Wrap(err, "constructing barque client")
+		return errors.Wrap(err, "constructing Barque client")
 	}
 
 	if opts.username != "" && opts.apiKey != "" {
 		client.SetCredentials(opts.username, opts.apiKey)
 	} else if err = client.Login(ctx, opts.username, opts.password); err != nil {
-		return errors.Wrap(err, "authenticating to barque")
+		return errors.Wrap(err, "authenticating to Barque")
 	}
 
 	id, err := client.SubmitJob(ctx, jobOpts)

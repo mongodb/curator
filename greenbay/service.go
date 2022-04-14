@@ -49,11 +49,11 @@ func NewService(confPath string, host string, port int) (*Service, error) {
 	app := s.service.App()
 
 	if err := app.SetPort(port); err != nil {
-		return nil, errors.Wrap(err, "constructing greenbay service")
+		return nil, errors.Wrap(err, "constructing Greenbay service")
 	}
 
 	if err := app.SetHost(host); err != nil {
-		return nil, errors.Wrap(err, "constructing greenbay service")
+		return nil, errors.Wrap(err, "constructing Greenbay service")
 	}
 
 	return s, nil

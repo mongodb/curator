@@ -28,7 +28,7 @@ func getFormat(fn string) (format, error) {
 		return formatJSON, nil
 	}
 
-	return "", errors.Errorf("greenbay does not support files with '%s' extension", ext)
+	return "", errors.Errorf("Greenbay does not support files with '%s' extension", ext)
 }
 
 func getJSONFormattedConfig(format format, data []byte) ([]byte, error) {
@@ -51,7 +51,7 @@ func getJSONFormattedConfig(format format, data []byte) ([]byte, error) {
 func getRawConfig(fn string) ([]byte, error) {
 	data, err := ioutil.ReadFile(fn)
 	if err != nil {
-		return nil, errors.Wrapf(err, "reading greenbay config file '%s'", fn)
+		return nil, errors.Wrapf(err, "reading Greenbay config file '%s'", fn)
 	}
 
 	format, err := getFormat(fn)
