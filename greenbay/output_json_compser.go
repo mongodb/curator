@@ -17,7 +17,7 @@ func (o *jsonOutput) Loggable() bool   { return true }
 func (o *jsonOutput) String() string {
 	out, err := json.Marshal(o)
 	if err != nil {
-		return fmt.Sprintf("error processing result for %s (%+v): %+v",
+		return fmt.Sprintf("processing result for '%s' (%+v): %+v",
 			o.output.Name, err, o.output)
 	}
 

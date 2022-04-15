@@ -49,7 +49,7 @@ func (b *Builder) Conf() (*Configuration, error) {
 	out.mutex.Lock()
 	defer out.mutex.Unlock()
 	if err := out.parseTests(); err != nil {
-		return &Configuration{}, errors.Wrap(err, "problem refreshing config builder")
+		return &Configuration{}, errors.Wrap(err, "refreshing config builder")
 	}
 
 	return out, nil

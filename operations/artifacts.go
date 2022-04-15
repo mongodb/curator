@@ -64,7 +64,7 @@ func Artifacts() cli.Command {
 
 					err := recall.FetchReleases(ctx, c.StringSlice("version"), c.String("path"), opts)
 					if err != nil {
-						return errors.Wrap(err, "problem fetching releases")
+						return errors.Wrap(err, "fetching releases")
 					}
 
 					return nil
@@ -80,7 +80,7 @@ func Artifacts() cli.Command {
 
 					version, err := getVersionForListing(ctx, c.String("version"), c.String("path"))
 					if err != nil {
-						return errors.Wrap(err, "problem fetching version")
+						return errors.Wrap(err, "fetching version")
 					}
 
 					fmt.Println(version.GetBuildTypes())
@@ -97,7 +97,7 @@ func Artifacts() cli.Command {
 
 					version, err := getVersionForListing(ctx, c.String("version"), c.String("path"))
 					if err != nil {
-						return errors.Wrap(err, "problem fetching version")
+						return errors.Wrap(err, "fetching version")
 					}
 
 					fmt.Println(version)
@@ -114,7 +114,7 @@ func Artifacts() cli.Command {
 
 					catalog, err := bond.NewCatalog(ctx, c.String("path"))
 					if err != nil {
-						return errors.Wrap(err, "problem building catalog")
+						return errors.Wrap(err, "building catalog")
 					}
 					fmt.Println(catalog)
 					return nil
@@ -130,14 +130,14 @@ func Artifacts() cli.Command {
 
 					catalog, err := bond.NewCatalog(ctx, c.String("path"))
 					if err != nil {
-						return errors.Wrap(err, "problem building catalog")
+						return errors.Wrap(err, "building catalog")
 					}
 
 					path, err := catalog.Get(c.String("version"), c.String("edition"),
 						c.String("target"), c.String("arch"), c.Bool("debug"))
 
 					if err != nil {
-						return errors.Wrap(err, "problem finding build")
+						return errors.Wrap(err, "finding build")
 					}
 
 					fmt.Println(path)
@@ -218,12 +218,12 @@ func baseDlFlags(versionSlice bool, flags ...cli.Flag) []cli.Flag {
 func getVersionForListing(ctx context.Context, release, path string) (*bond.ArtifactVersion, error) {
 	feed, err := bond.GetArtifactsFeed(ctx, path)
 	if err != nil {
-		return nil, errors.Wrap(err, "problem fetching artifacts feed")
+		return nil, errors.Wrap(err, "fetching artifacts feed")
 	}
 
 	version, ok := feed.GetVersion(release)
 	if !ok {
-		return nil, errors.Errorf("no version for %s", release)
+		return nil, errors.Errorf("no version for release '%s'", release)
 	}
 
 	return version, nil

@@ -74,7 +74,7 @@ func (c compileGCC) Compile(testBody string, cFlags ...string) error {
 	outputName, sourceName, err := writeTestBody(testBody, "c")
 	outputName += ".o"
 	if err != nil {
-		return errors.Wrap(err, "problem writing test to file")
+		return errors.Wrap(err, "writing test to file")
 	}
 	defer func() { grip.Error(os.Remove(outputName)) }()
 
@@ -86,7 +86,7 @@ func (c compileGCC) Compile(testBody string, cFlags ...string) error {
 	grip.Infof("running build command: %s %s", c.bin, strings.Join(cmd.Args, " "))
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return errors.Wrapf(err, "problem compiling test body: %s", string(output))
+		return errors.Wrapf(err, "compiling test body: %s", string(output))
 	}
 
 	return nil
@@ -95,7 +95,7 @@ func (c compileGCC) Compile(testBody string, cFlags ...string) error {
 func (c compileGCC) CompileAndRun(testBody string, cFlags ...string) (string, error) {
 	outputName, sourceName, err := writeTestBody(testBody, "c")
 	if err != nil {
-		return "", errors.Wrap(err, "problem writing test to file")
+		return "", errors.Wrap(err, "writing test to file")
 	}
 	defer func() { grip.Error(os.Remove(outputName)) }()
 
@@ -106,14 +106,14 @@ func (c compileGCC) CompileAndRun(testBody string, cFlags ...string) (string, er
 	grip.Infof("running build command: %s %s", c.bin, strings.Join(cmd.Args, " "))
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return string(out), errors.Wrap(err, "problem compiling test")
+		return string(out), errors.Wrap(err, "compiling test")
 	}
 
 	cmd = exec.Command(outputName)
 	grip.Infof("running test command: %s", strings.Join(cmd.Args, " "))
 	out, err = cmd.CombinedOutput()
 	if err != nil {
-		return string(out), errors.Wrap(err, "problem running test program")
+		return string(out), errors.Wrap(err, "running test program")
 	}
 
 	return strings.Trim(string(out), "\r\t\n "), nil

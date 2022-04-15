@@ -38,7 +38,7 @@ func (gr GroupRequirements) GetResults(passes, failures int) (bool, error) {
 			return false, nil
 		}
 	} else {
-		return false, errors.Errorf("incorrectly configured group check for %s", gr.Name)
+		return false, errors.Errorf("incorrectly configured group check for '%s'", gr.Name)
 	}
 
 	return true, nil

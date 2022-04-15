@@ -28,7 +28,7 @@ func getFormat(fn string) (format, error) {
 		return formatJSON, nil
 	}
 
-	return "", errors.Errorf("greenbay does not support files with '%s' extension", ext)
+	return "", errors.Errorf("Greenbay does not support files with '%s' extension", ext)
 }
 
 func getJSONFormattedConfig(format format, data []byte) ([]byte, error) {
@@ -37,7 +37,7 @@ func getJSONFormattedConfig(format format, data []byte) ([]byte, error) {
 	if format == formatYAML {
 		data, err = yaml.YAMLToJSON(data)
 		if err != nil {
-			return nil, errors.Wrap(err, "problem parsing config")
+			return nil, errors.Wrap(err, "parsing config")
 		}
 
 		return data, nil
@@ -51,12 +51,12 @@ func getJSONFormattedConfig(format format, data []byte) ([]byte, error) {
 func getRawConfig(fn string) ([]byte, error) {
 	data, err := ioutil.ReadFile(fn)
 	if err != nil {
-		return nil, errors.Wrapf(err, "problem reading greenbay config file: %s", fn)
+		return nil, errors.Wrapf(err, "reading Greenbay config file '%s'", fn)
 	}
 
 	format, err := getFormat(fn)
 	if err != nil {
-		return nil, errors.Wrapf(err, "problem determining format of file %s", fn)
+		return nil, errors.Wrapf(err, "determining format of file '%s'", fn)
 	}
 
 	return getJSONFormattedConfig(format, data)
@@ -75,7 +75,7 @@ func (c *Configuration) parseTests() error {
 
 		testJob, err := msg.resolveCheck()
 		if err != nil {
-			catcher.Add(errors.Wrapf(err, "problem resolving %s", msg.Name))
+			catcher.Wrapf(err, "resolving '%s'", msg.Name)
 			continue
 		}
 

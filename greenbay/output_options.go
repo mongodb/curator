@@ -76,11 +76,11 @@ func (o *OutputOptions) ProduceResults(ctx context.Context, q amboy.Queue) error
 func (o *OutputOptions) CollectResults(jobs <-chan amboy.Job) error {
 	rp, err := o.GetResultsProducer()
 	if err != nil {
-		return errors.Wrap(err, "problem fetching results producer")
+		return errors.Wrap(err, "fetching results producer")
 	}
 
 	if err := rp.Populate(jobs); err != nil {
-		return errors.Wrap(err, "problem generating results content")
+		return errors.Wrap(err, "generating results content")
 	}
 
 	// Actually write output to respective streems
@@ -102,7 +102,7 @@ func (o *OutputOptions) Report(jobs <-chan amboy.Job) (map[string]*CheckOutput, 
 	output := make(map[string]*CheckOutput)
 
 	if err := rp.Populate(jobs); err != nil {
-		return output, errors.Wrap(err, "problem generating results content")
+		return output, errors.Wrap(err, "generating results content")
 	}
 
 	for k, v := range rp.results {

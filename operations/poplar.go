@@ -69,7 +69,7 @@ func poplarGRPC() cli.Command {
 
 			registry := poplar.NewRegistry()
 			if err = rpc.AttachService(registry, rpcSrv); err != nil {
-				return errors.Wrap(err, "problem building service")
+				return errors.Wrap(err, "building service")
 			}
 
 			go signalListener(ctx, cancel)

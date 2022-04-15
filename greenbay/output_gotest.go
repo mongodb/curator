@@ -30,7 +30,7 @@ func (r *GoTest) Populate(jobs <-chan amboy.Job) error {
 	numFailed, err := produceResults(r.buf, jobsToCheck(r.skipPassing, jobs))
 
 	if err != nil {
-		return errors.Wrap(err, "problem generating gotest results")
+		return errors.Wrap(err, "generating Go test results")
 	}
 
 	r.numFailed = numFailed
@@ -41,7 +41,7 @@ func (r *GoTest) Populate(jobs <-chan amboy.Job) error {
 // ToFile writes the "go test -v" output to a file.
 func (r *GoTest) ToFile(fn string) error {
 	if err := ioutil.WriteFile(fn, r.buf.Bytes(), 0644); err != nil {
-		return errors.Wrapf(err, "problem writing output to %s", fn)
+		return errors.Wrapf(err, "writing output to file '%s'", fn)
 	}
 
 	if r.numFailed > 0 {

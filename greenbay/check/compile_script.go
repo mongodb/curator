@@ -70,7 +70,7 @@ func (c compileScript) Validate() error {
 func (c compileScript) Compile(testBody string, _ ...string) error {
 	_, sourceName, err := writeTestBody(testBody, "py")
 	if err != nil {
-		return errors.Wrap(err, "problem writing test")
+		return errors.Wrap(err, "writing test")
 	}
 	defer func() { grip.Error(os.Remove(sourceName)) }()
 
@@ -79,7 +79,7 @@ func (c compileScript) Compile(testBody string, _ ...string) error {
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return errors.Wrapf(err, "problem build/running test script %s: %s", sourceName,
+		return errors.Wrapf(err, "build/running test script '%s': %s", sourceName,
 			string(output))
 	}
 
@@ -89,7 +89,7 @@ func (c compileScript) Compile(testBody string, _ ...string) error {
 func (c compileScript) CompileAndRun(testBody string, _ ...string) (string, error) {
 	_, sourceName, err := writeTestBody(testBody, "py")
 	if err != nil {
-		return "", errors.Wrap(err, "problem writing test")
+		return "", errors.Wrap(err, "writing test")
 	}
 	defer func() { grip.Error(os.Remove(sourceName)) }()
 
@@ -98,7 +98,7 @@ func (c compileScript) CompileAndRun(testBody string, _ ...string) (string, erro
 	out, err := cmd.CombinedOutput()
 	output := string(out)
 	if err != nil {
-		return output, errors.Wrapf(err, "problem running test script %s", sourceName)
+		return output, errors.Wrapf(err, "running test script '%s'", sourceName)
 	}
 
 	return strings.Trim(output, "\r\t\n "), nil

@@ -37,12 +37,12 @@ func writeTestBody(testBody, ext string) (string, string, error) {
 
 	_, err = testFile.Write([]byte(testBody))
 	if err != nil {
-		return "", "", errors.Wrap(err, "problem writing test to file")
+		return "", "", errors.Wrap(err, "writing test to file")
 	}
 	defer grip.Warning(testFile.Close())
 
 	if err = os.Rename(baseName, sourceName); err != nil {
-		return "", "", errors.Wrap(err, "problem renaming file")
+		return "", "", errors.Wrap(err, "renaming file")
 
 	}
 

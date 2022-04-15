@@ -28,17 +28,17 @@ type Client struct {
 func NewClient(confPath, host string, port int, outFn, format string, quiet bool, suite, tests []string) (*Client, error) {
 	out, err := NewOutputOptions(outFn, format, quiet)
 	if err != nil {
-		return nil, errors.Wrap(err, "problem generating output definition")
+		return nil, errors.Wrap(err, "generating output definition")
 	}
 
 	conf, err := ReadConfig(confPath)
 	if err != nil {
-		return nil, errors.Wrap(err, "problem parsing config file")
+		return nil, errors.Wrap(err, "parsing config file")
 	}
 
 	c, err := rest.NewQueueClient(host, port, "")
 	if err != nil {
-		return nil, errors.Wrap(err, "problem constructing amboy rest client")
+		return nil, errors.Wrap(err, "constructing Amboy REST client")
 	}
 
 	client := &Client{
@@ -86,7 +86,7 @@ func (c *Client) Run(ctx context.Context) error {
 	}
 
 	if catcher.HasErrors() {
-		return errors.Wrap(catcher.Resolve(), "problem collecting and submitting jobs")
+		return errors.Wrap(catcher.Resolve(), "collecting and submitting jobs")
 	}
 
 	// TODO: make the Ids avalible in the app to retry waiting.

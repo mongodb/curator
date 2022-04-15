@@ -55,14 +55,14 @@ func newCompileVS() compiler {
 	k, err := registry.OpenKey(registry.LOCAL_MACHINE, vcKeyName,
 		registry.ENUMERATE_SUB_KEYS|registry.READ)
 	if err != nil {
-		c.catcher.Add(errors.Wrap(err, "problem reading from registry"))
+		c.catcher.Wrap(err, "reading from registry")
 		return nil
 	}
 	defer k.Close()
 
 	installed, err := k.ReadSubKeyNames(-1)
 	if err != nil {
-		c.catcher.Add(errors.Wrap(err, "problem reading subkeys"))
+		c.catcher.Wrap(err, "reading subkeys")
 		return nil
 	}
 
@@ -117,7 +117,7 @@ func (c *compileVS) findCl(envVars []string) (string, error) {
 	}
 
 	if path == "" {
-		return "", errors.Errorf("Could not find the PATH in the VS environment variables")
+		return "", errors.Errorf("could not find the PATH in the VS environment variables")
 	}
 
 	for _, k := range strings.Split(path, ";") {
@@ -129,7 +129,7 @@ func (c *compileVS) findCl(envVars []string) (string, error) {
 		return testPath, nil
 	}
 
-	return "", errors.Errorf("Could not find cl in PATH")
+	return "", errors.Errorf("could not find cl in PATH")
 }
 
 func (c *compileVS) compileOp(filename, version string, cFlags ...string) error {
@@ -158,7 +158,7 @@ func (c *compileVS) compileOp(filename, version string, cFlags ...string) error 
 	cmd.Env = envVars
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return errors.Errorf("Compiler error (%v): %s", err, output)
+		return errors.Errorf("compiler error (%v): %s", err, output)
 	}
 
 	return nil
@@ -171,7 +171,7 @@ func (c *compileVS) Validate() error {
 func (c *compileVS) Compile(testBody string, cFlags ...string) error {
 	outputName, sourceName, err := writeTestBody(testBody, "c")
 	if err != nil {
-		return fmt.Errorf("Error creating test body file: %v", err)
+		return error.Wrap(err, "creating test body file")
 	}
 	defer os.Remove(sourceName)
 
@@ -181,7 +181,7 @@ func (c *compileVS) Compile(testBody string, cFlags ...string) error {
 
 	err = c.compileOp(sourceName, "", argv...)
 	if err != nil {
-		return errors.Wrap(err, "problem compiling software")
+		return errors.Wrap(err, "compiling software")
 	}
 	defer grip.Warning(os.Remove(fmt.Sprintf("%s.obj", outputName)))
 
@@ -191,7 +191,7 @@ func (c *compileVS) Compile(testBody string, cFlags ...string) error {
 func (c *compileVS) CompileAndRun(testBody string, cFlags ...string) (string, error) {
 	outputName, sourceName, err := writeTestBody(testBody, "c")
 	if err != nil {
-		return "", errors.Wrap(err, "problem writing test to file")
+		return "", errors.Wrap(err, "writing test to file")
 	}
 
 	defer os.Remove(sourceName)
@@ -212,7 +212,7 @@ func (c *compileVS) CompileAndRun(testBody string, cFlags ...string) (string, er
 	out, err := exec.Command(outputName).CombinedOutput()
 	output := string(out)
 	if err != nil {
-		return output, errors.Wrap(err, "problem running test program")
+		return output, errors.Wrap(err, "running test program")
 	}
 
 	output = strings.Trim(output, "\r\t\n ")

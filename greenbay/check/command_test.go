@@ -52,7 +52,6 @@ func TestCommandCheck(t *testing.T) {
 					if assert.False(output.Passed, cmd) {
 						assert.Error(check.Error())
 					}
-
 				}
 			}
 

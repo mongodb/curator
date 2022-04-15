@@ -58,7 +58,7 @@ func requireFileOrPositional(pathFlagName string) cli.BeforeFunc {
 		}
 
 		if _, err := os.Stat(path); os.IsNotExist(err) {
-			return errors.Errorf("file %s does not exist", path)
+			return errors.Errorf("file '%s' does not exist", path)
 		}
 
 		return c.Set(pathFlagName, path)

@@ -45,7 +45,7 @@ func (c *programReturnCheck) Run(_ context.Context) {
 
 	if err := c.compiler.Validate(); err != nil {
 		c.setState(false)
-		c.AddError(errors.Wrap(err, "failed to validate compiler"))
+		c.AddError(errors.Wrap(err, "invalid compiler"))
 		return
 	}
 

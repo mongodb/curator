@@ -53,7 +53,7 @@ func Version() cli.Command {
 			if isJSON {
 				out, err := json.MarshalIndent(info, "", "   ")
 				if err != nil {
-					return errors.Wrap(err, "problem marshaling json")
+					return errors.Wrap(err, "marshalling JSON")
 				}
 				fmt.Println(string(out))
 				return nil

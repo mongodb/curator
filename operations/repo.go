@@ -165,7 +165,7 @@ func submitRepo(ctx context.Context, opts submitRepoOptions) error {
 	conf, err := repobuilder.GetConfig(opts.configPath)
 	if err != nil {
 		grip.Error(err)
-		return errors.Wrap(err, "problem getting repo config")
+		return errors.Wrap(err, "getting repo config")
 	}
 
 	repo, ok := conf.GetRepositoryDefinition(opts.distro, opts.edition)
@@ -188,18 +188,18 @@ func submitRepo(ctx context.Context, opts submitRepoOptions) error {
 
 	client, err := barquesubmit.New(opts.url)
 	if err != nil {
-		return errors.Wrap(err, "problem constructing barque client")
+		return errors.Wrap(err, "constructing Barque client")
 	}
 
 	if opts.username != "" && opts.apiKey != "" {
 		client.SetCredentials(opts.username, opts.apiKey)
 	} else if err = client.Login(ctx, opts.username, opts.password); err != nil {
-		return errors.Wrap(err, "problem authenticating to barque")
+		return errors.Wrap(err, "authenticating to Barque")
 	}
 
 	id, err := client.SubmitJob(ctx, jobOpts)
 	if err != nil {
-		return errors.Wrap(err, "problem submitting repobuilder job")
+		return errors.Wrap(err, "submitting repobuilder job")
 	}
 
 	startAt := time.Now()
@@ -216,7 +216,7 @@ RETRY:
 			stat, err := client.CheckJobStatus(ctx, id)
 			if err != nil {
 				grip.Error(err)
-				return errors.Wrap(err, "problem checking job status")
+				return errors.Wrap(err, "checking job status")
 			}
 
 			if !stat.Status.Completed {
