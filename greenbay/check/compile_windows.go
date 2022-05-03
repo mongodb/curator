@@ -171,7 +171,7 @@ func (c *compileVS) Validate() error {
 func (c *compileVS) Compile(testBody string, cFlags ...string) error {
 	outputName, sourceName, err := writeTestBody(testBody, "c")
 	if err != nil {
-		return error.Wrap(err, "creating test body file")
+		return errors.Wrap(err, "creating test body file")
 	}
 	defer os.Remove(sourceName)
 
