@@ -24,7 +24,7 @@ require (
 	github.com/papertrail/go-tail v0.0.0-20180509224916-973c153b0431
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.7.1
-	github.com/urfave/cli v1.22.8
+	github.com/urfave/cli v1.22.9
 	go.mongodb.org/mongo-driver v1.9.1
 	golang.org/x/sys v0.0.0-20220128215802-99c3d69c2c27
 	google.golang.org/grpc v1.47.0
