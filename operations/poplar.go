@@ -103,6 +103,10 @@ func poplarReport() cli.Command {
 		apiKeyFlagName            = "api-key"
 		apiUsernameHeaderFlagName = "api-username-header"
 		apiKeyHeaderFlagName      = "api-key-header"
+		awsAccessKeyName          = "aws-access-keys"
+		awsSecretKeyName          = "aws-secret-key"
+		ResultsHandlerHostName    = "results-handler-host"
+		ResultTypeName            = "result-type"
 		dryRunFlagName            = "dry-run"
 		dryRunFlagNameShort       = "n"
 	)
@@ -148,8 +152,24 @@ func poplarReport() cli.Command {
 				Usage: "specify the API key header for API authentication",
 			},
 			cli.StringFlag{
+				Name:  awsAccessKeyName,
+				Usage: "AWS access key ID to upload results to PSS",
+			},
+			cli.StringFlag{
+				Name:  awsSecretKeyName,
+				Usage: "AWS secret key to upload results to PSS",
+			},
+			cli.StringFlag{
 				Name:  pathFlagName,
 				Usage: "specify the path of the input file, may be the first positional argument",
+			},
+			cli.StringFlag{
+				Name:  ResultsHandlerHostName,
+				Usage: "specify the host URL to upload results to PSS",
+			},
+			cli.StringFlag{
+				Name:  ResultTypeName,
+				Usage: "result type to upload to PSS",
 			},
 			cli.BoolFlag{
 				Name:  dryRunFlagName + "," + dryRunFlagNameShort,
@@ -171,6 +191,10 @@ func poplarReport() cli.Command {
 			apiKey := c.String(apiKeyFlagName)
 			apiUsernameHeader := c.String(apiUsernameHeaderFlagName)
 			apiKeyHeader := c.String(apiKeyHeaderFlagName)
+			awsAccessKey := c.String(awsAccessKeyName)
+			awsSecretKey := c.String(awsSecretKeyName)
+			resultType := c.String(ResultTypeName)
+			resultsHandlerHost := c.String(ResultsHandlerHostName)
 			dryRun := c.Bool("dry-run") || c.Bool("n")
 
 			report, err := poplar.LoadReport(fileName)
@@ -210,10 +234,14 @@ func poplarReport() cli.Command {
 			}
 
 			opts := rpc.UploadReportOptions{
-				Report:          report,
-				ClientConn:      conn,
-				DryRun:          dryRun,
-				SerializeUpload: true,
+				Report:             report,
+				ClientConn:         conn,
+				DryRun:             dryRun,
+				AWSSecretKey:       awsSecretKey,
+				AWSAccessKey:       awsAccessKey,
+				ResultsHandlerHost: resultsHandlerHost,
+				ResultType:         resultType,
+				SerializeUpload:    true,
 			}
 			if err := rpc.UploadReport(ctx, opts); err != nil {
 				return errors.WithStack(err)
