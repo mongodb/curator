@@ -106,7 +106,6 @@ func poplarReport() cli.Command {
 		awsAccessKeyName          = "aws-access-keys"
 		awsSecretKeyName          = "aws-secret-key"
 		ResultsHandlerHostName    = "results-handler-host"
-		ResultTypeName            = "result-type"
 		dryRunFlagName            = "dry-run"
 		dryRunFlagNameShort       = "n"
 	)
@@ -167,10 +166,6 @@ func poplarReport() cli.Command {
 				Name:  ResultsHandlerHostName,
 				Usage: "specify the host URL to upload results to PSS",
 			},
-			cli.StringFlag{
-				Name:  ResultTypeName,
-				Usage: "result type to upload to PSS",
-			},
 			cli.BoolFlag{
 				Name:  dryRunFlagName + "," + dryRunFlagNameShort,
 				Usage: "enables dry run",
@@ -193,7 +188,6 @@ func poplarReport() cli.Command {
 			apiKeyHeader := c.String(apiKeyHeaderFlagName)
 			awsAccessKey := c.String(awsAccessKeyName)
 			awsSecretKey := c.String(awsSecretKeyName)
-			resultType := c.String(ResultTypeName)
 			resultsHandlerHost := c.String(ResultsHandlerHostName)
 			dryRun := c.Bool("dry-run") || c.Bool("n")
 
@@ -240,7 +234,6 @@ func poplarReport() cli.Command {
 				AWSSecretKey:       awsSecretKey,
 				AWSAccessKey:       awsAccessKey,
 				ResultsHandlerHost: resultsHandlerHost,
-				ResultType:         resultType,
 				SerializeUpload:    true,
 			}
 			if err := rpc.UploadReport(ctx, opts); err != nil {
