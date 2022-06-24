@@ -30,3 +30,5 @@ require (
 	google.golang.org/grpc v1.47.0
 	gopkg.in/yaml.v2 v2.4.0
 )
+
+replace github.com/evergreen-ci/poplar => /Users/carlworley/go/src/github.com/evergreen-ci/poplar
