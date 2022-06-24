@@ -105,6 +105,7 @@ func poplarReport() cli.Command {
 		apiKeyHeaderFlagName      = "api-key-header"
 		awsAccessKeyName          = "aws-access-keys"
 		awsSecretKeyName          = "aws-secret-key"
+        awsTokenName              = "aws-token"
 		ResultsHandlerHostName    = "results-handler-host"
 		dryRunFlagName            = "dry-run"
 		dryRunFlagNameShort       = "n"
@@ -152,12 +153,16 @@ func poplarReport() cli.Command {
 			},
 			cli.StringFlag{
 				Name:  awsAccessKeyName,
-				Usage: "AWS access key ID to upload results to PSS",
+				Usage: "AWS access key ID to upload results to Data Pipes",
 			},
 			cli.StringFlag{
 				Name:  awsSecretKeyName,
-				Usage: "AWS secret key to upload results to PSS",
+				Usage: "AWS secret key to upload results to Data Pipes",
 			},
+            cli.StringFlag{
+				Name:  awsTokenName,
+				Usage: "AWS token to upload results to Data Pipes",
+			}
 			cli.StringFlag{
 				Name:  pathFlagName,
 				Usage: "specify the path of the input file, may be the first positional argument",
@@ -188,6 +193,7 @@ func poplarReport() cli.Command {
 			apiKeyHeader := c.String(apiKeyHeaderFlagName)
 			awsAccessKey := c.String(awsAccessKeyName)
 			awsSecretKey := c.String(awsSecretKeyName)
+            awsToken := c.String(awsTokenName)
 			resultsHandlerHost := c.String(ResultsHandlerHostName)
 			dryRun := c.Bool("dry-run") || c.Bool("n")
 
@@ -233,6 +239,7 @@ func poplarReport() cli.Command {
 				DryRun:             dryRun,
 				AWSSecretKey:       awsSecretKey,
 				AWSAccessKey:       awsAccessKey,
+				AwsToken:           awsToken,
 				ResultsHandlerHost: resultsHandlerHost,
 				SerializeUpload:    true,
 			}
