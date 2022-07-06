@@ -9,6 +9,7 @@ import (
 	"github.com/evergreen-ci/aviation"
 	"github.com/evergreen-ci/poplar"
 	"github.com/evergreen-ci/poplar/rpc"
+	"github.com/evergreen-ci/utility"
 	"github.com/mongodb/grip"
 	"github.com/mongodb/grip/recovery"
 	"github.com/pkg/errors"
@@ -103,10 +104,11 @@ func poplarReport() cli.Command {
 		apiKeyFlagName            = "api-key"
 		apiUsernameHeaderFlagName = "api-username-header"
 		apiKeyHeaderFlagName      = "api-key-header"
-		awsAccessKeyName          = "aws-access-keys"
-		awsSecretKeyName          = "aws-secret-key"
-        awsTokenName              = "aws-token"
-		ResultsHandlerHostName    = "results-handler-host"
+		AWSAccessKeyName          = "aws-access-key"
+		AWSSecretKeyName          = "aws-secret-key"
+		AWSTokenName              = "aws-token"
+		dataPipesHostName         = "data-pipes-host"
+		dataPipesRegion           = "data-pipes-region"
 		dryRunFlagName            = "dry-run"
 		dryRunFlagNameShort       = "n"
 	)
@@ -152,24 +154,28 @@ func poplarReport() cli.Command {
 				Usage: "specify the API key header for API authentication",
 			},
 			cli.StringFlag{
-				Name:  awsAccessKeyName,
-				Usage: "AWS access key ID to upload results to Data Pipes",
+				Name:  AWSAccessKeyName,
+				Usage: "AWS access key ID to upload results to receiving service",
 			},
 			cli.StringFlag{
-				Name:  awsSecretKeyName,
-				Usage: "AWS secret key to upload results to Data Pipes",
+				Name:  AWSSecretKeyName,
+				Usage: "AWS secret key to upload results to receiving service",
 			},
-            cli.StringFlag{
-				Name:  awsTokenName,
-				Usage: "AWS token to upload results to Data Pipes",
-			}
+			cli.StringFlag{
+				Name:  AWSTokenName,
+				Usage: "AWS token to upload results to receiving service",
+			},
 			cli.StringFlag{
 				Name:  pathFlagName,
 				Usage: "specify the path of the input file, may be the first positional argument",
 			},
 			cli.StringFlag{
-				Name:  ResultsHandlerHostName,
-				Usage: "specify the host URL to upload results to PSS",
+				Name:  dataPipesHostName,
+				Usage: "specify the data pipes host URL to upload results to",
+			},
+			cli.StringFlag{
+				Name:  dataPipesRegion,
+				Usage: "region containing the data pipes host",
 			},
 			cli.BoolFlag{
 				Name:  dryRunFlagName + "," + dryRunFlagNameShort,
@@ -191,10 +197,11 @@ func poplarReport() cli.Command {
 			apiKey := c.String(apiKeyFlagName)
 			apiUsernameHeader := c.String(apiUsernameHeaderFlagName)
 			apiKeyHeader := c.String(apiKeyHeaderFlagName)
-			awsAccessKey := c.String(awsAccessKeyName)
-			awsSecretKey := c.String(awsSecretKeyName)
-            awsToken := c.String(awsTokenName)
-			resultsHandlerHost := c.String(ResultsHandlerHostName)
+			AWSAccessKey := c.String(AWSAccessKeyName)
+			AWSSecretKey := c.String(AWSSecretKeyName)
+			AWSToken := c.String(AWSTokenName)
+			dataPipesHost := c.String(dataPipesHostName)
+			dataPipesRegion := c.String(dataPipesRegion)
 			dryRun := c.Bool("dry-run") || c.Bool("n")
 
 			report, err := poplar.LoadReport(fileName)
@@ -204,6 +211,9 @@ func poplarReport() cli.Command {
 
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
+
+			client := utility.GetHTTPClient()
+			defer utility.PutHTTPClient(client)
 
 			var tlsConf *tls.Config
 			if !isInsecure {
@@ -234,14 +244,16 @@ func poplarReport() cli.Command {
 			}
 
 			opts := rpc.UploadReportOptions{
-				Report:             report,
-				ClientConn:         conn,
-				DryRun:             dryRun,
-				AWSSecretKey:       awsSecretKey,
-				AWSAccessKey:       awsAccessKey,
-				AwsToken:           awsToken,
-				ResultsHandlerHost: resultsHandlerHost,
-				SerializeUpload:    true,
+				Report:              report,
+				ClientConn:          conn,
+				DryRun:              dryRun,
+				AWSAccessKey:        AWSAccessKey,
+				AWSSecretKey:        AWSSecretKey,
+				AWSToken:            AWSToken,
+				DataPipesHost:       dataPipesHost,
+				DataPipesRegion:     dataPipesRegion,
+				DataPipesHTTPClient: client,
+				SerializeUpload:     true,
 			}
 			if err := rpc.UploadReport(ctx, opts); err != nil {
 				return errors.WithStack(err)
