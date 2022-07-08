@@ -11,7 +11,7 @@ require (
 	github.com/evergreen-ci/gimlet v0.0.0-20220401151443-33c830c51cee
 	github.com/evergreen-ci/lru v0.0.0-20220404184951-eb0842380798
 	github.com/evergreen-ci/pail v0.0.0-20220405154537-920afff49d92
-	github.com/evergreen-ci/poplar v0.0.0-20220405164038-0cfe3198c320
+	github.com/evergreen-ci/poplar v0.0.0-20220706131001-ef01011c62bf
 	github.com/evergreen-ci/timber v0.0.0-20220408175538-819ca602876e
 	github.com/evergreen-ci/utility v0.0.0-20220404192535-d16eb64796e6
 	github.com/ghodss/yaml v1.0.0

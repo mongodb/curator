@@ -9,6 +9,7 @@ import (
 	"github.com/evergreen-ci/aviation"
 	"github.com/evergreen-ci/poplar"
 	"github.com/evergreen-ci/poplar/rpc"
+	"github.com/evergreen-ci/utility"
 	"github.com/mongodb/grip"
 	"github.com/mongodb/grip/recovery"
 	"github.com/pkg/errors"
@@ -103,6 +104,11 @@ func poplarReport() cli.Command {
 		apiKeyFlagName            = "api-key"
 		apiUsernameHeaderFlagName = "api-username-header"
 		apiKeyHeaderFlagName      = "api-key-header"
+		AWSAccessKeyName          = "aws-access-key"
+		AWSSecretKeyName          = "aws-secret-key"
+		AWSTokenName              = "aws-token"
+		dataPipesHostName         = "data-pipes-host"
+		dataPipesRegion           = "data-pipes-region"
 		dryRunFlagName            = "dry-run"
 		dryRunFlagNameShort       = "n"
 	)
@@ -113,7 +119,7 @@ func poplarReport() cli.Command {
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:  serviceFlagName,
-				Usage: "specify the address of the metrics service",
+				Usage: "address of the metrics service",
 			},
 			cli.BoolFlag{
 				Name:  insecureFlagName,
@@ -121,35 +127,55 @@ func poplarReport() cli.Command {
 			},
 			cli.StringFlag{
 				Name:  certFileFlagName,
-				Usage: "specify the client certificate to connect over TLS",
+				Usage: "client certificate to connect over TLS",
 			},
 			cli.StringFlag{
 				Name:  caFileFlagName,
-				Usage: "specify the client ca to connect over TLS",
+				Usage: "client ca to connect over TLS",
 			},
 			cli.StringFlag{
 				Name:  keyFileFlagName,
-				Usage: "specify the client cert key to connect over TLS",
+				Usage: "client cert key to connect over TLS",
 			},
 			cli.StringFlag{
 				Name:  apiUsernameFlagName,
-				Usage: "specify the username for API authentication",
+				Usage: "username for API authentication",
 			},
 			cli.StringFlag{
 				Name:  apiKeyFlagName,
-				Usage: "specify the API key for API authentication",
+				Usage: "API key for API authentication",
 			},
 			cli.StringFlag{
 				Name:  apiUsernameHeaderFlagName,
-				Usage: "specify the username header for API authentication",
+				Usage: "username header for API authentication",
 			},
 			cli.StringFlag{
 				Name:  apiKeyHeaderFlagName,
-				Usage: "specify the API key header for API authentication",
+				Usage: "API key header for API authentication",
+			},
+			cli.StringFlag{
+				Name:  AWSAccessKeyName,
+				Usage: "AWS access key ID for the Data Pipes uploading service",
+			},
+			cli.StringFlag{
+				Name:  AWSSecretKeyName,
+				Usage: "AWS secret key ID for the Data Pipes uploading service",
+			},
+			cli.StringFlag{
+				Name:  AWSTokenName,
+				Usage: "AWS token for the Data Pipes uploading service",
 			},
 			cli.StringFlag{
 				Name:  pathFlagName,
-				Usage: "specify the path of the input file, may be the first positional argument",
+				Usage: "path of the input file, may be the first positional argument",
+			},
+			cli.StringFlag{
+				Name:  dataPipesHostName,
+				Usage: "Data Pipes host URL for uploading results",
+			},
+			cli.StringFlag{
+				Name:  dataPipesRegion,
+				Usage: "region containing the Data Pipes host",
 			},
 			cli.BoolFlag{
 				Name:  dryRunFlagName + "," + dryRunFlagNameShort,
@@ -171,6 +197,11 @@ func poplarReport() cli.Command {
 			apiKey := c.String(apiKeyFlagName)
 			apiUsernameHeader := c.String(apiUsernameHeaderFlagName)
 			apiKeyHeader := c.String(apiKeyHeaderFlagName)
+			AWSAccessKey := c.String(AWSAccessKeyName)
+			AWSSecretKey := c.String(AWSSecretKeyName)
+			AWSToken := c.String(AWSTokenName)
+			dataPipesHost := c.String(dataPipesHostName)
+			dataPipesRegion := c.String(dataPipesRegion)
 			dryRun := c.Bool("dry-run") || c.Bool("n")
 
 			report, err := poplar.LoadReport(fileName)
@@ -180,6 +211,9 @@ func poplarReport() cli.Command {
 
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
+
+			client := utility.GetHTTPClient()
+			defer utility.PutHTTPClient(client)
 
 			var tlsConf *tls.Config
 			if !isInsecure {
@@ -210,10 +244,16 @@ func poplarReport() cli.Command {
 			}
 
 			opts := rpc.UploadReportOptions{
-				Report:          report,
-				ClientConn:      conn,
-				DryRun:          dryRun,
-				SerializeUpload: true,
+				Report:              report,
+				ClientConn:          conn,
+				DryRun:              dryRun,
+				AWSAccessKey:        AWSAccessKey,
+				AWSSecretKey:        AWSSecretKey,
+				AWSToken:            AWSToken,
+				DataPipesHost:       dataPipesHost,
+				DataPipesRegion:     dataPipesRegion,
+				DataPipesHTTPClient: client,
+				SerializeUpload:     true,
 			}
 			if err := rpc.UploadReport(ctx, opts); err != nil {
 				return errors.WithStack(err)
