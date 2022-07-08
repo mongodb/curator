@@ -119,7 +119,7 @@ func poplarReport() cli.Command {
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:  serviceFlagName,
-				Usage: "specify the address of the metrics service",
+				Usage: "address of the metrics service",
 			},
 			cli.BoolFlag{
 				Name:  insecureFlagName,
@@ -127,55 +127,55 @@ func poplarReport() cli.Command {
 			},
 			cli.StringFlag{
 				Name:  certFileFlagName,
-				Usage: "specify the client certificate to connect over TLS",
+				Usage: "client certificate to connect over TLS",
 			},
 			cli.StringFlag{
 				Name:  caFileFlagName,
-				Usage: "specify the client ca to connect over TLS",
+				Usage: "client ca to connect over TLS",
 			},
 			cli.StringFlag{
 				Name:  keyFileFlagName,
-				Usage: "specify the client cert key to connect over TLS",
+				Usage: "client cert key to connect over TLS",
 			},
 			cli.StringFlag{
 				Name:  apiUsernameFlagName,
-				Usage: "specify the username for API authentication",
+				Usage: "username for API authentication",
 			},
 			cli.StringFlag{
 				Name:  apiKeyFlagName,
-				Usage: "specify the API key for API authentication",
+				Usage: "API key for API authentication",
 			},
 			cli.StringFlag{
 				Name:  apiUsernameHeaderFlagName,
-				Usage: "specify the username header for API authentication",
+				Usage: "username header for API authentication",
 			},
 			cli.StringFlag{
 				Name:  apiKeyHeaderFlagName,
-				Usage: "specify the API key header for API authentication",
+				Usage: "API key header for API authentication",
 			},
 			cli.StringFlag{
 				Name:  AWSAccessKeyName,
-				Usage: "AWS access key ID to upload results to receiving service",
+				Usage: "AWS access key ID for the Data Pipes uploading service",
 			},
 			cli.StringFlag{
 				Name:  AWSSecretKeyName,
-				Usage: "AWS secret key to upload results to receiving service",
+				Usage: "AWS secret key ID for the Data Pipes uploading service",
 			},
 			cli.StringFlag{
 				Name:  AWSTokenName,
-				Usage: "AWS token to upload results to receiving service",
+				Usage: "AWS token for the Data Pipes uploading service",
 			},
 			cli.StringFlag{
 				Name:  pathFlagName,
-				Usage: "specify the path of the input file, may be the first positional argument",
+				Usage: "path of the input file, may be the first positional argument",
 			},
 			cli.StringFlag{
 				Name:  dataPipesHostName,
-				Usage: "specify the data pipes host URL to upload results to",
+				Usage: "Data Pipes host URL for uploading results",
 			},
 			cli.StringFlag{
 				Name:  dataPipesRegion,
-				Usage: "region containing the data pipes host",
+				Usage: "region containing the Data Pipes host",
 			},
 			cli.BoolFlag{
 				Name:  dryRunFlagName + "," + dryRunFlagNameShort,
