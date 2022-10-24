@@ -673,7 +673,6 @@ github.com/mongodb/amboy v0.0.0-20220408184825-b2a14e2c511d/go.mod h1:pyAwlkip3M
 github.com/mongodb/anser v0.0.0-20220408164649-99dd61768f4a h1:kgz0KyhlQvNcl4AdlR7IeExdK+uPMZFDTz6lTI+JXww=
 github.com/mongodb/anser v0.0.0-20220408164649-99dd61768f4a/go.mod h1:iiM0FTD1XWGSxZPdM3NkCQeZEqatn9lGqwIZy3RwtgE=
 github.com/mongodb/ftdc v0.0.0-20211018154918-80dd1c22e4cf/go.mod h1:qd800FxWJIh4VUqu2d9Cmzdpv1CGXMqdwkntAKbaLlY=
-github.com/mongodb/ftdc v0.0.0-20220401165013-13e4af55e809 h1:CQVEigRr2M/OFIPn+wQWerSadMioMY1cLp22yZX+Ygk=
 github.com/mongodb/ftdc v0.0.0-20220401165013-13e4af55e809/go.mod h1:zz0HHFUU4/TOxl9TW4P9t3y3Ivx+sTWS2nwnhuYYRdw=
 github.com/mongodb/ftdc v0.0.0-20221024183314-4a04130fd79b h1:7UeT0tWbMu14vkmbp9/i1bmmwhF98IYAwj11i6ZIkdM=
 github.com/mongodb/ftdc v0.0.0-20221024183314-4a04130fd79b/go.mod h1:QyguMdtOMt0JtHu0JbdbUPrnRML9rD8P5luJYvf62Mo=
@@ -1189,8 +1188,8 @@ golang.org/x/sys v0.0.0-20210816074244-15123e1e1f71/go.mod h1:oPkhp1MJrh7nUepCBc
 golang.org/x/sys v0.0.0-20210927094055-39ccf1dd6fa6/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.0.0-20211019181941-9d821ace8654/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.0.0-20211216021012-1d35b9e2eb4e/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
-golang.org/x/sys v0.0.0-20220128215802-99c3d69c2c27 h1:XDXtA5hveEEV8JB2l7nhMTp3t3cHp9ZpwcdjqyEWLlo=
 golang.org/x/sys v0.0.0-20220128215802-99c3d69c2c27/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
+golang.org/x/sys v0.0.0-20220811171246-fbc7d0a398ab h1:2QkjZIsXupsJbJIdSjjUOgWK3aEtzyuh2mPt3l/CkeU=
 golang.org/x/sys v0.0.0-20220811171246-fbc7d0a398ab/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/term v0.0.0-20201117132131-f5c789dd3221/go.mod h1:Nr5EML6q2oocZ2LXRh80K7BxOlk5/8JxuGnuhpl+muw=
 golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1/go.mod h1:bj7SfCRtBDWHUb9snDiAeCFNEtKQo2Wmx5Cou7ajbmo=
