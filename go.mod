@@ -18,7 +18,7 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/mongodb/amboy v0.0.0-20220408184825-b2a14e2c511d
 	github.com/mongodb/anser v0.0.0-20220408164649-99dd61768f4a
-	github.com/mongodb/ftdc v0.0.0-20220401165013-13e4af55e809
+	github.com/mongodb/ftdc v0.0.0-20221024183314-4a04130fd79b
 	github.com/mongodb/grip v0.0.0-20220401165023-6a1d9bb90c21
 	github.com/mongodb/jasper v0.0.0-20220414210257-3c626703e694
 	github.com/papertrail/go-tail v0.0.0-20180509224916-973c153b0431
@@ -26,7 +26,7 @@ require (
 	github.com/stretchr/testify v1.8.0
 	github.com/urfave/cli v1.22.10
 	go.mongodb.org/mongo-driver v1.10.2
-	golang.org/x/sys v0.0.0-20220128215802-99c3d69c2c27
+	golang.org/x/sys v0.0.0-20220811171246-fbc7d0a398ab
 	google.golang.org/grpc v1.49.0
 	gopkg.in/yaml.v2 v2.4.0
 )
