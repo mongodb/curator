@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	shlex "github.com/anmitsu/go-shlex"
@@ -391,7 +392,7 @@ func (l *cmdLogger) followFile(fn string) error {
 	}()
 
 	c := make(chan os.Signal, 1)
-	signal.Notify(c)
+	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 	s := <-c
 	grip.Notice(fmt.Sprintf("got signal: %s", s))
 	end <- 0
