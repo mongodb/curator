@@ -106,9 +106,17 @@ func (c *Client) Login(ctx context.Context, username, password string) error {
 		return c.handleError(resp.StatusCode, resp.Body)
 	}
 
+	defer resp.Body.Close()
+
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return errors.Wrap(err, "read response body")
+	}
+
+	reader := io.NopCloser(bytes.NewReader(b))
 	data := &userAPIKeyResponse{}
-	if err = gimlet.GetJSON(resp.Body, data); err != nil {
-		return errors.Wrap(err, "reading body of login response")
+	if err = gimlet.GetJSON(reader, data); err != nil {
+		return errors.Wrapf(err, "reading body of login response: %s", string(b))
 	}
 
 	if data.Username != username {
