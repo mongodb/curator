@@ -2,7 +2,7 @@
 Package check provides implementation of check functions or jobs that
 are used in system validation.
 
-Base
+# Base
 
 The base job implements all components of the amboy.Job interface and
 all common components of the greenbay.Check interface, including error
