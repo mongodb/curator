@@ -2,7 +2,7 @@
 Package greenbay contains the basic type definition used in the
 greenbay application.
 
-Overview
+# Overview
 
 The Greenbay application is a system integration testing and
 validation tool. It contains definitions of some generic test

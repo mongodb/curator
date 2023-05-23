@@ -168,31 +168,20 @@ post:
 #           Buildvariants             #
 #######################################
 buildvariants:
-  - name: race-detector
-    display_name: Race Detector (Arch Linux)
-    expansions:
-      GOROOT: /opt/golang/go1.16
-      RACE_DETECTOR: true
-    run_on:
-      - archlinux-new-small
-      - archlinux-new-large
-    tasks:
-      - ".test"
 
   - name: lint
-    display_name: Lint (Arch Linux)
+    display_name: Lint (Ubuntu 22.04)
     expansions:
-      GOROOT: /opt/golang/go1.16
+      GOROOT: /opt/golang/go1.20
     run_on:
-      - archlinux-new-small
-      - archlinux-new-large
+      - ubuntu2204-small
     tasks: 
       - name: ".report"
 
   - name: rhel70
     display_name: RHEL 7.0
     expansions:
-      GOROOT: /opt/golang/go1.16
+      GOROOT: /opt/golang/go1.20
       goarch: amd64
       goos: linux
     run_on:
@@ -204,12 +193,12 @@ buildvariants:
       - name: "push"
 
   - name: ubuntu
-    display_name: Ubuntu 18.04
+    display_name: Ubuntu 22.04
     run_on:
-      - ubuntu1804-small
-      - ubuntu1804-large
+      - ubuntu2204-small
     expansions:
-      GOROOT: /opt/golang/go1.16
+      GOROOT: /opt/golang/go1.20
+      RACE_DETECTOR: true
       goarch: amd64
       goos: linux
     tasks:
@@ -218,43 +207,40 @@ buildvariants:
       - name: "push"
 
   - name: macos
-    display_name: macOS 10.14
+    display_name: macOS 11.00
     expansions:
-      GOROOT: /opt/golang/go1.16
+      GOROOT: /opt/golang/go1.20
       goarch: amd64
       goos: darwin
     run_on:
-      - macos-1014
+      - macos-1100
+    tasks:
+      - ".dist"
+      - ".test"
+      - name: "push"
+
+  - name: macos-arm64
+    display_name: macOS 11.00 ARM64
+    expansions:
+      GOROOT: /opt/golang/go1.20
+      goarch: arm64
+      goos: darwin
+    run_on:
+      - macos-1100-arm64
     tasks:
       - ".dist"
       - ".test"
       - name: "push"
 
   # the following targets *just* cross compile the binary for different architectures.
-  - name: macos-arm64
-    display_name: macOS 11.00 ARM64 (cross-compile)
-    expansions:
-      GOROOT: /opt/golang/go1.16
-      goarch: arm64
-      goos: darwin
-    run_on:
-      - macos-1014
-    tasks:
-      - name: ".dist"
-        depends_on:
-          - name: ".test"
-            variant: macos
-      - name: "push"
-
   - name: s390x
     display_name: "zLinux (cross-compile)"
     expansions:
-      GOROOT: /opt/golang/go1.16
+      GOROOT: /opt/golang/go1.20
       goarch: s390x
       goos: linux
     run_on:
-      - ubuntu1804-small
-      - ubuntu1804-large
+      - ubuntu2204-small
     tasks:
       - name: ".dist"
         depends_on:
@@ -265,12 +251,11 @@ buildvariants:
   - name: power
     display_name: "Linux POWER (cross-compile)"
     expansions:
-      GOROOT: /opt/golang/go1.16
+      GOROOT: /opt/golang/go1.20
       goarch: ppc64le
       goos: linux
     run_on:
-      - ubuntu1804-small
-      - ubuntu1804-large
+      - ubuntu2204-small
     tasks:
       - name: ".dist"
         depends_on:
@@ -281,12 +266,11 @@ buildvariants:
   - name: arm
     display_name: "Linux ARM64 (cross-compile)"
     expansions:
-      GOROOT: /opt/golang/go1.16
+      GOROOT: /opt/golang/go1.20
       goarch: arm64
       goos: linux
     run_on:
-      - ubuntu1804-small
-      - ubuntu1804-large
+      - ubuntu2204-small
     tasks:
       - name: ".dist"
         depends_on:
@@ -297,12 +281,11 @@ buildvariants:
   - name: linux-32
     display_name: "Linux 32-bit (cross-compile)"
     expansions:
-      GOROOT: /opt/golang/go1.16
+      GOROOT: /opt/golang/go1.20
       goarch: 386
       goos: linux
     run_on:
-      - ubuntu1804-small
-      - ubuntu1804-large
+      - ubuntu2204-small
     tasks:
       - name: ".dist"
         depends_on:
@@ -313,12 +296,11 @@ buildvariants:
   - name: windows-64
     display_name: "Windows 64-bit (cross-compile)"
     expansions:
-      GOROOT: /opt/golang/go1.16
+      GOROOT: /opt/golang/go1.20
       goarch: amd64
       goos: windows
     run_on:
-      - ubuntu1804-small
-      - ubuntu1804-large
+      - ubuntu2204-small
     tasks:
       - name: ".dist"
         depends_on:
@@ -329,12 +311,11 @@ buildvariants:
   - name: windows-32
     display_name: "Windows 32-bit (cross-compile)"
     expansions:
-      GOROOT: /opt/golang/go1.16
+      GOROOT: /opt/golang/go1.20
       goarch: 386
       goos: windows
     run_on:
-      - ubuntu1804-small
-      - ubuntu1804-large
+      - ubuntu2204-small
     tasks:
       - name: ".dist"
         depends_on:

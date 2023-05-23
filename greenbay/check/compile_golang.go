@@ -42,7 +42,7 @@ func goCompilerAuto() compiler {
 		{"/usr/bin/go", ""},
 		{"/usr/local/go/bin/go", ""},
 		{"/usr/local/bin/go", ""},
-		{"/opt/golang/go1.10/bin/go", "/opt/golang/go1.10"},
+		{"/opt/golang/go1.20/bin/go", "/opt/golang/go1.20"},
 	}
 	c := compileGolang{}
 
