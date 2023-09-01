@@ -15,7 +15,7 @@ require (
 	github.com/evergreen-ci/timber v0.0.0-20220408175538-819ca602876e
 	github.com/evergreen-ci/utility v0.0.0-20220404192535-d16eb64796e6
 	github.com/ghodss/yaml v1.0.0
-	github.com/google/uuid v1.3.0
+	github.com/google/uuid v1.3.1
 	github.com/mongodb/amboy v0.0.0-20220408184825-b2a14e2c511d
 	github.com/mongodb/anser v0.0.0-20220408164649-99dd61768f4a
 	github.com/mongodb/ftdc v0.0.0-20221024183314-4a04130fd79b
