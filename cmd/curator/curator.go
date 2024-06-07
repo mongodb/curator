@@ -51,6 +51,7 @@ func buildApp() *cli.App {
 		operations.FTDC(),
 		operations.Timber(),
 		operations.Backup(),
+		operations.CalculateRollups(),
 	}
 
 	// These are global options. Use this to configure logging or
