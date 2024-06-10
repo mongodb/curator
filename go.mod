@@ -3,6 +3,7 @@ module github.com/mongodb/curator
 go 1.20
 
 require (
+	github.com/aclements/go-moremath v0.0.0-20210112150236-f10218a38794
 	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/evergreen-ci/aviation v0.0.0-20220405151811-ff4a78a4297c
