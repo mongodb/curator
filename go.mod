@@ -1,6 +1,6 @@
 module github.com/mongodb/curator
 
-go 1.20
+go 1.24
 
 require (
 	github.com/aclements/go-moremath v0.0.0-20210112150236-f10218a38794
