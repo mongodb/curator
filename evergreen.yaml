@@ -172,7 +172,7 @@ buildvariants:
   - name: lint
     display_name: Lint
     expansions:
-      GOROOT: /opt/golang/go1.20
+      GOROOT: /opt/golang/go1.24
     run_on:
       - ubuntu2204-small
     tasks: 
@@ -181,7 +181,7 @@ buildvariants:
   - name: rhel70
     display_name: RHEL 7.0
     expansions:
-      GOROOT: /opt/golang/go1.20
+      GOROOT: /opt/golang/go1.24
       goarch: amd64
       goos: linux
     run_on:
@@ -197,7 +197,7 @@ buildvariants:
     run_on:
       - ubuntu2204-small
     expansions:
-      GOROOT: /opt/golang/go1.20
+      GOROOT: /opt/golang/go1.24
       RACE_DETECTOR: true
       goarch: amd64
       goos: linux
@@ -209,7 +209,7 @@ buildvariants:
   - name: macos
     display_name: macOS 11.00
     expansions:
-      GOROOT: /opt/golang/go1.20
+      GOROOT: /opt/golang/go1.24
       goarch: amd64
       goos: darwin
     run_on:
@@ -222,7 +222,7 @@ buildvariants:
   - name: macos-arm64
     display_name: macOS 11.00 ARM64
     expansions:
-      GOROOT: /opt/golang/go1.20
+      GOROOT: /opt/golang/go1.24
       goarch: arm64
       goos: darwin
     run_on:
@@ -236,7 +236,7 @@ buildvariants:
   - name: s390x
     display_name: "zLinux (cross-compile)"
     expansions:
-      GOROOT: /opt/golang/go1.20
+      GOROOT: /opt/golang/go1.24
       goarch: s390x
       goos: linux
     run_on:
@@ -251,7 +251,7 @@ buildvariants:
   - name: power
     display_name: "Linux POWER (cross-compile)"
     expansions:
-      GOROOT: /opt/golang/go1.20
+      GOROOT: /opt/golang/go1.24
       goarch: ppc64le
       goos: linux
     run_on:
@@ -266,7 +266,7 @@ buildvariants:
   - name: arm
     display_name: "Linux ARM64 (cross-compile)"
     expansions:
-      GOROOT: /opt/golang/go1.20
+      GOROOT: /opt/golang/go1.24
       goarch: arm64
       goos: linux
     run_on:
@@ -281,7 +281,7 @@ buildvariants:
   - name: linux-32
     display_name: "Linux 32-bit (cross-compile)"
     expansions:
-      GOROOT: /opt/golang/go1.20
+      GOROOT: /opt/golang/go1.24
       goarch: 386
       goos: linux
     run_on:
@@ -296,7 +296,7 @@ buildvariants:
   - name: windows-64
     display_name: "Windows 64-bit (cross-compile)"
     expansions:
-      GOROOT: /opt/golang/go1.20
+      GOROOT: /opt/golang/go1.24
       goarch: amd64
       goos: windows
     run_on:
@@ -311,7 +311,7 @@ buildvariants:
   - name: windows-32
     display_name: "Windows 32-bit (cross-compile)"
     expansions:
-      GOROOT: /opt/golang/go1.20
+      GOROOT: /opt/golang/go1.24
       goarch: 386
       goos: windows
     run_on:
