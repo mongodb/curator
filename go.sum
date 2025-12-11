@@ -84,8 +84,8 @@ github.com/dsnet/compress v0.0.2-0.20210315054119-f66993602bf5 h1:iFaUwBSo5Svw6L
 github.com/dsnet/compress v0.0.2-0.20210315054119-f66993602bf5/go.mod h1:qssHWj60/X5sZFNxpG4HBPDHVqxNm4DfnCKgrbZOT+s=
 github.com/dsnet/golib v0.0.0-20171103203638-1ea166775780/go.mod h1:Lj+Z9rebOhdfkVLjJ8T6VcRQv3SXugXy999NBtR9aFY=
 github.com/dustin/go-humanize v1.0.0/go.mod h1:HtrtbFcZ19U5GC7JDqmcUSB87Iq5E25KnS6fMYU6eOk=
-github.com/evergreen-ci/aviation v0.0.0-20250224221603-9ff1979a684a h1:OXAJX/mqSoKegKyDQgN87M5JmU0kSO6HjBXP7mZgknI=
-github.com/evergreen-ci/aviation v0.0.0-20250224221603-9ff1979a684a/go.mod h1:ZFls6H69lDtPDPdCh6cpvNBhKf4yDU5NsAo9Q3R899c=
+github.com/evergreen-ci/aviation v0.0.0-20251211165025-14902cd23f70 h1:RsPVLFhGGvZuBOkZ1DpebqRJGYIhmQk+cXnUmuWSogY=
+github.com/evergreen-ci/aviation v0.0.0-20251211165025-14902cd23f70/go.mod h1:4Nflhi13UYgvu2OS+pWcYIFUoqe/9gFK3Uz1dPqZcrQ=
 github.com/evergreen-ci/baobab v1.0.1-0.20220107150152-03b522479f52 h1:e5fgBYO+zFtcG84TL+1eq6vGg16W4vXYYPEsmfOomwE=
 github.com/evergreen-ci/baobab v1.0.1-0.20220107150152-03b522479f52/go.mod h1:/9fbOyzmfyAMEVTvlXzG/ASiUb0ucC4bu05MeCrmV7I=
 github.com/evergreen-ci/birch v0.0.0-20250224221624-64f481f4b888 h1:ypl1JbRMZS5qETyTEUldCyJp1aLujr3i73xMqvzT2+g=

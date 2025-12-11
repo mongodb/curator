@@ -6,7 +6,7 @@ require (
 	github.com/aclements/go-moremath v0.0.0-20210112150236-f10218a38794
 	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/evergreen-ci/aviation v0.0.0-20250224221603-9ff1979a684a
+	github.com/evergreen-ci/aviation v0.0.0-20251211165025-14902cd23f70
 	github.com/evergreen-ci/birch v0.0.0-20250224221624-64f481f4b888
 	github.com/evergreen-ci/bond v0.0.0-20251209195750-b541586174f7
 	github.com/evergreen-ci/gimlet v0.0.0-20251205151908-163517996b82
