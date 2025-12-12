@@ -82,7 +82,7 @@ func (s *BaseCheckSuite) TestMutableIDMethod() {
 		s.base.SetID(name)
 		s.NotEqual(s.base.Name(), s.base.ID())
 		s.Equal(name, s.base.ID())
-		s.Equal(s.base.ID(), s.base.TaskID)
+		s.Equal(s.base.ID(), s.base.Base.Name)
 	}
 }
 
