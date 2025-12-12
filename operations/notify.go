@@ -1,7 +1,6 @@
 package operations
 
 import (
-	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -170,26 +169,6 @@ func Notify() cli.Command {
 
 				if err != nil {
 					return errors.Wrap(err, "setting up GitHub logger")
-				}
-			case "jira":
-				opts := &send.JiraOptions{
-					Name:    c.String("source"),
-					BaseURL: c.String("jiraURL"),
-					BasicAuthOpts: send.JiraBasicAuth{
-						Username: c.String("username"),
-						Password: c.String("password"),
-					},
-				}
-				issue := c.String("issue")
-
-				if issue == "" {
-					sender, err = send.MakeJiraLogger(context.Background(), opts)
-				} else {
-					sender, err = send.MakeJiraCommentLogger(context.Background(), issue, opts)
-				}
-
-				if err != nil {
-					return errors.Wrap(err, "setting up Jira logger")
 				}
 			case "print":
 				sender = send.MakeNative()

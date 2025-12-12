@@ -45,7 +45,6 @@ func buildApp() *cli.App {
 		operations.Notify(),
 		operations.Greenbay(),
 		jaspercli.Jasper(),
-		operations.Poplar(),
 		operations.FTDC(),
 		operations.Backup(),
 		operations.CalculateRollups(),

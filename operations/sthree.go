@@ -48,6 +48,7 @@ import (
 	"time"
 
 	"github.com/evergreen-ci/pail"
+	"github.com/evergreen-ci/utility"
 	"github.com/mongodb/grip"
 	"github.com/mongodb/grip/level"
 	"github.com/pkg/errors"
@@ -107,10 +108,10 @@ func s3PutCmd() cli.Command {
 				Permissions:              pail.S3Permissions(c.String("permissions")),
 				ContentType:              c.String("type"),
 				DryRun:                   c.Bool("dry-run"),
-				MaxRetries:               c.Int("retries"),
+				MaxRetries:               utility.ToIntPtr(c.Int("retries")),
 				Verbose:                  c.Bool("verbose"),
 			}
-			bucket, err := pail.NewS3Bucket(opts)
+			bucket, err := pail.NewS3Bucket(ctx, opts)
 			if err != nil {
 				return errors.Wrap(err, "getting new bucket")
 			}
@@ -152,10 +153,10 @@ func s3GetCmd() cli.Command {
 				Region:                   c.String("region"),
 				Name:                     c.String("bucket"),
 				DryRun:                   c.Bool("dry-run"),
-				MaxRetries:               c.Int("retries"),
+				MaxRetries:               utility.ToIntPtr(c.Int("retries")),
 				Verbose:                  c.Bool("verbose"),
 			}
-			bucket, err := pail.NewS3Bucket(opts)
+			bucket, err := pail.NewS3Bucket(ctx, opts)
 			if err != nil {
 				return errors.Wrap(err, "getting new bucket")
 			}
@@ -191,10 +192,10 @@ func s3DeleteCmd() cli.Command {
 				Region:                   c.String("region"),
 				Name:                     c.String("bucket"),
 				DryRun:                   c.Bool("dry-run"),
-				MaxRetries:               c.Int("retries"),
+				MaxRetries:               utility.ToIntPtr(c.Int("retries")),
 				Verbose:                  c.Bool("verbose"),
 			}
-			bucket, err := pail.NewS3Bucket(opts)
+			bucket, err := pail.NewS3Bucket(ctx, opts)
 			if err != nil {
 				return errors.Wrap(err, "getting new bucket")
 			}
@@ -230,10 +231,10 @@ func s3DeletePrefixCmd() cli.Command {
 				Region:                   c.String("region"),
 				Name:                     c.String("bucket"),
 				DryRun:                   c.Bool("dry-run"),
-				MaxRetries:               c.Int("retries"),
+				MaxRetries:               utility.ToIntPtr(c.Int("retries")),
 				Verbose:                  c.Bool("verbose"),
 			}
-			bucket, err := pail.NewS3Bucket(opts)
+			bucket, err := pail.NewS3Bucket(ctx, opts)
 			if err != nil {
 				return errors.Wrap(err, "getting new bucket")
 			}
@@ -269,10 +270,10 @@ func s3DeleteMatchingCmd() cli.Command {
 				Region:                   c.String("region"),
 				Name:                     c.String("bucket"),
 				DryRun:                   c.Bool("dry-run"),
-				MaxRetries:               c.Int("retries"),
+				MaxRetries:               utility.ToIntPtr(c.Int("retries")),
 				Verbose:                  c.Bool("verbose"),
 			}
-			bucket, err := pail.NewS3Bucket(opts)
+			bucket, err := pail.NewS3Bucket(ctx, opts)
 			if err != nil {
 				return errors.Wrap(err, "getting new bucket")
 			}
@@ -306,12 +307,12 @@ func s3SyncToCmd() cli.Command {
 				Name:                     c.String("bucket"),
 				DryRun:                   c.Bool("dry-run"),
 				DeleteOnSync:             c.Bool("delete"),
-				MaxRetries:               c.Int("retries"),
+				MaxRetries:               utility.ToIntPtr(c.Int("retries")),
 				UseSingleFileChecksums:   true,
 				Permissions:              pail.S3Permissions(c.String("permissions")),
 				Verbose:                  c.Bool("verbose"),
 			}
-			bucket, err := pail.NewS3Bucket(opts)
+			bucket, err := pail.NewS3Bucket(ctx, opts)
 			if err != nil {
 				return errors.Wrap(err, "getting new bucket")
 			}
@@ -362,11 +363,11 @@ func s3SyncFromCmd() cli.Command {
 				Name:                     c.String("bucket"),
 				DryRun:                   c.Bool("dry-run"),
 				DeleteOnSync:             c.Bool("delete"),
-				MaxRetries:               c.Int("retries"),
+				MaxRetries:               utility.ToIntPtr(c.Int("retries")),
 				UseSingleFileChecksums:   true,
 				Verbose:                  c.Bool("verbose"),
 			}
-			bucket, err := pail.NewS3Bucket(opts)
+			bucket, err := pail.NewS3Bucket(ctx, opts)
 			if err != nil {
 				return errors.Wrap(err, "getting new bucket")
 			}

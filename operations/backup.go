@@ -75,7 +75,7 @@ func Backup() cli.Command {
 			}
 			httpClient := utility.GetHTTPClient()
 			defer utility.PutHTTPClient(httpClient)
-			bucket, err := pail.NewS3BucketWithHTTPClient(httpClient,
+			bucket, err := pail.NewS3BucketWithHTTPClient(ctx, httpClient,
 				pail.S3Options{
 					SharedCredentialsProfile: c.String("profile"),
 					Region:                   c.String("region"),

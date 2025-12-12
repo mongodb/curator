@@ -6,13 +6,11 @@ require (
 	github.com/aclements/go-moremath v0.0.0-20210112150236-f10218a38794
 	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/evergreen-ci/aviation v0.0.0-20251211165025-14902cd23f70
 	github.com/evergreen-ci/birch v0.0.0-20250224221624-64f481f4b888
 	github.com/evergreen-ci/bond v0.0.0-20251209195750-b541586174f7
 	github.com/evergreen-ci/gimlet v0.0.0-20251205151908-163517996b82
 	github.com/evergreen-ci/lru v0.0.0-20251209201855-89a4cc8d867f
 	github.com/evergreen-ci/pail v0.0.0-20251205190417-84f1b6e2eef6
-	github.com/evergreen-ci/poplar v0.0.0-20251209144431-fdec8d7b2505
 	github.com/evergreen-ci/utility v0.0.0-20251203163234-8a1c0ea8b717
 	github.com/ghodss/yaml v1.0.0
 	github.com/google/uuid v1.6.0
@@ -27,7 +25,6 @@ require (
 	github.com/urfave/cli v1.22.10
 	go.mongodb.org/mongo-driver v1.17.6
 	golang.org/x/sys v0.38.0
-	google.golang.org/grpc v1.77.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 
@@ -67,6 +64,7 @@ require (
 	github.com/dghubble/oauth1 v0.7.2 // indirect
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/dsnet/compress v0.0.2-0.20210315054119-f66993602bf5 // indirect
+	github.com/evergreen-ci/aviation v0.0.0-20251211165025-14902cd23f70 // indirect
 	github.com/evergreen-ci/baobab v1.0.1-0.20220107150152-03b522479f52 // indirect
 	github.com/evergreen-ci/certdepot v0.0.0-20251209180210-3f52e45cc5a2 // indirect
 	github.com/evergreen-ci/negroni v1.0.1-0.20211028183800-67b6d7c2c035 // indirect
@@ -134,6 +132,7 @@ require (
 	golang.org/x/sync v0.19.0 // indirect
 	golang.org/x/text v0.32.0 // indirect
 	google.golang.org/genproto v0.0.0-20230410155749-daa745c078e1 // indirect
+	google.golang.org/grpc v1.77.0 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
 	gopkg.in/square/go-jose.v2 v2.6.0 // indirect
