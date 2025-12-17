@@ -168,6 +168,19 @@ post:
 #           Buildvariants             #
 #######################################
 buildvariants:
+  # Race detector tests are intentionally run in a dedicated build variant
+  # because running tests with the race detector requires CGO to be enabled.
+  # Other build variants that compile and push artifacts need CGO to be disabled
+  # to build statically-linked binaries.
+  - name: race-detector
+    display_name: Race Detector
+    expansions:
+      GOROOT: /opt/golang/go1.24
+      RACE_DETECTOR: true
+    run_on:
+      - ubuntu2204-small
+    tasks:
+      - ".test"
 
   - name: lint
     display_name: Lint
@@ -198,7 +211,6 @@ buildvariants:
       - ubuntu2204-small
     expansions:
       GOROOT: /opt/golang/go1.24
-      RACE_DETECTOR: true
       goarch: amd64
       goos: linux
     tasks:
