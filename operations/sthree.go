@@ -308,7 +308,6 @@ func s3SyncToCmd() cli.Command {
 				DryRun:                   c.Bool("dry-run"),
 				DeleteOnSync:             c.Bool("delete"),
 				MaxRetries:               utility.ToIntPtr(c.Int("retries")),
-				UseSingleFileChecksums:   true,
 				Permissions:              pail.S3Permissions(c.String("permissions")),
 				Verbose:                  c.Bool("verbose"),
 			}
@@ -364,7 +363,6 @@ func s3SyncFromCmd() cli.Command {
 				DryRun:                   c.Bool("dry-run"),
 				DeleteOnSync:             c.Bool("delete"),
 				MaxRetries:               utility.ToIntPtr(c.Int("retries")),
-				UseSingleFileChecksums:   true,
 				Verbose:                  c.Bool("verbose"),
 			}
 			bucket, err := pail.NewS3Bucket(ctx, opts)
