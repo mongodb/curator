@@ -58,8 +58,7 @@ tasks:
       - command: s3.put
         type: setup
         params:
-          aws_key: ${aws_key}
-          aws_secret: ${aws_secret}
+          role_arn: ${aws_s3_role_arn}
           local_file: curator/build/dist.tar.gz
           remote_file: curator/${build_id}-${build_variant}/curator-dist-${revision}.tar.gz
           bucket: mciuploads
@@ -120,11 +119,16 @@ tasks:
     depends_on:
     - name: "*"
     commands:
+      - command: ec2.assume_role
+        type: setup
+        params:
+          role_arn: ${aws_s3_role_arn}
       - command: s3Copy.copy
         type: test
         params:
-          aws_key: ${aws_key}
-          aws_secret: ${aws_secret}
+          aws_key: ${AWS_ACCESS_KEY_ID}
+          aws_secret: ${AWS_SECRET_ACCESS_KEY}
+          aws_session_token: ${AWS_SESSION_TOKEN}
           s3_copy_files:
           - {'source': { 'path': 'curator/${build_id}-${build_variant}/curator-dist-${revision}.tar.gz', 'bucket': 'mciuploads' },
              'destination': { 'path': 'build/curator/curator-dist-${build_variant}-${revision}.tar.gz', 'bucket': 'boxes.10gen.com' } }
@@ -144,8 +148,7 @@ post:
   - command: s3.put
     type: system
     params:
-      aws_key: ${aws_key}
-      aws_secret: ${aws_secret}
+      role_arn: ${aws_s3_role_arn}
       local_files_include_filter: ["curator/build/output.*.coverage.html"]
       remote_file: curator/${task_id}/
       bucket: mciuploads
@@ -155,8 +158,7 @@ post:
   - command: s3.put
     type: system
     params:
-      aws_key: ${aws_key}
-      aws_secret: ${aws_secret}
+      role_arn: ${aws_s3_role_arn}
       local_files_include_filter: ["curator/build/output.*.coverage"]
       remote_file: curator/${task_id}/
       bucket: mciuploads
