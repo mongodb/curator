@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/mongodb/amboy"
@@ -44,7 +45,7 @@ func (l lxcCheck) hostIsAccessible(host string) error {
 
 	start := time.Now()
 	for i := 0; i < 20; i++ {
-		err := exec.Command("ssh", "-o", "ConnectTimeout=20", "-o", "ConnectionAttempts=20", host, "hostname").Run()
+		err := exec.Command("ssh", "-o", "ConnectTimeout=20", "-o", "ConnectionAttempts=20", "--", host, "hostname").Run()
 		if err != nil {
 			time.Sleep(5 * time.Second)
 			continue
@@ -61,7 +62,7 @@ func (l lxcCheck) hostHasPrograms(host string, programs []string) []string {
 	var msgs []string
 
 	for _, program := range programs {
-		err := exec.Command("ssh", host, "which", program).Run()
+		err := exec.Command("ssh", "--", host, "which", program).Run()
 		if err != nil {
 			msgs = append(msgs,
 				fmt.Sprintf("lxc host is missing program [host='%s', program='%s', error='%+v']",
@@ -90,6 +91,15 @@ func (c *containerCheck) validate() error {
 	if len(c.Hostnames) == 0 {
 		return errors.Errorf("no hostnames configured for %s (%s)",
 			c.ID(), c.Name())
+	}
+
+	// Reject hostnames that could be parsed as options by ssh (or other
+	// commands) rather than as the hostname, to prevent argument injection.
+	for _, host := range c.Hostnames {
+		if strings.HasPrefix(host, "-") {
+			return errors.Errorf("hostname '%s' must not start with '-' for %s (%s)",
+				host, c.ID(), c.Name())
+		}
 	}
 
 	return nil
