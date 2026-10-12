@@ -57,6 +57,16 @@ func (s *ContainerCheckSuite) TestWithOutHostsDefinedCheckFails() {
 	s.False(s.check.Output().Passed)
 }
 
+func (s *ContainerCheckSuite) TestHostnameStartingWithOptionPrefixFailsValidation() {
+	// a leading "-" would let the hostname be parsed as an ssh option
+	// rather than a hostname.
+	s.check.Hostnames = []string{"-oProxyCommand=touch /tmp/pwned"}
+	s.Error(s.check.validate())
+	s.check.Run(context.Background())
+	s.Error(s.check.Error())
+	s.False(s.check.Output().Passed)
+}
+
 func (s *ContainerCheckSuite) TestDefaultStateOfFixtureValidates() {
 	s.Len(s.check.Hostnames, 1)
 	s.NoError(s.check.validate())
