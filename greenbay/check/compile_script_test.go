@@ -15,7 +15,7 @@ func TestScriptCompilerImplementation(t *testing.T) {
 	assert.Equal("", check.bin)
 	assert.Error(check.Validate())
 
-	check.bin = "/usr/bin/python"
+	check.bin = "python3"
 	assert.NoError(check.Validate())
 
 	// check that a basic hello world operation succeeds
