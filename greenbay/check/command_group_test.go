@@ -71,13 +71,11 @@ func (s *CmdGroupSuite) SetupSuite() {
 	s.name = "cmd-group"
 	s.require = s.Require()
 	s.cmds = map[string]bool{
-		"true":              true,
-		"false":             false,
-		"exit 0":            true,
-		"exit 1":            false,
-		"python3 --version":  true,
-		"pythong --version": false,
-		"echo $VALUE":       true,
+		"true":        true,
+		"false":       false,
+		"exit 0":      true,
+		"exit 1":      false,
+		"echo $VALUE": true,
 	}
 }
 

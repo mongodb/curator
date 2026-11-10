@@ -14,8 +14,8 @@ func TestProgramCheckImplementation(t *testing.T) {
 	// the passing case where output matches.
 	check := &programOutputCheck{
 		Base:           NewBase("test", 0),
-		compiler:       &compileScript{bin: "python3"},
-		Source:         "print('hello world')",
+		compiler:       &compileScript{bin: "/bin/sh"},
+		Source:         "echo 'hello world'",
 		ExpectedOutput: "hello world",
 	}
 
@@ -29,8 +29,8 @@ func TestProgramCheckImplementation(t *testing.T) {
 	// the failing case where output is mismatched
 	check = &programOutputCheck{
 		Base:           NewBase("test", 0),
-		compiler:       &compileScript{bin: "python3"},
-		Source:         "print('hello world')",
+		compiler:       &compileScript{bin: "/bin/sh"},
+		Source:         "echo 'hello world'",
 		ExpectedOutput: "hello world???!!!",
 	}
 
@@ -43,8 +43,8 @@ func TestProgramCheckImplementation(t *testing.T) {
 	// the failing case where the command fails
 	check = &programOutputCheck{
 		Base:           NewBase("test", 0),
-		compiler:       &compileScript{bin: "python3"},
-		Source:         "exit(1)",
+		compiler:       &compileScript{bin: "/bin/sh"},
+		Source:         "exit 1",
 		ExpectedOutput: "hello world???!!!",
 	}
 

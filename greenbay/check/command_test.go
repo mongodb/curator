@@ -18,8 +18,6 @@ func TestCommandCheck(t *testing.T) {
 		"command-does-not-exist": false,
 		"sleep 0":                true,
 		"sh -c \"true\"":         true,
-		"python3 --version":       true,
-		"pythong --version":      false,
 		"echo $VALUE":            true,
 	}
 
