@@ -221,26 +221,24 @@ buildvariants:
       - name: "push"
 
   - name: macos
-    display_name: macOS 11.00
+    display_name: macOS 14
     expansions:
-      GOROOT: /opt/golang/go1.24
       goarch: amd64
       goos: darwin
     run_on:
-      - macos-1100
+      - macos-14
     tasks:
       - ".dist"
       - ".test"
       - name: "push"
 
   - name: macos-arm64
-    display_name: macOS 11.00 ARM64
+    display_name: macOS 14 ARM64
     expansions:
-      GOROOT: /opt/golang/go1.24
       goarch: arm64
       goos: darwin
     run_on:
-      - macos-1100-arm64
+      - macos-14-arm64
     tasks:
       - ".dist"
       - ".test"
