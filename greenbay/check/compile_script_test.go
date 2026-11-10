@@ -15,21 +15,21 @@ func TestScriptCompilerImplementation(t *testing.T) {
 	assert.Equal("", check.bin)
 	assert.Error(check.Validate())
 
-	check.bin = "/usr/bin/python"
+	check.bin = "/bin/sh"
 	assert.NoError(check.Validate())
 
 	// check that a basic hello world operation succeeds
-	err := check.Compile("print('hello world')")
+	err := check.Compile("echo 'hello world'")
 	assert.NoError(err)
 
-	out, err := check.CompileAndRun("print('hello world!')")
+	out, err := check.CompileAndRun("echo 'hello world!'")
 	assert.NoError(err)
 	assert.Equal("hello world!", out)
 
 	// check that we detect errors that fail
-	assert.Error(check.Compile("print('hi'); exit(1)"))
+	assert.Error(check.Compile("echo 'hi'; exit 1"))
 
-	out, err = check.CompileAndRun("print('hi'); exit(1)")
+	out, err = check.CompileAndRun("echo 'hi'; exit 1")
 	assert.Error(err)
 	assert.Equal("hi\n", out)
 }

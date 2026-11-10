@@ -32,7 +32,7 @@ require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/PuerkitoBio/rehttp v1.3.0 // indirect
 	github.com/VividCortex/ewma v1.2.0 // indirect
-	github.com/andybalholm/brotli v1.0.3 // indirect
+	github.com/andybalholm/brotli v1.2.7 // indirect
 	github.com/andygrunwald/go-jira v1.16.0 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.40.0 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.10 // indirect

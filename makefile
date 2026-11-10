@@ -22,6 +22,14 @@ ifneq (,$(GOROOT))
 gobin := $(GOROOT)/bin/go
 endif
 
+# some distro images (e.g. macos-14) ship go outside PATH; find it
+ifeq (,$(shell command -v $(gobin) 2>/dev/null))
+gobin := $(firstword $(wildcard /opt/golang/go*/bin/go \
+	/opt/homebrew/bin/go \
+	/usr/local/go/bin/go \
+	/usr/local/bin/go))
+endif
+
 goCache := $(GOCACHE)
 ifeq (,$(goCache))
 goCache := $(abspath $(buildDir)/.cache)

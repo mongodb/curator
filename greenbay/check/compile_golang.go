@@ -3,6 +3,8 @@ package check
 import (
 	"os"
 	"os/exec"
+	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/mongodb/grip"
@@ -42,7 +44,15 @@ func goCompilerAuto() compiler {
 		{"/usr/bin/go", ""},
 		{"/usr/local/go/bin/go", ""},
 		{"/usr/local/bin/go", ""},
-		{"/opt/golang/go1.20/bin/go", "/opt/golang/go1.20"},
+	}
+
+	// pick up versioned golang toolchains (e.g. /opt/golang/go1.24),
+	// preferring the newest version
+	if golang, _ := filepath.Glob("/opt/golang/go*/bin/go"); len(golang) > 0 {
+		sort.Strings(golang)
+		newest := golang[len(golang)-1]
+		root := filepath.Dir(filepath.Dir(newest))
+		paths = append(paths, []string{newest, root})
 	}
 	c := compileGolang{}
 
@@ -72,6 +82,16 @@ type compileGolang struct {
 func (c compileGolang) Validate() error {
 	if c.bin == "" {
 		return errors.New("no go binary specified")
+	}
+
+	// bare command names (e.g. "go") are resolved from PATH at compile
+	// time by exec.Command, so validate them the same way
+	if filepath.Base(c.bin) == c.bin {
+		if _, err := exec.LookPath(c.bin); err != nil {
+			return errors.Errorf("go binary '%s' not found in PATH", c.bin)
+		}
+
+		return nil
 	}
 
 	if _, err := os.Stat(c.bin); os.IsNotExist(err) {

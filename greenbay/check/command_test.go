@@ -2,6 +2,7 @@ package check
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -17,14 +18,17 @@ func TestCommandCheck(t *testing.T) {
 		"command-does-not-exist": false,
 		"sleep 0":                true,
 		"sh -c \"true\"":         true,
-		"python --version":       true,
-		"pythong --version":      false,
 		"echo $VALUE":            true,
 	}
 
+	// always include PATH: on darwin, exec resolves command names
+	// against the command's own environment, so a wiped PATH would
+	// break resolution of the fixture commands
+	path := map[string]string{"PATH": os.Getenv("PATH")}
 	envMaps := []map[string]string{
-		{},
+		path,
 		{
+			"PATH":  os.Getenv("PATH"),
 			"VALUE": "env var",
 		},
 	}

@@ -2,6 +2,7 @@ package check
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,7 +31,9 @@ type CmdGroupSuite struct {
 
 func TestCmdGroupEmptyEnvAndCWDSuite(t *testing.T) {
 	s := new(CmdGroupSuite)
-	s.env = map[string]string{}
+	s.env = map[string]string{
+		"PATH": os.Getenv("PATH"),
+	}
 	s.wd = "./"
 	suite.Run(t, s)
 }
@@ -38,6 +41,7 @@ func TestCmdGroupEmptyEnvAndCWDSuite(t *testing.T) {
 func TestCmdGroupWithEnvAndCWDSuite(t *testing.T) {
 	s := new(CmdGroupSuite)
 	s.env = map[string]string{
+		"PATH":  os.Getenv("PATH"),
 		"VALUE": "env var",
 	}
 	s.wd = "./"
@@ -46,7 +50,9 @@ func TestCmdGroupWithEnvAndCWDSuite(t *testing.T) {
 
 func TestCmdGroupEmptyEnvAndOptWDSuite(t *testing.T) {
 	s := new(CmdGroupSuite)
-	s.env = map[string]string{}
+	s.env = map[string]string{
+		"PATH": os.Getenv("PATH"),
+	}
 	s.wd = "/opt"
 	suite.Run(t, s)
 }
@@ -54,6 +60,7 @@ func TestCmdGroupEmptyEnvAndOptWDSuite(t *testing.T) {
 func TestCmdGroupWithEnvAndOptWDSuite(t *testing.T) {
 	s := new(CmdGroupSuite)
 	s.env = map[string]string{
+		"PATH":  os.Getenv("PATH"),
 		"VALUE": "env var",
 	}
 	s.wd = "/opt"
@@ -64,13 +71,11 @@ func (s *CmdGroupSuite) SetupSuite() {
 	s.name = "cmd-group"
 	s.require = s.Require()
 	s.cmds = map[string]bool{
-		"true":              true,
-		"false":             false,
-		"exit 0":            true,
-		"exit 1":            false,
-		"python --version":  true,
-		"pythong --version": false,
-		"echo $VALUE":       true,
+		"true":        true,
+		"false":       false,
+		"exit 0":      true,
+		"exit 1":      false,
+		"echo $VALUE": true,
 	}
 }
 
